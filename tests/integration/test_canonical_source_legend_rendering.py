@@ -24,6 +24,7 @@ from src.web.rendering._render_result import (
 )
 from src.web.rendering.dashboard_builder import build_dashboard_figure, prepare_dashboard
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+from src.web.rendering.figure_preparation import PreparedFigure
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
 Engine = Literal["plotly", "matplotlib"]
@@ -120,8 +121,10 @@ def test_public_aliases_preserve_original_style_order_values_and_direct_reapply(
         assert native is not None
         assert _state(native) == [("B", "#0000ff", (7.0, 9.0)), ("A", "#ff0000", (3.0, 5.0))]
         assert _legend_texts(native) == ["Same", "Same"]
-        assert plot.render_artifact.trace_result is not None
-        assert [trace.name for trace in plot.render_artifact.trace_result.traces] == ["B", "A"]
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert prepared.trace_result is not None
+        assert [trace.name for trace in prepared.trace_result.traces] == ["B", "A"]
         if isinstance(figure, go.Figure):
             groups = []
             for trace in figure.data:

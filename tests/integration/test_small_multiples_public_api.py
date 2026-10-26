@@ -5,7 +5,9 @@ from __future__ import annotations
 import copy
 
 import pandas as pd
+import plotly.graph_objects as go
 import pytest
+from matplotlib.figure import Figure as MplFigure
 
 import ring5
 from src.web.pages.ui.plotting.base_plot import BasePlot
@@ -45,6 +47,7 @@ def test_small_multiples_render_both_engines_in_order_without_mutation() -> None
         assert plot.processed_data is not None
         original_data = plot.processed_data.copy(deep=True)
         original_config = copy.deepcopy(plot.config)
+        original_artifact = plot.render_artifact
         spec = session.create_small_multiples(
             plot,
             by=["architecture", "mode"],
@@ -66,6 +69,7 @@ def test_small_multiples_render_both_engines_in_order_without_mutation() -> None
         assert (spec.rows, spec.columns, spec.width, spec.height) == (2, 2, 960, 560)
 
         plotly_figure = session.render_small_multiples(spec, engine="plotly")
+        assert isinstance(plotly_figure, go.Figure)
         assert len(plotly_figure.data) == 3
         assert [annotation.text for annotation in plotly_figure.layout.annotations[:3]] == [
             "ARM safe",
@@ -76,13 +80,19 @@ def test_small_multiples_render_both_engines_in_order_without_mutation() -> None
         yaxes = [axis for axis in plotly_figure.select_yaxes() if not axis.overlaying]
         assert all(axis.matches == "x" for axis in xaxes[1:])
         assert all(axis.matches == "y" for axis in yaxes[1:])
-        assert len({trace.marker.color for trace in plotly_figure.data}) == 1
+        colors = set()
+        for trace in plotly_figure.data:
+            assert isinstance(trace, go.Bar)
+            colors.add(trace.marker.color)
+        assert len(colors) == 1
         assert_plotly_document(session.export_bytes(plotly_figure, "html"))
 
         direct = ring5.render_small_multiples(session.plots, spec, engine="plotly")
+        assert isinstance(direct, go.Figure)
         assert len(direct.data) == 3
 
         matplotlib_figure = session.render_small_multiples(spec, engine="matplotlib")
+        assert isinstance(matplotlib_figure, MplFigure)
         assert [axis.get_title() for axis in matplotlib_figure.axes[:3]] == [
             "ARM safe",
             "architecture: x86 · mode: fast",
@@ -97,13 +107,15 @@ def test_small_multiples_render_both_engines_in_order_without_mutation() -> None
 
         pd.testing.assert_frame_equal(plot.processed_data, original_data)
         assert plot.config == original_config
-        assert plot.render_artifact.trace_result is None
+        assert plot.render_artifact is original_artifact
+        assert plot.render_artifact.preparation is None
 
 
 def test_small_multiples_convenience_and_typed_errors() -> None:
     with ring5.Session() as session:
         plot = _plot(session)
         figure = session.small_multiples(plot, by="architecture", columns=3)
+        assert isinstance(figure, go.Figure)
         assert len(figure.data) == 3
 
         with pytest.raises(ring5.DataValidationError, match="categorical"):
@@ -136,6 +148,7 @@ def test_small_multiples_match_dual_axes_by_role_without_cycles() -> None:
         spec = session.create_small_multiples(plot, by="architecture", columns=2)
 
         figure = session.render_small_multiples(spec)
+        assert isinstance(figure, go.Figure)
         axes = list(figure.select_yaxes())
 
         assert [(axis.plotly_name, axis.matches) for axis in axes] == [

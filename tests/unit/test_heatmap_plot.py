@@ -13,6 +13,7 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
 from src.web.pages.ui.plotting.types.heatmap_plot import HeatmapPlot
 from src.web.rendering.trace_to_plotly import traces_to_plotly
+from src.web.rendering.figure_preparation import PreparedFigure
 
 
 @patch("src.web.components.plotting.config.heatmap_config.st")
@@ -411,8 +412,10 @@ def test_heatmap_public_render_restricts_xaxis_categories(plot_session: Session)
     fig = cast(go.Figure, plot_session.render(plot))
 
     # The owned preparation should have col_labels ["A", "C"] only
-    assert plot.render_artifact.trace_result is not None
-    first = plot.render_artifact.trace_result.traces[0]
+    prepared = plot.render_artifact.preparation
+    assert isinstance(prepared, PreparedFigure)
+    assert prepared.trace_result is not None
+    first = prepared.trace_result.traces[0]
     assert isinstance(first, HeatmapTraceConfig)
     assert first.col_labels == ["A", "C"]
 

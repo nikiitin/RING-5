@@ -95,11 +95,12 @@ class TestFigureEngineEndToEnd:
         self, sample_data: pd.DataFrame, bar_config: dict[str, Any]
     ) -> None:
         artifact = _artifact(sample_data, bar_config)
-        assert isinstance(artifact.figure_spec, FigureConfig)
-        assert artifact.figure_spec.title == "IPC by Benchmark"
-        assert artifact.figure_spec.dimensions.width == 900.0
-        assert isinstance(artifact.preparation, PreparedFigure)
-        assert artifact.figure_spec is artifact.preparation.spec
+        prepared = artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert isinstance(prepared.spec, FigureConfig)
+        assert prepared.spec.title == "IPC by Benchmark"
+        assert prepared.spec.dimensions.width == 900.0
+        assert artifact.preparation is prepared
 
     def test_legend_labels_project_without_rewriting_preparation(
         self, sample_data: pd.DataFrame, bar_config: dict[str, Any]
@@ -108,10 +109,12 @@ class TestFigureEngineEndToEnd:
         artifact = _artifact(sample_data, bar_config)
         assert isinstance(artifact.figure, go.Figure)
         assert cast(go.Bar, artifact.figure.data[0]).name == "Renamed"
-        assert artifact.trace_result is not None
-        assert artifact.trace_result.traces[0].name == "ipc"
-        assert isinstance(artifact.figure_spec, FigureConfig)
-        assert artifact.figure_spec.legend_labels == {"ipc": "Renamed"}
+        prepared = artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert prepared.trace_result is not None
+        assert prepared.trace_result.traces[0].name == "ipc"
+        assert isinstance(prepared.spec, FigureConfig)
+        assert prepared.spec.legend_labels == {"ipc": "Renamed"}
 
 
 # 2. ConfigSpecBuilder ↔ Plotly layout agreement

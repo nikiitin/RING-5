@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any, Literal
 
+import numpy as np
 import plotly.graph_objects as go
 import pytest
 from matplotlib.figure import Figure
@@ -13,9 +14,11 @@ from streamlit.testing.v1 import AppTest
 
 from ring5 import Session
 from scripts.generate_example_portfolio import build_example_data, build_example_plots
+from src.core.models.visualization.trace_config import LineTraceConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.settings_pills import SETTINGS_SECTIONS
+from src.web.rendering.figure_preparation import PreparedFigure
 
 _APP = """
 import copy
@@ -60,9 +63,9 @@ def _render(
     plot = app.session_state["plot"]
     with Session() as session:
         figure = session.render(plot, engine=engine)
-    assert (
-        plot.render_artifact.trace_result is not None and plot.render_artifact.trace_result.traces
-    )
+    prepared = plot.render_artifact.preparation
+    assert isinstance(prepared, PreparedFigure)
+    assert prepared.trace_result is not None and prepared.trace_result.traces
     return plot, figure
 
 
@@ -134,8 +137,10 @@ def test_bar_totals_survive_value_label_toggles_and_render_real_values(
     ).run()
     assert not app.exception
     plot, figure = _render(app, engine)
-    assert plot.render_artifact.trace_result is not None
-    numeric_totals = [a for a in plot.render_artifact.trace_result.annotations if a.font_size == 17]
+    prepared = plot.render_artifact.preparation
+    assert isinstance(prepared, PreparedFigure)
+    assert prepared.trace_result is not None
+    numeric_totals = [a for a in prepared.trace_result.annotations if a.font_size == 17]
     assert numeric_totals
     assert all(a.font_color == "#123456" for a in numeric_totals)
     assert all(a.yanchor == "middle" and a.text_angle == 45 for a in numeric_totals)
@@ -159,11 +164,10 @@ def test_group_layout_controls_change_existing_geometry(example_cases: dict[str,
     assert not app.exception
     for engine in ("plotly", "matplotlib"):
         plot, figure = _render(app, engine)
-        assert plot.render_artifact.trace_result is not None
-        assert (
-            plot.render_artifact.trace_result.separator_lines
-            and plot.render_artifact.trace_result.shaded_regions
-        )
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert prepared.trace_result is not None
+        assert prepared.trace_result.separator_lines and prepared.trace_result.shaded_regions
         if isinstance(figure, go.Figure):
             assert figure.layout.shapes
         else:
@@ -214,18 +218,26 @@ def test_live_colors_preserve_type_specific_patterns_and_markers(
     )
     if isinstance(figure, go.Figure):
         if kind == "bar":
-            assert any(trace.marker.pattern.shape == "x" for trace in figure.data)
+            assert any(
+                isinstance(trace, go.Bar) and trace.marker.pattern.shape == "x"
+                for trace in figure.data
+            )
         else:
-            assert any(trace.marker.symbol == "triangle-up" for trace in figure.data)
+            assert any(
+                isinstance(trace, go.Scatter) and trace.marker.symbol == "triangle-up"
+                for trace in figure.data
+            )
     elif kind == "bar":
         assert any(patch.get_hatch() == "x" for axis in figure.axes for patch in axis.patches)
     elif kind == "line":
         assert any(line.get_marker() == "^" for axis in figure.axes for line in axis.lines)
     else:
         marker = MarkerStyle("^")
-        expected = marker.get_path().transformed(marker.get_transform()).vertices.tolist()
+        expected = np.asarray(
+            marker.get_path().transformed(marker.get_transform()).vertices
+        ).tolist()
         assert any(
-            path.vertices.tolist() == expected
+            np.asarray(path.vertices).tolist() == expected
             for axis in figure.axes
             for collection in axis.collections
             for path in collection.get_paths()
@@ -255,7 +267,8 @@ def test_right_axis_fonts_trace_controls_and_legend_tiers_use_active_pills(
     )
     assert inherited.value == 7
     assert plot.config["yaxis2_title_font_size"] == -1
-    for engine in ("plotly", "matplotlib"):
+    engines: tuple[Literal["plotly", "matplotlib"], ...] = ("plotly", "matplotlib")
+    for engine in engines:
         _, figure = _render(app, engine)
         if isinstance(figure, go.Figure):
             assert figure.layout.yaxis2.tickfont.size == 7
@@ -294,17 +307,25 @@ def test_right_axis_fonts_trace_controls_and_legend_tiers_use_active_pills(
     ).run()
     assert "legend3_font_size" in app.session_state["emitted"]
     assert not app.exception
-    for engine in ("plotly", "matplotlib"):
+    for engine in engines:
         plot, figure = _render(app, engine)
-        assert plot.render_artifact.trace_result is not None
-        right = [trace for trace in plot.render_artifact.trace_result.traces if trace.yaxis == "y2"]
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert prepared.trace_result is not None
+        right = [trace for trace in prepared.trace_result.traces if trace.yaxis == "y2"]
         assert right and all(
-            trace.marker_symbol == "diamond" and trace.marker_size == 13 and trace.line_width == 4
+            isinstance(trace, LineTraceConfig)
+            and trace.marker_symbol == "diamond"
+            and trace.marker_size == 13
+            and trace.line_width == 4
             for trace in right
         )
         if isinstance(figure, go.Figure):
             assert any(
-                trace.yaxis == "y2" and trace.marker.symbol == "diamond" for trace in figure.data
+                isinstance(trace, go.Scatter)
+                and trace.yaxis == "y2"
+                and trace.marker.symbol == "diamond"
+                for trace in figure.data
             )
             assert figure.layout.yaxis2.tickfont.size == 7
             right_title = next(
@@ -314,7 +335,9 @@ def test_right_axis_fonts_trace_controls_and_legend_tiers_use_active_pills(
             )
             assert right_title.font.size == 23
             number_legend = next(
-                annotation for annotation in figure.layout.annotations if "1. " in annotation.text
+                annotation
+                for annotation in figure.layout.annotations
+                if annotation.text is not None and "1. " in annotation.text
             )
             assert number_legend.font.size == plot.config.get("legend_font_size", 12)
         else:
@@ -347,10 +370,12 @@ def test_major_label_fonts_and_placement_have_separate_owners(
     assert not app.exception
     for engine in ("plotly", "matplotlib"):
         plot, figure = _render(app, engine)
-        assert plot.render_artifact.trace_result is not None
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert prepared.trace_result is not None
         labels = [
             annotation
-            for annotation in plot.render_artifact.trace_result.annotations
+            for annotation in prepared.trace_result.annotations
             if annotation.font_size == 21
         ]
         assert labels and all(annotation.font_color == "#123456" for annotation in labels)
