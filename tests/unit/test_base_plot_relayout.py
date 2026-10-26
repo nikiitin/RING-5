@@ -286,16 +286,21 @@ class TestLegendLabelProjection:
                 assert isinstance(trace.name, str)
                 display.append(trace.name)
         else:
-            native_mpl = build_matplotlib_figure_from_prepared(prepared)
-            legend = native_mpl.figure.axes[0].get_legend()
-            assert legend is not None
-            display = [text.get_text() for text in legend.texts]
-            from matplotlib.patches import Rectangle
+            import matplotlib.pyplot as plt
 
-            for patch in native_mpl.figure.axes[0].patches:
-                assert isinstance(patch, Rectangle)
-                assert patch.get_height() in (3.0, 5.0)
-            assert len(native_mpl.figure.axes[0].patches) == 2 * len(names)
+            native_mpl = build_matplotlib_figure_from_prepared(prepared)
+            try:
+                legend = native_mpl.figure.axes[0].get_legend()
+                assert legend is not None
+                display = [text.get_text() for text in legend.texts]
+                from matplotlib.patches import Rectangle
+
+                for rectangle in native_mpl.figure.axes[0].patches:
+                    assert isinstance(rectangle, Rectangle)
+                    assert rectangle.get_height() in (3.0, 5.0)
+                assert len(native_mpl.figure.axes[0].patches) == 2 * len(names)
+            finally:
+                plt.close(native_mpl.figure)
         return raw_names, display
 
     @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])

@@ -201,17 +201,23 @@ def test_native_label_projection_preserves_engine_agnostic_names(
         assert names == ["Renamed 1", "trace2"]
         assert values == [[3.0, 5.0], [7.0, 9.0]]
     else:
-        native_mpl = build_matplotlib_figure_from_prepared(prepared)
-        legend = native_mpl.figure.axes[0].get_legend()
-        assert legend is not None
-        assert [text.get_text() for text in legend.texts] == ["Renamed 1", "trace2"]
-        from matplotlib.patches import Rectangle
+        import matplotlib.pyplot as plt
 
-        heights = []
-        for patch in native_mpl.figure.axes[0].patches:
-            assert isinstance(patch, Rectangle)
-            heights.append(patch.get_height())
-        assert heights == [3.0, 5.0, 7.0, 9.0]
+        native_mpl = build_matplotlib_figure_from_prepared(prepared)
+        try:
+            legend = native_mpl.figure.axes[0].get_legend()
+            assert legend is not None
+            assert [text.get_text() for text in legend.texts] == ["Renamed 1", "trace2"]
+            from matplotlib.patches import Rectangle
+
+            heights = []
+            for rectangle in native_mpl.figure.axes[0].patches:
+                assert isinstance(rectangle, Rectangle)
+                heights.append(rectangle.get_height())
+            assert heights == [3.0, 5.0, 7.0, 9.0]
+
+        finally:
+            plt.close(native_mpl.figure)
 
 
 def test_render_reorderable_list(concrete_plot: Any, mock_streamlit: Any) -> None:
