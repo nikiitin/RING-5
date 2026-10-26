@@ -4,7 +4,7 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import replace
 from io import BytesIO
-from typing import Any, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 from matplotlib.artist import Artist
 from matplotlib.collections import Collection, LineCollection, QuadMesh
+from matplotlib.colorbar import Colorbar
 from matplotlib.colors import LinearSegmentedColormap, to_rgba
 from matplotlib.container import BarContainer, Container
 from matplotlib.lines import Line2D
@@ -930,3 +931,151 @@ def test_new_manual_scalar_mapping_is_preserved_then_rejected_when_affected(chan
             np.testing.assert_array_equal(points.get_array(), [1, 2])
         else:
             np.testing.assert_array_equal(points.get_alpha(), [0.2, 0.7])
+
+
+def _mappable_state(image: QuadMesh) -> tuple[object, ...]:
+    mapping = image.get_cmap()
+    return (
+        id(mapping),
+        np.asarray(mapping([0.0, 0.5, 1.0])).tobytes(),
+        np.asarray(mapping.get_bad()).tobytes(),
+        np.asarray(mapping.get_under()).tobytes(),
+        np.asarray(mapping.get_over()).tobytes(),
+        image.get_clim(),
+        np.asarray(image.get_array()).tobytes(),
+        np.asarray(image.get_coordinates()).tobytes(),
+        tuple(
+            (signal, tuple(entries.items()))
+            for signal, entries in image.callbacks.callbacks.items()
+        ),
+    )
+
+
+def _colorbar_state(colorbar: Colorbar) -> tuple[object, ...]:
+    image = colorbar.mappable
+    assert isinstance(image, QuadMesh)
+    return (
+        _mappable_state(image),
+        colorbar.ax.get_title(),
+        colorbar.extend,
+        colorbar.ax.get_position().bounds,
+        colorbar.ax.get_position(original=True).bounds,
+        tuple(
+            (text.get_text(), text.get_color(), tuple(text.get_fontfamily()))
+            for text in colorbar.ax.findobj(Text)
+        ),
+        id(colorbar.solids.get_cmap()) if colorbar.solids is not None else None,
+    )
+
+
+@contextmanager
+def _heatmap_without_managed_colorbar(
+    extension: Literal["both", "min", "max", "neither"], *, foreign: bool
+) -> Iterator[tuple[MatplotlibFigureResult, QuadMesh, Colorbar | None]]:
+    figure = plt.figure()
+    try:
+        axes = figure.add_subplot(121 if foreign else 111)
+        mapping = LinearSegmentedColormap.from_list("declared", [(1, 0, 0, 0.4), (0, 0, 1, 0.6)])
+        # The native public field accepts extend strings; the current stub declares bool only.
+        setattr(mapping, "colorbar_extend", extension)
+        image = axes.pcolormesh([[1.0, 2.0]], cmap=mapping)
+        appearance = seed_matplotlib_appearance((image,), opacity=0.5)
+        binding = MatplotlibTraceBinding(
+            0, "data", axes, "primary", "", True, "heatmap", (image,), appearance=appearance
+        )
+        panel = MatplotlibRenderResult(axes, bindings=(binding,), heatmap_image=image)
+        native = MatplotlibFigureResult(figure, (panel,))
+        axes.set_title("Original")
+        foreign_output = None
+        if foreign:
+            other = figure.add_subplot(122)
+            foreign_image = other.pcolormesh([[7.0, 9.0]], cmap="plasma")
+            foreign_output = figure.colorbar(foreign_image, ax=other)
+            foreign_output.ax.set_title("Independent")
+        yield native, image, foreign_output
+    finally:
+        plt.close(figure)
+
+
+@pytest.mark.parametrize("extension", ["both", "min", "max"])
+@pytest.mark.parametrize("foreign", [False, True])
+def test_new_unsupported_colorbar_rejects_before_any_native_change(
+    extension: Literal["both", "min", "max"], foreign: bool
+) -> None:
+    with _heatmap_without_managed_colorbar(extension, foreign=foreign) as (native, image, other):
+        appearance = native.panels[0].bindings[0].appearance
+        original_snapshot = appearance.snapshot
+        original_axes = tuple(native.figure.axes)
+        original_geometry = tuple(
+            (
+                axis.get_position().bounds,
+                axis.get_position(original=True).bounds,
+                axis.get_subplotspec(),
+            )
+            for axis in original_axes
+        )
+        original_size = tuple(native.figure.get_size_inches())
+        original_mapping = _mappable_state(image)
+        foreign_before = _colorbar_state(other) if other is not None else None
+        assert native.native_outputs.colorbars == ()
+        with pytest.raises(ValueError, match="colorbar extend='neither'"):
+            FigureSpecToMatplotlib.apply(
+                FigureConfig(title="Blocked", trace_overrides={"data": _style(0.25)}), native
+            )
+        assert native.panels[0].primary_axes.get_title() == "Original"
+        assert tuple(native.figure.axes) == original_axes
+        assert tuple(native.figure.get_size_inches()) == original_size
+        assert (
+            tuple(
+                (
+                    axis.get_position().bounds,
+                    axis.get_position(original=True).bounds,
+                    axis.get_subplotspec(),
+                )
+                for axis in original_axes
+            )
+            == original_geometry
+        )
+        assert _mappable_state(image) == original_mapping
+        assert appearance.snapshot is original_snapshot
+        assert appearance.snapshot.opacity == 0.5
+        assert native.native_outputs.colorbars == ()
+        if other is not None:
+            assert _colorbar_state(other) == foreign_before
+
+
+@pytest.mark.parametrize("foreign", [False, True])
+def test_new_legal_colorbar_reuses_output_and_preserves_foreign_mapping(foreign: bool) -> None:
+    with _heatmap_without_managed_colorbar("neither", foreign=foreign) as (native, image, other):
+        foreign_before = _colorbar_state(other) if other is not None else None
+        original_data = np.asarray(image.get_array()).tobytes()
+        original_coordinates = np.asarray(image.get_coordinates()).tobytes()
+        # Isolate opacity: an empty family preserves unrelated native font choices.
+        spec = FigureConfig(title="Allowed", font_family="", trace_overrides={"data": _style(0.25)})
+        FigureSpecToMatplotlib.apply(spec, native, apply_margins=False)
+        outputs = native.native_outputs.colorbars
+        assert len(outputs) == 1
+        original_geometry = tuple(
+            axis.get_position(original=True).bounds for axis in native.figure.axes
+        )
+        callbacks = tuple(image.callbacks.callbacks["changed"].items())
+        for opacity in (0.25, 0.0, 0.25, 1.0):
+            FigureSpecToMatplotlib.apply(
+                replace(spec, trace_overrides={"data": _style(opacity)}),
+                native,
+                apply_margins=False,
+            )
+            assert native.native_outputs.colorbars == outputs
+            assert (
+                tuple(axis.get_position(original=True).bounds for axis in native.figure.axes)
+                == original_geometry
+            )
+            assert tuple(image.callbacks.callbacks["changed"].items()) == callbacks
+            assert image.get_cmap()(0.0)[3] == pytest.approx(0.4 * opacity)
+            assert outputs[0].colorbar.solids is not None
+            assert outputs[0].colorbar.solids.get_cmap()(0.0)[3] == pytest.approx(0.4)
+            assert native.panels[0].bindings[0].appearance.snapshot.opacity == opacity
+            assert np.asarray(image.get_array()).tobytes() == original_data
+            assert np.asarray(image.get_coordinates()).tobytes() == original_coordinates
+            if other is not None:
+                assert _colorbar_state(other) == foreign_before

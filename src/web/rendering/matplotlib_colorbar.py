@@ -217,6 +217,10 @@ def prepare_colorbars(
             for output in rendered.native_outputs.colorbars
         )
         if request.visible and not reused:
+            if request.mappable.get_cmap().colorbar_extend not in (False, "neither"):
+                raise ValueError(
+                    "Managed source opacity currently requires colorbar extend='neither'."
+                )
             current = request.mappable.colorbar
             if current is not None and not any(current is old.colorbar for old in retire):
                 raise ValueError(
