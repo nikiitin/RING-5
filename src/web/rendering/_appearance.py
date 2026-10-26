@@ -644,16 +644,6 @@ def apply_matplotlib_appearance(plans: Sequence[MatplotlibAppearancePlan]) -> No
         plan.output.snapshot = plan.snapshot
 
 
-def intrinsic_colormap(binding: MatplotlibTraceBinding) -> Colormap:
-    """Return the declared intrinsic map of a source-owned heatmap."""
-    channels = [
-        channel for channel in binding.appearance.snapshot.channels if channel.kind == "cmap"
-    ]
-    if len(channels) != 1 or not isinstance(channels[0].intrinsic, Colormap):
-        raise ValueError("A heatmap source requires exactly one intrinsic color mapping.")
-    return channels[0].intrinsic
-
-
 def replace_generated_labels(
     binding: MatplotlibTraceBinding, labels: Sequence[Text], signature: tuple[Any, ...]
 ) -> None:

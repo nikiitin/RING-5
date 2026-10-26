@@ -267,7 +267,6 @@ class MatplotlibTraceRenderer:
                     drawn = MatplotlibTraceRenderer._draw_waterfall(
                         trace,
                         target,
-                        override_color=override_color,
                     )
                 elif isinstance(trace, SankeyTraceConfig):
                     drawn = MatplotlibTraceRenderer._draw_sankey(trace, target)
@@ -806,7 +805,6 @@ class MatplotlibTraceRenderer:
     def _draw_waterfall(
         spec: WaterfallTraceConfig,
         ax: Axes,
-        override_color: str | None = None,
     ) -> _DrawnSource:
         # [impl->req~ring5.plot.waterfall~1]
         """Draw explicit waterfall starts, ends, connectors, and value labels."""
