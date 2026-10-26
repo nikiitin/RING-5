@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from matplotlib.colorbar import Colorbar
 
 from src.core.models.visualization.figure_config import FigureConfig
+from src.web.rendering._color_utils import css_color_to_matplotlib
 from src.web.rendering._render_result import (
     MatplotlibFigureResult,
     MatplotlibRenderResult,
@@ -266,7 +267,7 @@ def _style(output: _ColorbarOutput, request: _Request) -> None:
         if primary.title_font_size > 0:
             kwargs["fontsize"] = primary.title_font_size
         if primary.title_font_color:
-            kwargs["color"] = primary.title_font_color
+            kwargs["color"] = css_color_to_matplotlib(primary.title_font_color)
     native.ax.set_title(primary.title if primary is not None else "", **kwargs)
     native.locator = MaxNLocator(nbins=cfg.nticks if cfg is not None else 5)
     native.formatter = FormatStrFormatter(f"%.{cfg.tick_decimals if cfg is not None else 2}f")
