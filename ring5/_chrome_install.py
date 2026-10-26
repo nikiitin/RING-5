@@ -464,11 +464,14 @@ def install_chrome(*, cache_directory: str | None = None) -> Path:
     """
     try:
         artifact = _load_manifest()[_host_platform()]
-        root = (
-            Path(cache_directory).expanduser()
-            if cache_directory is not None
-            else user_cache_path("ring5", appauthor=False) / "chrome"
-        )
+        if cache_directory is None:
+            root = user_cache_path("ring5", appauthor=False) / "chrome"
+        else:
+            root = Path(cache_directory)
+            try:
+                root = root.expanduser()
+            except RuntimeError as exc:
+                raise ValueError(f"Could not expand Chrome cache directory: {exc}") from exc
         try:
             root = root.resolve()
         except RuntimeError as exc:
