@@ -8,7 +8,7 @@ whitespace-separated CSV:
 
 The fixture is generated locally from the downloaded gem5 ``stats.txt`` files;
 ``tests/data/`` is gitignored. Seed means use runs containing both metrics;
-incomplete runs are reported and excluded, and non-finite metrics fail visibly.
+missing metrics are reported and excluded, and infinite metrics fail visibly.
 
 It parses the per-run identity (``benchmark_name`` and ``config_description_abbrev``,
 both ``key=value`` lines in each file's ``[SimulationInfo]`` section) plus ``simTicks``
@@ -113,11 +113,13 @@ def generate() -> Path:
     raw = _parse_to_dataframe()
 
     df = raw.loc[:, list(COLUMN_SOURCES)].copy()
+    if np.isinf(df[METRICS].to_numpy()).any():
+        raise SystemExit("Fixture generation requires complete runs with finite metrics.")
     incomplete = df[METRICS].isna().any(axis=1)
     if incomplete.any():
         logging.warning("Excluding %s incomplete run(s) from fixture seed means.", incomplete.sum())
         df = df.loc[~incomplete].copy()
-    if df.empty or not np.isfinite(df[METRICS].to_numpy()).all():
+    if df.empty:
         raise SystemExit("Fixture generation requires complete runs with finite metrics.")
 
     # Reduce across seeds: one row per (config, benchmark), mean of the metrics.

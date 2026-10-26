@@ -131,3 +131,38 @@ def test_seed_means_report_missing_runs_and_preserve_large_finite_values(
         assert "Excluding 1 incomplete run(s)" in caplog.text
     else:
         assert "Excluding" not in caplog.text
+
+
+@pytest.mark.parametrize("infinite", ["inf", "-inf"])
+@pytest.mark.parametrize("missing_column", ["simTicks", "branchMispredicts"])
+def test_infinite_metric_is_rejected_even_when_another_metric_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    infinite: str,
+    missing_column: str,
+) -> None:
+    stats_root = tmp_path / "stats"
+    output = tmp_path / "fixture.csv"
+    for seed in (0, 1):
+        path = stats_root / str(seed) / "stats.txt"
+        path.parent.mkdir(parents=True)
+        values = {"simTicks": "10.5", "branchMispredicts": "2"}
+        if seed:
+            values = {column: "nan" if column == missing_column else infinite for column in values}
+        path.write_text(
+            "config_description_abbrev=baseline\nbenchmark_name=case\n"
+            f"simTicks {values['simTicks']}\n"
+            f"system.cpu0.branchMispredicts {values['branchMispredicts']}\n",
+            encoding="utf-8",
+        )
+    monkeypatch.setattr(generator, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(generator, "STATS_ROOT", stats_root)
+    monkeypatch.setattr(generator, "OUTPUT_CSV", output)
+    output.write_bytes(b"previous fixture\n")
+
+    with pytest.raises(SystemExit, match="complete runs with finite metrics"):
+        generator.generate()
+
+    assert output.read_bytes() == b"previous fixture\n"
+    assert "Excluding" not in caplog.text
