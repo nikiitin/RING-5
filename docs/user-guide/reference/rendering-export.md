@@ -181,6 +181,9 @@ pdfLaTeX uses its TeX font support. See the
 [Matplotlib PGF guide](https://matplotlib.org/stable/users/explain/text/pgf.html#choosing-the-tex-system)
 for compiler and font requirements.
 
+Use `ring5.doctor(tex_system="lualatex")` to check the selected compiler without running it.
+Saved environment metadata records the versions of all three supported compilers when available.
+
 Recipe exports and `render_portfolio` use each saved plot's `tex_system` setting. Direct exports of
 a native figure take this option on the export call; they do not read hidden figure metadata.
 

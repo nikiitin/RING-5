@@ -304,6 +304,21 @@ provenance, and that environment in an immutable `AnalysisReport`. `report_bytes
 dependencies. `ring5.shutdown` releases process-wide worker pools early; they otherwise register
 process-exit cleanup and restart on later use.
 
+### Dependency preflight
+
+`ring5.doctor(*, tex_system="xelatex")` returns a `DoctorReport` with `perl`, `chrome`, and
+`tex_compiler` statuses. The compiler choice uses the same exact `xelatex`, `pdflatex`, or `lualatex`
+identifiers as PGF export; unsupported choices raise `ExportError`. `tex_compiler.name` identifies
+the selected compiler. `all_found` includes optional tools; `essential_found` checks only Perl.
+
+Each `DependencyStatus` records `name`, executable availability in `found`, its selected `path`,
+`needed_for`, and `install_hint`. An unavailable explicit browser choice retains its requested
+literal in `path`. Every present `BROWSER_PATH` is authoritative, including an empty value; no
+alternate browser is selected after that choice fails. An executable command name resolves through
+`PATH`. Preflight runs no browser, compiler, or version subprocess. Saved environment capture
+separately records bounded version facts for the same selected executable and all supported TeX
+compilers, without storing their paths.
+
 ## Errors
 
 <!--

@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 233
-- Live capability bindings: 850
+- Live capability bindings: 851
 
 ## Requirements by feature group
 
@@ -39,7 +39,7 @@ This file is informative; normative items are in the other generated files.
 - `axes_config_fields`: 11
 - `axis_config_fields`: 32
 - `cli_commands`: 6
-- `cli_options`: 37
+- `cli_options`: 38
 - `colorbar_config_fields`: 9
 - `data_label_config_fields`: 12
 - `data_services_api_members`: 50
@@ -96,6 +96,7 @@ This file is informative; normative items are in the other generated files.
 | `figure.ordering-renaming` | 1 | Semantic | Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes. |
 | `figure.numbered-xaxis` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.dual-axis-controls` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `api.doctor` | 1 | Semantic | Describe the shared authoritative browser selection and selected compiler preflight contract. |
 | `figure.stack-totals` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.alternate-category-shading` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.series-styling` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
