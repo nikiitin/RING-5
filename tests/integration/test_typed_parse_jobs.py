@@ -390,3 +390,61 @@ def test_pool_promotion_failure_preserves_original_output_and_previous_pool_file
     assert failed_targets[0].read_bytes() == b"previous pool contents\n"
     assert service._store.get_published(job.fingerprint) is None
     assert not list(pool.glob(".parsed-*.csv"))
+
+
+@pytest.mark.parametrize("declared", [None, "gem5"])
+def test_known_default_backend_retains_actual_simulator_with_matching_declaration(
+    api: ApplicationAPI,
+    tmp_path: Path,
+    declared: str | None,
+) -> None:
+    inputs = tmp_path / "inputs"
+    _stats(inputs, ("1.25",))
+    job = api.submit_parse_job(str(inputs), "stats.txt", _variables("NA"), simulator=declared)
+    terminal = _settled(api, job.job_id)
+    assert terminal.status == ParseJobStatus.SUCCEEDED, terminal.errors
+    receipt = api.consume_parse_job(job.job_id)
+    assert receipt.source_context.simulator == "gem5"
+    assert ParsedOutputIO.to_frame(receipt.output).to_dict("list") == {
+        "value": [1.25],
+        "label": ["NA"],
+    }
+
+
+def test_known_default_backend_mismatch_rejects_before_job_or_publication(
+    api: ApplicationAPI,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    inputs = tmp_path / "inputs"
+    _stats(inputs, ("1.25",))
+    pool = CsvPoolService.get_pool_dir()
+    old = pool / "previous.csv"
+    old.write_bytes(b"previous complete output\n")
+    service = MagicMock(side_effect=AssertionError("Mismatched declaration reached job creation"))
+    monkeypatch.setattr(api, "_get_parse_job_service", service)
+    with pytest.raises(ValueError, match="does not match"):
+        api.submit_parse_job(str(inputs), "stats.txt", _variables("NA"), simulator="other-backend")
+    service.assert_not_called()
+    assert api._parse_jobs is None
+    assert api.get_active_parse_job() is None
+    assert list(pool.iterdir()) == [old]
+    assert old.read_bytes() == b"previous complete output\n"
+    assert (inputs / "run-0" / "stats.txt").read_text() == "simTicks 1.25\n"
+
+
+def test_simulator_declaration_wrong_type_rejects_before_job_creation(
+    api: ApplicationAPI,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = MagicMock(side_effect=AssertionError("Wrong declaration reached job creation"))
+    monkeypatch.setattr(api, "_get_parse_job_service", service)
+    with pytest.raises(TypeError, match="text or None"):
+        api.submit_parse_job(
+            "unused",
+            "stats.txt",
+            _variables("NA"),
+            simulator=object(),  # type: ignore[arg-type]
+        )
+    service.assert_not_called()
+    assert api._parse_jobs is None

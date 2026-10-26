@@ -940,7 +940,23 @@ class ApplicationAPI:
         parser_contract_version: str = PARSER_CONTRACT_VERSION,
         incremental: bool = False,
     ) -> ParseJobSnapshot:
-        """Own a resolved typed request and enqueue one session parse attempt."""
+        """Own a resolved typed request and enqueue one session parse attempt.
+
+        An explicit simulator declares an injected backend's identity. A known
+        composed backend retains its actual identifier and cannot be relabeled.
+
+        Raises:
+            TypeError: A declared simulator is not native text or None.
+            ValueError: A declaration differs from the known composed backend.
+        """
+        if simulator is not None and type(simulator) is not str:
+            raise TypeError("Declared simulator must be text or None.")
+        if (
+            self._default_parser_simulator is not None
+            and simulator is not None
+            and simulator != self._default_parser_simulator
+        ):
+            raise ValueError("Declared simulator does not match the configured parser backend.")
         scanned: list[ScannedVariableDict] = []
         for value in (() if scanned_vars is None else scanned_vars):
             if isinstance(value, dict):
