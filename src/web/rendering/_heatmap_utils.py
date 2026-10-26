@@ -6,21 +6,19 @@ import math
 from collections.abc import Sequence
 from typing import Any
 
+from src.core.models.visualization.legend_config import ColorbarConfig
+from src.web.rendering._color_utils import css_color_to_matplotlib
+
 
 def heatmap_colormap(colorscale: Any) -> Any:
-    """Resolve a named or positioned RGB scale for both renderers."""
+    """Resolve a named or positioned RGBA scale for both renderers."""
     from matplotlib import colormaps
     from matplotlib.colors import LinearSegmentedColormap
 
-    def rgb_color(value: Any) -> Any:
-        if isinstance(value, str) and value.startswith(("rgb(", "rgba(")):
-            channels = value[value.index("(") + 1 : -1].split(",")
-            return tuple(float(channel.strip()) / 255 for channel in channels[:3])
-        return value
-
     if not isinstance(colorscale, str):
         return LinearSegmentedColormap.from_list(
-            "ring5_heatmap", [(float(position), rgb_color(color)) for position, color in colorscale]
+            "ring5_heatmap",
+            [(float(position), css_color_to_matplotlib(color)) for position, color in colorscale],
         )
     names = {name.lower(): name for name in colormaps}
     return colormaps[names.get(colorscale.lower(), colorscale)]
@@ -148,3 +146,32 @@ def compute_nice_range(
         nice_max += nice_step
 
     return nice_min, nice_max, nice_step
+
+
+def heatmap_ranges(
+    traces: Sequence[Any], config: ColorbarConfig
+) -> tuple[tuple[float, float], ...]:
+    """Resolve the same shared or individual map limits before native mutation.
+
+    Args:
+        traces: Actual heatmap sources with numeric z matrices.
+        config: Current resolved colorbar configuration.
+
+    Returns:
+        Ordered native limits for each source, retaining the current rounding policy.
+    """
+    if not traces:
+        return ()
+    if config.range_mode == "manual" and config.zmin is not None and config.zmax is not None:
+        lower, upper = float(config.zmin), float(config.zmax)
+    else:
+        raw_lower, raw_upper = compute_z_extent(traces)
+        lower, upper, _ = compute_nice_range(raw_lower, raw_upper, config.nticks)
+    if config.shared or config.range_mode == "manual":
+        return tuple((lower, upper) for _ in traces)
+    limits = []
+    for trace in traces:
+        raw_lower, raw_upper = compute_z_extent([trace])
+        low, high, _ = compute_nice_range(raw_lower, raw_upper, config.nticks)
+        limits.append((low, high))
+    return tuple(limits)

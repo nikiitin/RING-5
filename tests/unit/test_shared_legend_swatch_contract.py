@@ -21,6 +21,7 @@ from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import LegendConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering._legend_projection import matplotlib_swatch, plotly_swatch
+from src.web.rendering._appearance import MatplotlibAppearance  # noqa: E402
 from src.web.rendering._render_result import (
     MatplotlibFigureResult,
     MatplotlibRenderResult,
@@ -58,7 +59,7 @@ def _shown(native: PlotlyRenderResult) -> list[bool]:
 def test_shared_scatter_mode_is_part_of_native_glyph_identity(
     modes: tuple[str, str], expected: int
 ) -> None:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     native = _plotly_shared(
         [
             go.Scatter(
@@ -159,7 +160,17 @@ def _panel(
         axis,
         bindings=(
             MatplotlibTraceBinding(
-                0, "ipc", axis, "primary", "", True, family, (handle,), (handle,), handle
+                0,
+                "ipc",
+                axis,
+                "primary",
+                "",
+                True,
+                family,
+                (handle,),
+                (handle,),
+                handle,
+                appearance=MatplotlibAppearance.unmanaged(),
             ),
         ),
     )
@@ -179,7 +190,7 @@ def _panel(
 def test_native_collection_legend_stroke_preserves_scalar_distinctions_and_unknown_vectors(
     style: str, expected: int
 ) -> None:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     figure, axes = plt.subplots(1, 2)
     widths: tuple[float | list[float], float | list[float]] = (
         ([1.0, 5.0], [1.0, 5.0])
@@ -351,7 +362,17 @@ def test_stock_bar_handler_preserves_hatch_color_and_unknown_list_dash(
                 axis,
                 bindings=(
                     MatplotlibTraceBinding(
-                        0, "ipc", axis, "primary", "", True, "bar", (bars,), (bars,), bars
+                        0,
+                        "ipc",
+                        axis,
+                        "primary",
+                        "",
+                        True,
+                        "bar",
+                        (bars,),
+                        (bars,),
+                        bars,
+                        appearance=MatplotlibAppearance.unmanaged(),
                     ),
                 ),
             )

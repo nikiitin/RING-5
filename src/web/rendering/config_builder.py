@@ -77,7 +77,7 @@ class ConfigSpecBuilder:
         )
 
         validate_plot_config_keys(config, plot_type=plot_type)
-        validate_plot_config_values(config, plot_type=plot_type)
+        validate_plot_config_values(config)
         is_bar = "bar" in plot_type
         symmetric_y_titles = plot_type == "grouped_stacked_bar" and bool(config.get("dual_axis"))
 
@@ -350,6 +350,7 @@ class ConfigSpecBuilder:
                 marker_size=int(sd.get("marker_size") or 0),
                 line_width=float(sd.get("line_width") or 0.0),
                 hatching_pattern=sd.get("pattern"),
+                opacity=sd.get("opacity"),
             )
 
         # Color palette (resolve name → hex list)

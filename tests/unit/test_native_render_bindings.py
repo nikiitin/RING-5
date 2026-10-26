@@ -17,6 +17,10 @@ from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
 from src.core.services.visualization.config_resolver import resolve_config
+from src.web.rendering._appearance import (
+    MatplotlibAppearance,
+    seed_matplotlib_appearance,
+)  # noqa: E402
 from src.web.rendering._render_result import (
     MatplotlibFigureResult,
     MatplotlibRenderResult,
@@ -47,7 +51,21 @@ def _panel(axes: Axes, name: str = "A") -> MatplotlibRenderResult:
         axes,
         bindings=(
             MatplotlibTraceBinding(
-                0, name, axes, "primary", "", True, "bar", (bars,), (bars,), bars
+                0,
+                name,
+                axes,
+                "primary",
+                "",
+                True,
+                "bar",
+                (bars,),
+                (bars,),
+                bars,
+                appearance=seed_matplotlib_appearance(
+                    (bars,),
+                    opacity=1.0,
+                    series_channels=tuple((patch, "face") for patch in bars.patches),
+                ),
             ),
         ),
     )
@@ -274,7 +292,17 @@ def test_shared_matplotlib_entries_keep_unknown_data_mapped_swatches_separate() 
                 axis,
                 bindings=(
                     MatplotlibTraceBinding(
-                        0, "A", axis, "primary", "", True, "scatter", (points,), (points,), points
+                        0,
+                        "A",
+                        axis,
+                        "primary",
+                        "",
+                        True,
+                        "scatter",
+                        (points,),
+                        (points,),
+                        points,
+                        appearance=MatplotlibAppearance.unmanaged(),
                     ),
                 ),
             )

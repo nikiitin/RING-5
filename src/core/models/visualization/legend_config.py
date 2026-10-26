@@ -16,6 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from src.core.models.visualization._config_fields import config_object, model_fields
+
 INHERIT_F: float = -1.0
 
 
@@ -53,8 +55,8 @@ class ColorbarConfig:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ColorbarConfig:
-        """Reconstruct from serialized dictionary."""
-        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+        """Reconstruct current fields, rejecting unsupported names or object shapes."""
+        return cls(**model_fields(data, cls, "ColorbarConfig"))
 
 
 @dataclass(frozen=True)
@@ -86,8 +88,8 @@ class LegendSpacingConfig:
 
     @classmethod
     def from_dict(cls, data: dict[str, float]) -> LegendSpacingConfig:
-        """Reconstruct from serialized dictionary."""
-        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+        """Reconstruct current fields, rejecting unsupported names or object shapes."""
+        return cls(**model_fields(data, cls, "LegendSpacingConfig"))
 
 
 @dataclass(frozen=True)
@@ -215,18 +217,12 @@ class LegendConfig:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> LegendConfig:
-        """Reconstruct from serialized dictionary."""
-        # Use .get() (not .pop()) so we never mutate the caller's input dict;
-        # the `filtered` comprehension below already excludes these keys.
-        spacing_data = data.get("spacing", {}) if isinstance(data.get("spacing"), dict) else {}
-        spacing = (
-            LegendSpacingConfig.from_dict(spacing_data) if spacing_data else LegendSpacingConfig()
+        """Reconstruct current fields with object-valued spacing and colorbar settings."""
+        data = model_fields(data, cls, "LegendConfig")
+        spacing_data = config_object(data.pop("spacing", {}), "LegendConfig.spacing")
+        colorbar_data = config_object(data.pop("colorbar", {}), "LegendConfig.colorbar")
+        return cls(
+            spacing=LegendSpacingConfig.from_dict(spacing_data),
+            colorbar=ColorbarConfig.from_dict(colorbar_data),
+            **data,
         )
-        colorbar_data = data.get("colorbar", {}) if isinstance(data.get("colorbar"), dict) else {}
-        colorbar = ColorbarConfig.from_dict(colorbar_data) if colorbar_data else ColorbarConfig()
-        filtered = {
-            k: v
-            for k, v in data.items()
-            if k in cls.__dataclass_fields__ and k not in ("spacing", "colorbar")
-        }
-        return cls(spacing=spacing, colorbar=colorbar, **filtered)

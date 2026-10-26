@@ -17,6 +17,7 @@ from src.web.pages.ui.plotting import (
     PlotFactory,
     ScatterPlot,
 )
+from src.web.rendering.figure_preparation import PreparedFigure
 
 
 @pytest.fixture
@@ -298,7 +299,9 @@ class TestPlotLegendLabels:
         plot.processed_data = sample_data
         plot.config = config
         fig = plot_session.render(plot, engine=engine)
-        result = plot.render_artifact.trace_result
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        result = prepared.trace_result
         assert result is not None
         assert [trace.name for trace in result.traces] == ["G1", "G2"]
         for trace, expected in zip(result.traces, [[10, 20, 15], [12, 18, 16]], strict=True):

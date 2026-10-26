@@ -27,6 +27,7 @@ from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.rendering.figure_preparation import PreparedFigure
 
 
 def test_example_data_is_deterministic_and_complete() -> None:
@@ -49,8 +50,10 @@ def test_example_data_is_deterministic_and_complete() -> None:
 
 def _assert_rendered_plot(plot: BasePlot, figure: go.Figure | Figure) -> None:
     """Check actual marks and labels, rather than only a figure's existence."""
-    assert plot.render_artifact.trace_result is not None
-    assert plot.render_artifact.trace_result.traces
+    prepared = plot.render_artifact.preparation
+    assert isinstance(prepared, PreparedFigure)
+    assert prepared.trace_result is not None
+    assert prepared.trace_result.traces
     if isinstance(figure, go.Figure):
         assert figure.data
         assert figure.layout.title.text == plot.config["title"]
@@ -73,7 +76,7 @@ def _assert_rendered_plot(plot: BasePlot, figure: go.Figure | Figure) -> None:
             names.append(trace.name)
         assert names == [
             plot.config.get("legend_labels", {}).get(trace.name, trace.name)
-            for trace in plot.render_artifact.trace_result.traces
+            for trace in prepared.trace_result.traces
         ]
     else:
         assert figure.axes

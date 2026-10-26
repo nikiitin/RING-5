@@ -15,6 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from src.core.common.opacity import require_opacity
+
 LineDash = Literal["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
 LineShape = Literal["linear", "spline", "hv", "vh", "hvh", "vhv"]
 
@@ -83,6 +85,10 @@ class TraceConfig:
     legendgroup: str = ""
     legend_role: Literal["primary", "secondary"] = "primary"
     custom_data: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Validate the concrete source opacity before native construction."""
+        self.opacity = require_opacity(self.opacity)
 
 
 @dataclass
@@ -323,7 +329,7 @@ class ParallelCoordinatesTraceConfig(TraceConfig):
     dimensions: list[ParallelDimensionConfig] = field(default_factory=list)
     line_color_values: list[float] | None = None
     line_color: str = "#4c78a8"
-    colorscale: str = "Viridis"
+    colorscale: str | list[list[str | float]] = "Viridis"
     reverse_colorscale: bool = False
     color_min: float = 0.0
     color_max: float = 1.0

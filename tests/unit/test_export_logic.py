@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 import ring5
+from src.web.rendering.figure_preparation import PreparedFigure
 
 pytestmark = pytest.mark.public_api
 
@@ -129,7 +130,9 @@ def test_multi_heatmap_colorbar_font_matches_spec(session: Any) -> None:
     fig = session.render(plot, engine="matplotlib")
     from src.core.models.visualization.figure_config import FigureConfig
 
-    spec = plot.render_artifact.figure_spec
+    prepared = plot.render_artifact.preparation
+    assert isinstance(prepared, PreparedFigure)
+    spec = prepared.spec
     assert isinstance(spec, FigureConfig)
     spec_family = spec.font_family
     assert spec_family, "spec must resolve a font family"

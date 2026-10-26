@@ -279,6 +279,15 @@ Typed renderer styles express absence with `hatching_pattern=None` and Solid wit
 Other plugin-owned style fields are preserved. Recipe save/load retains parameter placeholders;
 materialization validates the resolved pattern value before execution.
 
+
+An omitted series `opacity` preserves source attenuation. A present value must be a finite real
+number from `0` through `1`; booleans, text and JSON `null` are rejected. Named overrides take
+precedence over positional typed styles. The selected scalar replaces source opacity and
+multiplies intrinsic color alpha once. Repeated updates, including `0` followed by `1`, preserve
+intrinsic alpha, source values and geometry. Source-owned labels follow their marks; colorbars,
+titles, axes and general annotations keep independent appearance. Parallel coordinates require
+selected opacity `1` and opaque selected colors/scales, with independent unselected opacity.
+
 Legend font sizes retain fractional point values through both native engines and typed figure
 round trips. `DualAxisOpts.legend` configures the separate right-axis legend; numbered mappings
 use the available secondary or tertiary style independently. Raw mappings use `legend2_*` for
@@ -393,7 +402,7 @@ Automatic recipe capture describes the active loaded data, independently of pars
 A source is reusable only while its exact request is retained: named-data retention, selection and
 revision restoration preserve it; generic frame or manager edits clear it. Partial parser results
 and undeclared injected backends require an explicit caller `RecipeSource` for recipe creation.
-Recipe schema 7 retains the declared simulator, current parser contract, actual discovery/strict policy and
+Recipe schema 8 retains the declared simulator, current parser contract, actual discovery/strict policy and
 resolved scanner metadata. Replay uses those records directly without scanning again.
 
 `RecipeSource.csv_policy` is `InferredCsvPolicy(configuration_columns)` for ordinary CSV inference
@@ -405,10 +414,10 @@ values, with exact typed scalar controls.
 
 A successfully executed recipe retains its source and exact dataset-wide transformations. Capturing
 without an explicit source includes those steps once, followed by any explicitly supplied additional
-steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio schema 12 saves
+steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio schema 13 saves
 this frame-associated origin separately from editable parser controls. A snapshot or arbitrary Table
 has no inferred reusable origin.
 
-Current documents use portfolio schema 12 (`version: "12.0"`) or recipe schema 7. Serialized
+Current documents use portfolio schema 13 (`version: "13.0"`) or recipe schema 8. Serialized
 plot display names use `legend_labels`; per-series style mappings retain original series keys.
 Unsupported schema versions and nested style name fields are rejected before restoration or replay.

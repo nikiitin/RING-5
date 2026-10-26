@@ -35,7 +35,7 @@ def plotly_hatch(pattern: str) -> dict[str, Any]:
     Raises:
         ValueError: The token is not an exact supported string.
     """
-    # [impl->req~ring5.figure.series-styling~1]
+    # [impl->req~ring5.figure.series-styling~2]
     if type(pattern) is not str or pattern not in BAR_HATCH_PATTERNS:
         raise ValueError(f"A bar hatch must be a string from {BAR_HATCH_PATTERNS!r}.")
     if pattern in _CUSTOM_PATHS:

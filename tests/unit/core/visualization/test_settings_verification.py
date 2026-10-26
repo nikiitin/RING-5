@@ -30,6 +30,7 @@ from src.web.rendering.config_builder import (
     _build_legend_from_config,
 )
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
+from src.web.rendering._appearance import seed_matplotlib_appearance  # noqa: E402
 from src.web.rendering._render_result import (
     MatplotlibRenderResult,
     MatplotlibTraceBinding,
@@ -191,7 +192,21 @@ class TestMatplotlibLegendTitle:
             ax,
             bindings=(
                 MatplotlibTraceBinding(
-                    0, "test", ax, "primary", "", True, "bar", (bars,), (bars,), bars
+                    0,
+                    "test",
+                    ax,
+                    "primary",
+                    "",
+                    True,
+                    "bar",
+                    (bars,),
+                    (bars,),
+                    bars,
+                    appearance=seed_matplotlib_appearance(
+                        (bars,),
+                        opacity=1.0,
+                        series_channels=tuple((patch, "face") for patch in bars.patches),
+                    ),
                 ),
             ),
         )
@@ -222,7 +237,21 @@ class TestMatplotlibLegendTitle:
             ax,
             bindings=(
                 MatplotlibTraceBinding(
-                    0, "test", ax, "primary", "", True, "bar", (bars,), (bars,), bars
+                    0,
+                    "test",
+                    ax,
+                    "primary",
+                    "",
+                    True,
+                    "bar",
+                    (bars,),
+                    (bars,),
+                    bars,
+                    appearance=seed_matplotlib_appearance(
+                        (bars,),
+                        opacity=1.0,
+                        series_channels=tuple((patch, "face") for patch in bars.patches),
+                    ),
                 ),
             ),
         )

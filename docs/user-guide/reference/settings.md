@@ -347,10 +347,10 @@ an isolated final category.
 ### Series styling
 
 <!--
-`uman~ring5.figure.series-styling.documentation~1`
+`uman~ring5.figure.series-styling.documentation~2`
 
 Covers:
-- req~ring5.figure.series-styling~1
+- req~ring5.figure.series-styling~2
 
 -->
 
@@ -363,6 +363,17 @@ Programmatic `series_styles` use original text series names and style mappings. 
 forms; Plotly projects circle/star forms through native SVG pattern paths. **Default (trace/theme)**
 omits the override and preserves intrinsic hatching. **Solid** explicitly clears it. Explicit
 series choices take precedence over default stripe patterns and appear on legend swatches.
+
+
+A programmatic series `opacity` is a finite number from `0` through `1`. Omitting it preserves
+the source opacity; `0` is transparent and `1` removes source attenuation while retaining the
+source colors' intrinsic alpha and declared family factors.
+For example, `{"series_styles": {"ipc": {"opacity": 0.5}}}` multiplies each source-owned color's
+embedded alpha by `0.5`, including its data labels and error bars. Reapplying the same settings
+does not accumulate attenuation. Axes, titles, legend text and general annotations remain
+independent. Colorbars retain their intrinsic color mapping; legend swatches show the final marks.
+Parallel coordinates require selected opacity `1` and opaque selected colors/scales in both
+engines. Their independent unselected opacity can be `0` without removing any data rows.
 
 ## Working method
 

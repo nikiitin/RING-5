@@ -105,9 +105,7 @@ def test_configuration_reads_are_private_snapshots_and_assignment_invalidates_on
         assert plot.config["custom"] == {"values": [1]}
         plot.config = snapshot
         assert plot.render_artifact.figure is None
-        assert (
-            plot.render_artifact.trace_result is None and plot.render_artifact.figure_spec is None
-        )
+        assert plot.render_artifact.preparation is None
         assert plot.render_artifact.cache_key is None
         assert plot.config == snapshot
         snapshot["custom"]["values"].append(9)

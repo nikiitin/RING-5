@@ -207,6 +207,12 @@ def test_public_scatter_overrides_preserve_geometry_and_borders(
             assert np.asarray(points.get_facecolor()).tolist() == [list(to_rgba("#2468ac"))]
             assert np.asarray(points.get_edgecolor()).tolist() == [list(to_rgba("#cc3300"))]
             assert np.asarray(points.get_linewidth()).tolist() == [2.5]
-            assert points.get_alpha() == trace.opacity
+            assert trace.opacity == 1.0
+            assert np.asarray(points.get_facecolor())[:, 3].tolist() == [
+                to_rgba(trace.marker.color)[3] * trace.opacity
+            ]
+            assert np.asarray(points.get_edgecolor())[:, 3].tolist() == [
+                to_rgba(trace.marker.line.color)[3] * trace.opacity
+            ]
         finally:
             plt.close(matplotlib_figure)

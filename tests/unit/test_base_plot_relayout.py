@@ -164,7 +164,7 @@ class TestUpdateFromRelayoutLegend:
         plot_session.render(plot)
         plot.update_from_relayout({"legend.x": 0.5})
         assert plot.render_artifact.figure is None
-        assert plot.render_artifact.trace_result is None
+        assert plot.render_artifact.preparation is None
         assert plot.render_artifact.cache_key is None
 
     def test_replacing_processed_data_invalidates_render_state(
@@ -179,7 +179,7 @@ class TestUpdateFromRelayoutLegend:
 
         assert plot.processed_data is replacement
         assert plot.render_artifact.figure is None
-        assert plot.render_artifact.trace_result is None
+        assert plot.render_artifact.preparation is None
         assert plot.render_artifact.cache_key is None
 
 

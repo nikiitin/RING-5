@@ -50,10 +50,10 @@ Each record requires resolved or ambiguous `source_evidence`, concrete `SourceIn
 and numeric display coordinates. An ambiguous record has no inferred output type or native bounds.
 `params.selected_sources` selects concrete names; workers receive a precompiled direct routing plan.
 
-Portfolio schema 12 stores each parser variable as exactly `{state: "draft", fields: ...}` or
+Portfolio schema 13 stores each parser variable as exactly `{state: "draft", fields: ...}` or
 `{state: "runnable", config: ...}`. Drafts preserve incomplete current editor input; runnable
 snapshots contain every `StatConfig` field. UI identifiers never enter the saved format and are
-regenerated when restored. Recipes require runnable variables and use recipe schema 7. Template
+regenerated when restored. Recipes require runnable variables and use recipe schema 8. Template
 operands are validated as declared placeholders, then compiled after materialization.
 
 `finalize_incremental_parsing` accepts the keyword-only `complete` flag, defaulting to `True`.

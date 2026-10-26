@@ -520,10 +520,10 @@ def test_right_axis_configuration_does_not_relabel_other_dashboard_panels() -> N
 
 @pytest.mark.parametrize("shared", [True, False])
 def test_heatmap_contrast_uses_resolved_manual_bounds_in_both_engines(shared: bool) -> None:
-    from src.core.services.visualization.config_resolver import resolve_config
     from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
     from src.web.rendering.figure_preparation import prepare_figure
-    from src.web.rendering.plotly_connector import FigureSpecToPlotly
+    from src.web.rendering.plotly_figure_builder import build_plotly_figure
+    from matplotlib.colors import to_rgba
 
     result = TraceBuildResult(
         traces=[
@@ -539,24 +539,23 @@ def test_heatmap_contrast_uses_resolved_manual_bounds_in_both_engines(shared: bo
         "legend_colorbar_zmax": 100,
         "legend_colorbar_shared": shared,
     }
-    plotly = traces_to_plotly(result).figure
-    FigureSpecToPlotly._apply_heatmap_colorbars(
-        resolve_config(ConfigSpecBuilder.from_config(config)), plotly
-    )
-    assert all(
-        annotation.font.color == "white"
-        for annotation in plotly.layout.annotations
-        if annotation.name == "ring5-heatmap-auto"
-    )
-    for native in plotly.data:
-        assert isinstance(native, go.Heatmap)
-        assert native.zmax == 100
     prepared = prepare_figure(
         pd.DataFrame({"a": [0], "b": [5]}), config, "heatmap", lambda _data, _config: result
     )
+    rendered = build_plotly_figure(prepared)
+    plotly = rendered.figure
+    owned_names = {role.role_name for role in rendered.layout_roles if role.appearance is not None}
+    source_labels = [
+        annotation for annotation in plotly.layout.annotations if annotation.name in owned_names
+    ]
+    assert len(source_labels) == 4
+    assert [annotation.font.color for annotation in source_labels] == ["rgba(255,255,255,1)"] * 4
+    for native in plotly.data:
+        assert isinstance(native, go.Heatmap)
+        assert native.zmax == 100
     matplotlib = build_matplotlib_figure_from_prepared(prepared).figure
     for axis in matplotlib.axes[:2]:
-        assert [text.get_color() for text in axis.texts] == ["white", "white"]
+        assert [to_rgba(text.get_color()) for text in axis.texts] == [to_rgba("white")] * 2
         assert axis.collections[0].get_clim() == (0, 100)
 
 

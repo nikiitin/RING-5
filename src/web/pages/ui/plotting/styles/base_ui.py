@@ -13,7 +13,7 @@ class BaseStyleUI:
         self.plot_type = plot_type
 
     def render_series_visuals(self, current_style: dict[str, Any], key_suffix: str) -> None:
-        # [impl->req~ring5.figure.series-styling~1]
+        # [impl->req~ring5.figure.series-styling~2]
         """Render type-specific series controls in the active Colors panel."""
         self._render_specific_series_visuals(
             current_style,

@@ -24,6 +24,12 @@ effective config   ──▶ ConfigSpecBuilder ──▶ FigureConfig ──▶ 
   (`src/core/services/visualization/config_resolver.py`) replaces every sentinel via deepcopy
   **before** any connector runs — connectors never see `-1`. Add new inheritable fields with a
   sentinel default + a rule in `resolve_config`.
+- **Source opacity:** `TraceConfig.opacity` is concrete `[0, 1]`; the incremental
+  `SeriesStyleConfig.opacity` uses `None` for no update. Explicit `0`/`1` override the scalar,
+  multiplying embedded alpha once. `_appearance.py` owns preflight/projection through existing
+  bindings; declare intrinsic channels at construction and reject affected unknown native edits.
+  Data labels follow their source; colorbars show intrinsic mappings. Parcoords selected colors
+  must be opaque with selected opacity `1`. Background `bgalpha` remains replacement semantics.
 - **Connectors** (`src/web/rendering/plotly_connector.py::FigureSpecToPlotly`,
   `matplotlib_connector.py::FigureSpecToMatplotlib`) are **stateless** (`@staticmethod`) and apply
   the **15 named styling capabilities** declared in

@@ -78,12 +78,12 @@ def test_real_parser_table_portfolio_snapshot_recovery_and_recipe_preserve_nativ
             assert capture is not None
             recipe = original.capture_analysis_recipe("Native replay")
             wire = json.loads(original.export_analysis_recipe(recipe))
-            assert wire["schema_version"] == 7
+            assert wire["schema_version"] == 8
             assert wire["source"]["variables"][0]["params"] == config.params
             portfolio = json.loads(
                 (PathService.get_portfolios_dir() / "native-cells.json").read_text()
             )
-            assert portfolio["schema_version"] == 12 and portfolio["version"] == "12.0"
+            assert portfolio["schema_version"] == 13 and portfolio["version"] == "13.0"
 
         with monkeypatch.context() as restore:
             no_parse = Mock(side_effect=AssertionError("Typed restoration must not reparse."))

@@ -7,6 +7,7 @@ import os
 import sqlite3
 import time
 from collections.abc import Generator
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -231,7 +232,10 @@ def test_corrupt_cached_success_is_invalidated_and_real_work_reparses(
         path = Path(terminal.published_output.csv_path)
         path.write_bytes(path.read_bytes().replace(b"1.25", b"9.25"))
     else:
-        with sqlite3.connect(service.session_dir / "jobs.sqlite3") as connection:
+        with (
+            closing(sqlite3.connect(service.session_dir / "jobs.sqlite3")) as connection,
+            connection,
+        ):
             if consumed:
                 connection.execute("UPDATE published_results SET output_json='{}'")
             else:
@@ -350,11 +354,11 @@ def test_corrupt_partial_descriptor_stays_visible_without_discard_or_reparse(
     assert terminal.output is not None
     service = api._get_parse_job_service()
     attempt = service._store.get_attempt_dir(job.job_id)
-    with sqlite3.connect(service.session_dir / "jobs.sqlite3") as connection:
+    with closing(sqlite3.connect(service.session_dir / "jobs.sqlite3")) as connection, connection:
         connection.execute("UPDATE jobs SET output_json='{}' WHERE job_id=?", (job.job_id,))
     with pytest.raises(InvalidStoredOutput):
         api.submit_parse_job(str(inputs), "stats.txt", _variables("001"))
-    with sqlite3.connect(service.session_dir / "jobs.sqlite3") as connection:
+    with closing(sqlite3.connect(service.session_dir / "jobs.sqlite3")) as connection, connection:
         assert connection.execute("SELECT job_id FROM jobs").fetchall() == [(job.job_id,)]
     assert attempt.is_dir() and Path(terminal.output.csv_path).is_file()
     assert submit.call_count == 1
