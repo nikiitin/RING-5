@@ -30,7 +30,7 @@ after an undo create a branch and clear only the redo path.
 
 ## Restore
 
-`restore_session` accepts migrated portfolio data and restores independent items. It returns
+`restore_session` prepares a replacement from a verified portfolio snapshot. It returns
 `RestoreReport` so callers can distinguish restored data, skipped plots, malformed parse variables,
 and data errors. A restore never claims completeness when content was dropped.
 
@@ -38,7 +38,7 @@ and data errors. A restore never claims completeness when content was dropped.
 
 1. Choose the repository that owns the lifecycle or add a focused repository.
 2. Extend the state protocol and repository-backed implementation.
-3. Decide whether reset, portfolio save, migration, and restore include the field.
+3. Decide whether reset, portfolio save, and restore include the field.
 4. Keep values JSON-compatible when persisted.
 5. Add isolation and round-trip tests.
 

@@ -15,4 +15,4 @@ permalink: /developer-guide/subsystems/
 - [Visualization Subsystem](visualization/) covers plot traces, figure configuration, connectors,
   and export.
 - [Web Application](web/) covers Streamlit pages, components, controllers, and UI state.
-- [Portfolio Subsystem](portfolios/) covers storage, migration, restore reports, and replay.
+- [Portfolio Subsystem](portfolios/) covers storage, validation, restore reports, and replay.

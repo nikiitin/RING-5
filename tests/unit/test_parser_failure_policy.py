@@ -215,7 +215,11 @@ def test_real_cell_encoding_rejection_releases_result_and_work_while_future_is_h
             text = "x" * 4097 if mode == "cell_limit" else "\ud800"
             result = ParsedFileResult(
                 "source",
-                (ParsedVariableResult("v", "text", "scalar", (ParsedCell("v", "text", text),)),),
+                (
+                    ParsedVariableResult(
+                        "v", "text", "scalar", (ParsedCell("v", "text", text),), layout=None
+                    ),
+                ),
             )
             refs.append(weakref.ref(result))
             return result
@@ -426,7 +430,8 @@ def test_failing_restart_cleanup_cannot_close_the_next_concurrent_generation(
         source = tmp_path / "stats.txt"
         source.write_text("v 1\n")
         lines, success = worker.parse_file(str(source), ["v"])
-        assert success and "scalar/v/1" in lines
+        assert success
+        assert any('"shape":"scalar","value":"1"' in line for line in lines)
     finally:
         release_cleanup.set()
         worker.shutdown()

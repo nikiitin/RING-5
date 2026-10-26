@@ -33,7 +33,7 @@ from src.core.models.source_context_models import (
 )
 
 
-def _json_text(value: object, *, byte_limit: int = MAX_PARSE_RESULT_BYTES) -> str:
+def encode_source_json(value: object, *, byte_limit: int = MAX_PARSE_RESULT_BYTES) -> str:
     """Bound primitive source metadata before encoding or allocating escaped text."""
     active: set[int] = set()
     remaining = byte_limit
@@ -135,11 +135,11 @@ class SourceContextCodec:
             stats_path,
             stats_pattern,
             strategy_type,
-            _json_text(
+            encode_source_json(
                 [StatConfigCodec.to_payload(config) for config in configs],
                 byte_limit=metadata_byte_limit,
             ),
-            _json_text(
+            encode_source_json(
                 list(scanned_variables),
                 byte_limit=metadata_byte_limit,
             ),
@@ -161,12 +161,7 @@ class SourceContextCodec:
 
     @staticmethod
     def scanned_payloads(source: ParserSourceContext) -> list[ScannedVariableDict]:
-        """Own current scanner wire fields, retaining optional observed bounds exactly.
-
-        The current shared decoder validates known keys, bound presence/types and
-        finite ordering. Its generic model intentionally projects only execution
-        fields; retaining the validated wire value preserves editor range metadata.
-        """
+        """Decode the exact owned evidence payload without inferred geometry."""
         values = _json_array(source.scanned_variables_json, MAX_REGEX_CANDIDATES)
         for value in values:
             ScannedVariable.from_dict(cast(ScannedVariableDict, value))
@@ -262,8 +257,8 @@ class SourceContextCodec:
             value["stats_path"],
             value["stats_pattern"],
             value["strategy_type"],
-            _json_text(value["variables"]),
-            _json_text(value["scanned_variables"]),
+            encode_source_json(value["variables"]),
+            encode_source_json(value["scanned_variables"]),
             value["simulator"],
             value["parser_contract_version"],
             value["scan_limit"],
@@ -276,7 +271,9 @@ class SourceContextCodec:
     @staticmethod
     def encode(source: SourceContext) -> str:
         """Encode bounded current request metadata for existing durable owners."""
-        return _json_text(SourceContextCodec.to_payload(source), byte_limit=MAX_PARSE_RESULT_BYTES)
+        return encode_source_json(
+            SourceContextCodec.to_payload(source), byte_limit=MAX_PARSE_RESULT_BYTES
+        )
 
     @staticmethod
     def decode(payload: str) -> SourceContext:
@@ -300,7 +297,7 @@ class SourceContextCodec:
         source = SourceContextCodec.from_payload(SourceContextCodec.to_payload(source))
         return LoadedDataOrigin(
             source,
-            _json_text(list(transformations), byte_limit=MAX_PIPELINE_CONFIG_BYTES),
+            encode_source_json(list(transformations), byte_limit=MAX_PIPELINE_CONFIG_BYTES),
             complete,
         )
 
@@ -337,7 +334,7 @@ class SourceContextCodec:
             raise ValueError("Loaded source transformations require a bounded list.")
         origin = LoadedDataOrigin(
             SourceContextCodec.from_payload(value["source"]),
-            _json_text(transformations, byte_limit=MAX_PIPELINE_CONFIG_BYTES),
+            encode_source_json(transformations, byte_limit=MAX_PIPELINE_CONFIG_BYTES),
             value["complete"],
         )
         SourceContextCodec.transformations(origin)

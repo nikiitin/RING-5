@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from src.core.models.visualization.export_options import validate_tex_system
+from src.core.common.opacity import require_opacity
 
 # Current editable bar patterns include Matplotlib's circle and star hatches.
 BAR_HATCH_PATTERNS: tuple[str, ...] = ("", "/", "\\", "x", "-", "|", "+", ".", "o", "O", "*")
@@ -93,15 +94,14 @@ def validate_plot_config_keys(config: Mapping[str, Any], *, plot_type: str | Non
             )
 
 
-def validate_plot_config_values(config: Mapping[str, Any], *, plot_type: str | None = None) -> None:
+def validate_plot_config_values(config: Mapping[str, Any]) -> None:
     """Validate concrete common figure values.
 
     Args:
         config: Configuration after any recipe parameters are materialized.
-        plot_type: Exact plot identifier when the caller owns that context.
 
     Raises:
-        ValueError: Legend labels, orientation, PGF compiler or series pattern is unsupported.
+        ValueError: A legend, PGF compiler, series pattern or opacity value is unsupported.
     """
     # [impl->req~ring5.api.plot-validation~1]
     if "tex_system" in config:
@@ -122,6 +122,8 @@ def validate_plot_config_values(config: Mapping[str, Any], *, plot_type: str | N
     for name, style in styles.items():
         if not isinstance(name, str) or not isinstance(style, Mapping):
             raise ValueError("series_styles must map text series names to style mappings.")
+        if "opacity" in style:
+            require_opacity(style["opacity"], field=f"series_styles[{name!r}].opacity")
         if "pattern" in style and (
             type(style["pattern"]) is not str or style["pattern"] not in BAR_HATCH_PATTERNS
         ):
@@ -153,4 +155,4 @@ def validate_plot_fields(payload: dict[str, Any]) -> None:
     config = payload.get("config", {})
     if isinstance(config, Mapping):
         validate_plot_config_keys(config, plot_type=payload.get("plot_type"))
-        validate_plot_config_values(config, plot_type=payload.get("plot_type"))
+        validate_plot_config_values(config)

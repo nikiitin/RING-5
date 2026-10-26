@@ -5,9 +5,7 @@ source instances keep concrete identities separate from their numeric display co
 """
 
 from concurrent.futures import Future
-import math
 from dataclasses import dataclass, field
-from typing import cast
 
 from src.core.models.data_models import ScannedVariableDict, SourceInstanceDict
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
@@ -21,9 +19,31 @@ from src.core.common.security_limits import (
     MAX_PARSER_PLAYGROUND_VARIABLES,
 )
 from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput, ParsedValue
+from src.core.models.source_evidence import (
+    SourceKindEvidence,
+    AmbiguousSourceKind,
+    decode_source_kind_evidence,
+    encode_source_kind_evidence,
+)
 
 # Shared by durable parse requests and incremental rows; bump on semantic changes.
-PARSER_RESULT_VERSION = 10
+PARSER_RESULT_VERSION = 11
+
+
+def require_current_parser_contract(value: object) -> None:
+    """Reject unsupported execution contracts without coercion or hooks.
+
+    Declarative source values can retain another bounded identifier for explicit
+    rejection. Actual execution always uses the shared current parser contract.
+
+    Raises:
+        ValueError: The identifier is not exact current-version text.
+    """
+    if type(value) is not str or value != str(PARSER_RESULT_VERSION):
+        raise ValueError(
+            f"Parser contract is unsupported; expected current version {PARSER_RESULT_VERSION}."
+        )
+
 
 # Type alias for StatConfig parameter values
 StatParamValue = str | int | float | bool | list[str] | None
@@ -300,60 +320,41 @@ class SourceInstance:
         return cls(source_name=value["source_name"], indices=tuple(value["indices"]))
 
 
-def validate_scanned_bounds(minimum: object, maximum: object) -> None:
-    """Validate optional observed bounds without coercion or inferred defaults.
-
-    Args:
-        minimum: Finite numeric lower bound, or None when unknown.
-        maximum: Finite numeric upper bound, or None when unknown.
-
-    Raises:
-        TypeError: A known bound is not an actual int or float.
-        ValueError: A bound is nonfinite or the known range is reversed.
-    """
-    for field_name, value in (("minimum", minimum), ("maximum", maximum)):
-        if value is None:
-            continue
-        if type(value) not in (int, float):
-            raise TypeError(f"Scanned variable {field_name} must be a finite number or unknown.")
-        if isinstance(value, float) and not math.isfinite(value):
-            raise ValueError(f"Scanned variable {field_name} must be finite.")
-    if (
-        minimum is not None
-        and maximum is not None
-        and cast(int | float, minimum) > cast(int | float, maximum)
-    ):
-        raise ValueError("Scanned variable minimum must not exceed maximum.")
-
-
 @dataclass(frozen=True)
 class ScannedVariable:
-    """Current metadata for a statistic discovered by a simulator parser.
+    """Observed source contracts and a nullable output suggestion.
 
     Attributes:
         name: Literal source name or scanner-generated numeric pattern.
-        type: Output representation suggested by the scanner.
-        entries: Actual measurement entries below each concrete source.
-        source_type: Explicit raw source kind before pattern aggregation.
+        type: Suggested output, or None when the wire does not select one.
+        entries: Actual printed measurement labels, independent of source instances.
+        source_evidence: Compatible contracts with their observed provenance.
         instances: Concrete sources with numeric display coordinates.
     """
 
     name: str
-    type: str
+    type: str | None
     entries: list[str] = field(default_factory=list)
-    source_type: str = field(kw_only=True)
+    source_evidence: SourceKindEvidence = field(kw_only=True)
     instances: tuple[SourceInstance, ...] = field(kw_only=True)
 
     def __post_init__(self) -> None:
-        for field_name in ("name", "type", "source_type"):
-            value = getattr(self, field_name)
-            if not isinstance(value, str) or not value:
-                raise ValueError(f"Scanned variable {field_name} must be non-empty text.")
-        if not isinstance(self.entries, list) or any(not isinstance(e, str) for e in self.entries):
-            raise TypeError("Scanned variable entries must be a list of text values.")
-        if not isinstance(self.instances, tuple) or not self.instances:
+        if type(self.name) is not str or not self.name or len(self.name) > MAX_INPUT_LENGTH:
+            raise ValueError("Scanned variable name must be bounded non-empty text.")
+        if self.type is not None and (
+            type(self.type) is not str or not self.type or len(self.type) > MAX_INPUT_LENGTH
+        ):
+            raise ValueError("Scanned variable type must be bounded non-empty text or null.")
+        encode_source_kind_evidence(self.source_evidence)
+        if type(self.source_evidence) is AmbiguousSourceKind and self.type is not None:
+            raise ValueError("Ambiguous scanned source evidence cannot suggest an output default.")
+        if type(self.entries) is not list or any(
+            type(entry) is not str or len(entry) > MAX_INPUT_LENGTH for entry in self.entries
+        ):
+            raise TypeError("Scanned variable entries must be bounded text labels.")
+        if type(self.instances) is not tuple or not self.instances:
             raise ValueError("Scanned variables require explicit immutable source instances.")
-        if any(not isinstance(instance, SourceInstance) for instance in self.instances):
+        if any(type(instance) is not SourceInstance for instance in self.instances):
             raise TypeError("Scanned variable instances must be SourceInstance values.")
         names = [instance.source_name for instance in self.instances]
         if len(set(names)) != len(names):
@@ -361,38 +362,30 @@ class ScannedVariable:
         object.__setattr__(self, "entries", list(self.entries))
 
     def to_dict(self) -> ScannedVariableDict:
-        """Serialize current metadata without exposing caller-owned mutable lists."""
+        """Encode one independently owned current scanner record."""
         return {
             "name": self.name,
             "type": self.type,
             "entries": list(self.entries),
-            "source_type": self.source_type,
+            "source_evidence": encode_source_kind_evidence(self.source_evidence),
             "instances": [instance.to_dict() for instance in self.instances],
         }
 
     @classmethod
     def from_dict(cls, data: ScannedVariableDict) -> "ScannedVariable":
-        """Decode mandatory source metadata; retired or incomplete payloads fail."""
-        if not isinstance(data, dict):
+        """Reject retired keys and decode the complete current evidence contract."""
+        if type(data) is not dict:
             raise TypeError("Scanned variable metadata must be an object.")
-        allowed = set(ScannedVariableDict.__annotations__)
-        if set(data) - allowed:
-            raise ValueError(f"Unsupported scanned variable fields: {sorted(set(data) - allowed)}.")
-        required = {"name", "type", "entries", "source_type", "instances"}
-        missing = required - set(data)
-        if missing:
-            raise ValueError(f"Missing required scanned variable fields: {sorted(missing)}.")
-        for field_name in ("minimum", "maximum"):
-            if field_name in data and data[field_name] is None:
-                raise TypeError("Serialized unknown scan bounds must be omitted.")
-        validate_scanned_bounds(data.get("minimum"), data.get("maximum"))
-        if not isinstance(data["instances"], list):
+        required = {"name", "type", "entries", "source_evidence", "instances"}
+        if set(data) != required:
+            raise ValueError("Scanned variable metadata requires exactly the current fields.")
+        if type(data["instances"]) is not list:
             raise TypeError("Serialized source instances must be a list.")
         return cls(
             name=data["name"],
             type=data["type"],
             entries=data["entries"],
-            source_type=data["source_type"],
+            source_evidence=decode_source_kind_evidence(data["source_evidence"]),
             instances=tuple(SourceInstance.from_dict(value) for value in data["instances"]),
         )
 
@@ -401,8 +394,8 @@ class ScannedVariable:
 class ScanFileResult:
     """Outcome of scanning a single stats file.
 
-    On success ``variables`` holds the discovered variables and ``error`` is
-    ``None``; on failure ``error`` holds the message and ``variables`` is empty.
+    An error can accompany valid variables from unrelated sources. A fatal error
+    has no variables; a source-local contradiction preserves the useful catalog.
     This lets aggregation distinguish "scanned: empty" from "scan failed"
     instead of masking failures as zero variables.
     """
@@ -421,11 +414,11 @@ class ScanFileResult:
 class ScanResult:
     """Aggregated outcome of a scan across multiple files.
 
-    ``variables`` is the merged, deduplicated list from files that scanned
-    successfully; ``failures`` lists per-file failures so the UI can surface
-    them instead of silently showing "no variables". ``scanned_files`` records
-    the full batch size, including failed files, so callers can distinguish a
-    complete scan from a partial result.
+    ``variables`` retains valid sources, including unrelated sources from a
+    partially rejected file. ``failures`` coalesces errors once per file so the
+    UI exposes incomplete discovery instead of silently showing no variables.
+    ``scanned_files`` includes the whole batch, including failures, so callers can
+    distinguish complete discovery from a partial result.
     """
 
     variables: list[ScannedVariable] = field(default_factory=list)

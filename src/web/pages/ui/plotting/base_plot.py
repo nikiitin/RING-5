@@ -57,7 +57,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
     def config(self, config: PlotConfig) -> None:
         """Own a complete replacement mapping and invalidate its derived generation."""
         validate_plot_config_keys(config, plot_type=self.plot_type)
-        validate_plot_config_values(config, plot_type=self.plot_type)
+        validate_plot_config_values(config)
         numbered_axis_modes(config)
         artifact = RenderArtifact(copy.deepcopy(config))
         previous = self.render_state.set_detached_payload(artifact)

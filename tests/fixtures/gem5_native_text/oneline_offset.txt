@@ -1,0 +1,14 @@
+---------- Begin Simulation Statistics ----------
+system.cpu00.dist::bucket_size 1
+system.cpu00.dist::min_bucket 0.250000
+system.cpu00.dist::max_bucket 1.250000
+system.cpu00.dist::samples 2
+system.cpu00.dist::mean 0.750000
+system.cpu00.dist::stdev 0.707107
+system.cpu00.dist::underflows 0 0.00% 0.00%
+system.cpu00.dist |1 50.00% 50.00% |1 50.00% 100.00%
+system.cpu00.dist::overflows 0 0.00% 100.00%
+system.cpu00.dist::min_value 0.250000
+system.cpu00.dist::max_value 1.250000
+system.cpu00.dist::total 2
+---------- End Simulation Statistics   ----------

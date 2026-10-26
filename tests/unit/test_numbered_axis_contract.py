@@ -9,13 +9,14 @@ import pytest
 import ring5
 from src.core.common.numbered_axis import NUMBERED_AXIS_MODES, numbered_axis_modes
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
+from src.web.rendering.figure_preparation import PreparedFigure
 
 pytestmark = pytest.mark.public_api
 
 
 def test_absent_and_empty_modes_are_distinct_and_read_without_mutation() -> None:
     assert numbered_axis_modes({}) is None
-    config = {"numbered_xaxis_modes": []}
+    config: dict[str, list[str]] = {"numbered_xaxis_modes": []}
     assert numbered_axis_modes(config) == []
     modes = ["Labels", "Number legend"]
     result = numbered_axis_modes({"numbered_xaxis_modes": modes})
@@ -174,8 +175,10 @@ def test_every_mode_subset_keeps_measurements_and_numbering_consistent(
             },
         )
         session.render(plot, engine=engine)
-    assert plot.render_artifact.trace_result is not None
-    assert [trace.y for trace in plot.render_artifact.trace_result.traces] == [
+    prepared = plot.render_artifact.preparation
+    assert isinstance(prepared, PreparedFigure)
+    assert prepared.trace_result is not None
+    assert [trace.y for trace in prepared.trace_result.traces] == [
         [1.0, 2.0],
         [3.0, 4.0],
     ]
@@ -187,10 +190,8 @@ def test_every_mode_subset_keeps_measurements_and_numbering_consistent(
         expected = ["base", "tuned"]
     else:
         expected = ["", ""]
-    assert plot.render_artifact.trace_result.custom_x_ticks is not None
-    assert plot.render_artifact.trace_result.custom_x_ticks["text"] == expected
-    legends = [
-        a for a in plot.render_artifact.trace_result.annotations if str(a.text).startswith("1.")
-    ]
+    assert prepared.trace_result.custom_x_ticks is not None
+    assert prepared.trace_result.custom_x_ticks["text"] == expected
+    legends = [a for a in prepared.trace_result.annotations if str(a.text).startswith("1.")]
     assert bool(legends) == ("Number legend" in modes)
     pd.testing.assert_frame_equal(data, original)

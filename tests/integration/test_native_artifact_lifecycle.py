@@ -52,8 +52,7 @@ def _assert_borrowed_content(figure: MplFigure) -> None:
 
 def _assert_no_artifacts(plot: PlotRenderSource) -> None:
     assert plot.render_artifact.figure is None
-    assert plot.render_artifact.trace_result is None
-    assert plot.render_artifact.figure_spec is None
+    assert plot.render_artifact.preparation is None
     assert plot.render_artifact.cache_key is None
 
 
@@ -73,13 +72,14 @@ def test_public_native_publication_binds_the_exact_preparation_and_replaces_only
             plot.publish_render_artifact(replace(plot.render_artifact, cache_key="previous"))
             figure = session.render(plot, engine=engine)
             assert plot.render_artifact.figure is figure
-            assert plot.render_artifact.trace_result is not None
-            assert plot.render_artifact.figure_spec is not None
+            prepared = plot.render_artifact.preparation
+            assert isinstance(prepared, PreparedFigure)
+            assert prepared.trace_result is not None
+            assert prepared.spec is not None
             assert plot.render_artifact.cache_key is None
-            assert isinstance(plot.render_artifact.preparation, PreparedFigure)
-            assert plot.config["title"] == plot.render_artifact.preparation.spec.title == "Measured"
+            assert plot.config["title"] == prepared.spec.title == "Measured"
             if engine == "matplotlib":
-                assert plot.render_artifact.figure_spec is plot.render_artifact.preparation.spec
+                assert plot.render_artifact.preparation is prepared
             assert plt.fignum_exists(unrelated.number)
             assert plt.figure(unrelated.number) is unrelated
             _assert_borrowed_content(previous)
@@ -96,10 +96,12 @@ def test_failed_native_build_retains_every_previously_published_binding(
         plot = _plot(session)
         previous = cast(MplFigure, session.render(plot, engine="matplotlib"))
         plot.publish_render_artifact(replace(plot.render_artifact, cache_key="prior"))
+        old_prepared = plot.render_artifact.preparation
+        assert isinstance(old_prepared, PreparedFigure)
         old_config, old_result, old_spec = (
             plot.config,
-            plot.render_artifact.trace_result,
-            plot.render_artifact.figure_spec,
+            old_prepared.trace_result,
+            old_prepared.spec,
         )
         unrelated, _ = plt.subplots()
         managers = set(plt.get_fignums())
@@ -119,8 +121,11 @@ def test_failed_native_build_retains_every_previously_published_binding(
                 session.render(plot, engine=engine)
             assert plot.config == old_config and plot.config["title"] == "Measured"
             assert plot.render_artifact.figure is previous
-            assert plot.render_artifact.trace_result is old_result
-            assert plot.render_artifact.figure_spec is old_spec
+            current = plot.render_artifact.preparation
+            assert isinstance(current, PreparedFigure)
+            assert current is old_prepared
+            assert current.trace_result is old_result
+            assert current.spec is old_spec
             assert plot.render_artifact.cache_key == "prior"
             assert set(plt.get_fignums()) == managers
             _assert_borrowed_content(previous)
@@ -239,7 +244,9 @@ def test_duplicate_detaches_native_state_before_copy_and_preserves_private_domai
             "lifecycle_plugin", data=ring5.Table(frame), config={"x": "x", "y": "y"}
         )
         source = cast(MplFigure, session.render(plot, engine="matplotlib"))
-        before = (plot.render_artifact.trace_result, plot.render_artifact.figure_spec)
+        source_prepared = plot.render_artifact.preparation
+        assert isinstance(source_prepared, PreparedFigure)
+        before = (source_prepared.trace_result, source_prepared.spec)
 
         def reject_copy(_self: Any, _memo: Any) -> Any:
             raise AssertionError("Native artifacts must not be traversed by duplication")
@@ -251,8 +258,11 @@ def test_duplicate_detaches_native_state_before_copy_and_preserves_private_domai
         assert duplicate.name == f"{plot.name} (copy)"
         _assert_no_artifacts(duplicate)
         assert plot.render_artifact.figure is source
-        assert plot.render_artifact.trace_result is before[0]
-        assert plot.render_artifact.figure_spec is before[1]
+        current = plot.render_artifact.preparation
+        assert isinstance(current, PreparedFigure)
+        assert current is source_prepared
+        assert current.trace_result is before[0]
+        assert current.spec is before[1]
         assert duplicate.processed_data is not None and plot.processed_data is not None
         cast(dict[str, list[int]], duplicate.processed_data.at[0, "payload"])["nested"].append(9)
         duplicate.slot_state["notes"].append(2)
@@ -269,9 +279,11 @@ def test_facet_views_drop_borrowed_artifacts_without_touching_source_or_domain_p
     with ring5.Session() as session:
         plot = session.create_plot("bar", data=ring5.Table(frame), config={"x": "x", "y": "y"})
         source = cast(MplFigure, session.render(plot, engine="matplotlib"))
+        source_prepared = plot.render_artifact.preparation
+        assert isinstance(source_prepared, PreparedFigure)
         source_result, source_spec = (
-            plot.render_artifact.trace_result,
-            plot.render_artifact.figure_spec,
+            source_prepared.trace_result,
+            source_prepared.spec,
         )
         spec = session.create_small_multiples(plot, by="facet")
         views = _facet_views(plot, spec, plot.config)
@@ -282,8 +294,11 @@ def test_facet_views_drop_borrowed_artifacts_without_touching_source_or_domain_p
             assert view.processed_data["y"].tolist() == expected
             view.processed_data.iloc[0]["payload"]["nested"].append(9)
         assert plot.render_artifact.figure is source
-        assert plot.render_artifact.trace_result is source_result
-        assert plot.render_artifact.figure_spec is source_spec
+        current = plot.render_artifact.preparation
+        assert isinstance(current, PreparedFigure)
+        assert current is source_prepared
+        assert current.trace_result is source_result
+        assert current.spec is source_spec
         assert plot.processed_data is not None
         assert plot.processed_data.at[0, "payload"] == {"nested": [1]}
         assert plot.processed_data.at[1, "payload"] == {"nested": [2]}
@@ -376,8 +391,7 @@ def test_native_publication_retains_verified_key_and_clears_all_metadata_togethe
     )
     assert plot.config == prepared.config
     assert plot.render_artifact.figure is figure
-    assert plot.render_artifact.trace_result is prepared.trace_result
-    assert plot.render_artifact.figure_spec is prepared.spec
+    assert plot.render_artifact.preparation is prepared
     assert plot.render_artifact.cache_key == "verified-content"
     plot.invalidate_figure()
     _assert_no_artifacts(plot)
@@ -428,10 +442,9 @@ def test_real_native_retirement_cannot_clear_a_new_publication_or_readmitted_plo
                         release.set()
                     pending.result(timeout=5)
             assert plot.render_artifact.figure is fresh
-            assert (
-                plot.render_artifact.trace_result is not None
-                and plot.render_artifact.figure_spec is not None
-            )
+            prepared = plot.render_artifact.preparation
+            assert isinstance(prepared, PreparedFigure)
+            assert prepared.trace_result is not None and prepared.spec is not None
             assert plot.render_artifact.cache_key is None
             assert manager.get_plots() == ([plot] if phase == "during_cleanup" else [])
             assert plt.figure(unrelated.number) is unrelated

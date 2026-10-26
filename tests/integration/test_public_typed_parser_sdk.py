@@ -110,7 +110,7 @@ def test_public_resolution_and_publication_normalize_errors_and_preserve_old_out
         "a",
         (
             ring5.ParsedVariableResult(
-                "label", "text", "scalar", (ring5.ParsedCell("label", "text", "NA"),)
+                "label", "text", "scalar", (ring5.ParsedCell("label", "text", "NA"),), layout=None
             ),
         ),
     )
@@ -127,18 +127,16 @@ def test_public_resolution_and_publication_normalize_errors_and_preserve_old_out
     with pytest.raises(TypeError):
         ring5.ParsedCell("value", "number", 1)
     with pytest.raises(ValueError):
-        ring5.ParsedVariableResult("value", "number", "scalar", ())
+        ring5.ParsedVariableResult("value", "number", "scalar", (), layout=None)
     with pytest.raises(ValueError):
-        ring5.ParsedVariableSchema("value", "number", "..")
+        ring5.ParsedVariableSchema("value", "number", "..", layout=None)
 
 
 def test_public_transport_constructors_keep_cold_root_import_light():
-    script = """
-import sys
-import ring5
-ring5.ParsedCell('label', 'text', 'NA')
-ring5.InferredCsvPolicy(('label',))
-ring5.ReviewedCsvPolicy(ring5.ImportOptions())
-assert not ({'numpy', 'pandas', 'plotly', 'matplotlib', 'streamlit'} & sys.modules.keys())
-"""
+    script = (
+        "\nimport sys\nimport ring5\nring5.ParsedCell('label', 'text', '"
+        "NA')\nring5.InferredCsvPolicy(('label',))\nring5.ReviewedCsvPo"
+        "licy(ring5.ImportOptions())\nassert not ({'numpy', 'pandas', "
+        "'plotly', 'matplotlib', 'streamlit'} & sys.modules.keys())\n"
+    )
     subprocess.run([sys.executable, "-c", script], check=True, capture_output=True, text=True)

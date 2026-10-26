@@ -17,7 +17,9 @@ from src.core.models.visualization.figure_config import FigureConfig  # noqa: E4
 from src.core.models.visualization.legend_config import LegendConfig  # noqa: E402
 from src.core.models.visualization.series_style_config import SeriesStyleConfig  # noqa: E402
 from src.core.services.visualization.config_resolver import resolve_config  # noqa: E402
+from src.web.rendering._appearance import seed_matplotlib_appearance  # noqa: E402
 from src.web.rendering._render_result import (  # noqa: E402
+    MatplotlibFigureResult,
     MatplotlibRenderResult,
     MatplotlibTraceBinding,
 )
@@ -33,10 +35,40 @@ def _bar_line_panel() -> tuple[plt.Figure, MatplotlibRenderResult]:
         ax,
         bindings=(
             MatplotlibTraceBinding(
-                0, "bars", ax, "primary", "", True, "bar", (bars,), (bars,), bars
+                0,
+                "bars",
+                ax,
+                "primary",
+                "",
+                True,
+                "bar",
+                (bars,),
+                (bars,),
+                bars,
+                appearance=seed_matplotlib_appearance(
+                    (bars,),
+                    opacity=1.0,
+                    series_channels=tuple((patch, "face") for patch in bars.patches),
+                ),
             ),
             MatplotlibTraceBinding(
-                1, "line", ax, "primary", "", True, "line", (line,), (line,), line
+                1,
+                "line",
+                ax,
+                "primary",
+                "",
+                True,
+                "line",
+                (line,),
+                (line,),
+                line,
+                appearance=seed_matplotlib_appearance(
+                    (line,),
+                    opacity=1.0,
+                    series_channels=tuple(
+                        (line, kind) for kind in ("line", "marker_face", "marker_edge")
+                    ),
+                ),
             ),
         ),
     )
@@ -48,7 +80,7 @@ def _by_label(ax: plt.Axes) -> dict[str, Any]:
 
 
 class TestTraceOverrides:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     def test_color_override_recolors_bar_and_line(self) -> None:
         fig, panel = _bar_line_panel()
         ax = panel.primary_axes
@@ -58,7 +90,7 @@ class TestTraceOverrides:
                 "line": SeriesStyleConfig(color="#00ff00"),
             }
         )
-        FigureSpecToMatplotlib._apply_trace_overrides(spec, panel)
+        FigureSpecToMatplotlib.apply(spec, MatplotlibFigureResult(fig, (panel,)))
         artists = _by_label(ax)
         assert tuple(artists["bars"].patches[0].get_facecolor()) == to_rgba("#ff0000")
         assert to_rgba(artists["line"].get_color()) == to_rgba("#00ff00")
@@ -98,14 +130,14 @@ class TestTraceOverrides:
 
 
 class TestSeriesStyling:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     def test_bar_border_applied(self) -> None:
         fig, panel = _bar_line_panel()
         ax = panel.primary_axes
         # Give both declared source slots the border under test.
         border = SeriesStyleConfig(bar_border_width=2.0, bar_border_color="#000000")
         spec = FigureConfig(series_styles=[border, border])
-        FigureSpecToMatplotlib._apply_series_styling(spec, panel)
+        FigureSpecToMatplotlib.apply(spec, MatplotlibFigureResult(fig, (panel,)))
         bar_patch = _by_label(ax)["bars"].patches[0]
         assert bar_patch.get_linewidth() == 2.0
         assert tuple(bar_patch.get_edgecolor()) == to_rgba("#000000")

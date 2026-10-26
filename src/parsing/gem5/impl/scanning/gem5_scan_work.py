@@ -39,8 +39,7 @@ class Gem5ScanWork:
         """
         try:
             scanner = Gem5StatsScanner.get_instance()
-            variables = scanner.scan_file(Path(self.file_path))
-            return ScanFileResult(file_path=self.file_path, variables=variables)
+            return scanner.scan_file(Path(self.file_path))
         except (OSError, RuntimeError) as e:
             logger.warning(
                 "SCANNER: Failed to scan %s: %s",

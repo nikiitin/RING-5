@@ -57,7 +57,7 @@ from src.core.models.import_models import ImportColumnCorrection, ImportOptions,
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     ParseBatchResult,
-    PARSER_RESULT_VERSION,
+    require_current_parser_contract,
     ScanResult,
     StatConfig,
 )
@@ -3801,8 +3801,7 @@ class Session:
                     data = ImportPreviewService.load(preview)
                 source_path = source.path
             else:
-                if source.parser_contract_version != str(PARSER_RESULT_VERSION):
-                    raise ValueError("Recipe parser contract is unsupported by this runtime.")
+                require_current_parser_contract(source.parser_contract_version)
                 parser_context = SourceContextCodec.parser(
                     stats_path=source.path,
                     stats_pattern=source.pattern,

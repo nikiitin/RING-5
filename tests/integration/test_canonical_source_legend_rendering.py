@@ -24,6 +24,7 @@ from src.web.rendering._render_result import (
 )
 from src.web.rendering.dashboard_builder import build_dashboard_figure, prepare_dashboard
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+from src.web.rendering.figure_preparation import PreparedFigure
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
 Engine = Literal["plotly", "matplotlib"]
@@ -120,8 +121,10 @@ def test_public_aliases_preserve_original_style_order_values_and_direct_reapply(
         assert native is not None
         assert _state(native) == [("B", "#0000ff", (7.0, 9.0)), ("A", "#ff0000", (3.0, 5.0))]
         assert _legend_texts(native) == ["Same", "Same"]
-        assert plot.render_artifact.trace_result is not None
-        assert [trace.name for trace in plot.render_artifact.trace_result.traces] == ["B", "A"]
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert prepared.trace_result is not None
+        assert [trace.name for trace in prepared.trace_result.traces] == ["B", "A"]
         if isinstance(figure, go.Figure):
             groups = []
             for trace in figure.data:
@@ -283,12 +286,12 @@ def test_current_documents_replay_original_style_identity_and_reject_retired_ver
         session.render(plot, engine=engine)
         session.save_portfolio("canonical")
         saved = json.loads((portfolios_dir / "canonical.json").read_text())
-        assert saved["schema_version"] == 11
-        assert saved["version"] == "11.0"
+        assert saved["schema_version"] == 13
+        assert saved["version"] == "13.0"
         assert saved["plots"][0]["config"]["legend_labels"] == _config()["legend_labels"]
         recipe = session.capture_analysis_recipe("Canonical labels")
         recipe_wire = json.loads(session.export_analysis_recipe(recipe))
-        assert recipe_wire["schema_version"] == 6
+        assert recipe_wire["schema_version"] == 8
         assert recipe_wire["plots"][0]["config"]["legend_labels"] == _config()["legend_labels"]
         assert session.load_portfolio("canonical").complete
         restored = session.plots[0]

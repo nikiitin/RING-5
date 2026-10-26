@@ -248,58 +248,6 @@ class VariableService:
         return cls.filter_internal_stats(list(found_entries), internal_stats)
 
     @classmethod
-    def aggregate_distribution_range(
-        cls, snapshot: list[ScannedVariableDict], var_name: str
-    ) -> tuple[float | None, float | None]:
-        """
-        Aggregate min/max range for a distribution variable across scanned files.
-
-        Args:
-            snapshot: List of scanned variable results from multiple files
-            var_name: Variable name to aggregate range for (supports regex)
-
-        Returns:
-            Tuple of (global_min, global_max) or (None, None) if not found
-
-        Examples:
-            >>> service = VariableService()
-            >>> snapshot = [
-            ...     {"name": "system.latency", "type": "distribution",
-            ...      "minimum": 10, "maximum": 100},
-            ...     {"name": "system.latency", "type": "distribution",
-            ...      "minimum": 5, "maximum": 150}
-            ... ]
-            >>> min_val, max_val = service.aggregate_distribution_range(
-            ...     snapshot, "system.latency"
-            ... )
-            >>> (min_val, max_val)
-            (5, 150)
-        """
-        # [impl->req~ring5.ingestion.distribution-range-scan~1]
-        global_min: float | None = None
-        global_max: float | None = None
-
-        for var in snapshot:
-            name = var.get("name", "")
-            v_type = var.get("type", "")
-            v_min = var.get("minimum")
-            v_max = var.get("maximum")
-
-            var_name_match = name == var_name
-            if not var_name_match:
-                compiled = _compile_safe_pattern(var_name)
-                if compiled is not None:
-                    var_name_match = _safe_fullmatch(compiled, name)
-
-            if var_name_match and v_type == "distribution":
-                if v_min is not None:
-                    global_min = min(global_min, v_min) if global_min is not None else v_min
-                if v_max is not None:
-                    global_max = max(global_max, v_max) if global_max is not None else v_max
-
-        return global_min, global_max
-
-    @classmethod
     def parse_comma_separated_entries(cls, entries_str: str) -> list[str]:
         """
         Parse comma-separated entry string into list.

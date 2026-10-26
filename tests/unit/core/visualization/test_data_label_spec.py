@@ -116,14 +116,11 @@ class TestDataLabelSpecSerialization:
         assert d["font_size"] == 12
         assert isinstance(d["threshold"], float)
 
-    def test_from_dict_ignores_unknown_keys(self) -> None:
-        """Unknown keys in input dict should not raise."""
-        spec = DataLabelConfig.from_dict(
-            {
-                "enabled": True,
-                "unknown_key": "should_be_ignored",
-            }
-        )
+    def test_from_dict_rejects_unknown_keys(self) -> None:
+        """Unsupported names fail while partial current objects retain defaults."""
+        with pytest.raises(TypeError, match="Unsupported DataLabelConfig fields"):
+            DataLabelConfig.from_dict({"unknown_key": "unsupported"})
+        spec = DataLabelConfig.from_dict({"enabled": True})
         assert spec.enabled is True
         assert spec.font_size == 10  # default
 

@@ -8,6 +8,10 @@ Plotly traces, annotations and layout geometry before figure styling is applied.
 from __future__ import annotations
 
 from typing import Any
+from collections.abc import Sequence
+from dataclasses import replace
+
+from src.web.rendering._appearance import seed_sankey_appearance, PlotlyTextAppearance, _css_project
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -48,7 +52,9 @@ def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
     return {"type": "data", "array": error_y, "visible": True}
 
 
-def traces_to_plotly(result: TraceBuildResult) -> PlotlyRenderResult:
+def traces_to_plotly(
+    result: TraceBuildResult, *, palette_colors: Sequence[str] = ()
+) -> PlotlyRenderResult:
     # [impl->req~ring5.render.plotly~1]
     """Convert neutral output into an explicitly bound native Plotly result.
 
@@ -59,6 +65,7 @@ def traces_to_plotly(result: TraceBuildResult) -> PlotlyRenderResult:
 
     Args:
         result: Engine-agnostic output from a plot type.
+        palette_colors: Fallback colors for sources without explicit or semantic colors.
 
     Returns:
         A populated native figure with original-source and generated-role associations.
@@ -66,7 +73,16 @@ def traces_to_plotly(result: TraceBuildResult) -> PlotlyRenderResult:
     Raises:
         TypeError: A trace or annotation has no supported concrete family.
     """
-    traces_list = list(result.traces)
+    traces_list = [
+        (
+            replace(trace, color=palette_colors[index % len(palette_colors)])
+            if palette_colors
+            and not trace.color
+            and trace.trace_type not in ("waterfall", "sankey", "parallel_coordinates", "heatmap")
+            else trace
+        )
+        for index, trace in enumerate(result.traces)
+    ]
     validate_trace_types(traces_list)
     validate_annotation_types(result.annotations)
     heatmap_only = uses_heatmap_panels(result)
@@ -124,6 +140,24 @@ def traces_to_plotly(result: TraceBuildResult) -> PlotlyRenderResult:
                 trace.legend_role,
                 trace.legendgroup,
                 trace.show_in_legend,
+                appearance=(
+                    seed_sankey_appearance(
+                        fig.data[-1],
+                        opacity=trace.opacity,
+                        node_colors=[
+                            trace.node_colors[i] if i < len(trace.node_colors) else "#4c78a8"
+                            for i in range(len(trace.node_labels))
+                        ],
+                        node_line=trace.node_line_color,
+                        link_colors=[
+                            trace.link_colors[i] if i < len(trace.link_colors) else "#7f7f7f"
+                            for i in range(len(trace.values))
+                        ],
+                        link_factor=trace.link_opacity,
+                    )
+                    if isinstance(trace, SankeyTraceConfig)
+                    else None
+                ),
             )
         )
 
@@ -220,7 +254,7 @@ def traces_to_plotly(result: TraceBuildResult) -> PlotlyRenderResult:
     fig.update_layout(**layout_updates)
 
     # Heatmap cell-value annotations (rendered on top of all traces)
-    _add_heatmap_annotations(fig, traces_list, heatmap_only)
+    label_roles = _add_heatmap_annotations(fig, traces_list, heatmap_only, bindings)
 
     # Heatmap totals separator lines
     _add_heatmap_separator_lines(fig, traces_list, heatmap_only)
@@ -233,7 +267,7 @@ def traces_to_plotly(result: TraceBuildResult) -> PlotlyRenderResult:
         if heatmap_only
         else ()
     )
-    return PlotlyRenderResult(fig, (tuple(bindings),), roles)
+    return PlotlyRenderResult(fig, (tuple(bindings),), roles + label_roles)
 
 
 # Private helpers
@@ -389,8 +423,12 @@ def _violin_trace(trace: ViolinTraceConfig) -> go.Violin:
         "points": "all" if trace.point_mode == "all" else False,
         "jitter": trace.jitter,
         "width": trace.violin_width,
-        "box": {"visible": trace.show_box},
-        "meanline": {"visible": trace.show_mean},
+        "box": {
+            "visible": trace.show_box,
+            "fillcolor": "rgba(255,255,255,0.8)",
+            "line": {"color": _css_project(trace.color or "#4472C4", 0.8)},
+        },
+        "meanline": {"visible": trace.show_mean, "color": "black"},
         "opacity": trace.opacity,
         "showlegend": trace.show_in_legend,
         "visible": trace.visible,
@@ -425,6 +463,8 @@ def _radar_trace(trace: RadarTraceConfig) -> go.Scatterpolar:
     if trace.color:
         kwargs["line"]["color"] = trace.color
         kwargs["marker"]["color"] = trace.color
+    if trace.fill_area:
+        kwargs["fillcolor"] = _css_project(trace.color or "#4472C4", 0.45)
     return go.Scatterpolar(**{key: value for key, value in kwargs.items() if value is not None})
 
 
@@ -453,17 +493,6 @@ def _waterfall_trace(trace: WaterfallTraceConfig) -> go.Waterfall:
     )
 
 
-def _with_opacity(color: str, opacity: float) -> str:
-    """Bake opacity into palette hex colors for Plotly Sankey links."""
-    if len(color) == 7 and color.startswith("#"):
-        try:
-            red, green, blue = (int(color[index : index + 2], 16) for index in (1, 3, 5))
-        except ValueError:
-            return color
-        return f"rgba({red},{green},{blue},{opacity:.3f})"
-    return color
-
-
 def _sankey_trace(trace: SankeyTraceConfig) -> go.Sankey:
     # [impl->req~ring5.plot.sankey~1]
     """Convert validated nodes and weighted links to a native Plotly Sankey trace."""
@@ -486,7 +515,7 @@ def _sankey_trace(trace: SankeyTraceConfig) -> go.Sankey:
             "target": trace.target_indices,
             "value": trace.values,
             "label": trace.link_labels if trace.show_link_labels else [""] * len(trace.values),
-            "color": [_with_opacity(color, trace.link_opacity) for color in trace.link_colors],
+            "color": trace.link_colors,
         },
     )
 
@@ -575,6 +604,7 @@ def _line_trace(trace: LineTraceConfig) -> go.Scatter:
 
     if trace.fill != "none":
         kwargs["fill"] = trace.fill
+        kwargs["fillcolor"] = trace.color or "#4472C4"
 
     if error_y := _error_y_dict(trace.error_y):
         kwargs["error_y"] = error_y
@@ -631,6 +661,7 @@ def _heatmap_trace(trace: HeatmapTraceConfig) -> go.Heatmap:
         "y": trace.row_labels,
         "z": trace.z,
         "colorscale": trace.colorscale,
+        "opacity": trace.opacity,
         "name": trace.name,
         "showlegend": False,
     }
@@ -642,7 +673,8 @@ def _add_heatmap_annotations(
     fig: go.Figure,
     traces_list: list[TraceConfig],
     heatmap_only: bool,
-) -> None:
+    bindings: Sequence[PlotlyTraceBinding],
+) -> tuple[PlotlyLayoutRole, ...]:
     """Append per-cell annotations for every heatmap trace that has text.
 
     Using layout annotations (instead of ``texttemplate``) guarantees that
@@ -650,6 +682,7 @@ def _add_heatmap_annotations(
     auto-contrast colouring (white text on dark cells, black on light).
     """
     annotations: list[dict[str, Any]] = []
+    roles: list[PlotlyLayoutRole] = []
     for idx, trace in enumerate(traces_list):
         if not isinstance(trace, HeatmapTraceConfig):
             continue
@@ -677,26 +710,36 @@ def _add_heatmap_annotations(
                 else:
                     text_color = text_colors[i][j]
 
+                role_name = f"ring5-source-label-{len(roles)}"
+                roles.append(
+                    PlotlyLayoutRole(
+                        role_name,
+                        bindings[idx],
+                        PlotlyTextAppearance(
+                            text_color, trace.opacity, i, j, color_mode != "custom"
+                        ),
+                    )
+                )
                 annotations.append(
                     {
                         "text": str(cell_text),
-                        "name": (
-                            "ring5-heatmap-auto"
-                            if color_mode != "custom"
-                            else "ring5-heatmap-custom"
-                        ),
+                        "name": role_name,
                         "x": trace.col_labels[j],
                         "y": trace.row_labels[i],
                         "xref": xref,
                         "yref": yref,
                         "showarrow": False,
-                        "font": {"size": font_size, "color": text_color},
+                        "font": {
+                            "size": font_size,
+                            "color": _css_project(text_color, trace.opacity),
+                        },
                     }
                 )
 
     if annotations:
         existing = list(fig.layout.annotations or [])
         fig.update_layout(annotations=existing + annotations)
+    return tuple(roles)
 
 
 def _add_heatmap_separator_lines(

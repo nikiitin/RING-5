@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from hashlib import sha256
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime
@@ -125,7 +126,10 @@ def _filter_heatmap(figure: go.Figure, trace: Any, axis: str, indices: list[int]
 
     annotations = []
     for annotation in figure.layout.annotations or ():
-        owned = str(annotation.name or "").startswith("ring5-heatmap-")
+        owned = (
+            re.fullmatch(r"ring5-(?:panel-\d+-)?source-label-\d+", str(annotation.name or ""))
+            is not None
+        )
         same_axes = annotation.xref == xref and annotation.yref == yref
         coordinate = annotation.x if axis == "x" else annotation.y
         if not (owned and same_axes and _value_key(coordinate) not in retained):

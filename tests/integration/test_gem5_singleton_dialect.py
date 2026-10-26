@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from src.core.models.source_evidence import ResolvedSourceKind, source_kind_candidates
+from src.core.common.source_entry_labels import canonical_source_entry
+
+
 import csv
 import json
 import subprocess
@@ -48,19 +52,23 @@ def test_real_singleton_histogram_vector_and_distribution_contexts(
     tmp_path: Path, metadata: str
 ) -> None:
     text = metadata + (
-        "h::samples 12\nh::mean 0.1\nh::gmean 1\nh::stdev 0.3\n"
-        "h::-1 2 16.67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n"
-        "v::0 5 41.67% 41.67%\nv::1 7 58.33% 100%\nv::total 12\n"
-        "d::samples 12\nd::mean 0.5\nd::stdev 0.2\n"
-        "d::underflows 0 0% 0%\nd::0 5 41.67% 41.67%\n"
-        "d::1 7 58.33% 100%\nd::overflows 0 0% 100%\n"
+        (
+            "h::samples 12\nh::mean 0.1\nh::gmean 1\nh::stdev 0.3\nh::-1 2 16"
+            ".67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\nv::0 5 41.67"
+            "% 41.67%\nv::1 7 58.33% 100%\nv::total 12\nd::samples 12\nd::mea"
+            "n 0.5\nd::stdev 0.2\nd::underflows 0 0% 0%\nd::0 5 41.67% 41.67"
+            "%\nd::1 7 58.33% 100%\nd::overflows 0 0% 100%\n"
+        )
     )
     scanned = {variable.name: variable for variable in _scan(tmp_path, text)}
-    assert scanned["h"].type == "histogram"
-    assert {"-1--1", "0-0", "1-1"} <= set(scanned["h"].entries)
-    assert scanned["v"].type == "vector"
+    assert scanned["h"].type is None
+    assert source_kind_candidates(scanned["h"].source_evidence) == {"histogram", "vector"}
+    assert {"-1", "0", "1"} <= set(scanned["h"].entries)
+    assert scanned["v"].type is None
+    assert source_kind_candidates(scanned["v"].source_evidence) == {"distribution", "vector"}
     assert {"0", "1"} <= set(scanned["v"].entries)
-    assert scanned["d"].type == "distribution"
+    assert scanned["d"].type is None
+    assert source_kind_candidates(scanned["d"].source_evidence) == {"distribution", "vector"}
     row = _parse(
         tmp_path,
         [
@@ -71,7 +79,13 @@ def test_real_singleton_histogram_vector_and_distribution_contexts(
             StatConfig(
                 "d",
                 "distribution",
-                params={"minimum": 0, "maximum": 1, "source_type": "distribution"},
+                params={
+                    "minimum": 0,
+                    "maximum": 1,
+                    "source_type": "distribution",
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
+                },
             ),
         ],
     )
@@ -104,15 +118,18 @@ def test_explicit_histogram_type_canonicalizes_points_without_inference_markers(
     assert row == {"h..-1--1": "2.0", "h..0-0": "9.0", "h..1-1": "1.0"}
 
 
-def test_histogram_geometry_identifies_points_without_summaries(tmp_path: Path) -> None:
+def test_complete_geometry_retains_point_labels_and_binds_histogram_request(tmp_path: Path) -> None:
     scanned = _scan(
         tmp_path,
-        "h::bucket_size 1\nh::min_bucket -1\nh::max_bucket 1\n"
-        "h::-1 2 16.67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n",
+        (
+            "h::bucket_size 1\nh::min_bucket -1\nh::max_bucket 1\nh::-1 2 16"
+            ".67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n"
+        ),
     )
     assert len(scanned) == 1
-    assert scanned[0].type == "histogram"
-    assert set(scanned[0].entries) == {"-1--1", "0-0", "1-1"}
+    assert scanned[0].type is None
+    assert "histogram" in source_kind_candidates(scanned[0].source_evidence)
+    assert set(scanned[0].entries) == {"bucket_size", "min_bucket", "max_bucket", "-1", "0", "1"}
     assert _parse(
         tmp_path, [StatConfig("h", "histogram", params={"source_type": "histogram"})]
     ) == {
@@ -135,11 +152,19 @@ def test_singleton_histogram_preserves_explicit_entry_type_reinterpretation(
         StatConfig("h", target, params={"entries": ["0-0", "1-1"], "source_type": "histogram"})
         if target == "vector"
         else StatConfig(
-            "h", target, params={"minimum": 0, "maximum": 1, "source_type": "histogram"}
+            "h",
+            target,
+            params={
+                "minimum": 0,
+                "maximum": 1,
+                "bucket_size": 1,
+                "zero_policy": "missing",
+                "source_type": "histogram",
+            },
         )
     )
     if target == "distribution":
-        with pytest.raises(TypeError, match="Missing mandatory keys 'underflows' or 'overflows'"):
+        with pytest.raises(RuntimeError, match="contradicts the declared native grid"):
             _parse(tmp_path, [config])
     else:
         row = _parse(tmp_path, [config])
@@ -152,11 +177,13 @@ def test_distribution_preserves_explicit_entry_type_reinterpretation(
 ) -> None:
     scanned = _scan(
         tmp_path,
-        "d::samples 10\nd::mean 0.1\nd::stdev 0.3\n"
-        "d::underflows 0 0% 0%\nd::0 9 90% 90%\n"
-        "d::1 1 10% 100%\nd::overflows 0 0% 100%\n",
+        (
+            "d::samples 10\nd::mean 0.1\nd::stdev 0.3\nd::underflows 0 0% 0%"
+            "\nd::0 9 90% 90%\nd::1 1 10% 100%\nd::overflows 0 0% 100%\n"
+        ),
     )
-    assert scanned[0].type == "distribution"
+    assert scanned[0].type is None
+    assert source_kind_candidates(scanned[0].source_evidence) == {"distribution", "vector"}
     row = _parse(
         tmp_path,
         [StatConfig("d", target, params={"entries": ["0", "1"], "source_type": "distribution"})],
@@ -166,25 +193,30 @@ def test_distribution_preserves_explicit_entry_type_reinterpretation(
 
 
 @pytest.mark.parametrize("include_raw_entries", [False, True])
-def test_histogram_vector_selection_requires_inclusive_scanned_labels(
+def test_declared_histogram_vector_selection_uses_inclusive_output_labels(
     tmp_path: Path, include_raw_entries: bool
 ) -> None:
     scanned = _scan(
         tmp_path,
-        "h::samples 12\nh::mean 0\nh::gmean 1\nh::stdev 1\n"
-        "h::-1 2 16.67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n",
+        (
+            "h::samples 12\nh::mean 0\nh::gmean 1\nh::stdev 1\nh::-1 2 16.67%"
+            " 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n"
+        ),
     )
     histogram = next(variable for variable in scanned if variable.name == "h")
-    assert histogram.type == "histogram"
+    assert histogram.type is None
+    assert source_kind_candidates(histogram.source_evidence) == {"histogram", "vector"}
     values = {"-1--1": "2.0", "0-0": "9.0", "1-1": "1.0"}
-    selected = [entry for entry in histogram.entries if entry in values]
+    selected = [
+        canonical_source_entry("histogram", entry)
+        for entry in histogram.entries
+        if canonical_source_entry("histogram", entry) in values
+    ]
     assert set(selected) == set(values)
     expected = {f"h..{entry}": values[entry] for entry in selected}
     if include_raw_entries:
         selected.extend(["-1", "0", "1"])
-    config = StatConfig(
-        "h", "vector", params={"entries": selected, "source_type": histogram.source_type}
-    )
+    config = StatConfig("h", "vector", params={"entries": selected, "source_type": "histogram"})
     if include_raw_entries:
         with pytest.raises(ValueError):
             _parse(tmp_path, [config], scanned)
@@ -198,7 +230,8 @@ def test_singleton_cast_aliases_do_not_broaden_vector_labels(
 ) -> None:
     summaries = "h::gmean 1\n" if source_type == "histogram" else ""
     scanned = _scan(tmp_path, summaries + "h::0 9 90% 90%\nh::1 1 10% 100%\n")
-    assert scanned[0].type == source_type
+    assert scanned[0].type is None
+    assert source_type in source_kind_candidates(scanned[0].source_evidence)
     first = "0-0" if source_type == "histogram" else "0"
     selected = [first, "0-1", "other"]
     if source_type == "vector":
@@ -239,7 +272,8 @@ def test_dump_boundaries_clear_stale_histogram_geometry(tmp_path: Path, message:
     )
     scanned = _scan(tmp_path, text)
     assert len(scanned) == 1
-    assert scanned[0].type == "vector"
+    assert scanned[0].type is None
+    assert source_kind_candidates(scanned[0].source_evidence) == {"distribution", "vector"}
     assert set(scanned[0].entries) == {"0", "1", "bucket_size", "min_bucket", "max_bucket"}
     assert _parse(
         tmp_path,
@@ -272,12 +306,12 @@ def test_dump_boundaries_clear_reserved_type_context_in_both_perl_paths(
         text=True,
         timeout=30,
     ).stdout
-    assert "histogram/h::0/2" in printed
-    assert "vector/h::0/3" in printed
+    server_records = [json.loads(line) for line in printed.splitlines() if line.startswith("{")]
     classifier = (
-        "use JSON::PP; use TypesFormatRegex; resetLineContext(); "
-        "while (my $line = <STDIN>) { chomp $line; my $items = classifyLine($line); "
-        'print encode_json($_), "\\n" for @{ $items // [] }; }'
+        "use TypesFormatRegex; resetLineContext(); while (my $line = "
+        "<STDIN>) { chomp $line; my $items = classifyLine($line); pri"
+        'nt encodeRecord($_), "\\n" for @{ $items // [] }; } print enc'
+        'odeRecord($_), "\\n" for @{finishLineContext()};'
     )
     classified = subprocess.run(
         ["perl", "-I", str(perl_root / "libs"), "-e", classifier],
@@ -287,14 +321,22 @@ def test_dump_boundaries_clear_reserved_type_context_in_both_perl_paths(
         text=True,
         timeout=30,
     ).stdout
+    records = [json.loads(line) for line in classified.splitlines()]
+    assert server_records == records
+    sources = [record for record in records if record["event"] == "source"]
+    assert sources[0]["source_evidence"] == {
+        "state": "ambiguous",
+        "candidates": ["histogram", "vector"],
+    }
+    assert sources[-1]["source_evidence"] == {
+        "state": "ambiguous",
+        "candidates": ["distribution", "vector"],
+    }
     entries = [
-        record for line in classified.splitlines() if (record := json.loads(line))["type"] != "dump"
+        record for record in records if record["event"] == "measurement" and record["entry"] == "0"
     ]
-    assert entries[1]["type"] == "histogram"
-    assert entries[1]["entry"] == "0"
-    assert entries[1]["scan_entry"] == "0-0"
-    assert entries[-1]["type"] == "vector"
-    assert entries[-1]["entry"] == "0"
+    assert [record["value"] for record in entries] == ["2", "3"]
+    assert all(record["shape"] == "entry" for record in entries)
 
 
 def test_named_histogram_dumps_preserve_temporal_mass(tmp_path: Path) -> None:
@@ -370,7 +412,7 @@ def test_literal_vector_records_support_a_numeric_pattern_request(tmp_path: Path
             f"system.cpu{index}.v",
             "vector",
             ["0", "1"],
-            source_type="vector",
+            source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
             instances=(SourceInstance(f"system.cpu{index}.v", ()),),
         )
         for index in range(2)

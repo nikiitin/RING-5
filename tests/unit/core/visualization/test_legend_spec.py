@@ -55,9 +55,10 @@ class TestLegendSpacingSpec:
         # Underscore defaults preserved
         assert spacing.handletextpad == 0.3
 
-    def test_from_dict_ignores_unknown_keys(self) -> None:
-        data = {"columnspacing": 1.0, "unknown_key": 99}
-        spacing = LegendSpacingConfig.from_dict(data)
+    def test_from_dict_rejects_unknown_keys(self) -> None:
+        with pytest.raises(TypeError, match="Unsupported LegendSpacingConfig fields"):
+            LegendSpacingConfig.from_dict({"columnspacing": 1.0, "unknown_key": 99})
+        spacing = LegendSpacingConfig.from_dict({"columnspacing": 1.0})
         assert spacing.columnspacing == 1.0
 
 

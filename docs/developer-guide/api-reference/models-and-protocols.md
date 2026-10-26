@@ -43,7 +43,10 @@ configuration without backend imports.
 Serialized plots use `validate_plot_fields` in `src/core/common/plot_payload.py` before data
 decoding. Visible legend labels belong to `config.legend_labels`; adding persistent plot fields
 requires updating the writer, field contract and restoration together. `FigureConfig.from_dict`
-passes exact typography fields to `TypographyConfig` and rejects unknown names.
+and its nested styling decoders reject unsupported field names and supplied object/list shapes.
+Omitted fields retain model defaults; optional fields retain their documented null values. Scalar
+values follow each model's construction policy. Raw trace dictionaries remain inspection data, including
+subclass fields and arbitrary cell values; this decoder does not reconstruct or replay traces.
 
 Use the source definitions as the field-level reference. This page records ownership and stability,
 not a copied inventory that can drift.

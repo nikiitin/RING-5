@@ -11,6 +11,11 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 from src.core.common.plot_payload import validate_legend_labels
+from src.core.models.visualization._config_fields import (
+    config_list,
+    config_object,
+    model_fields,
+)
 
 if TYPE_CHECKING:
     from src.core.models.visualization.annotation_config import (
@@ -190,14 +195,14 @@ class FigureConfig:
     def from_dict(cls, data: dict[str, Any]) -> FigureConfig:
         """Reconstruct a FigureConfig from a serialized dictionary.
 
-        Nested config fields (axes / legends / series_styles / reference_lines
-        / data_labels) are rebuilt into their dataclasses; ``traces`` are kept
-        as the raw dicts that ``to_dict`` produced — their concrete TraceConfig
-        subclasses are not reconstructed — so a round-trip preserves field
-        values but is not object-identical for traces.
+        Missing fields use model defaults. Supplied objects, lists and field
+        names must match the current structural contract. Nested styling fields
+        are rebuilt into their dataclasses. ``traces`` remain raw inspection
+        dictionaries, including subclass fields and arbitrary cell values;
+        concrete TraceConfig subclasses are not reconstructed or replayed.
 
         Raises:
-            TypeError: The value is not an object or a field is unsupported.
+            TypeError: A field name or supplied object/list shape is unsupported.
             ValueError: Typography or legend labels have an unsupported representation.
         """
         from dataclasses import fields
@@ -220,41 +225,73 @@ class FigureConfig:
 
         # Shallow-copy the nested dict before .pop() so we never mutate the
         # caller's input (from_dict must be side-effect free for round-trips).
-        dims_raw = data.get("dimensions", {})
-        dims_data = dict(dims_raw) if isinstance(dims_raw, dict) else {}
-        margins_data = dims_data.pop("margins", {})
-        margins = MarginsConfig(**margins_data) if margins_data else MarginsConfig()
-        # Always pass margins — the old ``if dims_data`` short-circuit dropped parsed margins
-        # when ``dimensions`` carried only a ``margins`` key.
-        dimensions = DimensionConfig(margins=margins, **dims_data)
+        dims_data = model_fields(
+            data.get("dimensions", {}), DimensionConfig, "FigureConfig.dimensions"
+        )
+        margins_data = model_fields(
+            dims_data.pop("margins", {}), MarginsConfig, "FigureConfig.dimensions.margins"
+        )
+        # Reconstruct margins independently so a dimensions object containing only
+        # margins retains its values.
+        dimensions = DimensionConfig(margins=MarginsConfig(**margins_data), **dims_data)
 
         typo_data = data.get("typography", {})
         if not isinstance(typo_data, dict):
             raise ValueError("Figure typography must be an object.")
-        typography = TypographyConfig(**typo_data)
+        typography = TypographyConfig(
+            **model_fields(typo_data, TypographyConfig, "FigureConfig.typography")
+        )
 
-        axes_data = data.get("axes", {})
-        axes = AxesConfig.from_dict(axes_data) if axes_data else AxesConfig()
+        axes_data = config_object(data.get("axes", {}), "FigureConfig.axes")
+        axes = AxesConfig.from_dict(axes_data)
 
-        legends_data = data.get("legends", [])
-        legends = [LegendConfig.from_dict(ld) for ld in legends_data]
+        legends_data = config_list(data.get("legends", []), "FigureConfig.legends")
+        legends = [
+            LegendConfig.from_dict(config_object(item, f"FigureConfig.legends[{index}]"))
+            for index, item in enumerate(legends_data)
+        ]
 
-        annotations_data = data.get("annotations", [])
-        annotations = [AnnotationConfig(**ad) for ad in annotations_data]
+        annotations_data = config_list(data.get("annotations", []), "FigureConfig.annotations")
+        annotations = [
+            AnnotationConfig(
+                **model_fields(item, AnnotationConfig, f"FigureConfig.annotations[{index}]")
+            )
+            for index, item in enumerate(annotations_data)
+        ]
 
         dl_data = data.get("data_labels")
-        data_labels = DataLabelConfig.from_dict(dl_data) if isinstance(dl_data, dict) else None
+        data_labels = (
+            DataLabelConfig.from_dict(config_object(dl_data, "FigureConfig.data_labels"))
+            if dl_data is not None
+            else None
+        )
 
-        ss_data = data.get("series_styles", [])
-        series_styles = [SeriesStyleConfig.from_dict(sd) for sd in ss_data if isinstance(sd, dict)]
+        ss_data = config_list(data.get("series_styles", []), "FigureConfig.series_styles")
+        series_styles = [
+            SeriesStyleConfig.from_dict(config_object(item, f"FigureConfig.series_styles[{index}]"))
+            for index, item in enumerate(ss_data)
+        ]
 
-        to_raw = data.get("trace_overrides", {})
+        to_raw = config_object(data.get("trace_overrides", {}), "FigureConfig.trace_overrides")
         trace_overrides: dict[str, SeriesStyleConfig] = {
-            k: SeriesStyleConfig.from_dict(v) for k, v in to_raw.items() if isinstance(v, dict)
+            name: SeriesStyleConfig.from_dict(
+                config_object(item, f"FigureConfig.trace_overrides[{name!r}]")
+            )
+            for name, item in to_raw.items()
         }
 
-        rl_data = data.get("reference_lines", [])
-        reference_lines = [ReferenceLineConfig(**rd) for rd in rl_data if isinstance(rd, dict)]
+        rl_data = config_list(data.get("reference_lines", []), "FigureConfig.reference_lines")
+        reference_lines = [
+            ReferenceLineConfig(
+                **model_fields(item, ReferenceLineConfig, f"FigureConfig.reference_lines[{index}]")
+            )
+            for index, item in enumerate(rl_data)
+        ]
+        trace_data = config_list(data.get("traces", []), "FigureConfig.traces")
+        traces: list[Any] = [
+            config_object(item, f"FigureConfig.traces[{index}]")
+            for index, item in enumerate(trace_data)
+        ]
 
         # Default color palette (Wong colorblind-safe)
         default_palette = [
@@ -274,15 +311,19 @@ class FigureConfig:
             typography=typography,
             axes=axes,
             legends=legends,
-            traces=data.get("traces", []),
+            traces=traces,
             annotations=annotations,
             data_labels=data_labels,
             series_styles=series_styles,
             trace_overrides=trace_overrides,
             legend_labels=data.get("legend_labels", {}),
-            color_palette=data.get("color_palette", default_palette),
+            color_palette=config_list(
+                data.get("color_palette", default_palette), "FigureConfig.color_palette"
+            ),
             barmode=data.get("barmode", "group"),
-            hatching_sequence=data.get("hatching_sequence", default_hatching),
+            hatching_sequence=config_list(
+                data.get("hatching_sequence", default_hatching), "FigureConfig.hatching_sequence"
+            ),
             reference_lines=reference_lines,
             hovermode=data.get("hovermode", "x unified"),
             enable_stripes=bool(data.get("enable_stripes", False)),
@@ -291,5 +332,5 @@ class FigureConfig:
             paper_bgcolor=data.get("paper_bgcolor", "white"),
             plot_bgcolor=data.get("plot_bgcolor", "white"),
             font_family=data.get("font_family", "serif"),
-            metadata=data.get("metadata", {}),
+            metadata=config_object(data.get("metadata", {}), "FigureConfig.metadata"),
         )

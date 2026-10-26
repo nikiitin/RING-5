@@ -18,7 +18,7 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig, ScatterTraceConfig
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.core.services.visualization.config_resolver import resolve_config
-from src.web.rendering.figure_preparation import prepare_figure
+from src.web.rendering.figure_preparation import PreparedFigure, prepare_figure
 from src.web.rendering.matplotlib_figure_builder import (
     build_matplotlib_figure_from_prepared,
     draw_matplotlib_axes,
@@ -276,8 +276,10 @@ def test_native_artifact_keeps_user_annotations_equal_to_dual_titles(
         assert plot.render_artifact.figure is native
         figure = cast(Any, native)
         assert plot.render_artifact.engine == engine
-        assert plot.render_artifact.trace_result is not None
-        assert [list(trace.y) for trace in plot.render_artifact.trace_result.traces] == [
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert prepared.trace_result is not None
+        assert [list(trace.y) for trace in prepared.trace_result.traces] == [
             [2.0, 5.0],
             [4.0, 10.0],
         ]
@@ -446,9 +448,11 @@ def test_invalid_native_heatmap_range_keeps_previous_artifacts_and_no_pyplot_man
     with ring5.Session() as session:
         plot = session.create_plot("grouped_stacked_bar", data=_data(), config=_config(False))
         session.render(plot, engine="plotly")
+        prior_prepared = plot.render_artifact.preparation
+        assert isinstance(prior_prepared, PreparedFigure)
         prior = (
             plot.render_artifact.figure,
-            plot.render_artifact.trace_result,
+            prior_prepared.trace_result,
             deepcopy(plot.config),
         )
         before = set(plt.get_fignums())
@@ -472,7 +476,10 @@ def test_invalid_native_heatmap_range_keeps_previous_artifacts_and_no_pyplot_man
         with pytest.raises(ring5.RenderError):
             session.render(plot, engine="matplotlib")
         assert plot.render_artifact.figure is prior[0]
-        assert plot.render_artifact.trace_result is prior[1]
+        current = plot.render_artifact.preparation
+        assert isinstance(current, PreparedFigure)
+        assert current is prior_prepared
+        assert current.trace_result is prior[1]
         assert plot.config == prior[2]
         assert set(plt.get_fignums()) == before
 
@@ -616,8 +623,10 @@ def test_public_heatmap_facets_use_bottom_only_explicit_tick_visibility(
             },
         )
         native = cast(Any, session.render(plot, engine=engine))
-        assert plot.render_artifact.trace_result is not None
-        names = [trace.name for trace in plot.render_artifact.trace_result.traces]
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert prepared.trace_result is not None
+        names = [trace.name for trace in prepared.trace_result.traces]
         try:
             if engine == "plotly":
                 assert (native.layout.width, native.layout.height) == (800, 600)

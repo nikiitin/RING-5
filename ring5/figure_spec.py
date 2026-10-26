@@ -389,7 +389,7 @@ class FigureSpec:
         )
 
         validate_plot_config_keys(cfg, plot_type=plot_type)
-        validate_plot_config_values(cfg, plot_type=plot_type)
+        validate_plot_config_values(cfg)
         numbered_axis_modes(cfg)
         return cfg
 

@@ -5,7 +5,7 @@ Tests the state management and session persistence layer:
 1. Portfolio save/load (complete workspace snapshots)
 2. Session state recovery after crash
 3. Parser state persistence across sessions
-4. Configuration versioning and migration
+4. Opaque configuration metadata within the current portfolio format
 
 This validates the state management infrastructure for long-running analysis sessions.
 """
@@ -21,6 +21,7 @@ import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.state.repositories.parser_state_repository import ParserStateRepository
@@ -62,6 +63,7 @@ def sample_workspace_data() -> dict[str, Any]:
 @pytest.fixture
 def mock_session_state() -> Generator[dict[str, Any], None, None]:
     """Mock streamlit.session_state as a dictionary."""
+    mock_state: dict[str, Any]
     with patch("streamlit.session_state", new_callable=dict) as mock_state:
         yield mock_state
 
@@ -120,6 +122,7 @@ class TestStateManagement:
         assert "plots" in loaded
         assert "config" in loaded
         loaded_data = TypedTableCodec.decode(loaded["data"])
+        assert loaded_data is not None
 
         pd.testing.assert_frame_equal(
             data.reset_index(drop=True), loaded_data.reset_index(drop=True)
@@ -152,14 +155,22 @@ class TestStateManagement:
                 "name": "system.cpu.ipc",
                 "type": "scalar",
                 "entries": [],
-                "source_type": "scalar",
+                "source_evidence": {
+                    "state": "resolved",
+                    "kind": "scalar",
+                    "basis": "backend_metadata",
+                },
                 "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
             },
             {
                 "name": "system.cpu.numCycles",
                 "type": "scalar",
                 "entries": [],
-                "source_type": "scalar",
+                "source_evidence": {
+                    "state": "resolved",
+                    "kind": "scalar",
+                    "basis": "backend_metadata",
+                },
                 "instances": [{"source_name": "system.cpu.numCycles", "indices": []}],
             },
         ]
@@ -207,44 +218,44 @@ class TestStateManagement:
 
         # Verify can continue work
         recovered_data = TypedTableCodec.decode(recovered["data"])
+        assert recovered_data is not None
 
         new_row = pd.DataFrame({"benchmark": ["lbm"], "config": ["baseline"], "ipc": [2.0]})
 
         continued_data = pd.concat([recovered_data, new_row], ignore_index=True)
         assert len(continued_data) == len(recovered_data) + 1
 
-    def test_configuration_versioning(self, portfolio_service: PortfolioService) -> None:
-        """
-        Test configuration version compatibility.
-        """
+    def test_configuration_metadata_does_not_select_a_portfolio_schema(
+        self, portfolio_service: PortfolioService
+    ) -> None:
+        """Keep caller metadata opaque while both documents use the current schema."""
         data = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
-        # Save with legacy version metadata
         portfolio_service.save_portfolio(
-            name="v1_format",
+            name="first_config",
             data=data,
             plots=[],
-            config={"version": "1.0", "format": "legacy"},
+            config={"version": "1.0", "format": "experiment_a"},
             plot_counter=0,
         )
 
-        # Load and verify version is preserved
-        loaded = portfolio_service.load_portfolio("v1_format")
+        loaded = portfolio_service.load_portfolio("first_config")
         assert "config" in loaded
         assert loaded["config"]["version"] == "1.0"
+        assert loaded["schema_version"] == CURRENT_PORTFOLIO_SCHEMA_VERSION
 
-        # Create v2.0 portfolio format
         portfolio_service.save_portfolio(
-            name="v2_format",
+            name="second_config",
             data=data,
             plots=[],
-            config={"version": "2.0", "format": "current"},
+            config={"version": "2.0", "format": "experiment_b"},
             plot_counter=0,
         )
 
-        loaded_v2 = portfolio_service.load_portfolio("v2_format")
+        loaded_v2 = portfolio_service.load_portfolio("second_config")
         assert "config" in loaded_v2
         assert loaded_v2["config"]["version"] == "2.0"
+        assert loaded_v2["schema_version"] == CURRENT_PORTFOLIO_SCHEMA_VERSION
 
     def test_multiple_portfolio_management(
         self, sample_workspace_data: dict[str, Any], portfolio_service: PortfolioService

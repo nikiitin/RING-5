@@ -15,29 +15,26 @@ class TestStatisticsOnlyIntegration:
     @pytest.fixture
     def stats_file(self, tmp_path: Path) -> Path:
         """Create a sample stats.txt file with distribution data."""
-        stats_content = """
----------- Begin Simulation Statistics ----------
-simTicks                                  1000000
-system.cpu.numCycles                           100
-system.mem.latency_dist::samples               500
-system.mem.latency_dist::mean             10.5
-system.mem.latency_dist::stdev             2.3
-system.mem.latency_dist::underflows            5
-system.mem.latency_dist::0                    10
-system.mem.latency_dist::1                    20
-system.mem.latency_dist::2                    30
-system.mem.latency_dist::3                    40
-system.mem.latency_dist::4                    50
-system.mem.latency_dist::5                    60
-system.mem.latency_dist::6                    70
-system.mem.latency_dist::7                    80
-system.mem.latency_dist::8                    90
-system.mem.latency_dist::9                   100
-system.mem.latency_dist::10                   45
-system.mem.latency_dist::overflows             5
-system.mem.latency_dist::total               500
----------- End Simulation Statistics   ----------
-"""
+        stats_content = (
+            "\n---------- Begin Simulation Statistics ----------\nsimTicks "
+            "                                 1000000\nsystem.cpu.numCycle"
+            "s                           100\nsystem.mem.latency_dist::sam"
+            "ples               500\nsystem.mem.latency_dist::mean        "
+            "     10.5\nsystem.mem.latency_dist::stdev             2.3\nsys"
+            "tem.mem.latency_dist::underflows            5\nsystem.mem.lat"
+            "ency_dist::0                    10\nsystem.mem.latency_dist::"
+            "1                    20\nsystem.mem.latency_dist::2          "
+            "          30\nsystem.mem.latency_dist::3                    4"
+            "0\nsystem.mem.latency_dist::4                    50\nsystem.me"
+            "m.latency_dist::5                    60\nsystem.mem.latency_d"
+            "ist::6                    70\nsystem.mem.latency_dist::7     "
+            "               80\nsystem.mem.latency_dist::8                "
+            "    90\nsystem.mem.latency_dist::9                   100\nsyst"
+            "em.mem.latency_dist::10                   45\nsystem.mem.late"
+            "ncy_dist::overflows             5\nsystem.mem.latency_dist::t"
+            "otal               500\n---------- End Simulation Statistics "
+            "  ----------\n"
+        )
         stats_path = tmp_path / "stats.txt"
         stats_path.write_text(stats_content)
         return stats_path
@@ -109,6 +106,8 @@ system.mem.latency_dist::total               500
                     "maximum": 10,
                     "statistics": ["samples", "mean", "stdev", "total"],
                     "source_type": "distribution",
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
                 },
             )
         ]
@@ -153,6 +152,8 @@ system.mem.latency_dist::total               500
                     "maximum": 10,
                     "statistics": ["samples", "mean", "stdev", "total"],
                     "source_type": "distribution",
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
                 },
             )
         ]

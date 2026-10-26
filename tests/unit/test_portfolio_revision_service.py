@@ -7,6 +7,7 @@ import pandas as pd
 import json
 from pathlib import Path
 from typing import Any
+from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
@@ -21,7 +22,7 @@ from src.core.services.data_services.portfolio_revision_service import (
 
 
 @pytest.fixture
-def revision_storage(tmp_path: Path) -> tuple[Path, Path]:
+def revision_storage(tmp_path: Path) -> Generator[tuple[Path, Path], None, None]:
     current = tmp_path / "portfolios" / "Study.json"
     current.parent.mkdir()
     revisions = tmp_path / "portfolio_revisions"
@@ -85,7 +86,11 @@ def _payload(
                     "name": "ipc",
                     "type": "scalar",
                     "entries": [],
-                    "source_type": "scalar",
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "scalar",
+                        "basis": "backend_metadata",
+                    },
                     "instances": [{"source_name": "ipc", "indices": []}],
                 }
             ]

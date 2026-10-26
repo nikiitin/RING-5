@@ -13,7 +13,7 @@ Layout: `src/parsing/` (protocol, registry, services) and `src/parsing/gem5/` (i
 ## The asynchronous work contract
 ```python
 # Scan: discover variables
-futures   = api.submit_scan_async(stats_path, pattern="stats.txt", limit=5)
+futures   = api.submit_scan_async(stats_path, stats_pattern="stats.txt", limit=5)
 scan      = api.finalize_scan([f.result() for f in futures])
 drafts    = [api.draft_from_scanned_variable(v.to_dict()) for v in scan.variables]
 ```

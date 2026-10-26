@@ -13,6 +13,7 @@ import pytest
 
 import ring5
 from src.core.models.visualization.trace_config import LineTraceConfig
+from src.web.rendering.figure_preparation import PreparedFigure
 
 
 @pytest.mark.public_api
@@ -40,7 +41,9 @@ def test_area_css_colors_preserve_measured_outline_and_fill_geometry(
     with ring5.Session() as session:
         plot = session.create_plot("area", data=ring5.Table(frame), config=config)
         native = session.render(plot, engine=engine)
-        result = plot.render_artifact.trace_result
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        result = prepared.trace_result
         assert result is not None and len(result.traces) == 1
         trace = result.traces[0]
         assert isinstance(trace, LineTraceConfig)

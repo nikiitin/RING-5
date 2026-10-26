@@ -27,13 +27,16 @@ def _file(
     source: str, cells: int = 1, *, name: str = "v", text: str | None = None
 ) -> ParsedFileResult:
     if text is not None:
-        variable = ParsedVariableResult("v", "text", "scalar", (ParsedCell(name, "text", text),))
+        variable = ParsedVariableResult(
+            "v", "text", "scalar", (ParsedCell(name, "text", text),), layout=None
+        )
     else:
         variable = ParsedVariableResult(
             "v",
             "number",
             "entries",
             tuple(ParsedCell(f"{name}{index}", "number", float(index)) for index in range(cells)),
+            layout=None,
         )
     return ParsedFileResult(source, (variable,))
 
@@ -184,8 +187,8 @@ def test_malformed_cache_discards_provisional_context_before_any_worker_owns_it(
     decoded = []
     original = incremental_cache.parsed_file_from_payload
 
-    def track(value):
-        result = original(value)
+    def track(value, **kwargs):
+        result = original(value, **kwargs)
         decoded.append(weakref.ref(result))
         return result
 

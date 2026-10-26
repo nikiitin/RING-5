@@ -32,13 +32,17 @@ class ExampleParser:
                     raise TypeError("Example configuration fallback requires text.")
                 cell = ring5.ParsedCell(variable.name, "text", fallback)
                 variables_out.append(
-                    ring5.ParsedVariableResult(variable.name, "text", "scalar", (cell,))
+                    ring5.ParsedVariableResult(
+                        variable.name, "text", "scalar", (cell,), layout=None
+                    )
                 )
             else:
                 value = float(Path(path).read_text(encoding="utf-8"))
                 cell = ring5.ParsedCell(variable.name, "number", value)
                 variables_out.append(
-                    ring5.ParsedVariableResult(variable.name, "number", "scalar", (cell,))
+                    ring5.ParsedVariableResult(
+                        variable.name, "number", "scalar", (cell,), layout=None
+                    )
                 )
         return ring5.ParsedFileResult(path, tuple(variables_out))
 
@@ -194,7 +198,7 @@ class ExampleParser:
                 ring5.ScannedVariable(
                     "value",
                     "scalar",
-                    source_type="scalar",
+                    source_evidence=ring5.ResolvedSourceKind("scalar", "backend_metadata"),
                     instances=(ring5.SourceInstance("value", ()),),
                 )
             ],

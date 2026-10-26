@@ -38,6 +38,7 @@ from src.core.models.import_models import ImportOptions, ImportPreview
 from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
+    require_current_parser_contract,
     IncrementalParseResult,
     ParseBatchResult,
     ParserPlaygroundBatchResult,
@@ -947,8 +948,10 @@ class ApplicationAPI:
 
         Raises:
             TypeError: A declared simulator is not native text or None.
-            ValueError: A declaration differs from the known composed backend.
+            ValueError: The execution contract is unsupported or a simulator declaration
+                differs from the known composed backend.
         """
+        require_current_parser_contract(parser_contract_version)
         if simulator is not None and type(simulator) is not str:
             raise TypeError("Declared simulator must be text or None.")
         if (
@@ -1049,6 +1052,7 @@ class ApplicationAPI:
         incremental: bool,
     ) -> ParseBatchResult | IncrementalParseBatchResult:
         """Submit fresh typed values from the exact persisted request."""
+        require_current_parser_contract(source.parser_contract_version)
         variables = SourceContextCodec.variables(source)
         scanned = SourceContextCodec.scanned_variables(source)
         if incremental:

@@ -112,9 +112,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
         # Build coordinate map and shapes
-        coord_result = self._build_coordinate_map(
-            categories, groups, data, x_col, group_col, config
-        )
+        coord_result = self._build_coordinate_map(categories, groups, config)
         coord_map = coord_result["coord_map"]
         tick_vals = coord_result["tick_vals"]
         tick_text = coord_result["tick_text"]
@@ -254,9 +252,6 @@ class GroupedStackedBarPlot(StackedBarPlot):
         self,
         categories: list[str],
         groups: list[str],
-        data: pd.DataFrame,
-        x_col: str,
-        group_col: str,
         config: PlotConfig,
     ) -> dict[str, Any]:
         """Build coordinate mapping for grouped bars using centralized utility."""

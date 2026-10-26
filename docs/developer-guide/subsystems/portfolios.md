@@ -36,8 +36,8 @@ Covers:
 
 -->
 
-The supported portfolio schema is version 9. Serialized files declare `schema_version: 9`,
-`version: "9.0"`, their parser strategy and simulator, environment metadata, and an integrity
+The supported portfolio schema is version 13. Serialized files declare `schema_version: 13`,
+`version: "13.0"`, their parser strategy and simulator, environment metadata, and an integrity
 manifest. Missing or unsupported schema versions raise a typed version error before restoration.
 No reader infers old defaults, translates keys, or rewrites a file into the current schema.
 Editable plot configuration uses `legend2_*` for a separate right legend and
@@ -45,12 +45,15 @@ Editable plot configuration uses `legend2_*` for a separate right legend and
 `xanchor`/`yanchor` configuration keys in every tier, including the primary legend, fail before
 plot restoration. Built-in heatmap configurations use `color_palette`, `reverse_colorscale`
 and `show_values`; their key admission uses the explicit plot type so plugin-owned keys and
-typed trace colorscales remain independent. Recipe schema 4 shares the same key admission
+typed trace colorscales remain independent. Recipe schema 8 shares the same key admission
 while retaining unmaterialized parameter values. Concrete common values
 use a separate `validate_plot_config_values` stage: every legend orientation is exactly
 `horizontal` or `vertical`. Recipe save/load retain template values; materialization applies
 the concrete-value guard after parameter substitution.
 Per-series styles map text names to style mappings, with a current string `pattern` value.
+A present `opacity` is a finite real scalar in `[0, 1]`; omission preserves source opacity, while
+explicit `0` and `1` override it. Present `null`, booleans and strings are rejected after recipe
+materialization. Template admission retains opacity placeholders before materialization.
 The same pure admission runs before plot enrichment, portfolio publication and restoration.
 
 Treat portfolio JSON as untrusted input: sanitize names, validate paths, and verify content before
@@ -121,5 +124,6 @@ unbounded decoded table.
 Plot documents use the fields admitted by `src/core/common/plot_payload.py`. Legend names live in
 `config.legend_labels`; copies, comparisons and portfolio restoration use that same configuration.
 Unknown plot fields raise errors before restoration or publication. Explicit `FigureConfig.from_dict`
-decoding rejects unknown typography names. A saved `figure_spec` records resolved styling metadata
-for inspection; restoration uses the plot configuration.
+and nested styling decoding reject unsupported fields and malformed supplied containers while
+preserving omitted-field defaults and current scalar construction policies. A saved `figure_spec`
+records resolved styling metadata for inspection; restoration uses the plot configuration.

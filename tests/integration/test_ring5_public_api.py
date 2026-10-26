@@ -10,6 +10,8 @@ from typing import Literal, cast, get_args
 from xml.etree import ElementTree as ET
 
 import pandas as pd
+import plotly.graph_objects as go
+from matplotlib.figure import Figure
 import pytest
 
 import ring5
@@ -586,6 +588,8 @@ class TestDatasetSemanticMetadata:
         assert isinstance(latency, ring5.ColumnSemantics)
         assert latency.display_label == "Mean latency (us)"
         assert converted.rows()[1]["latency"] == pytest.approx(2500.0)
+        assert isinstance(plotly_figure, go.Figure)
+        assert isinstance(matplotlib_figure, Figure)
         assert plotly_figure.layout.xaxis.title.text == "Workload"
         assert plotly_figure.layout.yaxis.title.text == "Mean latency (us)"
         assert matplotlib_figure.axes[0].get_xlabel() == "Workload"
@@ -955,6 +959,7 @@ class TestDeterminism:
                 plot = s.create_plot("bar", data=df, config={"x": "x", "y": "y"})
                 mpl_fig = s.render(plot, engine="matplotlib")
                 plotly_fig = s.render(plot, engine="plotly")
+                assert isinstance(plotly_fig, go.Figure)
                 return (
                     s.export_bytes(mpl_fig, "pdf", deterministic=True),
                     s.export_bytes(plotly_fig, "html", deterministic=True),
@@ -1093,6 +1098,7 @@ class TestApiErgonomics:
         with ring5.Session() as session:
             figure = session.plot("bar", data=data, config=spec, engine="plotly")
 
+            assert isinstance(figure, go.Figure)
             assert figure.layout.title.text == "IPC"
             assert session.plots[0].plot_type == "bar"
 
@@ -1128,7 +1134,11 @@ class TestApiErgonomics:
 def test_public_source_instances_keep_identity_and_coordinates_independent() -> None:
     instance = ring5.SourceInstance("cpu012.ipc", ("012",))
     scanned = ring5.ScannedVariable(
-        r"cpu\d+.ipc", "vector", [], source_type="scalar", instances=(instance,)
+        r"cpu\d+.ipc",
+        "vector",
+        [],
+        source_evidence=ring5.ResolvedSourceKind("scalar", "backend_metadata"),
+        instances=(instance,),
     )
     wire = scanned.to_dict()
     assert wire["instances"] == [{"source_name": "cpu012.ipc", "indices": ["012"]}]

@@ -9,6 +9,12 @@ permalink: /user-guide/workflows/portfolios/
 
 # Manage portfolios
 
+Current portfolios use schema 13 (`version: "13.0"`); analysis recipes use schema 8. Typed workspace
+and plot tables preserve native Distribution geometry, omission policy and explicit column roles.
+Restoring those tables needs no reparse. Parser recipe replay uses the captured full declaration and
+regenerates the same native layout once, without inferring geometry from labels. Unsupported current
+document versions and malformed layouts fail before restoration.
+
 <!--
 `uman~ring5.workspace.application-data-directory.documentation~1`
 
@@ -64,9 +70,9 @@ runtime. The table covers RING-5, Python, the operating system and architecture,
 dependencies, Plotly and Matplotlib, and the optional Perl, Chrome, and XeLaTeX tools.
 
 An exact match means every recorded value is the same. A difference is evidence to review, not an
-automatic incompatibility verdict. **Not available** means an optional tool was absent; **Not
-recorded** means the portfolio predates environment capture. RING-5 never substitutes the current
-machine's versions for missing historical provenance.
+automatic incompatibility verdict. **Not available** means a saved component and the current runtime
+provide no version. **Not recorded** means that component is absent from the saved record. RING-5
+never substitutes current versions for missing historical provenance.
 
 The environment record intentionally excludes hostnames, usernames, executable paths, and
 environment-variable values. Python callers can make the same comparison without restoring the
@@ -108,8 +114,8 @@ The status wording deliberately separates integrity from authenticity:
 | Checksums match — unsigned | Content is unchanged since the checksums were created; its author is not authenticated. |
 | Signature needs secret | Content is unchanged and carries a signature, but RING-5 has not authenticated it yet. |
 | Checksums and signature verified | Content is unchanged and the supplied shared secret verifies its HMAC-SHA-256 signature. |
-| Legacy — no manifest | The portfolio predates integrity manifests; no content-integrity claim is possible. |
-| Modified or invalid | Restoration is blocked. Review or reacquire the portfolio instead of trusting it. |
+| Missing or invalid manifest | Required manifest data is absent or malformed; restoration is blocked. |
+| Modified content or invalid signature | Content checks or signature verification fail; restoration is blocked. |
 
 To sign from the web application, select **Sign integrity manifest**, give the key a non-secret ID,
 and enter the shared secret. The secret is used only for that save and is not written into the
@@ -245,8 +251,8 @@ with ring5.Session() as session:
     report = session.restore_portfolio_revision("paper-a", versions[-2].revision_id)
 ```
 
-Portfolios saved before this feature are captured as a baseline when their history is first
-opened. Revision IDs are SHA-256 checksums of the exact saved JSON bytes; RING-5 verifies the
+Opening history records the current saved portfolio if its revision is not already retained.
+Revision IDs are SHA-256 checksums of the exact saved JSON bytes; RING-5 verifies the
 checksum before loading or comparing a version.
 
 ## Review restoration outcomes
@@ -298,7 +304,7 @@ overwrite silently; select **Replace a saved recipe with this name** only when r
 intentional. The **Saved** tab shows the source, parameter, transformation, plot, and download
 counts and downloads a portable `ring5.analysis-recipe` JSON file. The **Import** tab validates
 that versioned file before saving it. Recipe JSON is limited to 512 KiB and does not embed dataset
-rows. Recipe schema 4 stores complete runnable `StatConfig` payloads; incomplete parser editor
+rows. Recipe schema 8 stores complete runnable `StatConfig` payloads; incomplete parser editor
 drafts remain savable in portfolios but cannot become an executable recipe. To construct a parser
 recipe in Python, serialize the public dataclass with `dataclasses.asdict`:
 
@@ -428,7 +434,7 @@ with ring5.Session() as session:
 
 `Session.save_portfolio` refuses to overwrite by default. Pass `overwrite=True` only when replacing
 the named snapshot is intentional. `load_portfolio` returns a `RestoreReport` with data, plot, and
-parse-variable outcomes. Every newly saved schema-V9 portfolio captures its execution environment
+parse-variable outcomes. Every newly saved schema-13 portfolio captures its execution environment
 and an integrity manifest. Workspace data and each plot’s source and processed tables retain
 their exact supported values, dtypes, axes and attributes. Empty tables remain present tables.
 Unsupported objects or cyclic metadata are rejected before a save replaces retained files.

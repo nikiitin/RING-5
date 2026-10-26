@@ -7,11 +7,13 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import matplotlib as mpl
 from matplotlib.collections import QuadMesh
+from matplotlib.colorbar import Colorbar
+
+from src.web.rendering._appearance import _OpacityColormap, MatplotlibAppearancePlan
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 
 if TYPE_CHECKING:
     from matplotlib.typing import RcKeyType
-    from matplotlib.colorbar import Colorbar
 
 from src.core.models.visualization.figure_config import FigureConfig
 from src.web.rendering._color_utils import css_color_to_matplotlib
@@ -22,6 +24,22 @@ from src.web.rendering._render_result import (
     _ColorbarAllocation,
     _ColorbarOutput,
 )
+
+
+@dataclass(slots=True, eq=False)
+class _IntrinsicColorbarProjection:
+    """A native output leaf with no source binding, closure or appearance-owner link."""
+
+    colorbar: Colorbar
+
+    def __call__(self, mappable: Any) -> None:
+        if mappable is not self.colorbar.mappable:
+            raise ValueError("Intrinsic colorbar projection requires its actual native mappable.")
+        mapping = mappable.get_cmap()
+        intrinsic = mapping.intrinsic if isinstance(mapping, _OpacityColormap) else mapping
+        if self.colorbar.solids is not None:
+            self.colorbar.solids.set_alpha(None)
+            self.colorbar.solids.set_cmap(intrinsic)
 
 
 class _ColorbarBacklink(Protocol):
@@ -113,6 +131,36 @@ def _matches(output: _ColorbarOutput, request: _Request) -> bool:
     )
 
 
+def validate_appearance_colorbars(
+    rendered: MatplotlibFigureResult, plans: tuple[MatplotlibAppearancePlan, ...]
+) -> None:
+    """Reject affected unsupported or foreign colorbar outputs before native changes."""
+    affected = {id(plan.output) for plan in plans}
+    owned = {id(output.colorbar) for output in rendered.native_outputs.colorbars}
+    for output in rendered.native_outputs.colorbars:
+        if id(output.source.appearance) in affected and output.colorbar.extend != "neither":
+            raise ValueError("Source opacity currently requires managed colorbar extend='neither'.")
+    for panel in rendered.panels:
+        for binding in panel.bindings:
+            if id(binding.appearance) not in affected or binding.family != "heatmap":
+                continue
+            image = next(
+                channel.artist
+                for channel in binding.appearance.snapshot.channels
+                if channel.kind == "cmap"
+            )
+            if not isinstance(image, QuadMesh):
+                raise ValueError("A mapped appearance channel requires its actual native mesh.")
+            for reference in image.callbacks.callbacks.get("changed", {}).values():
+                callback = reference()
+                target = getattr(callback, "__self__", None)
+                if isinstance(target, Colorbar) and id(target) not in owned:
+                    raise ValueError(
+                        "Source opacity cannot mutate a foreign colorbar; "
+                        "provide an owned native context."
+                    )
+
+
 def prepare_colorbars(
     rendered: MatplotlibFigureResult,
     specs: tuple[FigureConfig, ...],
@@ -124,6 +172,7 @@ def prepare_colorbars(
     Structural replacement requires the original callback and allocation still owned.
     Unchanged topology permits foreign outputs while reusing only our actual colorbars.
     """
+    # [impl->req~ring5.figure.series-styling~2]
     rendered.validate()
     requests = _requests(rendered, specs)
     retire = tuple(
@@ -169,6 +218,10 @@ def prepare_colorbars(
             for output in rendered.native_outputs.colorbars
         )
         if request.visible and not reused:
+            if request.mappable.get_cmap().colorbar_extend not in (False, "neither"):
+                raise ValueError(
+                    "Managed source opacity currently requires colorbar extend='neither'."
+                )
             current = request.mappable.colorbar
             if current is not None and not any(current is old.colorbar for old in retire):
                 raise ValueError(
@@ -182,6 +235,7 @@ def retire_colorbars(plan: ColorbarPlan) -> None:
     for output in plan.retire:
         # The plan checked current backlink/CID ownership before this native remove.
         gridspec_restored = output.colorbar.ax.get_subplotspec() is not None
+        output.colorbar.mappable.callbacks.disconnect(output.projection_callback_id)
         output.colorbar.remove()
         for allocation in output.allocation:
             axes = allocation.axes
@@ -219,6 +273,8 @@ def _create(plan: ColorbarPlan, request: _Request) -> _ColorbarOutput:
         for axis in axes
     ]
     image = request.mappable
+    if image.get_cmap().colorbar_extend not in (False, "neither"):
+        raise ValueError("Managed source opacity currently requires colorbar extend='neither'.")
     parent = request.panels[0].primary_axes.figure
     primary_axes = [panel.primary_axes for panel in request.panels]
     options: dict[str, Any] = {"orientation": request.orientation}
@@ -231,6 +287,9 @@ def _create(plan: ColorbarPlan, request: _Request) -> _ColorbarOutput:
     )
     with mpl.rc_context(font_rc):
         native = parent.colorbar(image, **options)
+    projection = _IntrinsicColorbarProjection(native)
+    projection_callback_id = image.callbacks.connect("changed", projection)
+    projection(image)
     allocation = tuple(
         _ColorbarAllocation(
             axis,
@@ -250,6 +309,8 @@ def _create(plan: ColorbarPlan, request: _Request) -> _ColorbarOutput:
         request.source,
         request.panels,
         cast(_ColorbarBacklink, image).colorbar_cid,
+        projection,
+        projection_callback_id,
         allocation,
         plan.rendered.figure.get_layout_engine(),
         native.ax.get_subplotspec(),
@@ -274,6 +335,7 @@ def _style(output: _ColorbarOutput, request: _Request) -> None:
     native.locator = MaxNLocator(nbins=cfg.nticks if cfg is not None else 5)
     native.formatter = FormatStrFormatter(f"%.{cfg.tick_decimals if cfg is not None else 2}f")
     native.update_ticks()
+    output.projection(native.mappable)
     if horizontal:
         native.ax.xaxis.tick_bottom()
         native.ax.xaxis.set_label_position("bottom")

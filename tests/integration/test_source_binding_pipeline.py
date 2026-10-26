@@ -205,7 +205,11 @@ def test_portfolio_and_recipe_round_trip_keep_current_source_bindings(
         session.save_portfolio("source-bindings")
         payload = json.loads((portfolios_dir / "source-bindings.json").read_text())
         assert payload["schema_version"] == CURRENT_PORTFOLIO_SCHEMA_VERSION
-        assert payload["scanned_variables"][0]["source_type"] == "scalar"
+        assert payload["scanned_variables"][0]["source_evidence"] == {
+            "state": "resolved",
+            "kind": "scalar",
+            "basis": "wire_contract",
+        }
         assert payload["scanned_variables"][0]["instances"][1] == {
             "source_name": "cpu1.ipc",
             "indices": ["1"],
@@ -224,7 +228,7 @@ def test_portfolio_and_recipe_round_trip_keep_current_source_bindings(
 
 
 @pytest.mark.parametrize("declared_kind", ["histogram", "distribution"])
-def test_manual_requests_cannot_misdeclare_the_actual_entry_source_kind(
+def test_manual_requests_check_compatible_observed_entry_contracts(
     tmp_path: Path, declared_kind: str
 ) -> None:
     source = tmp_path / "stats.txt"
@@ -233,14 +237,25 @@ def test_manual_requests_cannot_misdeclare_the_actual_entry_source_kind(
         "out",
         "vector",
         source_name="v",
-        params={"source_type": declared_kind, "entries": ["0-0", "1-1"]},
+        params={
+            "source_type": declared_kind,
+            "entries": ["0-0", "1-1"] if declared_kind == "histogram" else ["0", "1"],
+        },
     )
     batch = Gem5Parser.submit_parse_async(
         str(tmp_path), "stats.txt", [config], str(tmp_path / "out")
     )
-    with pytest.raises(RuntimeError, match="Raw source kind mismatch"):
-        [future.result(timeout=30) for future in batch.futures]
-    assert not (tmp_path / "out" / "result.csv").exists()
+    if declared_kind == "histogram":
+        with pytest.raises(RuntimeError, match="contradicts actual observations"):
+            [future.result(timeout=30) for future in batch.futures]
+        assert not (tmp_path / "out" / "results.csv").exists()
+    else:
+        output = Gem5Parser.finalize_parsing(
+            batch, [future.result(timeout=30) for future in batch.futures]
+        )
+        assert ParsedOutputIO.to_frame(output).to_dict("records") == [
+            {"out..0": 3.0, "out..1": 7.0}
+        ]
 
 
 def test_actual_vector_source_can_be_explicitly_represented_as_histogram(tmp_path: Path) -> None:

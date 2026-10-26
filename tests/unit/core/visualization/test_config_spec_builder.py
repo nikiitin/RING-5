@@ -13,6 +13,7 @@ from src.core.models.visualization.figure_config import FigureConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.rendering.figure_preparation import PreparedFigure
 
 
 def _sample_config(**overrides: Any) -> dict[str, Any]:
@@ -251,9 +252,11 @@ class TestRenderArtifactSpec:
         plot = self._plot("bar")
         artifact = build_render_artifact(plot, _sample_config(x="x", y="y"), "plotly")
         plot.publish_render_artifact(artifact)
-        assert isinstance(plot.render_artifact.figure_spec, FigureConfig)
-        assert plot.render_artifact.figure_spec is artifact.figure_spec
-        assert plot.render_artifact.figure_spec.title == "Test Plot"
+        prepared = artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert isinstance(prepared.spec, FigureConfig)
+        assert plot.render_artifact.preparation is prepared
+        assert prepared.spec.title == "Test Plot"
         assert plot.render_artifact.figure is artifact.figure
 
     def test_spec_updated_on_each_render(self) -> None:
@@ -262,20 +265,24 @@ class TestRenderArtifactSpec:
         plot = self._plot("line")
         first = build_render_artifact(plot, _sample_config(x="x", y="y", title="First"), "plotly")
         plot.publish_render_artifact(first)
-        assert isinstance(plot.render_artifact.figure_spec, FigureConfig)
-        assert plot.render_artifact.figure_spec.title == "First"
+        first_prepared = first.preparation
+        assert isinstance(first_prepared, PreparedFigure)
+        assert plot.render_artifact.preparation is first_prepared
+        assert isinstance(first_prepared.spec, FigureConfig)
+        assert first_prepared.spec.title == "First"
         second = build_render_artifact(plot, _sample_config(x="x", y="y", title="Second"), "plotly")
         plot.publish_render_artifact(second)
-        assert isinstance(plot.render_artifact.figure_spec, FigureConfig)
-        assert plot.render_artifact.figure_spec.title == "Second"
-        assert plot.render_artifact.figure_spec is second.figure_spec
-        assert first.figure_spec is not second.figure_spec
-        assert isinstance(first.figure_spec, FigureConfig)
-        assert first.figure_spec.title == "First"
+        second_prepared = second.preparation
+        assert isinstance(second_prepared, PreparedFigure)
+        assert isinstance(second_prepared.spec, FigureConfig)
+        assert second_prepared.spec.title == "Second"
+        assert plot.render_artifact.preparation is second_prepared
+        assert first_prepared.spec is not second_prepared.spec
+        assert isinstance(first_prepared.spec, FigureConfig)
+        assert first_prepared.spec.title == "First"
 
     def test_spec_is_none_initially(self) -> None:
         plot = self._plot("bar")
-        assert plot.render_artifact.figure_spec is None
         assert plot.render_artifact.preparation is None
 
 

@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Protocol
 
 from src.parsing.parser_protocol import ParseWorkItem
+from src.core.models.parsed_output_models import ParsedColumn
 
 if TYPE_CHECKING:
     from src.parsing.gem5.impl.source_bindings import SourcePlan
@@ -14,13 +15,12 @@ if TYPE_CHECKING:
 class FileParserStrategy(Protocol):
     """Discover and compose source-owned work without a second finalization path."""
 
+    metadata_columns: tuple[ParsedColumn, ...]
+
     def get_work_items(
         self,
-        stats_path: str,
-        stats_pattern: str,
+        files: tuple[str, ...],
         plan: SourcePlan,
-        *,
-        file_paths: list[str] | None = None,
     ) -> Sequence[ParseWorkItem]:
         """Return independent typed work for every selected statistics source."""
         raise NotImplementedError

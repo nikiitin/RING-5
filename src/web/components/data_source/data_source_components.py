@@ -1031,8 +1031,8 @@ class DataSourceComponents:
             else:
 
                 def format_func(v: ScannedVariableDict) -> str:
-                    label = f"{v['name']} ({v['type']})"
-                    if v["type"] == "vector" and v["source_type"] != "scalar":
+                    label = f"{v['name']} ({v['type'] or 'choose contract'})"
+                    if v["type"] == "vector" and v["entries"]:
                         label += f" [{len(v['entries'])} items]"
                     count = len(v["instances"])
                     if count > 1:
@@ -1052,7 +1052,7 @@ class DataSourceComponents:
                 if idx is not None:
                     selected_scanned_var = scanned_vars[idx]
                     name = selected_scanned_var["name"]
-                    var_type = selected_scanned_var["type"]
+                    var_type = selected_scanned_var["type"] or ""
 
         else:  # Manual Entry
             st.markdown("##### Variable Details")
@@ -1067,7 +1067,22 @@ class DataSourceComponents:
             st.info("Start typing in the search box above to find a variable.")
         else:
             st.markdown("---")
-            st.markdown(f"**Configuration: {var_type.upper()}**")
+            if selected_scanned_var and selected_scanned_var["type"] is None:
+                evidence = selected_scanned_var["source_evidence"]
+                st.caption(
+                    "Compatible source contracts: "
+                    + ", ".join(cast(list[str], evidence["candidates"]))
+                )
+                output_types = api.get_simulator_info(
+                    api.state_manager.get_simulator()
+                ).variable_types
+                var_type = (
+                    st.selectbox(
+                        "Output representation", output_types, index=None, key="dialog_output_type"
+                    )
+                    or ""
+                )
+            st.markdown(f"**Configuration: {var_type.upper() or 'CHOOSE REPRESENTATION'}**")
 
             if method == "Search Scanned Variables":
                 name = st.text_input("Name", value=name, key="dialog_final_name")
@@ -1092,7 +1107,10 @@ class DataSourceComponents:
                     index=choices.index(current_source) if current_source else None,
                     placeholder="Choose raw source type",
                     key="dialog_raw_source_type",
-                    help="Actual scanner source kind, independent of the output representation.",
+                    help=(
+                        "Declared compatible source contract, independent of the "
+                        "output representation."
+                    ),
                 )
                 or ""
             )

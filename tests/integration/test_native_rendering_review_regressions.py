@@ -18,7 +18,7 @@ from src.core.services.data_services.analysis_recipe_service import AnalysisReci
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 from src.web.rendering.config_builder import ConfigSpecBuilder
-from src.web.rendering.figure_preparation import prepare_figure
+from src.web.rendering.figure_preparation import PreparedFigure, prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering._render_result import MatplotlibFigureResult
 from src.web.rendering.matplotlib_figure_builder import draw_matplotlib_axes
@@ -392,7 +392,9 @@ def test_canonical_orientation_values_reach_both_native_models(
                 assert legend.orientation == ("h" if orientation == "horizontal" else "v")
             else:
                 role = {"legend_": "primary", "legend2_": "secondary", "legend3_": "tertiary"}[tier]
-                spec = plot.render_artifact.figure_spec
+                prepared = plot.render_artifact.preparation
+                assert isinstance(prepared, PreparedFigure)
+                spec = prepared.spec
                 assert isinstance(spec, FigureConfig)
                 legend = next(item for item in spec.legends if item.role == role)
                 assert legend.orientation == orientation

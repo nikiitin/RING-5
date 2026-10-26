@@ -29,7 +29,6 @@ from src.web.rendering.trace_to_plotly import (
     _line_trace,
     _parallel_coordinates_trace,
     _radar_trace,
-    _sankey_trace,
     _scatter_trace,
     traces_to_plotly,
     _violin_trace,
@@ -346,7 +345,7 @@ class TestSankeyTrace:
             show_link_labels=True,
         )
 
-        result = _sankey_trace(trace)
+        result = traces_to_plotly(TraceBuildResult(traces=[trace])).figure.data[0]
 
         assert isinstance(result, go.Sankey)
         assert result.arrangement == "fixed"
@@ -356,9 +355,10 @@ class TestSankeyTrace:
         assert list(cast(Any, result.link.value)) == trace.values
         assert list(cast(Any, result.link.label)) == trace.link_labels
         assert list(cast(Any, result.link.color)) == [
-            "rgba(17,17,17,0.400)",
-            "rgba(34,34,34,0.400)",
+            "rgba(17,17,17,0.4)",
+            "rgba(34,34,34,0.4)",
         ]
+        assert result.link.hovercolor == result.link.color
 
 
 class TestParallelCoordinatesTrace:

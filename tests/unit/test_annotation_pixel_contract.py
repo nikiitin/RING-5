@@ -15,7 +15,7 @@ from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
-from src.web.rendering.figure_preparation import prepare_figure
+from src.web.rendering.figure_preparation import PreparedFigure, prepare_figure
 from src.web.rendering.plotly_figure_builder import build_plotly_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering._render_result import MatplotlibRenderResult
@@ -184,6 +184,8 @@ def test_public_stack_totals_preserve_pixel_offset_and_raw_categories(offset: in
             assert annotation.xy == (x, y)
             anchor = annotation.xycoords.transform(annotation.xy)
             np.testing.assert_allclose(anchor - axis.transData.transform((x, y)), (0, offset))
-        spec = plot.render_artifact.figure_spec
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        spec = prepared.spec
         assert isinstance(spec, FigureConfig)
         assert [ann.y_shift_pixels for ann in spec.annotations] == [offset, offset]

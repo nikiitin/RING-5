@@ -36,7 +36,11 @@ not signed exchange bundles; use a portable-bundle workflow when sharing artifac
 systems. Saving does not overwrite an existing name unless replacement is chosen explicitly.
 Typed table payloads retain exact range bounds, categorical ordering, temporal frequency,
 multi-level axes, nullable dtypes, labels and units. Supported typed dataframe attributes also
-round-trip. Unsupported objects or cyclic metadata are rejected before a snapshot is written. Readers accept only the current format version.
+round-trip. Native Distribution layouts retain their full declared geometry, explicit omission
+policy and exact frequency/summary bindings, so both rendering engines reproduce the same ordinal
+cells without reparsing. These are caller declarations, not authentication of a hidden producer.
+Unsupported objects, malformed layout metadata or cyclic metadata are rejected before a snapshot
+is written. Readers accept only the current format version.
 
 The public API provides the same lifecycle:
 

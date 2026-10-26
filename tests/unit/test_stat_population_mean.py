@@ -43,7 +43,9 @@ _KINDS: list[tuple[Callable[[int], Accumulator], Callable[[float], Observation],
     (lambda repeat: Scalar(repeat=repeat), lambda value: value, None),
     (lambda repeat: Vector(repeat=repeat, entries=["001"]), lambda value: {"001": value}, "001"),
     (
-        lambda repeat: Distribution(repeat=repeat, minimum=0, maximum=0),
+        lambda repeat: Distribution(
+            repeat=repeat, minimum=0, maximum=0, bucket_size=1, zero_policy="missing"
+        ),
         lambda value: {"underflows": 0.0, "0": value, "overflows": 0.0},
         "0",
     ),

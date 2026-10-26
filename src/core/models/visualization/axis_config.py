@@ -10,6 +10,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from src.core.models.visualization._config_fields import (
+    config_list,
+    config_object,
+    model_fields,
+)
+
 INHERIT_F: float = -1.0
 
 
@@ -70,8 +76,14 @@ class AxisConfig:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> AxisConfig:
-        """Reconstruct from serialized dictionary."""
-        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+        """Reconstruct current fields, rejecting unsupported names or container shapes."""
+        data = model_fields(data, cls, "AxisConfig")
+        for name in ("tick_values", "tick_text", "range", "category_order"):
+            if data.get(name) is not None:
+                data[name] = config_list(data[name], f"AxisConfig.{name}")
+        if data.get("label_aliases") is not None:
+            data["label_aliases"] = config_object(data["label_aliases"], "AxisConfig.label_aliases")
+        return cls(**data)
 
 
 @dataclass(frozen=True)
@@ -118,15 +130,22 @@ class AxesConfig:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> AxesConfig:
-        """Reconstruct from serialized dictionary."""
-        x_data = data.get("x", {})
-        y_data = data.get("y", {})
+        """Reconstruct axes, preserving omitted defaults and an explicit secondary object."""
+        data = model_fields(data, cls, "AxesConfig")
+        if data.get("group_order") is not None:
+            data["group_order"] = config_list(data["group_order"], "AxesConfig.group_order")
+        x_data = config_object(data.get("x", {}), "AxesConfig.x")
+        y_data = config_object(data.get("y", {}), "AxesConfig.y")
         y2_data = data.get("y2")
 
         return cls(
-            x=AxisConfig.from_dict(x_data) if x_data else AxisConfig(),
-            y=AxisConfig.from_dict(y_data) if y_data else AxisConfig(),
-            y2=AxisConfig.from_dict(y2_data) if y2_data else None,
+            x=AxisConfig.from_dict(x_data),
+            y=AxisConfig.from_dict(y_data),
+            y2=(
+                AxisConfig.from_dict(config_object(y2_data, "AxesConfig.y2"))
+                if y2_data is not None
+                else None
+            ),
             group_label_offset=data.get("group_label_offset", -0.12),
             group_label_alternate=data.get("group_label_alternate", True),
             group_label_alt_spacing=data.get("group_label_alt_spacing", 0.05),

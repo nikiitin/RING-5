@@ -241,7 +241,11 @@ class TestParserManagement:
                     "name": "cpu.ipc",
                     "type": "vector",
                     "entries": ["0", "1"],
-                    "source_type": "vector",
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "vector",
+                        "basis": "backend_metadata",
+                    },
                     "instances": [{"source_name": "cpu.ipc", "indices": []}],
                 }
             ],
@@ -382,7 +386,11 @@ class TestRestoreSession:
                         "name": "cpu.cycles",
                         "type": "scalar",
                         "entries": [],
-                        "source_type": "scalar",
+                        "source_evidence": {
+                            "state": "resolved",
+                            "kind": "scalar",
+                            "basis": "backend_metadata",
+                        },
                         "instances": [{"source_name": "cpu.cycles", "indices": []}],
                     }
                 ],

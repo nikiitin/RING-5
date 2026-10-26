@@ -12,18 +12,33 @@ from typing import Any, cast
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.models.parsing_models import ScannedVariable, StatConfig, StatParamValue
 from src.core.models.pattern_index_service import PatternIndexService
+from src.core.models.source_evidence import ResolvedSourceKind
+from src.core.models.distribution_geometry import DistributionGeometry
+from src.core.common.source_entry_labels import canonical_source_entry
 
 _COMMON_PARAMS = frozenset({"selected_sources", "source_type"})
 _TYPE_PARAMS = {
     "scalar": frozenset(),
     "vector": frozenset({"entries", "statistics"}),
-    "distribution": frozenset({"minimum", "maximum", "statistics"}),
+    "distribution": frozenset({"minimum", "maximum", "bucket_size", "zero_policy", "statistics"}),
     "histogram": frozenset({"entries", "statistics", "bins", "max_range"}),
     "configuration": frozenset({"on_empty"}),
 }
 _FIELDS = frozenset(field.name for field in fields(StatConfig))
 _DRAFT_FIELDS = _FIELDS | {"_id"}
 _PARAM_NAME = re.compile(r"[a-z][a-z0-9_]*\Z")
+
+
+def _finite_numeric_option(value: int | float, key: str) -> None:
+    """Reject only known finite-check conversion failures as configuration errors."""
+    try:
+        finite = math.isfinite(value)
+    except OverflowError as exc:
+        if type(exc) is not OverflowError:
+            raise
+        raise ValueError(f"Statistic {key} exceeds the finite numeric range.") from exc
+    if not finite:
+        raise TypeError(f"Statistic {key} must be a finite number.")
 
 
 class StatConfigDraftIncomplete(ValueError):
@@ -55,6 +70,15 @@ class StatConfigCodec:
                 raise TypeError(f"Statistic option {key} must contain text entries.")
             if isinstance(item, float) and not math.isfinite(item):
                 raise ValueError(f"Statistic option {key} must be finite.")
+        if (
+            kind == "distribution"
+            and params.get("zero_policy") is not None
+            and (
+                type(params["zero_policy"]) is not str
+                or params["zero_policy"] not in {"missing", "nozero"}
+            )
+        ):
+            raise ValueError("Distribution zero_policy must be missing or nozero.")
         for key in ("entries", "statistics", "selected_sources"):
             if key in params and not isinstance(params[key], list):
                 raise TypeError(f"Statistic {key} must be a list of text entries.")
@@ -121,7 +145,10 @@ class StatConfigCodec:
         if (
             kind == "vector"
             and source_type == "histogram"
-            and any(re.fullmatch(r"-?\d+", entry) for entry in params.get("entries", []))
+            and any(
+                canonical_source_entry("histogram", entry) != entry
+                for entry in params.get("entries", [])
+            )
         ):
             raise ValueError("Histogram vector entries require inclusive range labels such as 0-0.")
         selected_sources = params.get("selected_sources")
@@ -143,19 +170,21 @@ class StatConfigCodec:
         ):
             raise ValueError("Vector parsing requires selected entries.")
         if kind == "distribution" and not value["statistics_only"]:
-            if not {"minimum", "maximum"}.issubset(params):
-                raise ValueError("Distribution parsing requires explicit minimum and maximum.")
-            minimum, maximum = params["minimum"], params["maximum"]
-            if any(type(bound) not in (int, float) for bound in (minimum, maximum)):
-                raise TypeError("Distribution bounds must be numbers.")
-            if any(
-                isinstance(bound, float) and not bound.is_integer() for bound in (minimum, maximum)
-            ):
+            if not {"minimum", "maximum", "bucket_size", "zero_policy"}.issubset(params):
                 raise ValueError(
-                    "Current fixed-unit distribution parsing requires integral bounds."
+                    "Distribution parsing requires explicit minimum, maximum, bucket_size "
+                    "and zero_policy."
                 )
-            if cast(float, minimum) > cast(float, maximum):
-                raise ValueError("Distribution minimum must not exceed maximum.")
+            DistributionGeometry(
+                cast(float, params["minimum"]),
+                cast(float, params["maximum"]),
+                cast(float, params["bucket_size"]),
+            )
+            if type(params["zero_policy"]) is not str or params["zero_policy"] not in {
+                "missing",
+                "nozero",
+            }:
+                raise ValueError("Distribution zero_policy must be missing or nozero.")
         if kind == "histogram":
             bins = params.get("bins", 0)
             if type(bins) is not int or bins < 0:
@@ -163,6 +192,7 @@ class StatConfigCodec:
             maximum = params.get("max_range", 0.0)
             if type(maximum) not in (int, float) or cast(float, maximum) < 0:
                 raise ValueError("Histogram max_range must be a non-negative number.")
+            _finite_numeric_option(maximum, "max_range")
             if bool(bins) != bool(maximum):
                 raise ValueError("Histogram rebinning requires bins and max_range together.")
         if kind == "configuration":
@@ -185,7 +215,12 @@ class StatConfigCodec:
     def validate_template_payload(
         cls, value: object, is_placeholder: Callable[[object], bool]
     ) -> None:
-        """Check a recipe's current wire shape without executing unresolved operands."""
+        """Check current recipe fields without executing unresolved operands.
+
+        Raises:
+            TypeError: A literal option has an invalid exact type.
+            ValueError: Fields or finite numeric conversion are unsupported.
+        """
         if not isinstance(value, dict) or set(value) != _FIELDS:
             raise ValueError(
                 "A recipe statistic must use the complete current configuration shape."
@@ -217,6 +252,12 @@ class StatConfigCodec:
             raise ValueError(
                 f"Unsupported {kind} statistic options: {sorted(set(params) - allowed)}."
             )
+        if (
+            kind == "distribution"
+            and value["statistics_only"] is False
+            and not {"minimum", "maximum", "bucket_size", "zero_policy"}.issubset(params)
+        ):
+            raise ValueError("Distribution templates require the complete grid and zero_policy.")
         for key, item in params.items():
             if not isinstance(key, str) or not _PARAM_NAME.fullmatch(key):
                 raise ValueError("Statistic option names must be snake_case identifiers.")
@@ -232,9 +273,13 @@ class StatConfigCodec:
             elif key == "bins":
                 if type(item) is not int:
                     raise TypeError("Histogram bins must be an integer.")
-            elif key in {"minimum", "maximum", "max_range"}:
-                if type(item) not in (int, float) or not math.isfinite(item):
+            elif key in {"minimum", "maximum", "bucket_size", "max_range"}:
+                if type(item) not in (int, float):
                     raise TypeError(f"Statistic {key} must be a finite number.")
+                _finite_numeric_option(item, key)
+            elif key == "zero_policy" and kind == "distribution":
+                if type(item) is not str or item not in {"missing", "nozero"}:
+                    raise ValueError("Distribution zero_policy must be missing or nozero.")
             elif key == "on_empty":
                 if item is not None and not isinstance(item, str):
                     raise TypeError("Configuration on_empty must be text or null.")
@@ -307,16 +352,25 @@ class StatConfigCodec:
         ):
             raise StatConfigDraftIncomplete("Select vector entries before parsing.")
         if kind == "distribution" and not draft.get("statistics_only", False):
-            if params.get("minimum") is None or params.get("maximum") is None:
-                raise StatConfigDraftIncomplete("Set distribution bounds before parsing.")
-            for field in ("minimum", "maximum"):
-                bound = params[field]
-                if isinstance(bound, float) and not bound.is_integer():
-                    raise StatConfigDraftIncomplete(
-                        "Current fixed-unit distribution parsing requires integral bounds."
-                    )
-            if cast(float, params["minimum"]) > cast(float, params["maximum"]):
-                raise StatConfigDraftIncomplete("Order distribution bounds before parsing.")
+            if any(params.get(field) is None for field in ("minimum", "maximum", "bucket_size")):
+                raise StatConfigDraftIncomplete(
+                    "Set the complete Distribution grid before parsing."
+                )
+            if type(params.get("zero_policy")) is not str or params["zero_policy"] not in {
+                "missing",
+                "nozero",
+            }:
+                raise StatConfigDraftIncomplete("Declare Distribution zero_policy before parsing.")
+            try:
+                DistributionGeometry(
+                    cast(float, params["minimum"]),
+                    cast(float, params["maximum"]),
+                    cast(float, params["bucket_size"]),
+                )
+            except (ValueError, TypeError) as exc:
+                if type(exc) not in (ValueError, TypeError):
+                    raise
+                raise StatConfigDraftIncomplete(str(exc)) from exc
         if kind == "histogram" and bool(params.get("bins", 0)) != bool(params.get("max_range", 0)):
             raise StatConfigDraftIncomplete("Complete histogram rebinning settings before parsing.")
         payload = {
@@ -368,7 +422,7 @@ class StatConfigCodec:
             )
         ):
             raise ValueError("Scalar pattern vector entries derive only from source instances.")
-        for key in ("minimum", "maximum", "max_range"):
+        for key in ("minimum", "maximum", "bucket_size", "max_range"):
             if key in params and params[key] is not None and type(params[key]) not in (int, float):
                 raise TypeError(f"Parser draft {key} must be numeric or null.")
         if "bins" in params and type(params["bins"]) is not int:
@@ -412,25 +466,21 @@ class StatConfigCodec:
         cls, value: ScannedVariableDict, internal_stats: frozenset[str]
     ) -> ParseVariableConfig:
         """Project current scanner metadata into an independently owned editable draft."""
-        ScannedVariable.from_dict(value)
-        kind = value["type"]
-        params: dict[str, StatParamValue] = {"source_type": value["source_type"]}
-        if kind in {"vector", "histogram"} and not (
-            kind == "vector" and value["source_type"] == "scalar"
-        ):
-            entries = value.get("entries", [])
-            params["entries"] = [entry for entry in entries if entry not in internal_stats]
-            params["statistics"] = [entry for entry in entries if entry in internal_stats]
-        if kind == "distribution":
-            for bound in ("minimum", "maximum"):
-                if bound in value:
-                    params[bound] = value[bound]  # type: ignore[literal-required]
+        scanned = ScannedVariable.from_dict(value)
+        evidence = scanned.source_evidence
+        kind = scanned.type or ""
+        params: dict[str, StatParamValue] = {}
+        if type(evidence) is ResolvedSourceKind:
+            params["source_type"] = evidence.kind
+        if kind == "vector" and params.get("source_type") != "scalar":
+            params["entries"] = [entry for entry in scanned.entries if entry not in internal_stats]
+            params["statistics"] = [entry for entry in scanned.entries if entry in internal_stats]
         return cls.validate_draft(
             {
-                "name": value["name"],
+                "name": scanned.name,
                 "type": kind,
                 "params": params,
-                "statistics_only": kind in {"vector", "histogram"}
+                "statistics_only": kind == "vector"
                 and not params.get("entries")
                 and bool(params.get("statistics")),
             }

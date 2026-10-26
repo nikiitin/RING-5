@@ -8,6 +8,10 @@ from typing import Any, Literal, cast, override
 from unittest.mock import Mock, patch
 
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure as MplFigure
+from matplotlib.patches import Rectangle
+from matplotlib.colors import to_rgba
+import plotly.graph_objects as go
 import pandas as pd
 import pytest
 
@@ -213,38 +217,52 @@ def test_pattern_values_are_strings_without_adapters_or_coercion(pattern: object
 
 
 @pytest.mark.public_api
-@pytest.mark.parametrize("pattern", [None, {"shape": "/"}, 5, "//"])
-def test_invalid_pattern_rejects_at_public_restore_and_capture_boundaries(
-    pattern: object, tmp_path: Path
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        *(
+            ("pattern", value, "pattern must be a string")
+            for value in (None, {"shape": "/"}, 5, "//")
+        ),
+        *(
+            ("opacity", value, "opacity must be a finite real number")
+            for value in (None, True, "0.5", -0.1, 1.1, float("nan"), float("inf"))
+        ),
+    ],
+)
+def test_invalid_style_value_rejects_at_public_restore_and_capture_boundaries(
+    field: str, value: object, message: str, tmp_path: Path
 ) -> None:
     # [test->req~ring5.api.plot-validation~1]
-    config = {"x": "x", "y": "y", "series_styles": {"y": {"pattern": pattern}}}
+    # [test->req~ring5.figure.series-styling~2]
+    config: dict[str, Any] = {"x": "x", "y": "y", "series_styles": {"y": {field: value}}}
     before = copy.deepcopy(config)
     with ring5.Session() as session:
-        with pytest.raises(ring5.DataValidationError, match="pattern must be a string"):
+        with pytest.raises(ring5.DataValidationError, match=message):
             session.create_plot("bar", data=_table(), config=config)
         assert not session.plots
-    with pytest.raises(ValueError, match="pattern must be a string"):
+    with pytest.raises(ValueError, match=message):
         ring5.FigureSpec(extra=config)
     with patch.object(PlotFactory, "create_plot", side_effect=AssertionError("model creation")):
-        with pytest.raises(ValueError, match="pattern must be a string"):
+        with pytest.raises(ValueError, match=message):
             PlotFactory.from_dict(
                 {"id": 0, "name": "Invalid", "plot_type": "bar", "config": config}
             )
     state = RepositoryStateManager()
     plot = PlotFactory.create_plot("bar", 0, "Invalid")
-    with pytest.raises(ValueError, match="pattern must be a string"):
+    with pytest.raises(ValueError, match=message):
         plot.config = config
     serialized = plot.to_dict()
     serialized["config"] = config
     enricher = Mock(side_effect=AssertionError("enrichment reached"))
     with patch.object(plot, "to_dict", return_value=serialized):
-        with pytest.raises(ValueError, match="pattern must be a string"):
+        with pytest.raises(ValueError, match=message):
             PortfolioService(state, portfolios_dir=tmp_path).save_portfolio(
                 "Rejected", None, [plot], {}, 1, figure_spec_enricher=enricher
             )
     enricher.assert_not_called()
     assert not (tmp_path / "Rejected.json").exists()
+    assert config["series_styles"]["y"][field] is value
     assert config == before
 
 
@@ -307,3 +325,68 @@ def test_style_admission_preserves_other_plugin_fields_and_does_not_modify_input
     before = copy.deepcopy(config)
     validate_plot_config_values(config)
     assert config == before
+
+
+@pytest.mark.public_api
+@pytest.mark.parametrize("opacity", [0.0, 0.25, 1.0])
+def test_source_opacity_portfolio_replay_preserves_embedded_alpha_and_values(
+    opacity: float, portfolios_dir: Path
+) -> None:
+    # [test->req~ring5.figure.series-styling~2]
+    config = {
+        "x": "x",
+        "y": "y",
+        "series_styles": {
+            "y": {"opacity": opacity, "color": "rgba(10,20,30,0.4)", "use_color": True}
+        },
+    }
+    with ring5.Session() as session:
+        table = _table()
+        session.api.state_manager.set_data(table.frame)
+        session.create_plot(
+            "bar", data=table, config=ring5.FigureSpec(extra=config), name="Measured"
+        )
+        session.save_portfolio("Source opacity")
+    assert (portfolios_dir / "Source opacity.json").is_file()
+    with ring5.Session() as session:
+        report = session.load_portfolio("Source opacity")
+        assert report.complete and report.data_restored and report.plots_restored == 1
+        plot = session.plots[0]
+        assert plot.config["series_styles"]["y"]["opacity"] == opacity
+        matplotlib = session.render(plot, engine="matplotlib")
+        assert isinstance(matplotlib, MplFigure)
+        try:
+            bars = matplotlib.axes[0].patches
+            assert len(bars) == 1 and isinstance(bars[0], Rectangle)
+            assert bars[0].get_height() == 3
+            assert to_rgba(bars[0].get_facecolor())[3] == pytest.approx(0.4 * opacity)
+        finally:
+            plt.close(matplotlib)
+        plotly = session.render(plot, engine="plotly")
+        assert isinstance(plotly, go.Figure) and isinstance(plotly.data[0], go.Bar)
+        assert plotly.data[0].opacity == opacity
+        assert plotly.data[0].marker.color == "rgba(10,20,30,0.4)"
+        assert list(plotly.data[0].y) == [3]
+
+
+@pytest.mark.parametrize("value", [0.0, 0.25, 1.0, -0.1, 1.1])
+def test_opacity_recipe_template_retains_type_until_materialization(value: float) -> None:
+    # [test->req~ring5.figure.series-styling~2]
+    recipe = _recipe({"series_styles": {"y": {"opacity": "{{opacity}}", "plugin": {"label": 1}}}})
+    recipe = AnalysisRecipe(
+        name=recipe.name,
+        source=recipe.source,
+        plots=recipe.plots,
+        parameters=(RecipeParameter("opacity", "number", default=value),),
+    )
+    restored = AnalysisRecipeService.loads(AnalysisRecipeService.dumps(recipe))
+    assert restored.plots[0].config["series_styles"]["y"]["opacity"] == "{{opacity}}"
+    if not 0 <= value <= 1:
+        with pytest.raises(ValueError, match="opacity must be a finite real number"):
+            AnalysisRecipeService.materialize(restored)
+    else:
+        concrete = AnalysisRecipeService.materialize(restored)
+        assert concrete.plots[0].config["series_styles"]["y"] == {
+            "opacity": value,
+            "plugin": {"label": 1},
+        }

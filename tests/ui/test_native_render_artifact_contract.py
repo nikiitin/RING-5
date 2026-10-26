@@ -169,8 +169,6 @@ def test_actual_facet_render_retains_every_real_panel_preparation_and_reuses_it(
         assert not app.exception
         artifact = plot.render_artifact
         assert isinstance(artifact.preparation, PreparedDashboard)
-        assert artifact.figure_spec is artifact.preparation
-        assert artifact.trace_result is None
         assert len(artifact.preparation.panels) == 3
         assert [panel.trace_result.traces[0].y for panel in artifact.preparation.panels] == [
             [3.0],

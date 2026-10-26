@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sized
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -19,8 +20,14 @@ if TYPE_CHECKING:
     from matplotlib.transforms import Bbox
     from plotly.basedatatypes import BaseTraceType
     from src.core.models.visualization.trace_config import TraceType
+    from src.web.rendering._appearance import (
+        MatplotlibAppearance,
+        PlotlyAppearance,
+        PlotlyTextAppearance,
+    )
+    from src.web.rendering.matplotlib_colorbar import _IntrinsicColorbarProjection
 
-_ROLE_NAME = re.compile(r"ring5-(?:panel-\d+-)?facet-title-\d+\Z")
+_ROLE_NAME = re.compile(r"ring5-(?:panel-\d+-)?(?:facet-title|source-label)-\d+\Z")
 
 
 def _validate_source(ordinal: int, name: str, role: str, group: str, shown: bool) -> None:
@@ -46,6 +53,7 @@ class PlotlyTraceBinding:
     legend_role: Literal["primary", "secondary"]
     legendgroup: str
     show_in_legend: bool
+    appearance: PlotlyAppearance | None = None
 
     def __post_init__(self) -> None:
         _validate_source(
@@ -63,6 +71,7 @@ class PlotlyLayoutRole:
 
     role_name: str
     source: PlotlyTraceBinding
+    appearance: PlotlyTextAppearance | None = None
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -92,6 +101,9 @@ class PlotlyRenderResult:
             or type(self.shared_legend) is not bool
         ):
             raise ValueError("Plotly bindings require their actual native figure and panel tuples.")
+        from src.web.rendering._appearance import PlotlyAppearance, PlotlyTextAppearance
+        from src.core.common.opacity import require_opacity
+
         supplied: list[PlotlyTraceBinding] = []
         for panel in self.panel_bindings:
             if type(panel) is not tuple:
@@ -103,6 +115,20 @@ class PlotlyRenderResult:
                     or not isinstance(binding.native_trace, BaseTraceType)
                 ):
                     raise ValueError("Plotly source ordinals or native trace bindings are invalid.")
+                if binding.appearance is not None and not isinstance(
+                    binding.appearance, PlotlyAppearance
+                ):
+                    raise ValueError(
+                        "Native baked appearance must use a declared current capability."
+                    )
+                if isinstance(binding.native_trace, go.Sankey) != isinstance(
+                    binding.appearance, PlotlyAppearance
+                ):
+                    raise ValueError(
+                        "Native Sankey channels require their explicit intrinsic appearance output."
+                    )
+                if binding.appearance is not None:
+                    binding.appearance.validate()
                 supplied.append(binding)
         owned_ids = [id(binding.native_trace) for binding in supplied]
         if len(set(owned_ids)) != len(owned_ids) or set(owned_ids) != {
@@ -123,6 +149,32 @@ class PlotlyRenderResult:
                 or not isinstance(role.source.native_trace, go.Heatmap)
             ):
                 raise ValueError("Generated layout role bindings are invalid or duplicated.")
+            if role.appearance is not None:
+                appearance = role.appearance
+                trace = role.source.native_trace
+                if (
+                    not isinstance(appearance, PlotlyTextAppearance)
+                    or type(appearance.row) is not int
+                    or appearance.row < 0
+                    or type(appearance.column) is not int
+                    or appearance.column < 0
+                    or appearance.row >= len(trace.z)
+                    or type(appearance.contrast) is not bool
+                    or not isinstance(appearance.intrinsic, str)
+                ):
+                    raise ValueError(
+                        "A source data label requires its declared heatmap cell and font color."
+                    )
+                row = trace.z[appearance.row]
+                if (
+                    not isinstance(row, Sized)
+                    or isinstance(row, (str, bytes))
+                    or appearance.column >= len(row)
+                ):
+                    raise ValueError(
+                        "A source data label requires its actual heatmap row and column."
+                    )
+                require_opacity(appearance.opacity)
             role_names.add(role.role_name)
         observed: dict[str, int] = {}
         for annotation in self.figure.layout.annotations or ():
@@ -147,6 +199,7 @@ class MatplotlibTraceBinding:
     owned_data: tuple[Artist | Container, ...] = ()
     style_targets: tuple[Artist | Container, ...] = ()
     legend_handle: Artist | Container | None = None
+    appearance: MatplotlibAppearance = field(kw_only=True)
 
     def __post_init__(self) -> None:
         _validate_source(
@@ -234,6 +287,7 @@ class MatplotlibRenderResult:
             ValueError: A source/axes/artist association is inconsistent or multiply owned.
         """
         from matplotlib.axes import Axes
+        from src.web.rendering._appearance import MatplotlibAppearance
 
         axes = (
             (self.primary_axes,)
@@ -266,6 +320,9 @@ class MatplotlibRenderResult:
             _validate_mpl_family(binding)
             for handle in binding.owned_data:
                 owned.update(_native_members(handle, binding.axes, attached[id(binding.axes)]))
+            if not isinstance(binding.appearance, MatplotlibAppearance):
+                raise ValueError("A native source requires its declared intrinsic appearance.")
+            owned.update(binding.appearance.validate(binding.axes, owned))
             if owned & all_owned:
                 raise ValueError("A native data artist belongs to more than one source binding.")
             all_owned.update(owned)
@@ -311,6 +368,8 @@ class _ColorbarOutput:
     source: MatplotlibTraceBinding
     panels: tuple[MatplotlibRenderResult, ...]
     callback_id: int
+    projection: _IntrinsicColorbarProjection
+    projection_callback_id: int
     allocation: tuple[_ColorbarAllocation, ...]
     layout_engine: LayoutEngine | None
     parent: SubplotSpec | None
@@ -383,6 +442,13 @@ class MatplotlibFigureResult:
                     output.source is source for panel in self.panels for source in panel.bindings
                 )
                 or output.source.family != "heatmap"
+                or output.projection.colorbar is not output.colorbar
+                or output.projection_callback_id
+                not in output.colorbar.mappable.callbacks.callbacks.get("changed", {})
+                or output.colorbar.mappable.callbacks.callbacks["changed"][
+                    output.projection_callback_id
+                ]()
+                is not output.projection
                 or not isinstance(output.colorbar.mappable, QuadMesh)
                 or not any(output.colorbar.mappable is item for item in output.source.owned_data)
                 or type(output.panels) is not tuple

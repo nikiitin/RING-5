@@ -7,6 +7,7 @@ import os
 import sqlite3
 import time
 from collections.abc import Generator
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -231,7 +232,10 @@ def test_corrupt_cached_success_is_invalidated_and_real_work_reparses(
         path = Path(terminal.published_output.csv_path)
         path.write_bytes(path.read_bytes().replace(b"1.25", b"9.25"))
     else:
-        with sqlite3.connect(service.session_dir / "jobs.sqlite3") as connection:
+        with (
+            closing(sqlite3.connect(service.session_dir / "jobs.sqlite3")) as connection,
+            connection,
+        ):
             if consumed:
                 connection.execute("UPDATE published_results SET output_json='{}'")
             else:
@@ -288,7 +292,7 @@ def test_incremental_job_reuses_real_typed_rows_after_one_input_changes(
     }
 
 
-def test_background_request_reopen_and_receipt_preserve_current_scanner_bounds(
+def test_background_request_reopen_and_receipt_preserve_owned_scanner_evidence(
     api: ApplicationAPI,
     tmp_path: Path,
 ) -> None:
@@ -300,28 +304,39 @@ def test_background_request_reopen_and_receipt_preserve_current_scanner_bounds(
     metadata: ScannedVariableDict = {
         "name": "simTicks",
         "type": "scalar",
-        "source_type": "scalar",
+        "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
         "entries": [],
         "instances": [{"source_name": "simTicks", "indices": []}],
-        "minimum": 0.0,
-        "maximum": 1.25,
     }
     job = api.submit_parse_job(str(inputs), "stats.txt", _variables("001"), scanned_vars=[metadata])
-    metadata["minimum"] = -999.0
-    metadata["maximum"] = 999.0
+    metadata["source_evidence"]["kind"] = "configuration"
+    metadata["instances"][0]["source_name"] = "changed"
     terminal = _settled(api, job.job_id)
     assert terminal.status == ParseJobStatus.SUCCEEDED, terminal.errors
     service = api._get_parse_job_service()
     reopened = ParseJobStore(service.session_dir / "jobs.sqlite3")
     context = reopened.get_request(job.job_id).source_context
     stored = SourceContextCodec.scanned_payloads(context)
-    assert stored[0]["minimum"] == 0.0
-    assert stored[0]["maximum"] == 1.25
-    stored[0]["minimum"] = -1.0
-    assert SourceContextCodec.scanned_payloads(context)[0]["minimum"] == 0.0
+    expected = {
+        "state": "resolved",
+        "kind": "scalar",
+        "basis": "backend_metadata",
+    }
+    assert stored[0]["source_evidence"] == expected
+    assert stored[0]["instances"] == [{"source_name": "simTicks", "indices": []}]
+    assert set(stored[0]) == {"name", "type", "entries", "source_evidence", "instances"}
+    stored[0]["source_evidence"]["kind"] = "changed"
+    assert SourceContextCodec.scanned_payloads(context)[0]["source_evidence"] == expected
     receipt = api.consume_parse_job(job.job_id)
     assert receipt.source_context == context
-    assert SourceContextCodec.scanned_payloads(receipt.source_context)[0]["maximum"] == 1.25
+    assert (
+        SourceContextCodec.scanned_payloads(receipt.source_context)[0]["source_evidence"]
+        == expected
+    )
+    assert ParsedOutputIO.to_frame(receipt.output).to_dict("list") == {
+        "value": [1.25, 0.0],
+        "label": ["001", "001"],
+    }
 
 
 def test_corrupt_partial_descriptor_stays_visible_without_discard_or_reparse(
@@ -339,11 +354,11 @@ def test_corrupt_partial_descriptor_stays_visible_without_discard_or_reparse(
     assert terminal.output is not None
     service = api._get_parse_job_service()
     attempt = service._store.get_attempt_dir(job.job_id)
-    with sqlite3.connect(service.session_dir / "jobs.sqlite3") as connection:
+    with closing(sqlite3.connect(service.session_dir / "jobs.sqlite3")) as connection, connection:
         connection.execute("UPDATE jobs SET output_json='{}' WHERE job_id=?", (job.job_id,))
     with pytest.raises(InvalidStoredOutput):
         api.submit_parse_job(str(inputs), "stats.txt", _variables("001"))
-    with sqlite3.connect(service.session_dir / "jobs.sqlite3") as connection:
+    with closing(sqlite3.connect(service.session_dir / "jobs.sqlite3")) as connection, connection:
         assert connection.execute("SELECT job_id FROM jobs").fetchall() == [(job.job_id,)]
     assert attempt.is_dir() and Path(terminal.output.csv_path).is_file()
     assert submit.call_count == 1

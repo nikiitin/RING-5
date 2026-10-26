@@ -245,14 +245,6 @@ class TestDefaultDataServicesAPI:
         assert result == ["0", "1"]
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")
-    def test_aggregate_distribution_range(
-        self, mock_svc: MagicMock, api: DefaultDataServicesAPI
-    ) -> None:
-        mock_svc.aggregate_distribution_range.return_value = (0.0, 100.0)
-        result = api.aggregate_distribution_range([], "dist_var")
-        assert result == (0.0, 100.0)
-
-    @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_parse_comma_separated_entries(
         self, mock_svc: MagicMock, api: DefaultDataServicesAPI
     ) -> None:

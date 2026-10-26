@@ -14,6 +14,7 @@ from plotly.subplots import make_subplots
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.web.models.plot_protocols import PlotRenderSource
 from src.web.rendering._matplotlib_lock import serialized_matplotlib
+from dataclasses import replace
 from src.web.rendering.figure_preparation import PreparedDashboard, prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_figure_builder import draw_matplotlib_axes
@@ -358,7 +359,10 @@ def _render_plotly_dashboard(preparation: PreparedDashboard) -> PlotlyRenderResu
         copied: list[PlotlyTraceBinding] = []
         copied_sources: dict[int, PlotlyTraceBinding] = {}
         role_names = {
-            role.role_name: f"ring5-panel-{index}-facet-title-{ordinal}"
+            role.role_name: (
+                f"ring5-panel-{index}-"
+                f"{'source-label' if role.appearance is not None else 'facet-title'}-{ordinal}"
+            )
             for ordinal, role in enumerate(source_result.layout_roles)
         }
         row, column = divmod(index, spec.columns)
@@ -402,12 +406,21 @@ def _render_plotly_dashboard(preparation: PreparedDashboard) -> PlotlyRenderResu
                 source_binding.legend_role,
                 source_binding.legendgroup,
                 source_binding.show_in_legend,
+                appearance=(
+                    replace(source_binding.appearance)
+                    if source_binding.appearance is not None
+                    else None
+                ),
             )
             copied.append(binding)
             copied_sources[id(source_binding)] = binding
         destination_panels.append(tuple(sorted(copied, key=lambda binding: binding.source_ordinal)))
         destination_roles.extend(
-            PlotlyLayoutRole(role_names[role.role_name], copied_sources[id(role.source)])
+            PlotlyLayoutRole(
+                role_names[role.role_name],
+                copied_sources[id(role.source)],
+                replace(role.appearance) if role.appearance is not None else None,
+            )
             for role in source_result.layout_roles
         )
 

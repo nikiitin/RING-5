@@ -1,0 +1,10 @@
+---------- Begin Simulation Statistics ----------
+system.cpu00.dist::samples 3
+system.cpu00.dist::mean 1.583333
+system.cpu00.dist::stdev 1.154701
+system.cpu00.dist::0.25 1 33.33% 33.33%
+system.cpu00.dist::2.25 2 66.67% 100.00%
+system.cpu00.dist::min_value 0.250000
+system.cpu00.dist::max_value 2.250000
+system.cpu00.dist::total 3
+---------- End Simulation Statistics   ----------

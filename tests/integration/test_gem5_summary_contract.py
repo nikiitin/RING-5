@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from src.core.models.parsing_models import StatConfig, StatParamValue
+from src.core.models.source_evidence import source_kind_candidates
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
 pytestmark = pytest.mark.xdist_group("perl_pool")
@@ -92,8 +93,16 @@ def test_source_summaries_use_named_entries_and_keep_missing_measurements(tmp_pa
     assert not scan.failures
     assert {variable.name: variable.type for variable in scan.variables} == {
         "v__get_summary": "vector",
-        "d__get_summary": "distribution",
-        "h__get_summary": "histogram",
+        "d__get_summary": None,
+        "h__get_summary": None,
+    }
+    assert {
+        variable.name: source_kind_candidates(variable.source_evidence)
+        for variable in scan.variables
+    } == {
+        "v__get_summary": {"vector"},
+        "d__get_summary": {"distribution", "vector"},
+        "h__get_summary": {"histogram", "vector"},
     }
 
 

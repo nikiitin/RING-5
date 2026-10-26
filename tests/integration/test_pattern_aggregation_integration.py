@@ -4,6 +4,7 @@ Tests the full scanning workflow with pattern aggregation.
 """
 
 from pathlib import Path
+from src.core.models.source_evidence import ResolvedSourceKind
 
 import pytest
 
@@ -114,14 +115,18 @@ class TestScannerPatternAggregation:
             cpu_var = cpu_vars[0]
 
             # Should be type vector (aggregated scalars)
-            assert cpu_var.type in ["vector", "distribution", "histogram"]
+            assert cpu_var.type in [None, "vector", "distribution", "histogram"]
+            assert cpu_var.source_evidence is not None
 
             # Should have entries list
             assert cpu_var.entries is not None
             assert isinstance(cpu_var.entries, list)
             assert len(cpu_var.instances) > 0
             assert all(instance.indices for instance in cpu_var.instances)
-            if cpu_var.source_type == "scalar":
+            if (
+                isinstance(cpu_var.source_evidence, ResolvedSourceKind)
+                and cpu_var.source_evidence.kind == "scalar"
+            ):
                 assert cpu_var.entries == []
 
             # Entries should be numeric IDs like "0", "1", "2", etc.
@@ -139,7 +144,7 @@ class TestScannerPatternAggregation:
         from src.parsing.gem5.impl.scanning.scanner import Gem5StatsScanner
 
         scanner = Gem5StatsScanner.get_instance()
-        raw_vars = scanner.scan_file(stats_files[0])
+        raw_vars = scanner.scan_file(stats_files[0]).variables
 
         # Scan WITH aggregation (through service)
         futures = ScannerService.submit_scan_async(str(stats_dir), "stats.txt", limit=1)

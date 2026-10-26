@@ -16,7 +16,11 @@ from src.parsing.gem5.types.histogram import Histogram
 
 
 @pytest.mark.parametrize(
-    "stat", [Distribution(minimum=0, maximum=1), Histogram(bins=2, max_range=10)]
+    "stat",
+    [
+        Distribution(minimum=0, maximum=1, bucket_size=1, zero_policy="missing"),
+        Histogram(bins=2, max_range=10),
+    ],
 )
 def test_absent_frequency_stat_remains_nan(stat: Distribution | Histogram) -> None:
     stat.balance_content()
@@ -25,7 +29,9 @@ def test_absent_frequency_stat_remains_nan(stat: Distribution | Histogram) -> No
 
 
 def test_observed_distribution_omits_only_zero_frequency_bins() -> None:
-    stat = Distribution(minimum=0, maximum=2, statistics=["mean"])
+    stat = Distribution(
+        minimum=0, maximum=2, statistics=["mean"], bucket_size=1, zero_policy="nozero"
+    )
     stat.add_observation({"underflows": 0, "0": 0, "2": 4, "overflows": 0})
     stat.balance_content()
     stat.reduce_duplicates()
@@ -83,12 +89,18 @@ def test_final_csv_union_is_order_independent_and_keeps_absent_first_histogram(
     schemas = []
     for reverse in (False, True):
         rows = [
-            ParsedFileResult("a", (ParsedVariableResult("h", "number", "entries", ()),)),
+            ParsedFileResult(
+                "a", (ParsedVariableResult("h", "number", "entries", (), layout=None),)
+            ),
             ParsedFileResult(
                 "b",
                 (
                     ParsedVariableResult(
-                        "h", "number", "entries", (ParsedCell("h..0-9", "number", 9.0),)
+                        "h",
+                        "number",
+                        "entries",
+                        (ParsedCell("h..0-9", "number", 9.0),),
+                        layout=None,
                     ),
                 ),
             ),
@@ -96,7 +108,11 @@ def test_final_csv_union_is_order_independent_and_keeps_absent_first_histogram(
                 "c",
                 (
                     ParsedVariableResult(
-                        "h", "number", "entries", (ParsedCell("h..0-19", "number", 12.0),)
+                        "h",
+                        "number",
+                        "entries",
+                        (ParsedCell("h..0-19", "number", 12.0),),
+                        layout=None,
                     ),
                 ),
             ),
@@ -124,15 +140,20 @@ def test_final_csv_missing_vector_preserves_following_scalar_position(tmp_path: 
                     "number",
                     "entries",
                     (ParsedCell("v..a", "number", 1.0), ParsedCell("v..b", "number", 2.0)),
+                    layout=None,
                 ),
-                ParsedVariableResult("s", "number", "scalar", (ParsedCell("s", "number", 99.0),)),
+                ParsedVariableResult(
+                    "s", "number", "scalar", (ParsedCell("s", "number", 99.0),), layout=None
+                ),
             ),
         ),
         ParsedFileResult(
             "b",
             (
-                ParsedVariableResult("v", "number", "entries", ()),
-                ParsedVariableResult("s", "number", "scalar", (ParsedCell("s", "number", 55.0),)),
+                ParsedVariableResult("v", "number", "entries", (), layout=None),
+                ParsedVariableResult(
+                    "s", "number", "scalar", (ParsedCell("s", "number", 55.0),), layout=None
+                ),
             ),
         ),
     ]
@@ -150,13 +171,18 @@ def test_final_csv_invalid_shape_preserves_existing_output(tmp_path: Path) -> No
     output.write_text("previous\nresult\n", encoding="utf-8")
     results = [
         ParsedFileResult(
-            "a", (ParsedVariableResult("h", "number", "scalar", (ParsedCell("h", "number", 1.0),)),)
+            "a",
+            (
+                ParsedVariableResult(
+                    "h", "number", "scalar", (ParsedCell("h", "number", 1.0),), layout=None
+                ),
+            ),
         ),
         ParsedFileResult(
             "b",
             (
                 ParsedVariableResult(
-                    "h", "number", "entries", (ParsedCell("h..0-9", "number", 3.0),)
+                    "h", "number", "entries", (ParsedCell("h..0-9", "number", 3.0),), layout=None
                 ),
             ),
         ),

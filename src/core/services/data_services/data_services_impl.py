@@ -231,14 +231,6 @@ class DefaultDataServicesAPI:
         """Aggregate entries for a variable across scanned files."""
         return VariableService.aggregate_discovered_entries(snapshot, var_name, internal_stats)
 
-    def aggregate_distribution_range(
-        self,
-        snapshot: list[ScannedVariableDict],
-        var_name: str,
-    ) -> tuple[float | None, float | None]:
-        """Aggregate min/max range for a distribution variable."""
-        return VariableService.aggregate_distribution_range(snapshot, var_name)
-
     def parse_comma_separated_entries(self, entries_str: str) -> list[str]:
         """Parse comma-separated entry string into list."""
         return VariableService.parse_comma_separated_entries(entries_str)

@@ -548,7 +548,7 @@ class AnalysisRecipeService:
         )
         AnalysisRecipeService.validate(materialized)
         for plot in materialized.plots:
-            validate_plot_config_values(plot.config, plot_type=plot.plot_type)
+            validate_plot_config_values(plot.config)
         return materialized
 
     @staticmethod

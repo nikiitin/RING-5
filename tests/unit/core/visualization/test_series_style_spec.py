@@ -11,12 +11,12 @@ class TestSeriesStyleSpecDefaults:
     """Test that default construction produces safe values."""
 
     def test_default_values(self) -> None:
-        """All defaults should produce standard trace styling."""
+        """Omitted opacity inherits the source appearance."""
         spec = SeriesStyleConfig()
 
         assert spec.line_width == 2.0
         assert spec.marker_size == 6
-        assert spec.opacity == 1.0
+        assert spec.opacity is None
         assert spec.bar_border_width == 0.0
         assert spec.bar_border_color == ""
         assert spec.hatching_pattern is None
@@ -97,14 +97,11 @@ class TestSeriesStyleSpecSerialization:
         assert d["line_width"] == 3.0
         assert d["opacity"] == 0.8
 
-    def test_from_dict_ignores_unknown_keys(self) -> None:
-        """Unknown keys in input dict should not raise."""
-        spec = SeriesStyleConfig.from_dict(
-            {
-                "line_width": 5.0,
-                "unknown_key": "ignored",
-            }
-        )
+    def test_from_dict_rejects_unknown_keys(self) -> None:
+        """Unsupported names fail while partial current objects retain defaults."""
+        with pytest.raises(TypeError, match="Unsupported SeriesStyleConfig fields"):
+            SeriesStyleConfig.from_dict({"unknown_key": "unsupported"})
+        spec = SeriesStyleConfig.from_dict({"line_width": 5.0})
         assert spec.line_width == 5.0
         assert spec.marker_size == 6  # default
 

@@ -10,8 +10,6 @@ from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.plot_config import PlotConfig
 from src.core.models.visualization.engine import EngineMode
-from src.core.models.visualization.figure_config import FigureConfig
-from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.rendering.figure_preparation import PreparedDashboard, PreparedFigure
 from src.web.rendering._render_result import (
     MatplotlibFigureResult,
@@ -69,20 +67,6 @@ class RenderArtifact:
         if self._config is None:
             raise ValueError("Detached and composite artifacts require configuration state.")
         return deepcopy(self._config)
-
-    @property
-    def trace_result(self) -> TraceBuildResult | None:
-        """Return actual single-figure traces; composite panels retain their own results."""
-        return (
-            self.preparation.trace_result if isinstance(self.preparation, PreparedFigure) else None
-        )
-
-    @property
-    def figure_spec(self) -> FigureConfig | PreparedDashboard | None:
-        """Return single-figure styling or the complete real panel preparation."""
-        if isinstance(self.preparation, PreparedFigure):
-            return self.preparation.spec
-        return self.preparation
 
     def detached(self) -> "RenderArtifact":
         """Retain configuration without native, source-row or preparation references."""

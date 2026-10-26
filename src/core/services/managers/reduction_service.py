@@ -8,6 +8,11 @@ analysis across different random seeds.
 
 import pandas as pd
 
+from src.core.common.distribution_metadata import (
+    inspect_distribution_layouts,
+    with_distribution_layouts,
+)
+
 
 class ReductionService:
     """Service for data reduction operations (Seeds Reducer)."""
@@ -18,8 +23,9 @@ class ReductionService:
     ) -> pd.DataFrame:
         """Group by categorical columns and calculate mean and std dev."""
         # [impl->req~ring5.data.seed-reduction~1]
+        inspect_distribution_layouts(df)
         if df.empty:
-            return df
+            return with_distribution_layouts(df, {})
 
         grouped = df.groupby(categorical_cols)[statistic_cols]
         mean_df = grouped.mean().reset_index()
@@ -29,7 +35,7 @@ class ReductionService:
         result_df = pd.merge(mean_df, std_df, on=categorical_cols)
 
         cols = categorical_cols + [c for c in result_df.columns if c not in categorical_cols]
-        return result_df[cols]
+        return with_distribution_layouts(result_df[cols], {})
 
     @staticmethod
     def validate_seeds_reducer_inputs(

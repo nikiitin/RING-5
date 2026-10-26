@@ -10,6 +10,8 @@ Validates that:
 5. :class:`ParseService` and :class:`Gem5Parser` honour the flag.
 """
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
 from dataclasses import replace
 from typing import Any
 from unittest.mock import MagicMock
@@ -134,7 +136,7 @@ class TestApplicationAPIIsRegex:
             name=r"system.cpu\d+.numCycles",
             type="vector",
             entries=[],
-            source_type="scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
             instances=(SourceInstance("system.cpu0.numCycles", ("0",)),),
         )
         with pytest.raises(TypeError, match="StatConfig instances"):

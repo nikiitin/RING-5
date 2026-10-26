@@ -10,6 +10,7 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/libs";
 use TypesFormatRegex;
+use Encode qw(decode FB_CROAK);
 
 # Enable autoflush for immediate output
 $| = 1;
@@ -31,7 +32,7 @@ sub log_warn {
 }
 
 # Signal readiness
-print "READY\n";
+print "READY source-events-1\n";
 log_info("Parser server started and ready for commands");
 
 my $request_count = 0;
@@ -102,8 +103,9 @@ while (my $command = <STDIN>) {
         eval {
             open(my $fh, '<:raw', $filename) or die "Cannot open file: $!";
 
-            while (my $line = <$fh>) {
-                chomp $line;
+            while (my $raw = <$fh>) {
+                my $line = decode('UTF-8', $raw, FB_CROAK);
+                $line =~ s/\r?\n\z//;
                 if (++$line_count > $max_lines) {
                     die "Parser line limit exceeded ($max_lines lines): $filename\n";
                 }

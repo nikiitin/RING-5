@@ -1,9 +1,9 @@
 """
 Integration test for histogram variables with vector-style statistics.
 
-This test specifically addresses the case where gem5 outputs histogram data
-with statistical summary lines (::samples, ::mean, ::gmean, ::stdev, ::total)
-that look like vector entries but should be treated as part of the histogram.
+Native frequency labels and statistical summaries can satisfy both Histogram
+and Vector decoder contracts. Scanning retains that ambiguity; parsing uses
+an explicit compatible source/output declaration and preserves actual entries.
 
 Example from gem5 output:
     system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles::samples     256
@@ -21,6 +21,7 @@ import pytest
 from src.core.application_api import ApplicationAPI
 from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.data_models import ParseVariableConfig
+from src.core.models.source_evidence import source_kind_candidates
 
 
 class TestHistogramWithStatistics:
@@ -51,7 +52,7 @@ class TestHistogramWithStatistics:
     def test_scan_htm_transaction_commit_cycles(
         self, facade: ApplicationAPI, stats_dir: Path
     ) -> None:
-        """Test scanning detects htm_transaction_commit_cycles as histogram."""
+        """Retain the compatible Histogram and Vector contracts without guessing."""
         # Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
@@ -64,7 +65,8 @@ class TestHistogramWithStatistics:
         )
 
         assert htm_var is not None, "htm_transaction_commit_cycles not found in scan"
-        assert htm_var.type == "histogram", f"Expected histogram type, got {htm_var.type}"
+        assert htm_var.type is None
+        assert source_kind_candidates(htm_var.source_evidence) == {"histogram", "vector"}
 
         # Check that both bucket entries and statistics are present
         entries = htm_var.entries or []
