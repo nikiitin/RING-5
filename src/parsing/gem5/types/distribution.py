@@ -17,7 +17,7 @@ _COORDINATE_LABEL = re.compile(rf"{_NUMBER}(?:-{_NUMBER})?\Z")
 class Distribution(FrameStatType):
     """Reduce actual native observations without inventing missing cells or frames."""
 
-    # [impl->req~ring5.ingestion.distribution~1]
+    # [impl->req~ring5.ingestion.distribution~2]
     __slots__ = ("_statistics", "_statistics_only", "_entries", "_zero_policy")
     required_params = ["minimum", "maximum", "bucket_size", "zero_policy"]
 

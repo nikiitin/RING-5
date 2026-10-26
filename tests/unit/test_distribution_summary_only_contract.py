@@ -23,6 +23,7 @@ def test_summary_only_ignores_unrequested_fractional_cells_and_owns_no_layout(
     oneline: bool,
     measured_summary: bool,
 ) -> None:
+    # [test->req~ring5.ingestion.statistics-only~1]
     def no_grid(*args: object, **kwargs: object) -> None:
         raise AssertionError("Summary-only extraction must not construct a native grid.")
 

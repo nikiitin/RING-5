@@ -396,12 +396,14 @@ Needs: impl, test, uman
 
 Tags: gem5, status_approved, variables, vector
 
-### Distribution statistic parsing
+### Native Distribution statistic parsing
 
-`req~ring5.ingestion.distribution~1`
+`req~ring5.ingestion.distribution~2`
 Status: approved
 
-The gem5 backend shall parse distribution summaries and preserve their configured fields without inventing unavailable values.
+The gem5 backend shall parse summaries without a grid and full native frequencies against explicit full-precision geometry and missing/nozero policy, preserving every allocated slot, both tails and actual repeated observations without fabricating unavailable values.
+
+History records: 1
 
 Covers:
 - feat~ring5.ingestion~1
@@ -1546,10 +1548,12 @@ Tags: heatmap, matrix, plots, status_approved
 
 ### Histogram
 
-`req~ring5.plot.histogram~1`
+`req~ring5.plot.histogram~2`
 Status: approved
 
-RING-5 shall render parsed histogram bucket columns with optional grouping, normalization, and cumulative display.
+RING-5 shall render declared native Distribution storage-cell mass at ordinal positions with literal labels and both tails, and ordinary explicit interval histograms with their existing geometry, supporting grouping and valid count/normalized/cumulative modes without guessing native continuous support.
+
+History records: 1
 
 Covers:
 - feat~ring5.plot-types~1
@@ -1946,10 +1950,12 @@ Tags: dual_axis, grouping, layout, status_approved
 
 ### Histogram configuration
 
-`req~ring5.figure.histogram-controls~1`
+`req~ring5.figure.histogram-controls~2`
 Status: approved
 
-Histogram plots shall expose parsed bucket-column selection, optional grouping, count, probability, density, or percent normalization, and cumulative display controls.
+Histogram controls shall select explicit logical native layouts or ordinary interval variables and optional groups, expose supported count/normalized/CDF modes, require finite positive selected mass for normalized views, and reject native continuous rebinning or noncumulative density while retaining generic interval controls.
+
+History records: 1
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -2032,10 +2038,12 @@ Tags: heatmap, labels, status_approved, totals
 
 ### Cumulative histogram display
 
-`req~ring5.figure.histogram-cumulative~1`
+`req~ring5.figure.histogram-cumulative~2`
 Status: approved
 
-Histogram plots shall optionally accumulate bins in display order while preserving the selected count, probability, density, or percent normalization semantics.
+Cumulative histograms shall retain observed zero raw counts, require finite accumulated counts, and require finite positive selected mass for normalized cumulative modes; cumulative density shall mean cumulative probability for both native storage cells and generic intervals.
+
+History records: 1
 
 Covers:
 - feat~ring5.figure-configuration~1

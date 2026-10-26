@@ -175,7 +175,14 @@ class TestDistributionContentValidation:
         dist = Distribution(minimum=0, maximum=1, bucket_size=1, zero_policy="missing")
 
         with pytest.raises(TypeError, match="one numeric measurement"):
-            dist.add_observation({"underflows": 0.0, "0": ["invalid"], "1": 10.0, "overflows": 0.0})
+            dist.add_observation(
+                {
+                    "underflows": 0.0,
+                    "0": ["invalid"],  # type: ignore[dict-item]
+                    "1": 10.0,
+                    "overflows": 0.0,
+                }
+            )
 
 
 class TestDistributionContentSetting:
@@ -301,7 +308,7 @@ class TestDistributionBalanceContent:
 class TestDistributionReduceDuplicates:
     """Test reduce_duplicates method (arithmetic mean per bucket)."""
 
-    # [test->req~ring5.ingestion.distribution~1]
+    # [test->req~ring5.ingestion.distribution~2]
 
     def test_reduce_single_value_per_bucket(self) -> None:
         dist = Distribution(minimum=0, maximum=1, bucket_size=1, zero_policy="missing")

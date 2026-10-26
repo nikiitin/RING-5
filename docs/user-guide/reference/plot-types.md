@@ -46,10 +46,10 @@ Covers:
 Covers:
 - req~ring5.plot.heatmap~1
 
-`uman~ring5.plot.histogram.documentation~1`
+`uman~ring5.plot.histogram.documentation~2`
 
 Covers:
-- req~ring5.plot.histogram~1
+- req~ring5.plot.histogram~2
 
 `uman~ring5.plot.line.documentation~1`
 
@@ -69,11 +69,6 @@ Covers:
 -->
 
 <!--
-`uman~ring5.ingestion.distribution.documentation~1`
-
-Covers:
-- req~ring5.ingestion.distribution~1
-
 `uman~ring5.ingestion.histogram.documentation~1`
 
 Covers:
@@ -89,7 +84,7 @@ Covers:
 | Components nested within comparisons | `grouped_stacked_bar` | Major and minor groups plus stack columns |
 | Trend over an ordered value | `line` | Ordered X and numeric Y |
 | Relationship between numeric measures | `scatter` | Numeric X and Y |
-| Parsed histogram buckets | `histogram` | Columns named `<variable>..<start>-<end>` |
+| Frequency distributions | `histogram` | A declared native layout, or explicit interval columns such as `<variable>..<start>-<end>` |
 | Matrix of values | `heatmap` | Row, column, and numeric value mappings |
 | Bars with a distinct right-axis measure | `dual_axis_bar_dot` | Bar mapping and right-axis dot mapping |
 
@@ -128,15 +123,30 @@ next benchmark, making comparisons inside a group explicit without implying a tr
 ### Histogram controls
 
 <!--
-`uman~ring5.figure.histogram-controls.documentation~1`
+`uman~ring5.figure.histogram-controls.documentation~2`
 
 Covers:
-- req~ring5.figure.histogram-controls~1
+- req~ring5.figure.histogram-controls~2
 
 -->
 
-Histogram plots select parsed bucket columns, an optional categorical group, count, probability,
-percent, or density normalization, and cumulative display. Grouped bucket traces overlay.
+Histogram plots select a logical frequency variable and optional categorical group. Grouped traces
+overlay. Native Distribution data uses its exact declared bindings, including arbitrary physical
+column names. Ordinary Vector/CSV data uses the explicit interval suffix contract described below.
+
+A native view displays storage-cell mass at ordinal positions with literal bucket labels and equal
+glyph widths. The default axis title is **Native bucket**; an explicit title takes precedence.
+Underflow, every allocated native slot (including slots above the tracked maximum), and overflow
+remain in order. Selected summaries are excluded by their declared role. No continuous support is
+inferred from a native label. Native count, probability, percent and cumulative probability/CDF are
+available; continuous rebinning and noncumulative density raise an error. A Distribution-to-Vector
+label view without complete geometry raises an actionable error instead of guessing a grid.
+
+Measured zero counts support raw and cumulative count. Probability, percent, density and normalized
+cumulative modes require finite positive selected mass in every selected group. Every native
+frequency must be measured, finite and nonnegative. An incomplete group or unrepresentable count
+rejects the whole view and preserves the previous figure. Raw noncumulative count does not require
+that the sum of distinct finite counts fit in one float; cumulative counts must remain finite.
 
 ### Heatmap controls
 
@@ -154,15 +164,17 @@ range, shared or individual colorbars, missing-cell text, and formatted cell lab
 ### Cumulative histograms
 
 <!--
-`uman~ring5.figure.histogram-cumulative.documentation~1`
+`uman~ring5.figure.histogram-cumulative.documentation~2`
 
 Covers:
-- req~ring5.figure.histogram-cumulative~1
+- req~ring5.figure.histogram-cumulative~2
 
 -->
 
 Cumulative mode accumulates pre-binned values in display order after applying the selected count,
-probability, percent, or density normalization.
+probability, percent, or density normalization. Cumulative density means cumulative probability,
+including tails, and requires finite positive selected mass. Native storage cells use the same
+CDF meaning without assigning a continuous density width.
 
 ## Common checks
 
@@ -176,7 +188,7 @@ probability, percent, or density normalization.
 All plot implementations construct engine-independent traces and can be rendered through Plotly or
 Matplotlib. Backend-specific spacing can still differ, so inspect the target engine before export.
 
-Histogram bucket columns use the suffixes `0-9` for an inclusive integer range,
+Generic interval histogram columns use the suffixes `0-9` for an inclusive integer range,
 `[0,2.5)` for a half-open continuous range, `10+` for overflow, and `<0` for underflow.
 Each measured row must use nonoverlapping buckets. The inclusive ranges `0-10`
 and `10-20` overlap at ten and raise an error; use `0-9` and `10-19` for integer
@@ -188,7 +200,10 @@ density is a cumulative probability, including any underflow and overflow counts
 Different rows can use overlapping interval schemas when simulator runs use different
 bucket widths. Rebinning adds the observed mass from each interval; absent interval
 fields are omitted. Every row must contain at least one measured bucket. Malformed
-buckets, entirely missing observations, and negative counts raise an error.
+buckets, entirely missing observations, negative/nonfinite counts and arithmetic overflow raise an
+error. Zero-total normalized output also raises an error; observed raw zero counts remain valid.
+An explicit generic Histogram request interprets ordinary Vector/CSV labels as intervals without
+certifying native Distribution identity or geometry.
 
 Radar profiles preserve absent category observations as gaps. Adjusting the radial
 scale does not replace missing observations with values. Incomplete profiles remain

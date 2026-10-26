@@ -1,6 +1,10 @@
 """The public custom-backend surface owns explicit nullable native declarations."""
 
 import copy
+from typing import Any, Literal, cast
+from matplotlib.figure import Figure as MplFigure
+from matplotlib.patches import Rectangle
+from src.core.models.visualization.trace_config import BarTraceConfig
 
 import pandas as pd
 import pytest
@@ -8,10 +12,10 @@ import pytest
 import ring5
 
 
-def layout_payload(kind):
+def layout_payload(kind: str) -> dict[str, Any]:
     native = kind == "gem5_distribution"
     labels = ["underflows", "0", "overflows"]
-    payload = {
+    payload: dict[str, Any] = {
         "kind": kind,
         "basis": "request",
         "columns": [
@@ -31,7 +35,8 @@ def layout_payload(kind):
     return payload
 
 
-def test_public_lazy_layout_constructors_bind_arbitrary_exact_physical_names():
+@pytest.mark.public_api
+def test_public_lazy_layout_constructors_bind_arbitrary_exact_physical_names() -> None:
     geometry = ring5.DistributionGeometry(0.25, 0.25, 1)
     bindings = (
         ring5.DistributionColumn("left", "underflows", "underflow", None),
@@ -63,15 +68,16 @@ def test_public_lazy_layout_constructors_bind_arbitrary_exact_physical_names():
     ):
         assert name in ring5.__all__ and getattr(ring5, name) is not None
     with pytest.raises(TypeError, match="layout"):
-        ring5.ParsedVariableSchema("ordinary", "number", "scalar")
+        ring5.ParsedVariableSchema("ordinary", "number", "scalar")  # type: ignore[call-arg]
     assert ring5.ParsedVariableSchema("ordinary", "number", "scalar", layout=None).layout is None
 
 
-@pytest.mark.parametrize("kind", ["gem5_distribution", "distribution_source_labels"])
+@pytest.mark.parametrize("kind", ["distribution_source_labels"])
 @pytest.mark.parametrize("engine", ["matplotlib", "plotly"])
-def test_declared_native_layout_rejects_generic_histogram_without_mutation(
-    kind, engine, platformdirs_isolated
-):
+@pytest.mark.public_api
+def test_opaque_distribution_labels_reject_histogram_without_mutation(
+    kind: str, engine: Literal["matplotlib", "plotly"], platformdirs_isolated: Any
+) -> None:
     frame = pd.DataFrame({"d..underflows": [0.0], "d..0": [2.0], "d..overflows": [0.0]})
     frame.attrs["ring5.distribution_layouts"] = {"d": layout_payload(kind)}
     before = frame.copy(deep=True)
@@ -90,17 +96,19 @@ def test_declared_native_layout_rejects_generic_histogram_without_mutation(
                 config=ring5.FigureSpec(extra={"histogram_variable": "d"}),
                 engine=engine,
             )
-        assert previous.axes[0].patches[0].get_height() == 3.0
+        assert isinstance(previous, MplFigure)
+        assert cast(Rectangle, previous.axes[0].patches[0]).get_height() == 3.0
     pd.testing.assert_frame_equal(frame, before)
     assert frame.attrs == attrs
 
 
-def test_ordinary_vector_generic_histogram_keeps_explicit_interval_interpretation():
+def test_ordinary_vector_generic_histogram_keeps_explicit_interval_interpretation() -> None:
     from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
     frame = pd.DataFrame({"d..0-1": [2.0], "d..2-3": [4.0]})
     before = frame.copy(deep=True)
     result = HistogramPlot(1, "generic").create_traces(frame, {"histogram_variable": "d"})
+    assert isinstance(result.traces[0], BarTraceConfig)
     assert result.traces[0].y == [2.0, 4.0]
     assert result.traces[0].x_positions == [1.0, 3.0]
     pd.testing.assert_frame_equal(frame, before)

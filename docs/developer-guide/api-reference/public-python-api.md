@@ -70,6 +70,15 @@ A layout binds exact numeric physical columns; full native layouts include every
 both tails and optional summaries. Opaque layouts retain literal selected labels without geometry.
 See [Add a Parser]({{site.baseurl}}/developer-guide/extension-guides/adding-a-parser/) for invariants.
 
+`Session.plot("histogram", ..., config={"histogram_variable": "logical_name"})` selects a native
+layout by logical name, independent of physical prefixes. It emits ordinal storage-cell mass with
+literal ticks and a default Native bucket axis label. Explicit labels override that default.
+Summary-only layouts are None. Opaque Distribution label views reject; ordinary Vector/CSV labels
+retain explicit generic interval interpretation. Native missing/NaN/nonfinite/negative frequencies,
+continuous rebinning and noncumulative density raise RenderError. Count supports observed zeros;
+normalized mass/CDF requires finite positive selected total. Both engines and typed persistence use
+the same bindings and values. Failed renders preserve the previous artifact and caller data.
+
 
 Declared Session data methods use `ring5.Table`. `load`, `load_import`, dataset getters, joins,
 appends and comparisons return independently owned tables. Transformation, quality, schema,
@@ -384,7 +393,7 @@ Automatic recipe capture describes the active loaded data, independently of pars
 A source is reusable only while its exact request is retained: named-data retention, selection and
 revision restoration preserve it; generic frame or manager edits clear it. Partial parser results
 and undeclared injected backends require an explicit caller `RecipeSource` for recipe creation.
-Recipe schema 6 retains the declared simulator, current parser contract, actual discovery/strict policy and
+Recipe schema 7 retains the declared simulator, current parser contract, actual discovery/strict policy and
 resolved scanner metadata. Replay uses those records directly without scanning again.
 
 `RecipeSource.csv_policy` is `InferredCsvPolicy(configuration_columns)` for ordinary CSV inference
@@ -396,10 +405,10 @@ values, with exact typed scalar controls.
 
 A successfully executed recipe retains its source and exact dataset-wide transformations. Capturing
 without an explicit source includes those steps once, followed by any explicitly supplied additional
-steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio schema 11 saves
+steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio schema 12 saves
 this frame-associated origin separately from editable parser controls. A snapshot or arbitrary Table
 has no inferred reusable origin.
 
-Current documents use portfolio schema 11 (`version: "11.0"`) or recipe schema 6. Serialized
+Current documents use portfolio schema 12 (`version: "12.0"`) or recipe schema 7. Serialized
 plot display names use `legend_labels`; per-series style mappings retain original series keys.
 Unsupported schema versions and nested style name fields are rejected before restoration or replay.

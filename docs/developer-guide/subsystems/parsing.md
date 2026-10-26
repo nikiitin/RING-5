@@ -130,8 +130,8 @@ changes that behavior.
 The gem5 backend produces one row per input file. `repeat` declares the expected number of dumps
 per concrete statistic. Spatial patterns average all concrete instances and dumps; scanner-generated
 scalar-pattern vectors retain one entry per selected instance and average its temporal dumps.
-Missing variables, expected instances, dumps, or summary measurements remain `NaN`. Only omitted
-interior frequency buckets in an otherwise complete observed distribution are inferred as zero.
+Missing variables, expected instances, dumps, or summary measurements remain `NaN`. Omitted
+frequency cells become zero only under an explicit nozero declaration for a present compatible frame.
 
 Every scanned variable owns `source_evidence`: either a resolved compatible contract with its
 `wire_contract` or `backend_metadata` basis, or an explicit set of ambiguous compatible contracts.
@@ -169,8 +169,9 @@ accumulator identities as aliases. `keep_indices=True` creates separate concrete
 otherwise source instances reduce according to the selected output representation. A scalar-family
 vector derives entries only from its selected instances; callers must not supply a second entry list.
 
-Current portfolios and recipes require complete scanned metadata and runnable raw source kinds.
-Missing fields, numeric-only source selections, and retired metadata shapes fail validation.
+Loaded parser origins and analysis recipes retain complete scanned metadata and runnable source
+contracts. Portfolio editor variables remain explicitly tagged drafts or runnable definitions.
+Missing execution fields, numeric-only source selections and unsupported metadata shapes fail validation.
 
 Native Distribution frequency output requires explicit finite `minimum`, `maximum`, positive
 `bucket_size`, and `zero_policy` (`"missing"` or `"nozero"`). The native cell count is
@@ -191,8 +192,21 @@ an explicitly declared Distribution source carries opaque source-label bindings,
 omission claim. Declaring `source_type="vector"` retains ordinary Vector semantics even for identical
 label text. Explicit generic Histogram conversion remains available only for its supported integer
 point/range labels. Fractional native cells require Distribution output; no truncation or guessed
-continuous width is supplied. The Histogram renderer rejects native/opaque Distribution declarations
-when native cell rendering is unavailable, rather than interpreting them as continuous ranges.
+continuous width is supplied. HistogramPlot renders full native layouts as ordinal storage-cell mass,
+using exact bound columns and role-based summary exclusion. Opaque declarations reject visibly.
+Ordinary Vector/CSV data retains the caller's explicit generic interval interpretation. Summary-only
+output has layout=None in every output family.
+
+Native traces preserve both tails and every allocated slot with literal ticks and equal categorical
+glyph widths. They emit the optional neutral default_x_axis_label='Native bucket'; shared trace
+preparation applies it to its owned effective configuration when the original request has no
+nonempty x label. Explicit labels take precedence over trace defaults, which take precedence over
+inferred physical-column labels. FigureConfig, artifact configuration and both connectors share
+that resolved label; no connector infers geometry.
+Missing/NaN/nonfinite/negative native frequencies reject before publication. Raw zero counts are
+valid; normalized mass/CDF requires finite positive selected total. Native continuous rebinning and
+noncumulative density reject. Generic interval rebinning remains uniform overlap redistribution,
+with local finite-arithmetic checks at aggregation, target admission, redistribution and normalization.
 
 Full and incremental parsing use the same deterministic union of observed columns. A histogram
 bucket discovered in a later file remains in the schema, with `NaN` for files lacking that bucket.

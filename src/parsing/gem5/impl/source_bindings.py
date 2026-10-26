@@ -157,6 +157,7 @@ def resolve_sources(
         ValueError: Source identity, selection, output schema, or a bound is invalid.
         RuntimeError: The selected source/accumulator workload exceeds a configured cap.
     """
+    # [impl->req~ring5.ingestion.distribution~2]
     # [impl->req~ring5.ingestion.pattern-index-selection~1]
     if type(file_count) is not int or file_count < 1:
         raise ValueError("Source planning requires the actual positive selected file count.")

@@ -3,6 +3,7 @@ Variable Editor Component for RING-5.
 Handles rendering and interaction for defining parser variables (scalars, vectors, distributions).
 """
 
+import math
 import uuid
 from copy import deepcopy
 from typing import cast
@@ -135,8 +136,15 @@ class VariableEditor:
             if repeat > 1 or "repeat" in var:
                 var_config["repeat"] = repeat
 
+            original_config = var if var_type == var.get("type") else var_config
             cls.render_type_config(
-                api, var_config, var, var_id, available_variables, stats_path, stats_pattern
+                api,
+                var_config,
+                original_config,
+                var_id,
+                available_variables,
+                stats_path,
+                stats_pattern,
             )
             if PatternIndexService.is_pattern_variable(var_name):
                 cls._render_pattern_index_for_variable(api, var_config, var, var_id)
@@ -144,7 +152,7 @@ class VariableEditor:
             updated_vars.append(var_config)
 
         # Add Variable Section
-        cls._render_add_variable_section(api, variables, available_variables)
+        cls._render_add_variable_section(api, available_variables)
 
         return updated_vars
 
@@ -332,15 +340,29 @@ class VariableEditor:
             ),
         )
 
-        wants_statistics = parse_mode in ("Statistics Only", "Bucket Entries + Statistics")
-        wants_entries = parse_mode in ("Bucket Entries Only", "Bucket Entries + Statistics")
+        wants_statistics = parse_mode in (
+            "Statistics Only",
+            "Bucket Entries + Statistics",
+        )
+        wants_entries = parse_mode in (
+            "Bucket Entries Only",
+            "Bucket Entries + Statistics",
+        )
 
         var_config["statistics_only"] = parse_mode == "Statistics Only"
 
         if not wants_statistics:
             var_config.setdefault("params", {}).pop("statistics", None)
         if not wants_entries:
-            for key in ("entries", "bins", "max_range", "minimum", "maximum"):
+            for key in (
+                "entries",
+                "bins",
+                "max_range",
+                "minimum",
+                "maximum",
+                "bucket_size",
+                "zero_policy",
+            ):
                 var_config.setdefault("params", {}).pop(key, None)
 
         # Statistics selection (always visible when stats requested)
@@ -373,7 +395,10 @@ class VariableEditor:
                         "Max Range",
                         min_value=1.0,
                         value=float(
-                            cast(float, original_var.get("params", {}).get("max_range", 1024.0))
+                            cast(
+                                float,
+                                original_var.get("params", {}).get("max_range", 1024.0),
+                            )
                         ),
                         key=f"hist_max_range_{var_id}",
                     )
@@ -473,7 +498,15 @@ class VariableEditor:
         if not wants_statistics:
             var_config.setdefault("params", {}).pop("statistics", None)
         if not wants_entries:
-            for key in ("entries", "bins", "max_range", "minimum", "maximum"):
+            for key in (
+                "entries",
+                "bins",
+                "max_range",
+                "minimum",
+                "maximum",
+                "bucket_size",
+                "zero_policy",
+            ):
                 var_config.setdefault("params", {}).pop(key, None)
 
         # Statistics selection (always visible when stats requested)
@@ -797,7 +830,7 @@ class VariableEditor:
         stats_path: str | None,
         stats_pattern: str,
     ) -> None:
-        """Render configuration for distribution variables."""
+        """Edit declared native geometry and its explicit omission policy."""
         var_name = var_config.get("source_name") or var_config.get("name", "")
         if var_name:
             st.markdown(f"**Distribution Configuration for `{var_name}`:**")
@@ -829,41 +862,72 @@ class VariableEditor:
             ),
         )
 
-        wants_statistics = parse_mode in ("Statistics Only", "Bucket Entries + Statistics")
-        wants_entries = parse_mode in ("Bucket Entries Only", "Bucket Entries + Statistics")
+        wants_statistics = parse_mode in (
+            "Statistics Only",
+            "Bucket Entries + Statistics",
+        )
+        wants_entries = parse_mode in (
+            "Bucket Entries Only",
+            "Bucket Entries + Statistics",
+        )
 
         var_config["statistics_only"] = parse_mode == "Statistics Only"
 
         if not wants_statistics:
             var_config.setdefault("params", {}).pop("statistics", None)
         if not wants_entries:
-            for key in ("entries", "bins", "max_range", "minimum", "maximum"):
+            for key in (
+                "entries",
+                "bins",
+                "max_range",
+                "minimum",
+                "maximum",
+                "bucket_size",
+                "zero_policy",
+            ):
                 var_config.setdefault("params", {}).pop(key, None)
 
         # Statistics selection (always visible when stats requested)
         if wants_statistics:
             cls._render_distribution_statistics_selection(var_config, original_var, var_id)
 
-        # Range inputs only needed when parsing bucket entries
         if wants_entries:
             st.write("---")
-            st.markdown("**Bucket Range:**")
-
-            default_min = cast(float | int | None, original_var.get("params", {}).get("minimum"))
-            default_max = cast(float | int | None, original_var.get("params", {}).get("maximum"))
-
-            col_min, col_max = st.columns(2)
-            with col_min:
-                min_val = st.number_input(
-                    "Minimum value", value=default_min, key=f"dist_min_{var_id}"
-                )
-            with col_max:
-                max_val = st.number_input(
-                    "Maximum value", value=default_max, key=f"dist_max_{var_id}"
-                )
-
-            var_config.setdefault("params", {})["minimum"] = min_val
-            var_config.setdefault("params", {})["maximum"] = max_val
+            st.markdown("**Declared native grid:**")
+            st.caption(
+                "Declare the full-precision grid with a positive bucket size; "
+                "printed labels and observed extrema do not define it."
+            )
+            defaults = original_var.get("params", {})
+            for column, (field, label, suffix) in zip(
+                st.columns(3),
+                (
+                    ("minimum", "Minimum value", "min"),
+                    ("maximum", "Maximum value", "max"),
+                    ("bucket_size", "Native bucket size", "bucket_size"),
+                ),
+                strict=True,
+            ):
+                with column:
+                    var_config.setdefault("params", {})[field] = cls._render_distribution_number(
+                        label,
+                        f"dist_{suffix}_{var_id}",
+                        cast(float | int | None, defaults.get(field)),
+                    )
+            policies = ["missing", "nozero"]
+            policy = defaults.get("zero_policy", "missing")
+            var_config.setdefault("params", {})["zero_policy"] = st.selectbox(
+                "Omitted frequency cells",
+                policies,
+                index=policies.index(policy) if policy in policies else 0,
+                key=f"dist_zero_policy_{var_id}",
+                help=(
+                    "missing retains absent cells as NaN. nozero is your guarantee that omitted "
+                    "frequencies or tails in a present observation are measured zero. Text cannot "
+                    "verify this guarantee or rule out nonan suppression. Missing whole sources, "
+                    "summaries and repetitions remain missing."
+                ),
+            )
 
             cls._handle_deep_scan(
                 api,
@@ -877,6 +941,27 @@ class VariableEditor:
             )
 
     @staticmethod
+    def _render_distribution_number(
+        label: str, key: str, value: float | int | None
+    ) -> float | int | None:
+        """Edit a native double without rounding an unrepresentable saved draft."""
+        try:
+            default = None if value is None else float(value)
+        except OverflowError:
+            default = None
+        invalid = value is not None and (
+            default is None
+            or not math.isfinite(default)
+            or type(value) not in (int, float)
+            or default != value
+        )
+        if invalid:
+            st.error(f"{label} must be a finite, exactly representable native number.")
+            default = None
+        edited = st.number_input(label, value=default, step=1.0, format="%.17g", key=key)
+        return value if invalid and edited is None else edited
+
+    @staticmethod
     def _render_distribution_statistics_selection(
         var_config: ParseVariableConfig, original_var: ParseVariableConfig, var_id: str
     ) -> None:
@@ -885,6 +970,13 @@ class VariableEditor:
         col_stat1, col_stat2 = st.columns(2)
 
         current_stats = cast(list[str], original_var.get("params", {}).get("statistics", []))
+        native_frequencies = var_config.get("type") == "distribution" and not var_config.get(
+            "statistics_only", False
+        )
+        if native_frequencies:
+            current_stats = [
+                stat for stat in current_stats if stat not in {"underflows", "overflows"}
+            ]
 
         with col_stat1:
             extract_mean = st.checkbox(
@@ -894,12 +986,19 @@ class VariableEditor:
                 "stdev", value="stdev" in current_stats, key=f"dist_stat_stdev_{var_id}"
             )
             extract_samples = st.checkbox(
-                "samples", value="samples" in current_stats, key=f"dist_stat_samples_{var_id}"
+                "samples",
+                value="samples" in current_stats,
+                key=f"dist_stat_samples_{var_id}",
             )
-            extract_underflows = st.checkbox(
+            extract_underflows = not native_frequencies and st.checkbox(
                 "underflows",
                 value="underflows" in current_stats,
                 key=f"dist_stat_underflows_{var_id}",
+            )
+            extract_minimum = st.checkbox(
+                "min_value",
+                value="min_value" in current_stats,
+                key=f"dist_stat_min_value_{var_id}",
             )
 
         with col_stat2:
@@ -909,8 +1008,15 @@ class VariableEditor:
             extract_gmean = st.checkbox(
                 "gmean", value="gmean" in current_stats, key=f"dist_stat_gmean_{var_id}"
             )
-            extract_overflows = st.checkbox(
-                "overflows", value="overflows" in current_stats, key=f"dist_stat_overflows_{var_id}"
+            extract_overflows = not native_frequencies and st.checkbox(
+                "overflows",
+                value="overflows" in current_stats,
+                key=f"dist_stat_overflows_{var_id}",
+            )
+            extract_maximum = st.checkbox(
+                "max_value",
+                value="max_value" in current_stats,
+                key=f"dist_stat_max_value_{var_id}",
             )
 
         selected_stats: list[str] = []
@@ -928,11 +1034,27 @@ class VariableEditor:
             selected_stats.append("underflows")
         if extract_overflows:
             selected_stats.append("overflows")
+        if extract_minimum:
+            selected_stats.append("min_value")
+        if extract_maximum:
+            selected_stats.append("max_value")
 
         var_config.setdefault("params", {})["statistics"] = VariableEditor._selected_summaries(
             current_stats,
             selected_stats,
-            frozenset({"mean", "stdev", "samples", "total", "gmean", "underflows", "overflows"}),
+            frozenset(
+                {
+                    "mean",
+                    "stdev",
+                    "samples",
+                    "total",
+                    "gmean",
+                    "underflows",
+                    "overflows",
+                    "min_value",
+                    "max_value",
+                }
+            ),
         )
 
     @staticmethod
@@ -956,7 +1078,6 @@ class VariableEditor:
     @staticmethod
     def _render_add_variable_section(
         api: ApplicationAPI,
-        variables: list[ParseVariableConfig],
         available_variables: list[ScannedVariableDict] | None,
     ) -> None:
         """Render the 'Add Variable' section with search and manual add options."""

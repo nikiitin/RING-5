@@ -45,7 +45,7 @@ Editable plot configuration uses `legend2_*` for a separate right legend and
 `xanchor`/`yanchor` configuration keys in every tier, including the primary legend, fail before
 plot restoration. Built-in heatmap configurations use `color_palette`, `reverse_colorscale`
 and `show_values`; their key admission uses the explicit plot type so plugin-owned keys and
-typed trace colorscales remain independent. Recipe schema 4 shares the same key admission
+typed trace colorscales remain independent. Recipe schema 7 shares the same key admission
 while retaining unmaterialized parameter values. Concrete common values
 use a separate `validate_plot_config_values` stage: every legend orientation is exactly
 `horizontal` or `vertical`. Recipe save/load retain template values; materialization applies

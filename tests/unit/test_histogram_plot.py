@@ -115,7 +115,7 @@ class TestHistogramPlotConfiguration:
 class TestHistogramPlotFigureCreation:
     """Test histogram plot figure generation."""
 
-    # [test->req~ring5.plot.histogram~1]
+    # [test->req~ring5.plot.histogram~2]
 
     def test_create_figure_single_histogram(self, plot_session: Session) -> None:
         """Test creating figure with single histogram."""
@@ -181,7 +181,7 @@ class TestHistogramPlotFigureCreation:
         assert fig is not None
         # Missing group values do not create a bogus empty trace.
         assert len(list(fig.data)) == 2
-        assert [trace.name for trace in fig.data] == ["Optimized", "A"]
+        assert [cast(go.Bar, trace).name for trace in fig.data] == ["Optimized", "A"]
 
     def test_create_figure_with_rebinning(self, plot_session: Session) -> None:
         """Test histogram with custom bucket size (rebinning)."""

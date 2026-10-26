@@ -20,7 +20,17 @@ def _text(value: object) -> None:
 
 @dataclass(frozen=True, slots=True)
 class DistributionColumn:
-    """An exact physical binding, literal source label and declared coordinate role."""
+    """Bind one output column to its literal label and declared coordinate role.
+
+    Attributes:
+        column: Exact published numeric column name.
+        source_label: Literal source entry label, independent of output naming.
+        role: Bucket, tail, selected summary or opaque source binding.
+        native_index: Nonnegative allocated slot for a bucket; None for other roles.
+
+    Raises:
+        ValueError: Text, role or the role/index relationship is invalid.
+    """
 
     column: str
     source_label: str
@@ -65,6 +75,18 @@ class NativeDistributionLayout:
 
     The request basis asserts a decoder contract. It does not authenticate the
     producer's hidden storage class or its externally supplied omission guarantee.
+
+    Attributes:
+        geometry: Full-precision declared native grid.
+        zero_policy: Explicit missing or nozero omission guarantee for present frames.
+        columns: Complete ordered bindings: underflow, all native slots, overflow,
+            then any selected summaries. Physical names and source labels are unique.
+        kind: The fixed gem5_distribution layout identifier.
+        basis: The fixed request declaration basis.
+
+    Raises:
+        TypeError: Geometry or immutable typed bindings have unsupported types.
+        ValueError: Policy, physical width, labels, slot order or ownership is invalid.
     """
 
     geometry: DistributionGeometry
@@ -104,6 +126,16 @@ class OpaqueDistributionLayout:
 
     The request supplies no native grid. These numeric bindings preserve usable
     Vector extraction without claiming continuous support or native slot indices.
+
+    Attributes:
+        columns: Nonempty ordered source-only bindings, with unique physical names
+            and literal labels; every native_index is None.
+        kind: The fixed distribution_source_labels layout identifier.
+        basis: The fixed request declaration basis.
+
+    Raises:
+        TypeError: Bindings are not an immutable tuple of DistributionColumn values.
+        ValueError: Width, uniqueness or source-only role constraints are invalid.
     """
 
     columns: tuple[DistributionColumn, ...]
