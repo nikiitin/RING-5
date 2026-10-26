@@ -159,7 +159,7 @@ class FigureSpecToMatplotlib:
             FigureSpecToMatplotlib._apply_color_palette(spec, ax)
             FigureSpecToMatplotlib._apply_title(spec, ax)
             FigureSpecToMatplotlib._apply_axis_labels(spec, render_result)
-            FigureSpecToMatplotlib._apply_axis_ticks(spec, ax, render_result)
+            FigureSpecToMatplotlib._apply_axis_ticks(spec, render_result)
             FigureSpecToMatplotlib._apply_axis_ranges(spec, ax)
             FigureSpecToMatplotlib._apply_axis_colors(spec, ax)
             FigureSpecToMatplotlib._apply_grids(spec, ax)
@@ -176,7 +176,7 @@ class FigureSpecToMatplotlib:
                 FigureSpecToMatplotlib._apply_legends(spec, render_result)
             FigureSpecToMatplotlib._apply_reference_lines(spec, ax)
             FigureSpecToMatplotlib._apply_data_labels(spec, render_result)
-            FigureSpecToMatplotlib._apply_annotations(spec, ax, render_result)
+            FigureSpecToMatplotlib._apply_annotations(spec, render_result)
             if apply_margins:
                 FigureSpecToMatplotlib._apply_margins(spec, ax)
 
@@ -422,12 +422,12 @@ class FigureSpecToMatplotlib:
             )
 
     @staticmethod
-    def _apply_axis_ticks(
-        spec: FigureConfig, ax: Axes, render_result: MatplotlibRenderResult | None = None
-    ) -> None:
+    def _apply_axis_ticks(spec: FigureConfig, rendered: MatplotlibRenderResult) -> None:
         """Configure tick labels, rotation, padding."""
         # [impl->req~ring5.figure.axes~1]
         import matplotlib.transforms as transforms
+
+        ax = rendered.primary_axes
 
         typo = spec.typography
         if typo is None:
@@ -448,9 +448,9 @@ class FigureSpecToMatplotlib:
         # pcolormesh cells span [i, i+1), so centres are at i + 0.5.
         # Always override any pre-set tick_values (e.g. from
         # neutral preparation) because pcolormesh requires cell-centre
-        # positions; Plotly-extracted string tickvals are not valid here.
-        hm_cols: list[str] | None = render_result.heatmap_col_labels if render_result else None
-        hm_rows: list[str] | None = render_result.heatmap_row_labels if render_result else None
+        # positions; typed text tick values are not valid here.
+        hm_cols = rendered.heatmap_col_labels
+        hm_rows = rendered.heatmap_row_labels
         if hm_cols:
             x_axis = replace(
                 x_axis, tick_values=[i + 0.5 for i in range(len(hm_cols))], tick_text=list(hm_cols)
@@ -1033,8 +1033,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_annotations(
         spec: FigureConfig,
-        ax: Axes,
-        render_result: MatplotlibRenderResult | None = None,
+        rendered: MatplotlibRenderResult,
     ) -> None:
         """Render text annotations from spec onto the matplotlib axes.
 
@@ -1047,6 +1046,7 @@ class FigureSpecToMatplotlib:
         """
         # [impl->req~ring5.figure.shapes-annotations~1]
         validate_annotation_types(spec.annotations)
+        ax = rendered.primary_axes
         if not spec.annotations:
             return
 
@@ -1062,8 +1062,8 @@ class FigureSpecToMatplotlib:
             y_coord: float | str = ann.y
 
             if isinstance(x_coord, str) and ann.xref == "data":
-                if render_result is not None and x_coord in render_result.x_category_positions:
-                    x_coord = render_result.x_category_positions[x_coord]
+                if x_coord in rendered.x_category_positions:
+                    x_coord = rendered.x_category_positions[x_coord]
                 else:
                     try:
                         x_coord = ax.xaxis.convert_units(x_coord)
