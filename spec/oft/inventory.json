@@ -1538,6 +1538,7 @@
       "tags": ["colors", "palette", "styling"],
       "evidence": {
         "implementation": [
+          "src/web/rendering/_color_utils.py::picker_hex_color",
           "src/web/components/plotting/settings/colors_settings.py::ColorsSettingsComponent.render",
           "src/core/services/visualization/palette_service.py::resolve_palette",
           "src/core/services/visualization/palette_service.py::get_palette_names",
@@ -1545,6 +1546,13 @@
           "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_backgrounds"
         ],
         "tests": [
+          "tests/ui/test_figure_color_contracts.py::test_swatch_markup_uses_projected_rgba_and_preserves_unsupported_literals_as_text",
+          "tests/ui/test_figure_color_contracts.py::test_explicit_picker_edit_changes_only_the_selected_color",
+          "tests/ui/test_figure_color_contracts.py::test_unavailable_named_palette_is_preserved_until_explicit_replacement",
+          "tests/ui/test_figure_color_contracts.py::test_untouched_custom_palette_css_and_alpha_survive_reruns_and_navigation",
+          "tests/ui/test_figure_color_contracts.py::test_custom_palette_remains_a_sequence_until_a_named_palette_is_selected",
+          "tests/ui/test_figure_color_contracts.py::test_transparency_toggle_preserves_underlying_css_and_roundtrips_native_backgrounds",
+          "tests/ui/test_figure_color_contracts.py::test_unprojectable_css_is_visible_editable_and_never_repaired_to_a_picker_color",
           "tests/unit/test_colorblind_palettes.py::TestPaletteSelector",
           "tests/unit/test_palettes.py::TestIsColorblindSafe",
           "tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly.test_apply_backgrounds",
@@ -2349,7 +2357,8 @@
           "tests/unit/test_portfolio_contract.py::test_unsupported_schema_is_rejected",
           "tests/integration/test_canonical_legend_state.py::test_unsupported_plot_state_fails_before_restoration_or_upload",
           "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused",
-          "tests/integration/test_figure_config_key_contract.py::test_public_plot_rejects_retired_legend_keys_before_retaining_state"
+          "tests/integration/test_figure_config_key_contract.py::test_public_plot_rejects_retired_legend_keys_before_retaining_state",
+          "tests/integration/test_figure_value_admission.py::test_restore_capture_and_recipe_reject_heatmap_keys_before_effects"
         ],
         "documentation": [
           "docs/developer-guide/subsystems/portfolios.md#schema-contract"
@@ -3175,6 +3184,7 @@
       ],
       "evidence": {
         "implementation": [
+          "src/web/rendering/_hatch_utils.py::plotly_hatch",
           "src/web/pages/ui/plotting/styles/base_ui.py::BaseStyleUI.render_series_visuals",
           "src/web/pages/ui/plotting/styles/bar_ui.py::BarStyleUI._render_specific_series_visuals",
           "src/web/pages/ui/plotting/styles/line_ui.py::LineStyleUI._render_specific_series_visuals",
@@ -3183,6 +3193,10 @@
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_trace_overrides"
         ],
         "tests": [
+          "tests/unit/test_hatch_value_contracts.py::test_public_series_override_renders_every_current_pattern",
+          "tests/unit/test_hatch_value_contracts.py::test_reapplication_clears_incompatible_paths_and_preserves_absent_pattern",
+          "tests/unit/test_hatch_value_contracts.py::test_pattern_absence_and_solid_remain_distinct_through_typed_roundtrip",
+          "tests/ui/test_figure_color_contracts.py::test_every_current_pattern_is_selected_as_an_actual_widget_value_and_renders",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorSeriesStyling",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestTraceOverrides",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestSeriesStyling",
@@ -3248,7 +3262,9 @@
           "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices",
           "tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot",
           "tests/integration/test_native_rendering_review_regressions.py::test_noncanonical_orientation_rejects_before_public_or_restore_publication",
-          "tests/integration/test_native_rendering_review_regressions.py::test_canonical_orientation_values_reach_both_native_models"
+          "tests/integration/test_native_rendering_review_regressions.py::test_canonical_orientation_values_reach_both_native_models",
+          "tests/integration/test_figure_value_admission.py::test_public_heatmap_context_rejects_before_registering_plot",
+          "tests/integration/test_figure_value_admission.py::test_invalid_pattern_rejects_at_public_restore_and_capture_boundaries"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#workspace"
@@ -4521,6 +4537,7 @@
         ],
         "tests": [
           "tests/integration/test_native_rendering_review_regressions.py::test_recipe_orientation_is_checked_only_after_parameter_materialization",
+          "tests/integration/test_figure_value_admission.py::test_pattern_recipe_values_validate_after_parameter_materialization",
           "tests/unit/test_analysis_recipe_service.py::test_recipe_json_is_deterministic_versioned_and_materializes_typed_values",
           "tests/unit/test_analysis_recipe_service.py::test_recipe_storage_protects_names_and_lists_valid_records",
           "tests/unit/test_analysis_recipe_service.py::test_capture_retains_parser_variables_plot_configs_and_pipelines",

@@ -30,8 +30,8 @@ effective config   ──▶ ConfigSpecBuilder ──▶ FigureConfig ──▶ 
   `src/web/rendering/_connector_protocol.py::STYLING_PIPELINE_ORDER`:
 
   `backgrounds → font_family → color_palette → title → axis_labels → axis_ticks → axis_ranges →
-  axis_colors → grids → legends → reference_lines → data_labels → annotations →
-  hatching → margins`
+  axis_colors → grids → hatching → legends → reference_lines → data_labels →
+  annotations → margins`
 
   Matplotlib executes this sequence directly. Plotly projects combined axis operations and
   heatmap-specific styling in `FigureSpecToPlotly.apply`; preserve palette, explicit override

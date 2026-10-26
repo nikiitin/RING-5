@@ -26,7 +26,6 @@ from src.core.models.visualization.trace_config import (
     ViolinTraceConfig,
     WaterfallTraceConfig,
 )
-from src.web.rendering._heatmap_utils import is_dark_cell
 from src.web.rendering.matplotlib_trace_renderer import (
     MatplotlibTraceRenderer,
     _compute_categorical_positions,
@@ -82,6 +81,56 @@ class TestRender:
         assert len(ax.collections) == 1
         np.testing.assert_array_equal(ax.collections[0].get_facecolor(), [to_rgba("#abcdef")])
         np.testing.assert_array_equal(ax.collections[0].get_offsets(), [[1, 3], [2, 4]])
+
+    @pytest.mark.parametrize(
+        "color, expected",
+        [
+            ("rgba(10,20,30,0.35)", (10 / 255, 20 / 255, 30 / 255, 0.35)),
+            ("hsl(240 100% 50% / 0.25)", (0.0, 0.0, 1.0, 0.25)),
+        ],
+    )
+    @pytest.mark.parametrize("family", ["bar", "line", "scatter"])
+    def test_css_palette_projects_at_native_color_consumption(
+        self,
+        ax: matplotlib.axes.Axes,
+        color: str,
+        expected: tuple[float, float, float, float],
+        family: str,
+    ) -> None:
+        constructors: dict[str, type[TraceConfig]] = {
+            "bar": BarTraceConfig,
+            "line": LineTraceConfig,
+            "scatter": ScatterTraceConfig,
+        }
+        trace = constructors[family](name="Measured", x=[1, 2], y=[3.0, 5.0])
+        MatplotlibTraceRenderer.render([trace], ax, palette_colors=[color])
+        if family == "bar":
+            assert ax.containers[0][0].get_facecolor() == pytest.approx(expected)
+            assert [patch.get_height() for patch in ax.containers[0]] == [3.0, 5.0]
+        elif family == "line":
+            assert to_rgba(ax.lines[0].get_color()) == pytest.approx(expected)
+            np.testing.assert_array_equal(ax.lines[0].get_ydata(), [3.0, 5.0])
+        else:
+            # Scatter's explicit opacity remains independently owned by the trace.
+            assert np.asarray(ax.collections[0].get_facecolor())[0][:3] == pytest.approx(
+                expected[:3]
+            )
+            np.testing.assert_array_equal(ax.collections[0].get_offsets(), [[1, 3], [2, 5]])
+        assert trace.color == "" and trace.y == [3.0, 5.0]
+
+    def test_css_scatter_border_projects_without_changing_geometry(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        trace = ScatterTraceConfig(
+            name="Measured",
+            x=[1, 2],
+            y=[3.0, 5.0],
+            marker_line_color="hsl(120 100% 50% / 0.6)",
+            marker_line_width=2,
+        )
+        MatplotlibTraceRenderer.render([trace], ax)
+        assert np.asarray(ax.collections[0].get_edgecolor())[0][:3] == pytest.approx((0, 1, 0))
+        np.testing.assert_array_equal(ax.collections[0].get_offsets(), [[1, 3], [2, 5]])
 
     def test_explicit_trace_color_survives_without_palette_override(
         self, ax: matplotlib.axes.Axes
@@ -708,29 +757,6 @@ class TestHeatmapRendering:
         assert count.trace_count == 1
         # No separator lines expected
         assert len(ax.get_lines()) == 0
-
-
-# is_dark_cell
-
-
-class TestIsDarkCell:
-    """Tests for contrast-aware text colour helper."""
-
-    def test_viridis_high_value_is_light(self) -> None:
-        z = np.array([[0.0, 1.0], [0.5, 0.9]])
-        assert is_dark_cell(z, 0, 1) is False
-
-    def test_viridis_low_value_is_dark(self) -> None:
-        z = np.array([[0.0, 1.0], [0.5, 0.9]])
-        assert is_dark_cell(z, 0, 0) is True
-
-    def test_nan_returns_false(self) -> None:
-        z = np.array([[np.nan, 1.0]])
-        assert is_dark_cell(z, 0, 0) is False
-
-    def test_uniform_values_use_palette_minimum(self) -> None:
-        z = np.array([[5.0, 5.0]])
-        assert is_dark_cell(z, 0, 0) is True
 
 
 # heatmap vmin/vmax

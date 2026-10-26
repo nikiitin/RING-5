@@ -553,22 +553,23 @@ class TestPlotConfigComponents:
 class TestColors:
     """Tests for color palette lookup and conversion."""
 
-    def test_to_hex_rgb(self) -> None:
-        from src.web.pages.ui.plotting.styles.colors import to_hex
+    def test_picker_hex_rgb(self) -> None:
+        from src.web.rendering._color_utils import picker_hex_color
 
-        assert to_hex("rgb(255, 0, 0)") == "#ff0000"
+        assert picker_hex_color("rgb(255, 0, 0)") == "#ff0000"
 
-    def test_to_hex_already_hex(self) -> None:
-        from src.web.pages.ui.plotting.styles.colors import to_hex
+    def test_picker_hex_already_hex(self) -> None:
+        from src.web.rendering._color_utils import picker_hex_color
 
-        assert to_hex("#ff0000") == "#ff0000"
+        assert picker_hex_color("#ff0000") == "#ff0000"
 
-    def test_to_hex_non_string(self) -> None:
-        from src.web.pages.ui.plotting.styles.colors import to_hex
+    def test_picker_hex_non_string(self) -> None:
+        from src.web.rendering._color_utils import picker_hex_color
 
-        assert to_hex(123) == "#000000"  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="CSS text"):
+            picker_hex_color(123)  # type: ignore[arg-type]
 
-    def test_to_hex_long_hex(self) -> None:
-        from src.web.pages.ui.plotting.styles.colors import to_hex
+    def test_picker_hex_long_hex(self) -> None:
+        from src.web.rendering._color_utils import picker_hex_color
 
-        assert to_hex("#ff0000ff") == "#ff0000"
+        assert picker_hex_color("#ff0000ff") == "#ff0000"

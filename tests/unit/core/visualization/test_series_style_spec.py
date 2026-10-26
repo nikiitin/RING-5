@@ -19,7 +19,7 @@ class TestSeriesStyleSpecDefaults:
         assert spec.opacity == 1.0
         assert spec.bar_border_width == 0.0
         assert spec.bar_border_color == ""
-        assert spec.hatching_pattern == ""
+        assert spec.hatching_pattern is None
 
 
 class TestSeriesStyleSpecCustom:

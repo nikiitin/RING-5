@@ -229,6 +229,19 @@ The `extra` mapping carries supported flat configuration keys and takes preceden
 fields. `to_config()` returns a fresh mutable mapping with the same canonical editable format used
 by the web interface and saved plots. `create_plot` and `plot` accept either a `FigureSpec` or that
 configuration mapping. Existing raw mappings retain their exact settings and renderer defaults.
+`to_config(plot_type="heatmap")` applies the built-in heatmap's contextual field admission;
+`Session.create_plot` supplies this context automatically. Heatmaps use `color_palette`,
+`reverse_colorscale` and `show_values`. Plugin-owned configurations and typed heatmap trace
+colorscales keep their separate contracts.
+
+Per-series overrides use `series_styles`, a mapping from text series names to style mappings.
+Its `pattern` field is a string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`.
+Both native engines render this vocabulary. Plotly uses native SVG pattern paths for the
+circle/star forms. An omitted `pattern` preserves the trace or theme hatch; an explicit empty
+string selects Solid and clears it. Default stripe patterns apply before explicit series overrides.
+Typed renderer styles express absence with `hatching_pattern=None` and Solid with `""`.
+Other plugin-owned style fields are preserved. Recipe save/load retains parameter placeholders;
+materialization validates the resolved pattern value before execution.
 
 Legend font sizes retain fractional point values through both native engines and typed figure
 round trips. `DualAxisOpts.legend` configures the separate right-axis legend; numbered mappings

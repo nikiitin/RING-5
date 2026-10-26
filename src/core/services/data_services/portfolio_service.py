@@ -9,6 +9,7 @@ from typing import Any, cast
 import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
+from src.core.common.plot_payload import validate_plot_fields
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.plot_protocol import PlotProtocol
@@ -163,6 +164,7 @@ class PortfolioService:
         serialized_plots: list[dict[str, Any]] = []
         for plot in plots:
             plot_dict: dict[str, Any] = plot.to_dict()
+            validate_plot_fields(plot_dict)
             plot_config: dict[str, Any] = plot_dict.get("config", {})
             if figure_spec_enricher is not None:
                 try:

@@ -76,8 +76,8 @@ class ConfigSpecBuilder:
             validate_plot_config_values,
         )
 
-        validate_plot_config_keys(config)
-        validate_plot_config_values(config)
+        validate_plot_config_keys(config, plot_type=plot_type)
+        validate_plot_config_values(config, plot_type=plot_type)
         is_bar = "bar" in plot_type
         symmetric_y_titles = plot_type == "grouped_stacked_bar" and bool(config.get("dual_axis"))
 
@@ -251,6 +251,8 @@ class ConfigSpecBuilder:
         # Backgrounds
         paper_bg = config.get("paper_bgcolor", "white")
         plot_bg = config.get("plot_bgcolor", "white")
+        if config.get("transparent_bg", False):
+            paper_bg = plot_bg = "rgba(0,0,0,0)"
 
         # Title
         title = str(config.get("title") or "").replace("undefined", "")
@@ -340,17 +342,15 @@ class ConfigSpecBuilder:
         trace_overrides: dict[str, SeriesStyleConfig] = {}
         raw_overrides: dict[str, Any] = config.get("series_styles", {})
         for trace_name_raw, style_dict_raw in raw_overrides.items():
-            if not isinstance(style_dict_raw, dict):
-                continue
-            t_name: str = str(trace_name_raw)
-            sd: dict[str, Any] = style_dict_raw  # type: ignore[assignment]
+            t_name: str = trace_name_raw
+            sd = style_dict_raw
             trace_overrides[t_name] = SeriesStyleConfig(
                 color=(str(sd["color"]) if sd.get("use_color") and sd.get("color") else ""),
                 symbol=str(sd.get("symbol", "")),
                 display_name=str(sd.get("name", "")),
                 marker_size=int(sd.get("marker_size") or 0),
                 line_width=float(sd.get("line_width") or 0.0),
-                hatching_pattern=str(sd.get("pattern", "")),
+                hatching_pattern=sd.get("pattern"),
             )
 
         # Color palette (resolve name → hex list)

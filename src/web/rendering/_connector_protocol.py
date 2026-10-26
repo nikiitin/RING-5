@@ -8,9 +8,9 @@ this order via ``_apply_<step>`` methods.
 
 Two styling operations run as a sub-phase that is not a named step here:
 ``_apply_series_styling`` (global per-index) and ``_apply_trace_overrides``
-(per trace name). Both connectors apply them after ``color_palette`` so an
-explicit per-trace colour wins over the palette, and (Matplotlib) before
-``legends`` so renames reach the legend.
+(per trace name). Both connectors apply them after ``color_palette`` and default
+``hatching`` so explicit overrides win. Matplotlib builds legends after these
+sub-phases so native swatches reflect the final styles.
 """
 
 from collections.abc import Sequence
@@ -94,10 +94,10 @@ STYLING_PIPELINE_ORDER: tuple[str, ...] = (
     "axis_ranges",
     "axis_colors",
     "grids",
+    "hatching",
     "legends",
     "reference_lines",
     "data_labels",
     "annotations",
-    "hatching",
     "margins",
 )

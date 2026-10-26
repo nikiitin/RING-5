@@ -2311,16 +2311,26 @@ class Session:
             to create and render in one call.
 
         Raises:
-            DataValidationError: ``plot_type`` is not registered.
+            DataValidationError: The plot identifier or configuration is unsupported.
+            ColumnNotFoundError: A mapped column is absent from the data.
         """
         from src.web.pages.ui.plotting.plot_service import PlotService
 
         resolved_type = _resolve_plot_type(plot_type)
         frame = _table_frame(data)
         try:
-            raw_config = config.to_config() if isinstance(config, FigureSpec) else dict(config)
+            raw_config = (
+                config.to_config(plot_type=resolved_type)
+                if isinstance(config, FigureSpec)
+                else dict(config)
+            )
         except (TypeError, ValueError) as exc:
-            raise DataValidationError(f"Plot config must be a mapping: {exc}") from exc
+            diagnostic = (
+                "Invalid plot configuration"
+                if isinstance(config, FigureSpec)
+                else "Plot config must be a mapping"
+            )
+            raise DataValidationError(f"{diagnostic}: {exc}") from exc
         validate_plot_config(resolved_type, frame, raw_config)
 
         # Validation happens before registration so a rejected configuration

@@ -6,6 +6,7 @@ from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pytest
 import plotly.graph_objects as go
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
@@ -75,7 +76,7 @@ def test_heatmap_plot_creates_trace_per_benchmark() -> None:
             "facet_col": "benchmark_name",
             "metric_columns": ["l0_ctrl0_aborted_cycles", "l0_ctrl1_aborted_cycles"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
         },
     )
 
@@ -110,7 +111,7 @@ def test_heatmap_plot_aggregates_duplicate_rows() -> None:
             "facet_col": "benchmark_name",
             "metric_columns": ["l0_ctrl0_aborted_cycles", "l0_ctrl1_aborted_cycles"],
             "aggregation": "mean",
-            "show_cell_values": False,
+            "show_values": False,
         },
     )
 
@@ -161,7 +162,7 @@ def test_heatmap_x_filter_restricts_columns() -> None:
             "x": "cfg",
             "metric_columns": ["metric1"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
             "x_filter": ["A", "B"],
         },
     )
@@ -280,7 +281,7 @@ def test_heatmap_totals_right_adds_column() -> None:
             "x": "cfg",
             "metric_columns": ["m1", "m2"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
             "show_totals": True,
             "totals_position": "right",
             "totals_aggregation": "mean",
@@ -310,7 +311,7 @@ def test_heatmap_totals_top_adds_row() -> None:
             "x": "cfg",
             "metric_columns": ["m1", "m2"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
             "show_totals": True,
             "totals_position": "top",
             "totals_aggregation": "mean",
@@ -340,7 +341,7 @@ def test_heatmap_totals_sum_aggregation() -> None:
             "x": "cfg",
             "metric_columns": ["m1"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
             "show_totals": True,
             "totals_position": "right",
             "totals_aggregation": "sum",
@@ -368,7 +369,7 @@ def test_heatmap_totals_with_none_values() -> None:
             "x": "cfg",
             "metric_columns": ["m1"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
             "show_totals": True,
             "totals_position": "right",
             "totals_aggregation": "mean",
@@ -401,7 +402,7 @@ def test_heatmap_public_render_restricts_xaxis_categories(plot_session: Session)
         "x": "cfg",
         "metric_columns": ["m1"],
         "aggregation": "mean",
-        "show_cell_values": True,
+        "show_values": True,
         "x_filter": ["A", "C"],
         "xaxis_order": ["A", "B", "C", "D"],
     }
@@ -592,22 +593,12 @@ def test_heatmap_colorscale_reverse_list() -> None:
     assert t_normal.colorscale[0][1] == t_reversed.colorscale[-1][1]
 
 
-def test_heatmap_colorscale_legacy_string() -> None:
-    """Legacy string colorscale is preserved when no palette is set."""
+@pytest.mark.parametrize("key,value", [("colorscale", "Viridis"), ("show_cell_values", True)])
+def test_heatmap_rejects_retired_flat_fields(key: str, value: object) -> None:
     data = pd.DataFrame({"cfg": ["A"], "m1": [1.0]})
-    plot = HeatmapPlot(plot_id=62, name="LegacyCS")
-    result = plot.create_traces(
-        data,
-        {
-            "x": "cfg",
-            "metric_columns": ["m1"],
-            "aggregation": "mean",
-            "colorscale": "Viridis",
-        },
-    )
-    trace = result.traces[0]
-    assert isinstance(trace, HeatmapTraceConfig)
-    assert trace.colorscale == "Viridis"
+    plot = HeatmapPlot(plot_id=62, name="CurrentCS")
+    with pytest.raises(ValueError, match="Unsupported heatmap configuration keys"):
+        plot.create_traces(data, {"x": "cfg", "metric_columns": ["m1"], key: value})
 
 
 # R4: Totals separator metadata

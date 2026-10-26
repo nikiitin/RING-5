@@ -5,6 +5,9 @@ from typing import Any
 
 from src.core.models.visualization.export_options import validate_tex_system
 
+# Current editable bar patterns include Matplotlib's circle and star hatches.
+BAR_HATCH_PATTERNS: tuple[str, ...] = ("", "/", "\\", "x", "-", "|", "+", ".", "o", "O", "*")
+
 _PLOT_FIELDS = frozenset(
     {
         "id",
@@ -20,8 +23,12 @@ _PLOT_FIELDS = frozenset(
 )
 
 
-def validate_plot_config_keys(config: Mapping[str, Any]) -> None:
+def validate_plot_config_keys(config: Mapping[str, Any], *, plot_type: str | None = None) -> None:
     """Validate current editable plot key names without interpreting template values.
+
+    Args:
+        config: Editable plot configuration or an unmaterialized recipe mapping.
+        plot_type: Exact plot identifier when the caller owns that context.
 
     Raises:
         ValueError: A key is not text or is outside the current configuration contract.
@@ -53,13 +60,24 @@ def validate_plot_config_keys(config: Mapping[str, Any]) -> None:
             f"Unsupported legend configuration keys: {', '.join(retired)}. "
             "Use legend_/legend2_/legend3_ fields with anchor_x/anchor_y."
         )
+    if plot_type == "heatmap":
+        retired_heatmap = sorted(config.keys() & {"colorscale", "show_cell_values"})
+        if retired_heatmap:
+            raise ValueError(
+                f"Unsupported heatmap configuration keys: {', '.join(retired_heatmap)}. "
+                "Use color_palette, reverse_colorscale and show_values."
+            )
 
 
-def validate_plot_config_values(config: Mapping[str, Any]) -> None:
+def validate_plot_config_values(config: Mapping[str, Any], *, plot_type: str | None = None) -> None:
     """Validate concrete common figure values.
 
+    Args:
+        config: Configuration after any recipe parameters are materialized.
+        plot_type: Exact plot identifier when the caller owns that context.
+
     Raises:
-        ValueError: A legend orientation or PGF compiler identifier is unsupported.
+        ValueError: A legend orientation, PGF compiler or series pattern is unsupported.
     """
     # [impl->req~ring5.api.plot-validation~1]
     if "tex_system" in config:
@@ -70,6 +88,20 @@ def validate_plot_config_values(config: Mapping[str, Any]) -> None:
             not isinstance(config[key], str) or config[key] not in ("horizontal", "vertical")
         ):
             raise ValueError(f"{key} must be exactly 'horizontal' or 'vertical'.")
+    if "series_styles" not in config:
+        return
+    styles = config["series_styles"]
+    if not isinstance(styles, Mapping):
+        raise ValueError("series_styles must map text series names to style mappings.")
+    for name, style in styles.items():
+        if not isinstance(name, str) or not isinstance(style, Mapping):
+            raise ValueError("series_styles must map text series names to style mappings.")
+        if "pattern" in style and (
+            type(style["pattern"]) is not str or style["pattern"] not in BAR_HATCH_PATTERNS
+        ):
+            raise ValueError(
+                f"Series style {name!r} pattern must be a string from {BAR_HATCH_PATTERNS!r}."
+            )
 
 
 def validate_plot_fields(payload: dict[str, Any]) -> None:
@@ -94,5 +126,5 @@ def validate_plot_fields(payload: dict[str, Any]) -> None:
         )
     config = payload.get("config", {})
     if isinstance(config, Mapping):
-        validate_plot_config_keys(config)
-        validate_plot_config_values(config)
+        validate_plot_config_keys(config, plot_type=payload.get("plot_type"))
+        validate_plot_config_values(config, plot_type=payload.get("plot_type"))
