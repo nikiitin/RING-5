@@ -2985,6 +2985,8 @@ Status: approved
 
 The repository shall provide repeatable performance checks for representative large-data transformations, caches, rendering, and worker-pool stability, with explicit thresholds where wall-clock regression limits are asserted.
 
+History records: 1
+
 Covers:
 - feat~ring5.extensibility-quality~1
 

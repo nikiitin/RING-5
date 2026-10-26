@@ -40,7 +40,6 @@ from src.web.components.common.pipeline_step import (
     PipelineStepResult,
 )
 from src.web.models.plot_protocols import PipelineExecutor, PlotHandle
-from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +50,6 @@ class PipelineController:
     def __init__(
         self,
         api: ApplicationAPI,
-        ui_state: UIStateManager,
         pipeline_executor: PipelineExecutor,
     ) -> None:
         """
@@ -59,11 +57,9 @@ class PipelineController:
 
         Args:
             api: Application API for data access.
-            ui_state: UI state manager (currently unused but available).
             pipeline_executor: Pipeline operations (apply/configure shapers).
         """
         self._api: ApplicationAPI = api
-        self._ui: UIStateManager = ui_state
         self._pipeline: PipelineExecutor = pipeline_executor
 
     def render(self, plot: PlotHandle) -> None:

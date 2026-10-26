@@ -177,9 +177,6 @@ class TestSplitApplyConfigSubStepDelegation:
 
         result = SplitApplyConfig._render_sub_step(
             data=data,
-            columns=["ipc"],
-            join_columns=["benchmark", "config"],
-            categorical_cols=["benchmark", "config"],
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
@@ -224,9 +221,6 @@ class TestSplitApplyConfigSubStepDelegation:
 
         result = SplitApplyConfig._render_sub_step(
             data=data,
-            columns=["ipc"],
-            join_columns=["benchmark", "config"],
-            categorical_cols=["benchmark", "config"],
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
@@ -266,9 +260,6 @@ class TestSplitApplyConfigSubStepDelegation:
 
         result = SplitApplyConfig._render_sub_step(
             data=data,
-            columns=["ipc"],
-            join_columns=["benchmark", "config"],
-            categorical_cols=["benchmark", "config"],
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
@@ -307,9 +298,6 @@ class TestSplitApplyConfigSubStepDelegation:
 
         result = SplitApplyConfig._render_sub_step(
             data=data,
-            columns=["ipc"],
-            join_columns=["benchmark", "config"],
-            categorical_cols=["benchmark", "config"],
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
@@ -657,9 +645,6 @@ class TestSplitApplyConfigKeyPrefixing:
 
         SplitApplyConfig._render_sub_step(
             data=data,
-            columns=["ipc"],
-            join_columns=["benchmark", "config"],
-            categorical_cols=["benchmark", "config"],
             existing_step=cast(Any, {}),
             key_base="p_sa_g1_0_s0",
             step_index=0,

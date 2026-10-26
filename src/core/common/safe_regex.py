@@ -135,14 +135,6 @@ def normalize_stat_pattern(pattern: str) -> str:
     return "".join(normalized)
 
 
-def escape_perl_stat_filter(pattern: str) -> str:
-    r"""Convert a stat-name pattern into a bounded, Perl-safe expression."""
-    normalized = normalize_stat_pattern(pattern)
-    segments = normalized.split(r"\d+")
-    escaped = [regex.escape(segment) for segment in segments]
-    return r"[0-9]+".join(escaped)
-
-
 def numeric_pattern_id(pattern: str, concrete_name: str) -> str | None:
     r"""Return numeric placeholder values when a concrete stat name matches.
 

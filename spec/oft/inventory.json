@@ -3427,10 +3427,17 @@
       "description": "The repository shall provide repeatable performance checks for representative large-data transformations, caches, rendering, and worker-pool stability, with explicit thresholds where wall-clock regression limits are asserted.",
       "tags": ["benchmarks", "performance", "quality"],
       "evidence": {
-        "implementation": ["tests/helpers/benchmark.py::BenchmarkSuite", "src/core/performance.py::timed"],
+        "implementation": ["tests/helpers/benchmark.py::BenchmarkSuite"],
         "tests": ["tests/performance/test_performance_regression.py::TestPlotPerformance", "tests/performance/test_performance_regression.py::TestShaperPerformance", "tests/performance/test_performance_regression.py::TestCsvPoolPerformance", "tests/performance/test_performance_regression.py::TestDataLoadingPerformance", "tests/performance/test_worker_pool_performance.py::test_worker_pool_performance_vs_subprocess", "tests/performance/test_worker_pool_performance.py::test_worker_pool_memory_efficiency"],
         "documentation": ["docs/developer-guide/development/testing.md#performance-regression-checks"]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "evidence",
+          "reason": "Retain live benchmark evidence after removing the unused timing decorator."
+        }
+      ]
     },
     {
       "id": "trace.inventory-generator",

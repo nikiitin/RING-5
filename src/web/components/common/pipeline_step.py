@@ -94,7 +94,6 @@ class PipelineStepComponent:
                 controls: dict[str, bool] = PipelineComponent.render_shaper_controls(
                     plot_id=plot_id,
                     idx=idx,
-                    shaper_type=shaper_type,
                     is_first=is_first,
                     is_last=is_last,
                 )

@@ -46,9 +46,6 @@ def test_plugin_configuration_survives_an_editor_without_a_renderer(monkeypatch)
     _init_dispatch()
     nested = SplitApplyConfig._render_sub_step(
         pd.DataFrame({"v": [1]}),
-        ["v"],
-        ["bench"],
-        ["bench"],
         config,
         "plugin",
         0,
