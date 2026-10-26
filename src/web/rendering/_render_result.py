@@ -297,9 +297,11 @@ class _ColorbarAllocation:
     parent: SubplotSpec | None
     original_box: Bbox
     anchor: Any
+    in_layout: bool
     allocated_parent: SubplotSpec | None
     allocated_box: Bbox
     allocated_anchor: Any
+    allocated_in_layout: bool
 
 
 @dataclass(frozen=True, slots=True, eq=False)

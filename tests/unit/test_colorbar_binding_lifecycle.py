@@ -193,11 +193,46 @@ def test_structural_reapply_supports_actual_manual_and_automatic_native_layout(
             figure.canvas.draw()
             output = native.native_outputs.colorbars[0]
             assert output.colorbar.orientation == orientation
+            if automatic:
+                assert axes.get_in_layout() is True
             assert len(figure.axes) == 2
             assert panel.heatmap_image is not None
             np.testing.assert_array_equal(
                 np.asarray(panel.heatmap_image.get_array()).ravel(), [3.0, 5.0]
             )
+    finally:
+        plt.close(figure)
+
+
+def test_foreign_automatic_layout_opt_out_rejects_before_structural_reapply() -> None:
+    figure = plt.figure(layout="constrained")
+    axes = figure.add_subplot()
+    panel = MatplotlibTraceRenderer.render(
+        [
+            HeatmapTraceConfig(
+                name="A", z=[[3.0, 5.0]], col_labels=["001", "NA"], row_labels=["row"]
+            )
+        ],
+        axes,
+    )
+    native = MatplotlibFigureResult(figure, (panel,))
+    try:
+        FigureSpecToMatplotlib.apply(_spec(), native, apply_margins=False)
+        figure.canvas.draw()
+        axes.set_position((0.2, 0.2, 0.3, 0.3))
+        assert axes.get_in_layout() is False
+        before = axes.get_position(original=True).bounds
+        with pytest.raises(ValueError, match="layout changed"):
+            FigureSpecToMatplotlib.apply(
+                _spec(orientation="horizontal"), native, apply_margins=False
+            )
+        np.testing.assert_array_equal(axes.get_position(original=True).bounds, before)
+        assert axes.get_in_layout() is False
+        assert len(figure.axes) == 2
+        assert panel.heatmap_image is not None
+        np.testing.assert_array_equal(
+            np.asarray(panel.heatmap_image.get_array()).ravel(), [3.0, 5.0]
+        )
     finally:
         plt.close(figure)
 
@@ -212,6 +247,30 @@ def test_initially_hidden_colorbar_allocates_only_when_explicitly_shown() -> Non
         FigureSpecToMatplotlib.apply(shown, native)
         assert len(native.figure.axes) == 3
         assert len(native.native_outputs.colorbars) == 1
+        _measurements(native)
+    finally:
+        plt.close(native.figure)
+
+
+def test_initially_hidden_source_cannot_overwrite_a_foreign_colorbar_when_shown() -> None:
+    shown = _spec()
+    native = _native(replace(shown, legends=[replace(shown.legends[0], visible=False)]))
+    try:
+        image = native.panels[-1].heatmap_image
+        assert image is not None
+        foreign = native.figure.colorbar(image, ax=native.panels[-1].primary_axes)
+        backlink = cast(_ColorbarBacklink, image)
+        callback = backlink.colorbar_cid
+        positions = _positions(native)
+        title = native.panels[0].primary_axes.get_title()
+        with pytest.raises(ValueError, match="ownership changed"):
+            FigureSpecToMatplotlib.apply(replace(shown, title="Changed"), native)
+        assert native.native_outputs.colorbars == ()
+        assert image.colorbar is foreign and backlink.colorbar_cid == callback
+        assert callback in image.callbacks.callbacks["changed"]
+        assert native.panels[0].primary_axes.get_title() == title
+        assert len(native.figure.axes) == 3
+        np.testing.assert_array_equal(_positions(native), positions)
         _measurements(native)
     finally:
         plt.close(native.figure)

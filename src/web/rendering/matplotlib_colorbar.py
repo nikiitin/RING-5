@@ -143,10 +143,15 @@ def prepare_colorbars(
             )
         for allocation in output.allocation:
             axes = allocation.axes
-            automatic = output.layout_engine is not None and allocation.allocated_parent is not None
+            automatic = (
+                output.layout_engine is not None
+                and allocation.allocated_parent is not None
+                and allocation.allocated_in_layout
+            )
             if (
                 axes.get_subplotspec() is not allocation.allocated_parent
                 or axes.get_anchor() != allocation.allocated_anchor
+                or axes.get_in_layout() is not allocation.allocated_in_layout
                 or (
                     not automatic
                     and axes.get_position(original=True).bounds != allocation.allocated_box.bounds
@@ -154,6 +159,17 @@ def prepare_colorbars(
             ):
                 raise ValueError(
                     "Colorbar allocation layout changed; supply a fresh explicit generation."
+                )
+    for request in requests:
+        reused = any(
+            _matches(output, request) and not any(output is old for old in retire)
+            for output in rendered.native_outputs.colorbars
+        )
+        if request.visible and not reused:
+            current = request.mappable.colorbar
+            if current is not None and not any(current is old.colorbar for old in retire):
+                raise ValueError(
+                    "Colorbar allocation ownership changed; supply a fresh explicit generation."
                 )
     return ColorbarPlan(rendered, requests, retire)
 
@@ -168,10 +184,15 @@ def retire_colorbars(plan: ColorbarPlan) -> None:
             axes = allocation.axes
             if allocation.parent is not None and axes.get_subplotspec() is not allocation.parent:
                 axes.set_subplotspec(allocation.parent)
-            automatic = output.layout_engine is not None and allocation.parent is not None
+            automatic = (
+                output.layout_engine is not None
+                and allocation.parent is not None
+                and allocation.in_layout
+            )
             if not automatic and not gridspec_restored:
                 axes.set_position(allocation.original_box)
             axes.set_anchor(allocation.anchor)
+            axes.set_in_layout(allocation.in_layout)
         plan.rendered.native_outputs.colorbars = tuple(
             item for item in plan.rendered.native_outputs.colorbars if item is not output
         )
@@ -185,7 +206,13 @@ def _create(plan: ColorbarPlan, request: _Request) -> _ColorbarOutput:
         if axis is not None
     )
     before = [
-        (axis, axis.get_subplotspec(), axis.get_position(original=True).frozen(), axis.get_anchor())
+        (
+            axis,
+            axis.get_subplotspec(),
+            axis.get_position(original=True).frozen(),
+            axis.get_anchor(),
+            axis.get_in_layout(),
+        )
         for axis in axes
     ]
     image = request.mappable
@@ -207,11 +234,13 @@ def _create(plan: ColorbarPlan, request: _Request) -> _ColorbarOutput:
             subplot,
             box,
             anchor,
+            in_layout,
             axis.get_subplotspec(),
             axis.get_position(original=True).frozen(),
             axis.get_anchor(),
+            axis.get_in_layout(),
         )
-        for axis, subplot, box, anchor in before
+        for axis, subplot, box, anchor, in_layout in before
     )
     return _ColorbarOutput(
         native,
