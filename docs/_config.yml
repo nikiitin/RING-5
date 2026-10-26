@@ -43,7 +43,7 @@ nav_enabled: true
 
 # Mermaid diagrams
 mermaid:
-  version: 11
+  version: "11.17.2"
 
 # Exclude files from build
 exclude:
