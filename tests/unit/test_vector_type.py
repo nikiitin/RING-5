@@ -155,28 +155,34 @@ class TestVectorContentProperty:
 
 
 class TestVectorBalanceContent:
-    """Test balance_content method (padding per entry)."""
+    """Test logical missingness without adding unobserved frames."""
 
-    def test_balance_empty_entries_pads_with_nan(self) -> None:
+    def test_balance_empty_entries_records_missingness(self) -> None:
         vector = Vector(repeat=3, entries=["e0", "e1"])
         # Empty content
 
         vector.balance_content()
 
         assert vector.is_balanced is True
-        assert len(vector.content["e0"]) == 3
-        assert all(math.isnan(x) for x in vector.content["e0"])
-        assert all(math.isnan(x) for x in vector.content["e1"])
+        assert vector.content == {"e0": [], "e1": []}
+        assert vector.padded_count == vector.missing_measurement_count == 6
+        vector.reduce_duplicates()
+        assert set(vector.reduced_content) == {"e0", "e1"}
+        assert all(math.isnan(value) for value in vector.reduced_content.values())
 
-    def test_balance_partial_entries_pads_remainder(self) -> None:
+    def test_balance_partial_entries_retains_actual_frames(self) -> None:
         vector = Vector(repeat=4, entries=["e0", "e1"])
         vector.add_observation({"e0": 10, "e1": 30})
         vector.add_observation({"e0": 20})
         vector.balance_content()
-        assert vector.content["e0"][:2] == [10, 20]
-        assert all(math.isnan(x) for x in vector.content["e0"][2:])
-        assert vector.content["e1"][:1] == [30]
-        assert all(math.isnan(x) for x in vector.content["e1"][1:])
+        assert vector.content["e0"] == [10, 20]
+        assert len(vector.content["e1"]) == 2
+        assert vector.content["e1"][0] == 30
+        assert math.isnan(vector.content["e1"][1])
+        assert vector.padded_count == vector.missing_measurement_count == 5
+        vector.reduce_duplicates()
+        assert set(vector.reduced_content) == {"e0", "e1"}
+        assert all(math.isnan(value) for value in vector.reduced_content.values())
 
     def test_balance_exact_count_no_change(self) -> None:
         vector = Vector(repeat=2, entries=["e0"])
@@ -317,8 +323,8 @@ class TestVectorStrMethod:
         result = str(vector)
 
         assert "vector" in result
-        assert "e0" in result
-        assert "e1" in result
+        assert "repeat=1" in result
+        assert "balanced=False, reduced=False, padded=0" in result
 
     def test_str_method_with_content(self) -> None:
         vector = Vector(entries=["e0"])
@@ -328,7 +334,8 @@ class TestVectorStrMethod:
         result = str(vector)
 
         assert "vector" in result
-        assert "60" in result or "60.0" in result
+        assert "repeat=1" in result
+        assert "balanced=False, reduced=False, padded=0" in result
 
 
 class TestVectorEdgeCases:

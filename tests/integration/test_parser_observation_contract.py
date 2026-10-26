@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -106,6 +107,29 @@ def test_perl_temporal_vector_samples_match_scalar_average(tmp_path: Path) -> No
         ],
     )
     assert rows == [{"v..a": "3.0", "ipc": "3.0"}]
+
+
+def test_perl_huge_expected_population_produces_one_typed_missing_cell(tmp_path: Path) -> None:
+    (tmp_path / "stats.txt").write_text("ipc 2\n", encoding="utf-8")
+    batch = Gem5Parser.submit_parse_async(
+        str(tmp_path),
+        "stats.txt",
+        [StatConfig("ipc", "scalar", repeat=10**9, params={"source_type": "scalar"})],
+        str(tmp_path / "output"),
+    )
+    results = [future.result(timeout=30) for future in batch.futures]
+    assert len(results) == 1
+    assert results[0].source_path == str(tmp_path / "stats.txt")
+    assert len(results[0].variables) == 1
+    variable = results[0].variables[0]
+    assert variable.missing_measurements == 10**9 - 1
+    assert variable.kind == "number" and variable.shape == "scalar"
+    assert len(variable.cells) == 1
+    assert variable.cells[0].column == "ipc" and variable.cells[0].kind == "number"
+    assert math.isnan(variable.cells[0].value)
+    output = Gem5Parser.finalize_parsing(batch, results)
+    assert output is not None
+    assert _csv(output.csv_path) == (["ipc"], [{"ipc": "NaN"}])
 
 
 def test_perl_aliased_scalar_pattern_repeats_selected_indices_and_keep_indices(

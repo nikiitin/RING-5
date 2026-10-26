@@ -56,7 +56,13 @@ Stat types self-register; there are two halves — **Python** (model + reduction
    wire text at the worker boundary. Collection closes after balancing. The public
    balance/reduce methods are idempotent, and reduced content is inaccessible until both
    succeed. Frame-based types can inherit `FrameStatType` and supply their entry schema
-   and frame validation; one frame list remains the authoritative store.
+   and frame validation; one actual-observation frame list remains the authoritative store.
+   Balancing records exact logical missing counts without constructing repeat-sized NaN lists or
+   empty frames. Reduction still propagates absent frames as NaN. `content` exposes defensive
+   snapshots of actual observations, including missing entries within an observed frame;
+   compact representations never copy it. Validate active histogram geometry and exact emitted
+   width against the existing physical-column budget before label/mapping construction, preserving
+   explicit-entry and statistics-only precedence over unused rebin geometry.
 
    Declare `required_params` for OFT capability discovery; constructor and codec validation
    enforce executable options. Import it so the decorator runs (add to `types/__init__.py`). `TypeMapper.create_stat(resolved_spec)` /

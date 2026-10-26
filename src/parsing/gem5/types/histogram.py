@@ -6,6 +6,7 @@ import re
 from typing import override
 
 from src.core.common.parse_failure import bounded_parse_text
+from src.core.common.security_limits import MAX_INCREMENTAL_CACHE_COLUMNS
 from src.core.models.parse_failure_models import ParseDataValueError
 from src.parsing.gem5.types.base import FrameStatType, entry_names, population_mean, register_type
 
@@ -58,6 +59,9 @@ class Histogram(FrameStatType):
             max_range: Nonnegative upper edge of the uniform range.
             statistics: Exact summary names to retain.
             statistics_only: Retain summaries without discovering raw buckets.
+
+        Raises:
+            ValueError: Active rebin geometry exceeds the physical-column budget.
         """
         super().__init__(repeat)
         if type(bins) is not int:
@@ -77,6 +81,18 @@ class Histogram(FrameStatType):
             self._canonical_bucket_key(entry) for entry in entry_names(entries, "Histogram entries")
         )
         self._statistics = entry_names(statistics, "Histogram statistics")
+        if self._is_rebinning and self._bins > MAX_INCREMENTAL_CACHE_COLUMNS:
+            raise ParseDataValueError("HISTOGRAM: output exceeds the physical column limit.")
+
+    @property
+    def _is_rebinning(self) -> bool:
+        """Whether uniform output geometry owns the bucket schema."""
+        return (
+            not self._statistics_only
+            and not self._entries
+            and self._bins > 0
+            and self._max_range > 0
+        )
 
     @property
     def _content_entries(self) -> tuple[str, ...]:
@@ -104,7 +120,11 @@ class Histogram(FrameStatType):
 
     @property
     def entries(self) -> list[str]:
-        """Get the expected output entry keys for this histogram."""
+        """Get the expected output entry keys for this histogram.
+
+        Raises:
+            ValueError: Active rebin output exceeds the physical-column budget.
+        """
         if self._statistics_only:
             return list(self._statistics)
         result: list[str] = []
@@ -142,6 +162,8 @@ class Histogram(FrameStatType):
             if stat not in result:
                 result.append(stat)
 
+        if self._is_rebinning and len(result) > MAX_INCREMENTAL_CACHE_COLUMNS:
+            raise ParseDataValueError("HISTOGRAM: output exceeds the physical column limit.")
         return result
 
     @override
@@ -155,21 +177,16 @@ class Histogram(FrameStatType):
     @override
     def _reduce(self) -> dict[str, float]:
         """Average raw frames or proportionally rebin each observed frame."""
-        if (
-            not self._statistics_only
-            and not self._entries
-            and self._bins > 0
-            and self._max_range > 0
-        ):
+        if self._is_rebinning:
             return self._reduce_with_rebinning()
         return super()._reduce()
 
     def _reduce_with_rebinning(self) -> dict[str, float]:
         """Perform reduction by rebinning each simulation's data into target uniform buckets."""
         # [impl->req~ring5.ingestion.histogram-rebinning~1]
+        target_keys = set(self.entries)
         bin_mapping = self._compute_bin_mapping(self._bins, self._max_range)
         raw_keys = set(self._content_entries)
-        target_keys = set(self.entries)
         target_keys.update(
             key
             for mappings in bin_mapping.values()
@@ -177,10 +194,11 @@ class Histogram(FrameStatType):
             for key, _proportion in mappings
         )
         target_keys.update(key for key, mappings in bin_mapping.items() if mappings is None)
+        if len(self._frames) < self.repeat:
+            return dict.fromkeys(target_keys, math.nan)
         target_values: dict[str, list[float]] = {key: [] for key in target_keys}
 
-        for index in range(self._repeat):
-            sample = self._frames[index]
+        for sample in self._frames:
             has_buckets = any(bin_mapping.get(key) is not None for key in sample)
             # Zeros are justified only within an observed histogram dump.
             rebinned = {key: 0.0 if has_buckets else float("nan") for key in target_keys}
@@ -204,7 +222,7 @@ class Histogram(FrameStatType):
 
         Returns a dict mapping each raw_key to a list of (target_key, proportion)
         tuples, or None for non-range keys (summary stats preserved as-is).
-        Computed once and reused across all repeat iterations.
+        Computed once and reused across actual observed frames.
         """
         if num_bins > 1:
             num_std_bins = num_bins - 1

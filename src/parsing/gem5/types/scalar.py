@@ -39,10 +39,10 @@ class Scalar(StatType[list[float], float]):
             raise ParseDataRuntimeError(
                 f"SCALAR: More values ({len(self._values)}) than expected ({self.repeat})."
             )
-        padding = self.missing_measurement_count
-        self._values.extend([math.nan] * padding)
-        return padding
+        return self.missing_measurement_count
 
     @override
     def _reduce(self) -> float:
+        if len(self._values) < self.repeat:
+            return math.nan
         return population_mean(self._values)

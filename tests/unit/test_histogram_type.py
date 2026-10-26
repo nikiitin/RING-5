@@ -191,9 +191,9 @@ class TestHistogramContentSetting:
 
 
 class TestHistogramBalanceContent:
-    """Test balance_content method (padding per bucket)."""
+    """Test logical missing measurements while retaining actual frames."""
 
-    def test_balance_missing_observations_pads_with_nan(self) -> None:
+    def test_balance_missing_observations_records_logical_count(self) -> None:
         hist = Histogram(repeat=3)
         hist.add_observation({"0-10": 5})
         # 0-10 has 1 value, needs 2 more
@@ -201,18 +201,22 @@ class TestHistogramBalanceContent:
         hist.balance_content()
 
         assert hist.is_balanced is True
-        assert hist.content["0-10"][0] == 5.0
-        assert all(math.isnan(value) for value in hist.content["0-10"][1:])
+        assert hist.content == {"0-10": [5.0]}
+        assert hist.padded_count == hist.missing_measurement_count == 2
+        hist.reduce_duplicates()
+        assert math.isnan(hist.reduced_content["0-10"])
 
-    def test_balance_partial_buckets_pads_remainder(self) -> None:
+    def test_balance_partial_buckets_retains_actual_frames(self) -> None:
         hist = Histogram(repeat=4)
         hist.add_observation({"0-10": 10})
         hist.add_observation({"0-10": 20})
 
         hist.balance_content()
 
-        assert hist.content["0-10"][:2] == [10.0, 20.0]
-        assert all(math.isnan(value) for value in hist.content["0-10"][2:])
+        assert hist.content == {"0-10": [10.0, 20.0]}
+        assert hist.padded_count == hist.missing_measurement_count == 2
+        hist.reduce_duplicates()
+        assert math.isnan(hist.reduced_content["0-10"])
 
     def test_balance_exact_count_no_change(self) -> None:
         hist = Histogram(repeat=2)
@@ -238,7 +242,11 @@ class TestHistogramBalanceContent:
 
         hist.balance_content()
 
-        assert all(math.isnan(value) for value in hist.content["mean"])
+        assert len(hist.content["mean"]) == 1
+        assert math.isnan(hist.content["mean"][0])
+        assert hist.padded_count == hist.missing_measurement_count == 3
+        hist.reduce_duplicates()
+        assert math.isnan(hist.reduced_content["mean"])
 
 
 class TestHistogramReduceDuplicates:
