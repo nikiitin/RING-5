@@ -72,7 +72,7 @@ def _run_version(executable: str | None, arguments: Sequence[str]) -> str | None
             text=True,
             timeout=2,
         )
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, UnicodeError):
         return None
     return _first_line(result.stdout) or _first_line(result.stderr)
 

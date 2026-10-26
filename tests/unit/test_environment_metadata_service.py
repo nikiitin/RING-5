@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from types import SimpleNamespace
 from typing import Any
 
@@ -129,6 +130,28 @@ def test_external_tool_probes_are_bounded_and_failure_safe(
 
     monkeypatch.setattr("src.core.services.environment_metadata_service.subprocess.run", time_out)
     assert _run_version("/resolved/tool", ("--version",)) is None
+
+
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+def test_real_non_utf8_version_output_is_unavailable(
+    stream: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core.services import environment_metadata_service as service
+
+    run = subprocess.run
+    program = f"import sys;sys.{stream}.buffer.write(bytes([255]))"
+    commands: list[list[str]] = []
+
+    def python_only(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        assert command == [sys.executable, "-c", program]
+        commands.append(command)
+        assert kwargs == {"check": False, "capture_output": True, "text": True, "timeout": 2}
+        # Exercise a real decode failure independently of the host's default codec.
+        return run(command, encoding="utf-8", **kwargs)
+
+    monkeypatch.setattr(service.subprocess, "run", python_only)
+    assert _run_version(sys.executable, ("-c", program)) is None
+    assert commands == [[sys.executable, "-c", program]]
 
 
 def test_metadata_probes_selected_executable_and_every_supported_compiler(
