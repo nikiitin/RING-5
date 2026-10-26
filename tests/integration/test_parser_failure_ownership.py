@@ -7,14 +7,21 @@ import weakref
 from concurrent.futures import wait
 from pathlib import Path
 from threading import Barrier
+from unittest.mock import patch
 
 import pytest
 
-from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataValueError
+from src.core.models.parse_failure_models import (
+    ParseDataRuntimeError,
+    ParseDataValueError,
+    ParseFailureFacts,
+)
+from src.core.models.parsed_output_models import ParsedFileResult
 from src.core.models.parsing_models import StatConfig
 from src.parsing.framework import result_admission
 from src.parsing.framework.work_pool import WorkPool
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
+from src.parsing.gem5.impl.source_bindings import SourcePlan
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 from src.parsing.gem5.impl.strategies import gem5_parse_work, perl_worker_pool
 
@@ -40,7 +47,9 @@ def test_actual_invalid_utf8_worker_output_has_bounded_cause_and_releases_failed
     )
     real_worker = perl_worker_pool.PerlWorker
 
-    def own_worker(*, worker_id, script_path, perl_exe):
+    def own_worker(
+        *, worker_id: int, script_path: str, perl_exe: str
+    ) -> perl_worker_pool.PerlWorker:
         return real_worker(worker_id, str(script), perl_exe)
 
     monkeypatch.setattr(perl_worker_pool, "PerlWorker", own_worker)
@@ -49,8 +58,13 @@ def test_actual_invalid_utf8_worker_output_has_bounded_cause_and_releases_failed
     refs = []
     original_init = Gem5ParseWork.__init__
 
-    def track(self, *args, **kwargs):
-        original_init(self, *args, **kwargs)
+    def track(
+        self: Gem5ParseWork,
+        file_to_parse: str,
+        accumulators: gem5_parse_work.VarsDictType,
+        plan: SourcePlan,
+    ) -> None:
+        original_init(self, file_to_parse, accumulators, plan)
         refs.append(weakref.ref(self))
 
     monkeypatch.setattr(Gem5ParseWork, "__init__", track)
@@ -71,7 +85,8 @@ def test_actual_invalid_utf8_worker_output_has_bounded_cause_and_releases_failed
         error = batch.futures[0].exception(timeout=15)
         assert type(error) is ParseDataRuntimeError and len(str(error)) <= 1024
         assert error.__cause__ is error.__context__ is None
-        facts = error.failure_facts
+        facts = error.__dict__["failure_facts"]
+        assert isinstance(facts, ParseFailureFacts)
         assert facts.source_path == str(source)
         assert "UnicodeDecodeError" in facts.cause and "invalid start byte" in facts.cause
         assert "gem5_parse_work._run_perl_script:" in facts.origin
@@ -82,11 +97,13 @@ def test_actual_invalid_utf8_worker_output_has_bounded_cause_and_releases_failed
         assert len(refs) == 1 and refs[0]() is None
         assert previous.read_bytes() == b"previous complete output"
         assert all(record.exc_info is None for record in caplog.records)
-        assert all(
-            type(value) in (str, int) and (type(value) is not str or len(value) <= 1024)
-            for record in caplog.records
-            for value in record.args
-        )
+        for record in caplog.records:
+            arguments = record.args
+            assert type(arguments) is tuple
+            assert all(
+                type(value) in (str, int) and (type(value) is not str or len(value) <= 1024)
+                for value in arguments
+            )
     finally:
         pool.shutdown()
 
@@ -102,7 +119,9 @@ def test_invalid_utf8_startup_reaps_blocked_child_and_releases_work_while_future
     real_retire = perl_worker_pool.PerlWorker._retire_generation
     processes, worker_refs = [], []
 
-    def retire(self, generation):
+    def retire(
+        self: perl_worker_pool.PerlWorker, generation: perl_worker_pool._WorkerGeneration
+    ) -> None:
         processes.append((generation.process, generation.reader_thread, generation.stderr_thread))
         worker_refs.append(weakref.ref(self))
         return real_retire(self, generation)
@@ -112,7 +131,7 @@ def test_invalid_utf8_startup_reaps_blocked_child_and_releases_work_while_future
     class Work:
         source_path = "source"
 
-        def __call__(self):
+        def __call__(self) -> ParsedFileResult:
             perl_worker_pool.PerlWorker(0, str(script), "perl")
             pytest.fail("Invalid startup bytes were admitted")
 
@@ -126,15 +145,20 @@ def test_invalid_utf8_startup_reaps_blocked_child_and_releases_work_while_future
     error = future.exception(timeout=15)
     assert type(error) is ParseDataRuntimeError
     assert "startup output is not valid UTF-8" in str(error)
-    assert "UnicodeDecodeError" in error.failure_facts.cause
-    assert "_start_worker:" in error.failure_facts.origin
+    facts = error.__dict__["failure_facts"]
+    assert isinstance(facts, ParseFailureFacts)
+    assert "UnicodeDecodeError" in facts.cause
+    assert "_start_worker:" in facts.origin
     assert error.__cause__ is error.__context__ is None
     _drain_workers()
     gc.collect()
     assert work_ref() is None and len(worker_refs) == 1 and worker_refs[0]() is None
     process, reader, stderr = processes[0]
     assert process.poll() is not None
-    assert all(pipe.closed for pipe in (process.stdin, process.stdout, process.stderr))
+    assert all(
+        pipe is not None and pipe.closed for pipe in (process.stdin, process.stdout, process.stderr)
+    )
+    assert reader is not None and stderr is not None
     assert not reader.is_alive() and not stderr.is_alive()
 
 
@@ -147,11 +171,16 @@ def test_real_expected_failure_releases_work_raw_frames_and_partial_typed_result
     worker_refs, result_refs = [], []
     original_init, original_call = Gem5ParseWork.__init__, Gem5ParseWork.__call__
 
-    def tracked_init(self, *args, **kwargs):
-        original_init(self, *args, **kwargs)
+    def tracked_init(
+        self: Gem5ParseWork,
+        file_to_parse: str,
+        accumulators: gem5_parse_work.VarsDictType,
+        plan: SourcePlan,
+    ) -> None:
+        original_init(self, file_to_parse, accumulators, plan)
         worker_refs.append(weakref.ref(self))
 
-    def tracked_call(self):
+    def tracked_call(self: Gem5ParseWork) -> ParsedFileResult:
         result = original_call(self)
         result_refs.append(weakref.ref(result))
         return result
@@ -198,6 +227,31 @@ def test_real_expected_failure_releases_work_raw_frames_and_partial_typed_result
     output.mkdir()
     previous = output / "results.csv"
     previous.write_bytes(b"previous complete output")
+    if mode == "metadata_collision":
+        with (
+            patch.object(
+                Gem5Parser,
+                "_build_work_items",
+                side_effect=AssertionError("Invalid schema reached work construction"),
+            ) as build_work,
+            patch.object(
+                WorkPool,
+                "get_instance",
+                side_effect=AssertionError("Invalid schema reached worker submission"),
+            ) as work_pool,
+            pytest.raises(ParseDataValueError) as failure,
+        ):
+            Gem5Parser.submit_parse_async(
+                str(inputs), "stats.txt", variables, str(output), "config_aware"
+            )
+        assert type(failure.value) is ParseDataValueError
+        assert str(failure.value) == "Duplicate planned physical column: 'sim_path'."
+        build_work.assert_not_called()
+        work_pool.assert_not_called()
+        assert worker_refs == result_refs == []
+        assert previous.read_bytes() == b"previous complete output"
+        assert tuple(output.iterdir()) == (previous,)
+        return
     batch = Gem5Parser.submit_parse_async(
         str(inputs),
         "stats.txt",
@@ -208,11 +262,12 @@ def test_real_expected_failure_releases_work_raw_frames_and_partial_typed_result
     assert not wait(batch.futures, timeout=15).not_done
     for future in batch.futures:
         error = future.exception()
-        expected = ParseDataValueError if mode == "metadata_collision" else ParseDataRuntimeError
+        expected = ParseDataRuntimeError
         assert type(error) is expected
         assert error.__cause__ is error.__context__ is None
         assert all(type(value) is str and len(value) <= 1024 for value in error.args)
-        facts = error.failure_facts
+        facts = error.__dict__["failure_facts"]
+        assert isinstance(facts, ParseFailureFacts)
         assert facts.source_path in batch.source_paths
         assert len(facts.origin) <= 2048 and len(facts.cause) <= 1024
         if mode == "excess_observations":
@@ -227,9 +282,6 @@ def test_real_expected_failure_releases_work_raw_frames_and_partial_typed_result
             assert "invalid start byte" in str(error)
             assert "UnicodeDecodeError" in facts.cause
             assert "config_aware._read_config:" in facts.origin
-        else:
-            assert "Metadata column collision" in str(error)
-            assert "config_aware.__call__:" in facts.origin
         node = error.__traceback__
         while node:
             assert node.tb_frame.f_code.co_filename.endswith(
@@ -243,8 +295,10 @@ def test_real_expected_failure_releases_work_raw_frames_and_partial_typed_result
     assert len(result_refs) == (0 if mode == "excess_observations" else 3)
     for record in caplog.records:
         assert record.exc_info is None
-        assert all(type(value) in (str, int, float) for value in record.args)
-        assert all(len(value) <= 1024 for value in record.args if type(value) is str)
+        arguments = record.args
+        assert type(arguments) is tuple
+        assert all(type(value) in (str, int, float) for value in arguments)
+        assert all(len(value) <= 1024 for value in arguments if type(value) is str)
     assert previous.read_bytes() == b"previous complete output"
     with pytest.raises(ValueError, match="non-empty"):
         Gem5Parser.finalize_parsing(batch, [])
