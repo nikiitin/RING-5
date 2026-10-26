@@ -5,19 +5,20 @@ description: Gate the gem5 parsing/scanning subsystem for correctness — no dat
 
 # Parser check (the parsing correctness gate)
 
-Parsing is Layer A (`src/parsing/`, gem5 in `src/parsing/gem5/`): async over singleton pools, with a
+Parsing lives in `src/parsing/`, with gem5 in `src/parsing/gem5/`: async over singleton pools, with a
 persistent Perl worker pool. To *build/extend* parsing use `parsing-and-variable-types`; this skill
 is the correctness gate. The cardinal sins here are **fabricating data** and **breaking the async
 contract**.
 
 ## Checklist
-1. **Never fabricate (hard rule #6).** On a regex non-match the parser **raises or logs** — it must
-   never default to `0`/a guessed value. This is the highest-stakes invariant (see
-   [[ring5-arch-audit-2026-06]]). Review every new parse branch for a silent fallback.
-2. **Async-only (hard rule #7).** The public surface is `submit_scan_async` / `finalize_scan` /
+1. **Never fabricate.** On a regex non-match the parser **raises or logs** — it must
+   never default to `0`/a guessed value. Review every new parse branch for a silent fallback.
+   The required invariants are defined in [AGENTS.md](../../../AGENTS.md).
+2. **Asynchronous work.** The facade surface is `submit_scan_async` / `finalize_scan` /
    `submit_parse_async` / `finalize_parsing`; backends implement the complete `SimulationParser`
    protocol, including incremental and playground submission/finalization and scan aggregation.
-   **No synchronous wrapper** may be added.
+   Public `Session.parse` composes the submit/finalize contract; it does not introduce another
+   parser execution path. Preserve that ownership when adding orchestration.
    Incremental finalization has one `complete: bool = True` contract. Partial mode retains valid
    cached and changed rows without promoting the success cache; both modes verify fingerprints
    and exact unique provenance. Counts distinguish accepted rows from the planned file total.
@@ -47,8 +48,8 @@ contract**.
    submission lock; reject new work during drain and recreate only after retirement completes.
    Session cancellation affects only owned futures, not the shared executor. Preserve those
    ownership boundaries and prevent orphaned Perl processes on hot-reload.
-   High-concurrency hangs were an undrained-stderr-pipe deadlock, now fixed by a drainer thread —
-   don't reintroduce a blocking read (see [[perl-pool-highconc-stall]]).
+   Drain stderr independently of stdout: a full stderr pipe can block Perl before it can produce
+   its next stdout record. Keep each reader bound to its exact process generation.
 7. **Internal/meta stats excluded** from selection (`GEM5_INFO.internal_stats` in
    `src/parsing/registry.py`): `total, mean, gmean, stdev, samples, sample_period, min_val, max_val,
    min_bucket, max_bucket, num_buckets, underflows, overflows`.
@@ -78,8 +79,8 @@ a headless `ApplicationAPI()` (no Streamlit) — scan→`finalize_scan`, then `s
 Canon, not history — edit in place when the parser contract moves:
 - The protocol methods, the lifecycle invariant, and `internal_stats` above mirror
   `parser_protocol.py`, `gem5/types/`, and `registry.py`. If those change, update this list.
-- New correctness failure caught? Add it here (and to `parsing-and-variable-types` if it's a build
-  step); durable facts → a memory.
+- New correctness failure caught? Add its check here and to `parsing-and-variable-types` when it
+  affects implementation. Document durable contracts in the repository developer guide.
 
 ## Verify after
 `make arch-check && ./python_venv/bin/pytest tests/unit -k "parse or scan or gem5" -q` (add

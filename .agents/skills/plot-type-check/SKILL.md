@@ -49,8 +49,8 @@ grep -rn "import plotly\|plotly.graph_objects\|matplotlib\|plt\." src/web/pages/
 Canon, not history — edit in place when the plot contract moves:
 - The abstract methods and registry shape above mirror `base_plot.py` and `plot_factory.py`. If a new
   abstract method is added or the metadata schema changes, update this checklist.
-- New conformance failure caught in review? Add it here (and to `add-plot-type` if it's a build step);
-  durable facts → a memory.
+- New conformance failure caught in review? Add its check here and to `add-plot-type` when it affects
+  implementation. Document durable contracts in the repository developer guide.
 
 ## Verify after
 `make arch-check && ./python_venv/bin/mypy src/ && ./python_venv/bin/pytest tests/unit -k plot -q`

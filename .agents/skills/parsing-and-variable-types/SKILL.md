@@ -3,13 +3,14 @@ name: parsing-and-variable-types
 description: Work on RING-5's gem5 parsing/scanning subsystem — the async scan/parse API, adding a new gem5 stat (variable) type, the Perl parsing layer, and debugging async parsing/worker-pool issues. Use for any parsing, scanning, stats.txt, Perl, or worker-pool task.
 ---
 
-# Parsing & variable types (gem5, Layer A)
+# Parsing & variable types (gem5)
 
 Parsing is async + multi-simulator. Python orchestrates `concurrent.futures` over singleton pools;
-the heavy lifting is a **persistent Perl worker pool** (≈54× faster than per-variable subprocesses).
+gem5 extraction uses a persistent Perl worker pool. Measure process reuse and throughput on the
+actual workload before changing execution strategy.
 Layout: `src/parsing/` (protocol, registry, services) and `src/parsing/gem5/` (impl, types, perl).
 
-## The async API (never add sync wrappers)
+## The asynchronous work contract
 ```python
 # Scan: discover variables
 futures   = api.submit_scan_async(stats_path, pattern="stats.txt", limit=5)
@@ -31,7 +32,7 @@ csv_path = api.finalize_parsing(out_dir, [f.result() for f in batch.futures])
 - Strategies: `simple` (stats.txt only) and `config_aware` (also reads `config.ini`), via
   `StrategyFactory` in `gem5/impl/strategies/`.
 - Pattern aggregation (`gem5/impl/scanning/pattern_aggregator.py`) collapses per-core repeats into
-  one numeric pattern with explicit `instances` (~94% reduction). `internal_stats` (see registry `GEM5_INFO`)
+  one numeric pattern with explicit `instances`. `internal_stats` (see registry `GEM5_INFO`)
   are excluded from selection.
 
 ## Add a new gem5 variable (stat) type

@@ -3,70 +3,53 @@ name: parser-improvement
 description: Improve RING-5's gem5 parsing/scanning — performance (Perl worker pool, pattern aggregation, async pools), robustness, and new strategies — without breaking the correctness invariants. Use when asked to speed up, harden, or extend the parser (for adding a stat type, use parsing-and-variable-types; to gate it, use parser-check).
 ---
 
-# Parser improvement (make parsing faster / tougher, safely)
+# Improve parser performance and robustness
 
-Parsing is the hot path and the place data integrity can silently break. Improve it **only** behind
-the correctness invariants in the `parser-check` skill (never fabricate; async-only; lifecycle
-invariant). To add a new stat type or wire Perl, use `parsing-and-variable-types`.
+Preserve the contracts in [parser-check](../parser-check/SKILL.md). Use
+[parsing-and-variable-types](../parsing-and-variable-types/SKILL.md) when adding a statistic type.
+The repository [parsing guide](../../../docs/developer-guide/subsystems/parsing.md) documents the
+current execution and data contracts.
 
-## Where the speed comes from (don't regress these)
-- **Persistent Perl worker pool** (`gem5/impl/strategies/perl_worker_pool.py`) — long-lived Perl
-  processes via `fileParserServer.pl`, ≈54× over per-variable subprocesses. The win is *process
-  reuse*; anything that respawns Perl per variable destroys it.
-- **Pattern aggregation** (`gem5/impl/scanning/pattern_aggregator.py`) — collapses
-  `system.cpu0..15.numCycles` → one `system.cpu\d+.numCycles` regex variable with `entries`
-  (≈94% variable reduction). Keep scan output aggregated; expand to concrete names only at parse
-  time using `scanned_vars`.
-- **One shared `WorkPool`** (`src/parsing/framework/work_pool.py`) — a singleton `ThreadPoolExecutor`
-  over `concurrent.futures` (`shutdown()` + `atexit`); backends submit typed callable commands with
-  `submit`/`submit_many`. Futures remain caller-owned. Global shutdown drains accepted work before
-  allowing another executor generation; session cancellation never shuts down this shared pool.
+## Execution owners
 
-## Where the time actually goes (measured — see [[ring5-parser-perf-profile]])
-Profiled on the real 586-file bench (16-core host). Start from these facts, not intuition:
-- **Parse is Perl-pool-bound.** `WorkPool` and the persistent `PerlWorkerPool` both default to two
-  workers to protect developer workstations. Deployments can set `RING5_WORK_POOL_SIZE` and
-  `RING5_PERL_POOL_SIZE`, but each Perl worker is a live process, so measure memory as well as
-  throughput before raising either limit.
-- **Scan spawns a fresh `perl` per file** (`scanner.py:96`, no pool) → ~195 ms/file, 90% Perl, ~12.6k
-  vars/file pre-aggregation. It uses the bounded shared thread pool. **A process pool does NOT help**
-  (measured 1.03–1.12× — scan is Perl-work-bound, not GIL/thread-bound), so a scan pool (process or
-  persistent-Perl) is **not worth building**. Default UI scan is `limit=5` (~0.6s); only full-catalog
-  scans (limit=-1 → ~51s) are slow, and the only real lever there is a faster Perl scanner itself.
-- **CSV assembly is NOT a bottleneck** — measured 0.01–0.04s. Do **not** "vectorize reduce_duplicates"
-  or "dedup the header scan" for speed; it saves nothing. Optimize it only for correctness/clarity.
-- **Huge-repeat pattern vars are a RAM cliff, not a throughput target** — e.g.
-  `…ctrl_traffic_distribution.n\d+.n\d+` has repeat=2704; selecting many such vars → multi-GB RAM and
-  per-file timeouts. Guard/stream them; don't benchmark with them as a "normal" load.
+- `src/parsing/gem5/impl/strategies/perl_worker_pool.py` owns persistent extraction processes and
+  `fileParserServer.pl` requests. Preserve process reuse across variables and files.
+- `src/parsing/gem5/impl/scanning/scanner.py` invokes `statsScanner.pl` for each scanned file.
+  Measure subprocess startup, Perl classification and Python decoding separately.
+- `src/parsing/gem5/impl/scanning/pattern_aggregator.py` groups concrete numeric sources into
+  patterns with explicit source-instance records. Preserve those records through submission.
+- `src/parsing/framework/work_pool.py` owns the shared thread executor. Its typed commands return
+  caller-owned Futures. Session cancellation affects owned work; global shutdown drains accepted
+  work before another executor generation starts.
 
-## Improvement playbook
-1. **Profile first.** Use real data (`make test-data`) and a headless `ApplicationAPI()` parse over the
-   586-file bench; measure scan vs. parse separately (different bottlenecks, above). `tests/performance/`
-   has the `benchmark` marker.
-2. **Concurrency** — tune the Perl pool size (`perl_worker_pool.py`) / batching, not ad-hoc threads.
-   Watch the stderr-drain path: a blocking read of a worker pipe re-creates the old high-concurrency
-   deadlock ([[perl-pool-highconc-stall]]). Keep the drainer thread.
-3. **Strategy work** — `simple` (stats.txt only) and `config_aware` (also reads `config.ini`) via
-   `StrategyFactory`. New strategies go here; they must still produce no-fabrication output.
-4. **CSV assembly** — `construct_final_csv` unions headers across files; if you touch it, keep the
-   immutability rule (no `inplace=True`) — but it's not where the time is.
-5. **Retire cruft as you go** — substitute, don't adapt ([[substitute-not-adapt-ring5]]): one canonical
-   path, no parallel/legacy code. (There are no production `ParseService`/`ScannerService` shims — that
-   was verified absent; the only `as ParseService` aliases are test-local cosmetics.)
+`RING5_WORK_POOL_SIZE` and `RING5_PERL_POOL_SIZE` configure separate pools. Both default to two
+workers. Measure resident memory, process counts, latency and throughput before increasing them.
 
-## Guardrails (every change must hold)
-- No fabrication, async-only, StatType lifecycle (`balance_content`→`reduce_duplicates` before
-  `reduced_content`), shared `TypesFormatRegex::classifyLine` records preserve source entries, scan
-  labels, and dump context (histogram before distribution). Run the `parser-check` gate before declaring done.
-- A speedup that changes any parsed value is a **bug**, not a win — diff CSV output against a baseline
-  on real data.
+## Investigation and change
 
-## Keep this skill sharp
-Canon, not history — edit in place when the parser internals move:
-- The pool/strategy/aggregator paths above mirror `src/parsing/gem5/impl/`. If a module moves or a new
-  bottleneck/optimization is found, update this playbook; durable facts → a memory.
-- When a "speedup" turns out to silently alter values, record the trap here so it isn't repeated.
+1. Reproduce with a fixed input set and explicit parser configuration. Use `make test-data` for the
+   shared corpus and keep that corpus unchanged. Record interpreter, tool versions, pool sizes,
+   file counts and input selection with the measurements.
+2. Measure scan, source resolution, extraction, reduction and output publication separately.
+   Compare cold and warm runs; inspect peak memory as well as elapsed time. Performance checks in
+   `tests/performance/` use the `benchmark` marker. Do not infer a current bottleneck from an older
+   workload's timings or assume a different executor improves Perl-bound work.
+3. Preserve the single backend submit/finalize route. Strategy changes belong in `StrategyFactory`;
+   `simple` reads statistics and `config_aware` also reads companion configuration.
+4. Keep stderr draining independent of stdout. Readers own one process generation, and shutdown
+   must settle its processes and threads. Exercise cancellation, timeouts, failed startup and
+   concurrent shutdown when changing pool ownership.
+5. Bound dynamic source expansion and retained results before expensive allocation. High-repeat
+   patterns need resource-admission checks, rather than treating multi-gigabyte output as an
+   ordinary throughput benchmark. Rejection must remain visible and leave prior output intact.
+6. Compare results with the same inputs and configuration. Preserve exact literal text, numeric
+   values, column ownership, missing-observation diagnostics, tails and summaries. A faster path
+   that changes these semantics fails the correctness gate.
 
-## Verify after
-`make arch-check && ./python_venv/bin/pytest tests/unit -k "parse or scan or gem5" -q && ./python_venv/bin/pytest tests/performance -q`
-(diff real-data CSV output against a pre-change baseline; run the `parser-check` gate).
+## Verification
+
+Run `make arch-check`, type-check the touched owners and run focused parsing, scanner, lifecycle
+and strategy tests. Add real-worker integration checks for behavior crossing the Perl boundary.
+Run the relevant performance cases against the recorded baseline, then the full quality and test
+gates before merging. Keep new measurements with the review evidence; document durable contracts
+in the repository developer guide.

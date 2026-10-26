@@ -11,7 +11,8 @@ is cruft. This skill finds and removes it, in both code and docs, and enforces t
 rule defined in AGENTS.md.
 
 ## Method (the sweep that actually works)
-1. **Extract every cited path and test it for existence.** This single heuristic surfaces most rot:
+1. **Extract cited paths and test them for existence.** Treat this as a first pass, not proof that
+   a subsystem is unused:
    ```bash
    { grep -rhoE "src/[A-Za-z0-9_./]+" docs/ AGENTS.md .agents/skills/ 2>/dev/null; } \
      | sed -E 's/[.,:;`)"]+$//' | sort -u \
@@ -25,15 +26,16 @@ rule defined in AGENTS.md.
      `trace_to_` → `trace_to_plotly.py`, `_connector_protocol.STYLING_PIPELINE_ORDER`). → keep.
    Confirm the bucket by checking which file cites it:
    `grep -rlF "<path>" docs/ AGENTS.md`.
-3. **Find the real location** for stale ones: `find src -name "<file>.py"` /
-   `grep -rn "class <Name>" src/`.
+3. **Find the real location** for stale ones with `rg --files` and `rg -n "class <Name>" src/`.
 4. **Removed entirely vs. moved:**
    - Moved → repoint the path.
-   - Removed (no class/symbol anywhere in `src/`; a stray `__pycache__/*.pyc` with **no** sibling
-     `.py` proves the source was deleted) → **delete the doc section**. Do not leave a tombstone.
+   - Removed → verify the tracked source, imports, registries, public exports, CLI entry points,
+     callbacks, subprocess assets and packaging declarations before deleting its current guide.
+     Compiled caches are not evidence of the supported source contract.
 5. **Code-side cruft** — dead/duplicate modules and **legacy aliases/shims**. Removing these is a
    refactor: migrate **all** importers + tests to the canonical name first, then delete (substitute,
-   don't adapt). `grep -rn "<oldname>" src/ tests/` before deleting. (Verify the alias is real first —
+   don't adapt). Search tracked source, tests, docs, scripts and configuration with `rg` before
+   deleting. Verify callers through string references and dynamic registration too. (Verify the alias is real first —
    a `from X import Canonical as OldName` inside a test file is a local cosmetic, not a production shim.)
 
 ## Canon-only docs (enforce while you're in there)
