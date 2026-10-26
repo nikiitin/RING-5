@@ -28,6 +28,7 @@ from src.core.models.visualization.trace_config import (
     WaterfallTraceConfig,
 )
 from src.web.rendering._heatmap_utils import heatmap_text_colors
+from src.web.rendering._hatch_utils import plotly_hatch
 from src.web.rendering._connector_protocol import (
     uses_heatmap_panels,
     validate_annotation_types,
@@ -262,7 +263,7 @@ def _bar_trace(trace: BarTraceConfig) -> go.Bar:
     if trace.color:
         marker["color"] = trace.color
     if trace.pattern:
-        marker["pattern"] = {"shape": trace.pattern}
+        marker["pattern"] = plotly_hatch(trace.pattern)
     if trace.border_width > 0:
         marker["line"] = {
             "width": trace.border_width,

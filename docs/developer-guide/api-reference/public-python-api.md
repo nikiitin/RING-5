@@ -236,10 +236,12 @@ colorscales keep their separate contracts.
 
 Per-series overrides use `series_styles`, a mapping from text series names to style mappings.
 Its `pattern` field is a string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`.
-Matplotlib supports this vocabulary; Plotly's shape enum currently supports the first eight
-forms and raises `RenderError` for circle/star hatches. Other plugin-owned style fields are
-preserved. Recipe save/load retains parameter placeholders; materialization validates the
-resolved pattern value before execution.
+Both native engines render this vocabulary. Plotly uses native SVG pattern paths for the
+circle/star forms. An omitted `pattern` preserves the trace or theme hatch; an explicit empty
+string selects Solid and clears it. Default stripe patterns apply before explicit series overrides.
+Typed renderer styles express absence with `hatching_pattern=None` and Solid with `""`.
+Other plugin-owned style fields are preserved. Recipe save/load retains parameter placeholders;
+materialization validates the resolved pattern value before execution.
 
 Legend font sizes retain fractional point values through both native engines and typed figure
 round trips. `DualAxisOpts.legend` configures the separate right-axis legend; numbered mappings

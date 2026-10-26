@@ -63,13 +63,15 @@ def _channel_decimal(value: float) -> str:
 
 
 def css_color_to_matplotlib(
-    color: str,
+    color: str | tuple[float, float, float] | tuple[float, float, float, float],
 ) -> str | tuple[float, float, float] | tuple[float, float, float, float]:
     """Project concrete RGB/HSL functions, retaining other native static color formats.
 
     Raises:
         ValueError: A functional color has no supported static Matplotlib projection.
     """
+    if not isinstance(color, str):
+        return color
     parsed = _functional_color(color)
     if parsed is None:
         if color.startswith("#") and len(color) in (5, 9):
@@ -94,6 +96,30 @@ def css_color_to_matplotlib(
     if parsed.alpha is None:
         return red, green, blue
     return red, green, blue, _unit_value(parsed.alpha, 1.0)
+
+
+def picker_hex_color(color: str) -> str:
+    """Project a concrete CSS color to an RGB picker preview.
+
+    The preview omits alpha; callers retain the original CSS value until an
+    explicit edit. Unsupported static color spaces and variables raise instead
+    of inventing a replacement color.
+
+    Args:
+        color: Saved CSS text to preview.
+
+    Returns:
+        A six-digit RGB hexadecimal color.
+
+    Raises:
+        ValueError: The value is not CSS text or has no static RGB projection.
+    """
+    # [impl->req~ring5.figure.colors~1]
+    if not isinstance(color, str):
+        raise ValueError("A saved color must be CSS text.")
+    from matplotlib.colors import to_hex
+
+    return to_hex(css_color_to_matplotlib(color), keep_alpha=False)
 
 
 def color_with_alpha(color: str, alpha: float) -> str:

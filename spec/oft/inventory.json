@@ -1538,6 +1538,7 @@
       "tags": ["colors", "palette", "styling"],
       "evidence": {
         "implementation": [
+          "src/web/rendering/_color_utils.py::picker_hex_color",
           "src/web/components/plotting/settings/colors_settings.py::ColorsSettingsComponent.render",
           "src/core/services/visualization/palette_service.py::resolve_palette",
           "src/core/services/visualization/palette_service.py::get_palette_names",
@@ -1545,6 +1546,13 @@
           "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_backgrounds"
         ],
         "tests": [
+          "tests/ui/test_figure_color_contracts.py::test_swatch_markup_uses_projected_rgba_and_preserves_unsupported_literals_as_text",
+          "tests/ui/test_figure_color_contracts.py::test_explicit_picker_edit_changes_only_the_selected_color",
+          "tests/ui/test_figure_color_contracts.py::test_unavailable_named_palette_is_preserved_until_explicit_replacement",
+          "tests/ui/test_figure_color_contracts.py::test_untouched_custom_palette_css_and_alpha_survive_reruns_and_navigation",
+          "tests/ui/test_figure_color_contracts.py::test_custom_palette_remains_a_sequence_until_a_named_palette_is_selected",
+          "tests/ui/test_figure_color_contracts.py::test_transparency_toggle_preserves_underlying_css_and_roundtrips_native_backgrounds",
+          "tests/ui/test_figure_color_contracts.py::test_unprojectable_css_is_visible_editable_and_never_repaired_to_a_picker_color",
           "tests/unit/test_colorblind_palettes.py::TestPaletteSelector",
           "tests/unit/test_palettes.py::TestIsColorblindSafe",
           "tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly.test_apply_backgrounds",
@@ -3176,6 +3184,7 @@
       ],
       "evidence": {
         "implementation": [
+          "src/web/rendering/_hatch_utils.py::plotly_hatch",
           "src/web/pages/ui/plotting/styles/base_ui.py::BaseStyleUI.render_series_visuals",
           "src/web/pages/ui/plotting/styles/bar_ui.py::BarStyleUI._render_specific_series_visuals",
           "src/web/pages/ui/plotting/styles/line_ui.py::LineStyleUI._render_specific_series_visuals",
@@ -3184,6 +3193,10 @@
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_trace_overrides"
         ],
         "tests": [
+          "tests/unit/test_hatch_value_contracts.py::test_public_series_override_renders_every_current_pattern",
+          "tests/unit/test_hatch_value_contracts.py::test_reapplication_clears_incompatible_paths_and_preserves_absent_pattern",
+          "tests/unit/test_hatch_value_contracts.py::test_pattern_absence_and_solid_remain_distinct_through_typed_roundtrip",
+          "tests/ui/test_figure_color_contracts.py::test_every_current_pattern_is_selected_as_an_actual_widget_value_and_renders",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorSeriesStyling",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestTraceOverrides",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestSeriesStyling",

@@ -14,6 +14,7 @@ from typing import Any, Literal, cast, override
 import pandas as pd
 
 from src.core.common.safe_format import safe_format_number
+from src.core.common.plot_payload import validate_plot_config_keys
 from src.core.services.visualization.palette_service import resolve_palette
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
@@ -94,6 +95,7 @@ class HeatmapPlot(BasePlot):
         # [impl->req~ring5.figure.heatmap-controls~1]
         # [impl->req~ring5.figure.heatmap-summary-controls~1]
         # [impl->req~ring5.plot.heatmap~1]
+        validate_plot_config_keys(config, plot_type=self.plot_type)
         x_col: str = config["x"]
         metric_columns: list[str] = [
             str(metric)
@@ -105,29 +107,12 @@ class HeatmapPlot(BasePlot):
         aggregation: str = config.get("aggregation", "mean")
         reverse_cs: bool = config.get("reverse_colorscale", False)
 
-        # Resolve colorscale from the shared color palette.
-        # Backward compat: if config carries a legacy string colorscale
-        # (e.g. "Viridis") and no palette, keep the string.
-        colorscale: str | list[list[str | float]]
-        legacy_cs = config.get("colorscale")
-        palette_name = config.get("color_palette")
-        if palette_name:
-            palette_colors = resolve_palette(palette_name)
-            colorscale = _palette_to_colorscale(palette_colors)
-        elif isinstance(legacy_cs, str) and legacy_cs:
-            colorscale = legacy_cs
-        else:
-            palette_colors = resolve_palette("wong")
-            colorscale = _palette_to_colorscale(palette_colors)
-
+        palette_colors = resolve_palette(config.get("color_palette"))
+        colorscale = _palette_to_colorscale(palette_colors)
         if reverse_cs:
-            if isinstance(colorscale, list):
-                colorscale = [[1.0 - float(pos), color] for pos, color in reversed(colorscale)]
-            else:
-                colorscale = colorscale + "_r"
+            colorscale = [[1.0 - float(pos), color] for pos, color in reversed(colorscale)]
 
-        # Backward compat: old configs used "show_cell_values", new uses "show_values"
-        show_values: bool = bool(config.get("show_values", config.get("show_cell_values", True)))
+        show_values: bool = bool(config.get("show_values", True))
         text_format: str = config.get("text_format", ".4g")
         text_color_mode: str = config.get("text_color_mode", "contrast")
         text_font_size: int = int(config.get("text_font_size", 10))

@@ -99,21 +99,29 @@ class TestPaletteSelector:
 
     @patch("src.web.components.plotting.settings.colors_settings.select_option")
     @patch("src.web.components.plotting.settings.colors_settings.st")
-    def test_legacy_palette_list_selects_matching_name(
+    def test_saved_palette_list_stays_custom_until_explicit_named_selection(
         self,
         mock_st: MagicMock,
         mock_select_option: MagicMock,
     ) -> None:
-        """Legacy color lists initialize the selector with their registry name."""
-        mock_select_option.return_value = "viridis_8"
+        """Even a registry-equivalent list retains its explicit color-sequence identity."""
+        mock_select_option.side_effect = lambda *args, **kwargs: args[2][args[3]]
         comp = self._make_component()
         comp._render_series_section = MagicMock(return_value={})
         comp._render_backgrounds_section = MagicMock(return_value={})
 
-        comp.render({"color_palette": list(PALETTE_REGISTRY["viridis_8"])})
-
+        saved = {"color_palette": list(PALETTE_REGISTRY["viridis_8"])}
+        result = comp.render(saved)
         palette_config = mock_select_option.call_args.args[2]
-        assert palette_config["color_palette"] == "viridis_8"
+        assert palette_config["color_palette"] == "Custom palette (saved)"
+        assert result["color_palette"] == saved["color_palette"]
+        assert result["color_palette"] is not saved["color_palette"]
+
+        mock_select_option.side_effect = None
+        mock_select_option.return_value = "viridis_8"
+        selected = comp.render(saved)
+        assert selected["color_palette"] == "viridis_8"
+        assert isinstance(saved["color_palette"], list)
 
     @patch("src.web.components.plotting.settings.colors_settings.st")
     def test_swatch_html_is_rendered(self, mock_st: MagicMock) -> None:

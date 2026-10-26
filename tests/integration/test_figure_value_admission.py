@@ -99,11 +99,18 @@ def test_restore_capture_and_recipe_reject_heatmap_keys_before_effects(
             state.restore_session(cast(PortfolioData, document))
     pd.testing.assert_frame_equal(cast(pd.DataFrame, state.get_data()), original)
 
-    plot.config[key] = "unsupported"
     before = copy.deepcopy(plot.config)
-    enricher = Mock(side_effect=AssertionError("enrichment reached"))
+    invalid = {**before, key: "unsupported"}
     with pytest.raises(ValueError, match="Unsupported heatmap configuration keys"):
-        service.save_portfolio("Rejected", original, [plot], {}, 1, figure_spec_enricher=enricher)
+        plot.config = invalid
+    serialized = plot.to_dict()
+    serialized["config"] = invalid
+    enricher = Mock(side_effect=AssertionError("enrichment reached"))
+    with patch.object(plot, "to_dict", return_value=serialized):
+        with pytest.raises(ValueError, match="Unsupported heatmap configuration keys"):
+            service.save_portfolio(
+                "Rejected", original, [plot], {}, 1, figure_spec_enricher=enricher
+            )
     enricher.assert_not_called()
     assert plot.config == before
     assert not (tmp_path / "Rejected.json").exists()
@@ -226,12 +233,16 @@ def test_invalid_pattern_rejects_at_public_restore_and_capture_boundaries(
             )
     state = RepositoryStateManager()
     plot = PlotFactory.create_plot("bar", 0, "Invalid")
-    plot.config = config
-    enricher = Mock(side_effect=AssertionError("enrichment reached"))
     with pytest.raises(ValueError, match="pattern must be a string"):
-        PortfolioService(state, portfolios_dir=tmp_path).save_portfolio(
-            "Rejected", None, [plot], {}, 1, figure_spec_enricher=enricher
-        )
+        plot.config = config
+    serialized = plot.to_dict()
+    serialized["config"] = config
+    enricher = Mock(side_effect=AssertionError("enrichment reached"))
+    with patch.object(plot, "to_dict", return_value=serialized):
+        with pytest.raises(ValueError, match="pattern must be a string"):
+            PortfolioService(state, portfolios_dir=tmp_path).save_portfolio(
+                "Rejected", None, [plot], {}, 1, figure_spec_enricher=enricher
+            )
     enricher.assert_not_called()
     assert not (tmp_path / "Rejected.json").exists()
     assert config == before

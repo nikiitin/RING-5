@@ -2325,7 +2325,12 @@ class Session:
                 else dict(config)
             )
         except (TypeError, ValueError) as exc:
-            raise DataValidationError(f"Invalid plot configuration: {exc}") from exc
+            diagnostic = (
+                "Invalid plot configuration"
+                if isinstance(config, FigureSpec)
+                else "Plot config must be a mapping"
+            )
+            raise DataValidationError(f"{diagnostic}: {exc}") from exc
         validate_plot_config(resolved_type, frame, raw_config)
 
         # Validation happens before registration so a rejected configuration

@@ -22,6 +22,7 @@ from src.core.common.safe_format import plotly_numeric_template
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import LegendConfig
 from src.web.rendering._color_utils import color_with_alpha
+from src.web.rendering._hatch_utils import plotly_hatch
 from src.web.rendering._heatmap_utils import (
     heatmap_text_colors,
     compute_nice_range,
@@ -100,9 +101,9 @@ class FigureSpecToPlotly:
         FigureSpecToPlotly._apply_font_family(spec, fig)
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
         FigureSpecToPlotly._apply_data_labels(spec, fig)
+        FigureSpecToPlotly._apply_stripes(spec, fig)
         FigureSpecToPlotly._apply_series_styling(spec, fig)
         FigureSpecToPlotly._apply_trace_overrides(spec, fig)
-        FigureSpecToPlotly._apply_stripes(spec, fig)
         FigureSpecToPlotly._apply_axis_colors(spec, fig)
         return fig
 
@@ -700,6 +701,13 @@ class FigureSpecToPlotly:
                     color=style.bar_border_color or "#000",
                 )
                 update["marker"] = marker_update
+            if style.hatching_pattern is not None and trace_type in ("bar", "histogram"):
+                marker_update = update.get("marker", {})
+                marker_update["pattern"] = {
+                    **plotly_hatch(style.hatching_pattern),
+                    "fillmode": "replace",
+                }
+                update["marker"] = marker_update
 
             if update:
                 trace.update(**update)
@@ -719,7 +727,7 @@ class FigureSpecToPlotly:
                 pattern = spec.hatching_sequence[i % len(spec.hatching_sequence)]
                 trace.update(
                     marker=dict(
-                        pattern=dict(shape=pattern, fillmode="replace"),
+                        pattern={**plotly_hatch(pattern), "fillmode": "replace"},
                     )
                 )
 
@@ -874,19 +882,21 @@ class FigureSpecToPlotly:
                 elif trace_type in ("box", "violin"):
                     trace.update(fillcolor=style.color, line=dict(color=style.color))
 
-            if style.symbol and trace_type not in (
-                "heatmap",
-                "waterfall",
-                "sankey",
-                "parcoords",
+            if style.symbol and trace_type in (
+                "scatter",
+                "scattergl",
+                "scatterpolar",
+                "box",
+                "violin",
             ):
                 trace.update(marker=dict(symbol=style.symbol))
 
-            if style.marker_size > 0 and trace_type not in (
-                "heatmap",
-                "waterfall",
-                "sankey",
-                "parcoords",
+            if style.marker_size > 0 and trace_type in (
+                "scatter",
+                "scattergl",
+                "scatterpolar",
+                "box",
+                "violin",
             ):
                 trace.update(marker=dict(size=style.marker_size))
 
@@ -899,13 +909,10 @@ class FigureSpecToPlotly:
             ):
                 trace.update(line=dict(width=style.line_width))
 
-            if style.hatching_pattern and trace_type in ("bar", "histogram"):
+            if style.hatching_pattern is not None and trace_type in ("bar", "histogram"):
                 trace.update(
                     marker=dict(
-                        pattern=dict(
-                            shape=style.hatching_pattern,
-                            fillmode="replace",
-                        ),
+                        pattern={**plotly_hatch(style.hatching_pattern), "fillmode": "replace"},
                     )
                 )
 

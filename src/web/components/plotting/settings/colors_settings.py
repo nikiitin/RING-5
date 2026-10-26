@@ -7,15 +7,16 @@ Usage::
 """
 
 import copy
+import json
 from collections.abc import Callable
 from typing import Any, cast
 
 import pandas as pd
 import streamlit as st
+from matplotlib.colors import to_hex
 
 from src.web.state.ui_state_manager import WidgetKeyBuilder
 
-from src.core.models.visualization.palettes import PALETTE_REGISTRY
 from src.core.services.visualization.palette_service import (
     get_palette_names,
     is_colorblind_safe,
@@ -33,6 +34,10 @@ from src.web.components.plotting.settings.widget_factory import (
     toggle,
 )
 from src.core.models.plot_config import PlotConfig
+from src.web.rendering._color_utils import css_color_to_matplotlib, picker_hex_color
+
+PaletteValue = str | list[str] | tuple[str, ...]
+_CUSTOM_PALETTE_LABEL = "Custom palette (saved)"
 
 
 class ColorsSettingsComponent:
@@ -128,15 +133,12 @@ class ColorsSettingsComponent:
             if accessibility_just_enabled
             else saved_config.get("color_palette", default_palette)
         )
-        if isinstance(saved_palette, list):
-            current_palette = next(
-                (name for name, colors in PALETTE_REGISTRY.items() if colors == saved_palette),
-                default_palette,
-            )
-        elif isinstance(saved_palette, str):
-            current_palette = saved_palette
-        else:
-            current_palette = default_palette
+        custom_palette = isinstance(saved_palette, (list, tuple))
+        if not custom_palette and not isinstance(saved_palette, str):
+            raise ValueError("A saved palette must be a name or an explicit color sequence.")
+        current_palette = _CUSTOM_PALETTE_LABEL if custom_palette else saved_palette
+        if current_palette not in palette_names:
+            palette_names.insert(0, current_palette)
         palette_config = {**saved_config, "color_palette": current_palette}
 
         def _fmt_palette(name: str) -> str:
@@ -145,14 +147,14 @@ class ColorsSettingsComponent:
                 label = f"\u2713 {label}"
             return label
 
-        selected_palette: str = select_option(
+        selected_label = select_option(
             "Palette",
             palette_names,
             palette_config,
             "color_palette",
             self.plot_id,
             widget_key=palette_widget_key,
-            default=default_palette,
+            default=current_palette,
             format_func=_fmt_palette,
             help=(
                 "Palettes marked ✓ are color-vision-safe. RING-5 Accessible also meets the "
@@ -160,14 +162,24 @@ class ColorsSettingsComponent:
             ),
         )
 
-        palette_colors = resolve_palette(selected_palette)
+        selected_palette: PaletteValue = (
+            copy.deepcopy(saved_palette) if selected_label == current_palette else selected_label
+        )
+        palette_colors = self._preview_palette(selected_palette)
 
-        # Preview swatches
+        # Only projected hexadecimal colors enter inline CSS. Unsupported saved
+        # literals remain editable without becoming additional CSS declarations.
+        swatch_colors: list[str] = []
+        for color in palette_colors:
+            try:
+                swatch_colors.append(to_hex(css_color_to_matplotlib(color), keep_alpha=True))
+            except ValueError:
+                st.text(f"Saved palette color (no swatch preview): {color}")
         swatch_html = " ".join(
             f'<span style="display:inline-block;width:20px;height:20px;'
-            f"background:{c};border:1px solid #ccc;border-radius:3px;"
+            f"background:{color};border:1px solid #ccc;border-radius:3px;"
             f'margin-right:2px;"></span>'
-            for c in palette_colors
+            for color in swatch_colors
         )
         st.markdown(swatch_html, unsafe_allow_html=True)
 
@@ -255,12 +267,14 @@ class ColorsSettingsComponent:
         data: pd.DataFrame | None,
         items: list[str] | None,
         key_prefix: str,
-        palette_name: str | None = None,
+        palette_name: PaletteValue | None = None,
     ) -> PlotConfig:
         """Render per-series colour pickers."""
         st.markdown("#### Series Colors")
 
-        effective_palette = palette_name or saved_config.get("color_palette", "wong")
+        effective_palette = (
+            palette_name if palette_name is not None else saved_config.get("color_palette", "wong")
+        )
 
         series_styles = self._render_series_colors(
             saved_config,
@@ -279,7 +293,7 @@ class ColorsSettingsComponent:
         data: pd.DataFrame | None = None,
         items: list[str] | None = None,
         key_prefix: str = "",
-        current_palette: str | None = None,
+        current_palette: PaletteValue | None = None,
     ) -> dict[str, Any]:
         """Render colour pickers for each series item."""
         series_styles_raw = saved_config.get("series_styles", {})
@@ -288,19 +302,24 @@ class ColorsSettingsComponent:
         )
         unique_vals = self._get_unique_values(saved_config, data, items)
 
-        palette_name = current_palette or saved_config.get("color_palette", "plotly")
-        palette_colors = resolve_palette(palette_name)
+        palette = (
+            current_palette
+            if current_palette is not None
+            else saved_config.get("color_palette", "wong")
+        )
+        palette_colors = self._preview_palette(palette)
+        if not palette_colors:
+            return series_styles
+        palette_key = (
+            palette if isinstance(palette, str) else stable_widget_suffix(0, json.dumps(palette))
+        )
 
         if unique_vals:
             for idx, val in enumerate(unique_vals):
                 val_str = str(val)
                 val_hash = stable_widget_suffix(idx, val_str)
 
-                raw_color = palette_colors[idx % len(palette_colors)]
-                # Lazy import to avoid circular dependency with styles package
-                from src.web.pages.ui.plotting.styles.colors import to_hex
-
-                default_color = to_hex(raw_color)
+                default_color = palette_colors[idx % len(palette_colors)]
 
                 current_style = series_styles.get(val_str, {})
 
@@ -314,7 +333,7 @@ class ColorsSettingsComponent:
                         current_style,
                         val_hash,
                         key_prefix,
-                        palette_name,
+                        palette_key,
                     )
 
                 series_styles[val_str] = current_style
@@ -347,14 +366,14 @@ class ColorsSettingsComponent:
         )
 
         with c2:
-            st.color_picker(
+            color_picker(
                 "Original",
-                default_color,
-                key=(
-                    WidgetKeyBuilder.plot_key(
-                        self.plot_id,
-                        f"widgets.appearance.{key_prefix}orig_col_{val_hash}_{palette_name}",
-                    )
+                {"color": default_color},
+                "color",
+                self.plot_id,
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id,
+                    f"widgets.appearance.{key_prefix}orig_col_{val_hash}_{palette_name}",
                 ),
                 disabled=True,
                 label_visibility="collapsed",
@@ -371,8 +390,10 @@ class ColorsSettingsComponent:
                 current_style["use_color"] = False
                 current_style["color"] = default_color
 
-                if picker_key in st.session_state:
-                    st.session_state[picker_key] = default_color
+                try:
+                    st.session_state[picker_key] = picker_hex_color(default_color)
+                except ValueError:
+                    st.session_state[f"{picker_key}.literal"] = default_color
                 if override_key in st.session_state:
                     st.session_state[override_key] = False
 
@@ -380,14 +401,15 @@ class ColorsSettingsComponent:
 
         with c3:
             saved_col = current_style.get("color", default_color)
-            new_color_raw = st.color_picker(
+            new_color = color_picker(
                 "Custom",
-                saved_col,
-                key=picker_key,
+                {"color": saved_col},
+                "color",
+                self.plot_id,
+                widget_key=picker_key,
                 label_visibility="collapsed",
             )
-            new_color: str = str(new_color_raw) if new_color_raw is not None else default_color
-            st.caption(f"{new_color}")
+            st.text(new_color)
 
             use_custom_raw = st.checkbox(
                 "Override",
@@ -422,32 +444,28 @@ class ColorsSettingsComponent:
 
         theme_cols1, theme_cols2 = st.columns(2)
         with theme_cols1:
-            if not transparent_bg:
-                curr_plot_bg = saved_config.get("plot_bgcolor", "#ffffff")
-                if not curr_plot_bg.startswith("#"):
-                    curr_plot_bg = "#ffffff"
-
-                curr_paper_bg = saved_config.get("paper_bgcolor", "#ffffff")
-                if not curr_paper_bg.startswith("#"):
-                    curr_paper_bg = "#ffffff"
-
-                plot_bgcolor = st.color_picker(
-                    "Plot Background",
-                    curr_plot_bg,
-                    key=WidgetKeyBuilder.plot_key(
-                        self.plot_id, f"widgets.appearance.{key_prefix}bg_plot"
-                    ),
-                )
-                paper_bgcolor = st.color_picker(
-                    "Paper (Outer) Background",
-                    curr_paper_bg,
-                    key=WidgetKeyBuilder.plot_key(
-                        self.plot_id, f"widgets.appearance.{key_prefix}bg_paper"
-                    ),
-                )
-            else:
-                plot_bgcolor = "rgba(0,0,0,0)"
-                paper_bgcolor = "rgba(0,0,0,0)"
+            plot_bgcolor = color_picker(
+                "Plot Background",
+                saved_config,
+                "plot_bgcolor",
+                self.plot_id,
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}bg_plot"
+                ),
+                default="#ffffff",
+                disabled=transparent_bg,
+            )
+            paper_bgcolor = color_picker(
+                "Paper (Outer) Background",
+                saved_config,
+                "paper_bgcolor",
+                self.plot_id,
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}bg_paper"
+                ),
+                default="#ffffff",
+                disabled=transparent_bg,
+            )
 
             grid_color = color_picker(
                 "Grid Color",
@@ -509,6 +527,18 @@ class ColorsSettingsComponent:
             "axis_line_width": axis_line_width,
             "enable_stripes": enable_stripes,
         }
+
+    def _preview_palette(self, palette: PaletteValue) -> list[str]:
+        """Preview a current palette without substituting for unavailable saved values."""
+        if isinstance(palette, (list, tuple)):
+            if palette and all(isinstance(color, str) and color.strip() for color in palette):
+                return resolve_palette(palette)
+        elif isinstance(palette, str) and any(
+            name.lower() == palette.lower() for name in get_palette_names()
+        ):
+            return resolve_palette(palette)
+        st.warning("The saved palette has no available preview. Choose a palette to replace it.")
+        return []
 
     # Helpers
 

@@ -43,6 +43,7 @@ from src.core.models.visualization.trace_config import (
     ViolinTraceConfig,
     WaterfallTraceConfig,
 )
+from src.web.rendering._color_utils import css_color_to_matplotlib
 from src.web.rendering._matplotlib_lock import serialized_matplotlib
 from src.web.rendering._heatmap_utils import (
     contrasting_text_color,
@@ -331,7 +332,7 @@ class MatplotlibTraceRenderer:
 
         # Bar border: controls visual separation between stacked items
         if bar_border_width > 0 or spec.border_width > 0:
-            props["edgecolor"] = spec.border_color or "white"
+            props["edgecolor"] = css_color_to_matplotlib(spec.border_color or "white")
             props["linewidth"] = bar_border_width or spec.border_width
         else:
             props["edgecolor"] = "none"
@@ -353,7 +354,7 @@ class MatplotlibTraceRenderer:
         # 5) Render
         color = override_color or spec.color
         if color:
-            props["color"] = color
+            props["color"] = css_color_to_matplotlib(color)
         if spec.pattern:
             props["hatch"] = spec.pattern
 
@@ -378,7 +379,7 @@ class MatplotlibTraceRenderer:
     ) -> None:
         # [impl->req~ring5.plot.box~1]
         """Draw one precomputed distribution with deterministic point jitter."""
-        color = spec.color or override_color or "#4472C4"
+        color = css_color_to_matplotlib(spec.color or override_color or "#4472C4")
         stats: dict[str, Any] = {
             "label": spec.name,
             "med": spec.median,
@@ -419,9 +420,21 @@ class MatplotlibTraceRenderer:
             )
             point_positions = center + spread
             if spec.orientation == "vertical":
-                ax.scatter(point_positions, points, color=color, s=16, alpha=spec.opacity)
+                ax.scatter(
+                    point_positions,
+                    points,
+                    color=color,
+                    s=16,
+                    alpha=spec.opacity,
+                )
             else:
-                ax.scatter(points, point_positions, color=color, s=16, alpha=spec.opacity)
+                ax.scatter(
+                    points,
+                    point_positions,
+                    color=color,
+                    s=16,
+                    alpha=spec.opacity,
+                )
         if spec.orientation == "vertical":
             vertical_ticks[spec.category_position] = spec.category
         else:
@@ -441,7 +454,7 @@ class MatplotlibTraceRenderer:
         props: dict[str, Any] = {}
         color = override_color or spec.color
         if color:
-            props["color"] = color
+            props["color"] = css_color_to_matplotlib(color)
         if spec.line_width:
             props["linewidth"] = spec.line_width
         if spec.line_dash:
@@ -534,7 +547,7 @@ class MatplotlibTraceRenderer:
         """Draw one precomputed density, optional inner summary, and observations."""
         if not spec.density_coordinates or not spec.density:
             return
-        color = spec.color or override_color or "#4472C4"
+        color = css_color_to_matplotlib(spec.color or override_color or "#4472C4")
         coordinates = np.asarray(spec.density_coordinates, dtype=float)
         half_width = spec.violin_width * spec.width_scale / 2
         density_width = np.asarray(spec.density, dtype=float) * half_width
@@ -615,9 +628,21 @@ class MatplotlibTraceRenderer:
             )
             point_positions = spec.position + spread
             if spec.orientation == "vertical":
-                ax.scatter(point_positions, spec.values, color=color, s=12, alpha=spec.opacity)
+                ax.scatter(
+                    point_positions,
+                    spec.values,
+                    color=color,
+                    s=12,
+                    alpha=spec.opacity,
+                )
             else:
-                ax.scatter(spec.values, point_positions, color=color, s=12, alpha=spec.opacity)
+                ax.scatter(
+                    spec.values,
+                    point_positions,
+                    color=color,
+                    s=12,
+                    alpha=spec.opacity,
+                )
         if spec.orientation == "vertical":
             vertical_ticks[spec.category_position] = spec.category
         else:
@@ -643,7 +668,7 @@ class MatplotlibTraceRenderer:
         closed_radii = np.append(radii, radii[0])
         x_values = closed_radii * np.cos(closed_angles)
         y_values = closed_radii * np.sin(closed_angles)
-        color = override_color or spec.color or "#4472C4"
+        color = css_color_to_matplotlib(override_color or spec.color or "#4472C4")
 
         if not getattr(ax, "_ring5_radar_frame", False):
             for angle, category in zip(angles, spec.categories):
@@ -710,7 +735,7 @@ class MatplotlibTraceRenderer:
                 height,
                 bottom=bottom,
                 width=spec.bar_width,
-                color=color,
+                color=css_color_to_matplotlib(color),
                 alpha=spec.opacity,
                 label=spec.name if index == 0 else "_nolegend_",
             )
@@ -729,7 +754,7 @@ class MatplotlibTraceRenderer:
                         positions[index + 1] - spec.bar_width / 2,
                     ],
                     [end, end],
-                    color=spec.connector_color,
+                    color=css_color_to_matplotlib(spec.connector_color),
                     linewidth=spec.connector_width,
                 )
         ax.set_xticks(positions, spec.categories)
@@ -770,7 +795,7 @@ class MatplotlibTraceRenderer:
                 PathPatch(
                     path,
                     facecolor="none",
-                    edgecolor=color,
+                    edgecolor=css_color_to_matplotlib(color),
                     linewidth=1.0 + 18.0 * value / maximum,
                     alpha=spec.link_opacity,
                     capstyle="butt",
@@ -796,8 +821,8 @@ class MatplotlibTraceRenderer:
                     (x_position - node_width / 2, y_position - height / 2),
                     node_width,
                     height,
-                    facecolor=color,
-                    edgecolor=spec.node_line_color,
+                    facecolor=css_color_to_matplotlib(color),
+                    edgecolor=css_color_to_matplotlib(spec.node_line_color),
                     linewidth=spec.node_line_width,
                     alpha=spec.opacity,
                     zorder=2,
@@ -863,7 +888,13 @@ class MatplotlibTraceRenderer:
                     if color_values is not None
                     else spec.line_color
                 )
-                ax.plot(x_positions, normalized[row], color=color, alpha=alpha, zorder=2)
+                ax.plot(
+                    x_positions,
+                    normalized[row],
+                    color=css_color_to_matplotlib(color),
+                    alpha=alpha,
+                    zorder=2,
+                )
 
         for index, dimension in enumerate(spec.dimensions):
             ax.plot([index, index], [0, 1], color="#777777", linewidth=1.0, zorder=1)
@@ -898,20 +929,26 @@ class MatplotlibTraceRenderer:
         props: dict[str, Any] = {}
         color = override_color or spec.color
         if color:
-            props["color"] = color
+            props["color"] = css_color_to_matplotlib(color)
         sizes = spec.size_values if spec.size_values is not None else spec.marker_size
         props["s"] = np.square(sizes)
         props["marker"] = _MARKER_MAP.get(spec.marker_symbol, "o")
         props["alpha"] = spec.opacity
         props["linewidths"] = spec.marker_line_width
         if spec.marker_line_color:
-            props["edgecolors"] = spec.marker_line_color
+            props["edgecolors"] = css_color_to_matplotlib(spec.marker_line_color)
 
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
         points = ax.scatter(spec.x, y_clean, label=spec.name, **props)
         if spec.error_y is not None:
             error_color = color or cast(Any, points).get_facecolors()[0]
-            ax.errorbar(spec.x, y_clean, yerr=spec.error_y, fmt="none", color=error_color)
+            ax.errorbar(
+                spec.x,
+                y_clean,
+                yerr=spec.error_y,
+                fmt="none",
+                color=css_color_to_matplotlib(error_color),
+            )
 
     # heatmap
     @staticmethod
@@ -985,7 +1022,7 @@ class MatplotlibTraceRenderer:
                             ha="center",
                             va="center",
                             fontsize=font_size,
-                            color=color,
+                            color=css_color_to_matplotlib(color),
                         )
 
         # Totals separator lines

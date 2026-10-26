@@ -178,7 +178,13 @@ Covers:
 -->
 
 Choose a named palette or explicit per-series colors. Colorblind-safe palettes are identified in
-the selector. Background, grid, axis, and transparent paper or plot colors are stored with the plot.
+the selector. A saved custom palette remains a color sequence until you explicitly select a named
+palette. Background, grid, axis, and transparent paper or plot colors are stored with the plot.
+
+Opening a color picker preserves the saved CSS spelling and alpha until you change its RGB value.
+Colors without a static RGB picker projection appear as editable CSS text; the selected native
+engine reports unsupported color spaces when rendering. **Transparent Background** changes the
+rendered paper and plot surfaces while retaining their saved colors for when transparency is off.
 
 ### Accessible figure themes
 
@@ -348,8 +354,10 @@ and size, and line width. Typed renderer styles also carry opacity and borders. 
 a series to its current palette color.
 
 Programmatic `series_styles` use text series names and style mappings. A bar `pattern` is a
-string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`. Circle/star hatches
-are supported by Matplotlib; Plotly's current shape enum supports the first eight forms.
+string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`. Both engines render all
+forms; Plotly projects circle/star forms through native SVG pattern paths. **Default (trace/theme)**
+omits the override and preserves intrinsic hatching. **Solid** explicitly clears it. Explicit
+series choices take precedence over default stripe patterns and appear on legend swatches.
 
 ## Working method
 

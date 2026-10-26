@@ -28,7 +28,11 @@ from src.core.models.visualization.trace_config import (
 from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
 from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 from src.web.pages.ui.plotting.types.parallel_coordinates_plot import ParallelCoordinatesPlot
-from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent, is_dark_cell
+from src.web.rendering._heatmap_utils import (
+    compute_nice_range,
+    compute_z_extent,
+    heatmap_text_colors,
+)
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.linked_selection import apply_linked_selection
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
@@ -292,13 +296,10 @@ def test_linked_filters_keep_drilldown_metadata_aligned_for_points_and_cells() -
 
 def test_palette_luminance_and_reversal_control_heatmap_text() -> None:
     z = [[0.0, 1.0]]
-    assert is_dark_cell(z, 0, 0, "Viridis")
-    assert not is_dark_cell(z, 0, 1, "Viridis")
-    assert not is_dark_cell(z, 0, 0, "Viridis_r")
-    assert is_dark_cell(z, 0, 1, "Viridis_r")
+    assert heatmap_text_colors(z, "Viridis") == [["white", "black"]]
+    assert heatmap_text_colors(z, "Viridis_r") == [["black", "white"]]
     scale = [[0, "black"], [0.5, "white"], [1, "black"]]
-    assert not is_dark_cell([[0, 0.5, 1]], 0, 1, scale)
-    assert is_dark_cell([[0, 0.5, 1]], 0, 2, scale)
+    assert heatmap_text_colors([[0, 0.5, 1]], scale) == [["white", "black", "white"]]
 
 
 def test_nonfinite_heatmap_values_fail_with_a_clear_error() -> None:

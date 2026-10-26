@@ -97,7 +97,7 @@ def validate_plot_config_values(config: Mapping[str, Any], *, plot_type: str | N
         if not isinstance(name, str) or not isinstance(style, Mapping):
             raise ValueError("series_styles must map text series names to style mappings.")
         if "pattern" in style and (
-            not isinstance(style["pattern"], str) or style["pattern"] not in BAR_HATCH_PATTERNS
+            type(style["pattern"]) is not str or style["pattern"] not in BAR_HATCH_PATTERNS
         ):
             raise ValueError(
                 f"Series style {name!r} pattern must be a string from {BAR_HATCH_PATTERNS!r}."

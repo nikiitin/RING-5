@@ -109,6 +109,7 @@ class FigureSpecToMatplotlib:
             FigureSpecToMatplotlib._apply_axis_colors(spec, ax)
             FigureSpecToMatplotlib._apply_grids(spec, ax)
             FigureSpecToMatplotlib._apply_secondary_axis(spec, ax)
+            FigureSpecToMatplotlib._apply_hatching(spec, ax)
             # Per-trace styling must run before the legend is built so renames and
             # restyled handles are reflected (parity with the Plotly connector).
             FigureSpecToMatplotlib._apply_series_styling(spec, ax)
@@ -117,7 +118,6 @@ class FigureSpecToMatplotlib:
             FigureSpecToMatplotlib._apply_reference_lines(spec, ax)
             FigureSpecToMatplotlib._apply_data_labels(spec, ax)
             FigureSpecToMatplotlib._apply_annotations(spec, ax, render_result)
-            FigureSpecToMatplotlib._apply_hatching(spec, ax)
             if apply_margins:
                 FigureSpecToMatplotlib._apply_margins(spec, ax)
 
@@ -169,7 +169,7 @@ class FigureSpecToMatplotlib:
                     patch.set_facecolor(fill)
                 if alpha is not None:
                     patch.set_alpha(alpha)
-                if hatch:
+                if hatch is not None:
                     patch.set_hatch(hatch)
                 if edge:
                     patch.set_edgecolor(edge)
@@ -218,7 +218,7 @@ class FigureSpecToMatplotlib:
                 handle.set_facecolor(fill)
             if alpha is not None:
                 handle.set_alpha(alpha)
-            if hatch:
+            if hatch is not None:
                 handle.set_hatch(hatch)
             if edge:
                 handle.set_edgecolor(edge)
@@ -242,6 +242,7 @@ class FigureSpecToMatplotlib:
                     (style.bar_border_color or "#000") if style.bar_border_width > 0 else None
                 ),
                 edge_width=style.bar_border_width if style.bar_border_width > 0 else None,
+                hatch=style.hatching_pattern,
             )
 
     @staticmethod
@@ -261,7 +262,7 @@ class FigureSpecToMatplotlib:
                 marker=marker,
                 marker_size=style.marker_size if style.marker_size > 0 else None,
                 line_width=style.line_width if style.line_width > 0 else None,
-                hatch=style.hatching_pattern or None,
+                hatch=style.hatching_pattern,
             )
             if style.display_name:
                 handle.set_label(style.display_name)
@@ -536,7 +537,7 @@ class FigureSpecToMatplotlib:
         if x_axis.show_grid:
             ax.xaxis.grid(
                 True,
-                color=x_axis.grid_color,
+                color=css_color_to_matplotlib(x_axis.grid_color),
                 linewidth=x_axis.grid_width,
                 linestyle=FigureSpecToMatplotlib._map_dash_style(x_axis.grid_dash),
                 alpha=x_axis.grid_alpha,
@@ -548,7 +549,7 @@ class FigureSpecToMatplotlib:
         if y_axis.show_grid:
             ax.yaxis.grid(
                 True,
-                color=y_axis.grid_color,
+                color=css_color_to_matplotlib(y_axis.grid_color),
                 linewidth=y_axis.grid_width,
                 linestyle=FigureSpecToMatplotlib._map_dash_style(y_axis.grid_dash),
                 alpha=y_axis.grid_alpha,
@@ -602,7 +603,7 @@ class FigureSpecToMatplotlib:
         if y2.show_grid:
             twin.yaxis.grid(
                 True,
-                color=y2.grid_color,
+                color=css_color_to_matplotlib(y2.grid_color),
                 linewidth=y2.grid_width,
                 linestyle=FigureSpecToMatplotlib._map_dash_style(y2.grid_dash),
                 alpha=y2.grid_alpha,
@@ -821,9 +822,9 @@ class FigureSpecToMatplotlib:
         """Set figure and axes background colours."""
         fig = ax.figure
         if spec.paper_bgcolor:
-            fig.patch.set_facecolor(spec.paper_bgcolor)
+            fig.patch.set_facecolor(css_color_to_matplotlib(spec.paper_bgcolor))
         if spec.plot_bgcolor:
-            ax.set_facecolor(spec.plot_bgcolor)
+            ax.set_facecolor(css_color_to_matplotlib(spec.plot_bgcolor))
 
     @staticmethod
     def _apply_font_family(spec: FigureConfig, ax: Axes) -> None:
@@ -850,11 +851,11 @@ class FigureSpecToMatplotlib:
         NOTE: in the live render order this runs *after* traces are drawn (which already
         carry explicit colours from ``MatplotlibTraceRenderer.palette_colors``), so it is
         effectively a belt-and-suspenders default cycle for any artist drawn later. Plotly
-        qualitative palettes return CSS ``rgb(r,g,b)`` strings, normalised to hex first.
+        qualitative palettes retain their CSS colors through native RGB projection.
         """
         if spec.color_palette:
-            hex_colors = [css_color_to_matplotlib(c) for c in spec.color_palette]
-            ax.set_prop_cycle(color=hex_colors)
+            colors = [css_color_to_matplotlib(c) for c in spec.color_palette]
+            ax.set_prop_cycle(color=colors)
 
     @staticmethod
     def _apply_reference_lines(spec: FigureConfig, ax: Axes) -> None:
