@@ -14,6 +14,10 @@ def main() -> int:
     """Exercise a headless CSV workflow and return its process exit status."""
     print(ring5.doctor())
     try:
+        from ring5._chrome_install import _load_manifest
+
+        # The wheel must carry the same reviewed installer inputs as a checkout.
+        _load_manifest()
         with TemporaryDirectory(prefix="ring5-check-") as directory, ring5.Session() as session:
             csv_path = Path(directory) / "input.csv"
             csv_path.write_text("benchmark,ipc\nexample,1.5\n", encoding="utf-8")

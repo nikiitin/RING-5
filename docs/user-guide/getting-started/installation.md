@@ -24,7 +24,7 @@ make dev
 ```
 
 The target creates `python_venv`, installs RING-5 in editable mode with development and test
-dependencies, installs Playwright Chromium and Kaleido Chrome, and prepares test fixtures. It can take several minutes
+dependencies, installs Playwright Chromium and the reviewed Chrome for Testing release, and prepares test fixtures. It can take several minutes
 on the first run.
 
 Start the web application:
@@ -91,6 +91,44 @@ as missing; exports fail without choosing another browser. When the variable is 
 Kaleido's downloaded browser before system locations. The report does not launch external tools.
 
 RING-5's Matplotlib PDF export does not require LaTeX.
+
+## Install Chrome for Plotly static exports
+
+`ring5 install-chrome` works from both a checkout and an installed wheel. It downloads the exact
+Stable release in the packaged manifest into the platform user cache for `ring5/chrome`. Use
+`--cache-dir PATH` to choose a different installation cache. The command prints only the absolute
+browser executable path to standard output; instructions and errors go to standard error.
+
+Select that executable before starting the application or a Python export process:
+
+```bash
+export BROWSER_PATH="$(ring5 install-chrome)"
+```
+
+On native Windows, use PowerShell with the environment's Python:
+
+```powershell
+$browser = & .\python_venv\Scripts\python.exe -m ring5.cli install-chrome
+if ($LASTEXITCODE -ne 0) { throw "Chrome installation failed" }
+$env:BROWSER_PATH = $browser
+```
+
+With another activated environment, use its `ring5 install-chrome` command. `make chrome-install`
+delegates to the same CLI; a child process cannot set `BROWSER_PATH` in its parent shell. The
+installer neither launches Chrome nor changes browser selection. Installation failure returns
+exit code 2 and preserves existing installations. A corrupt or unowned destination is rejected;
+inspect the reported path before explicitly removing it and retrying.
+
+The manifest contains native Linux x64/ARM64, macOS x64/ARM64, and Windows x86/x64 artifacts.
+Other OS/architecture combinations, including Windows ARM64, are rejected without choosing an
+emulated build. Archive installation does not establish native static-export support: Chrome's
+system libraries and a compatible host are still required. Playwright installs a separate browser
+for application tests and does not select RING-5's export browser.
+
+The reviewed SHA-256 values are computed from official HTTPS downloads checked against Google's
+object size, MD5, and generation. They are project integrity pins, not a Google signature. See the
+[developer setup]({{site.baseurl}}/developer-guide/development/setup/#chrome-release-policy) for the
+release policy.
 
 ## Verify the installation
 

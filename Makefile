@@ -95,7 +95,7 @@ playwright-install: venv
 	$(VENV_BIN)/playwright install chromium
 
 chrome-install:
-	$(VENV_BIN)/kaleido_get_chrome
+	$(PYTHON) -m ring5.cli install-chrome
 
 install-latex:
 	@if command -v apt-get >/dev/null 2>&1; then \
