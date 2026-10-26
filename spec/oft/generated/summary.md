@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 233
-- Live capability bindings: 829
+- Live capability bindings: 850
 
 ## Requirements by feature group
 
@@ -53,12 +53,12 @@ This file is informative; normative items are in the other generated files.
 - `margin_config_fields`: 5
 - `matplotlib_formats`: 4
 - `navigation_pages`: 4
-- `parse_job_members`: 2
+- `parse_job_members`: 4
 - `parse_variable_fields`: 9
 - `parser_strategies`: 2
 - `plot_types`: 17
 - `plotly_formats`: 4
-- `public_exports`: 124
+- `public_exports`: 143
 - `public_shaper_exports`: 4
 - `render_engines`: 2
 - `restore_report_fields`: 5
