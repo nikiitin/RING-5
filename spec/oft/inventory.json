@@ -1546,6 +1546,7 @@
           "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_backgrounds"
         ],
         "tests": [
+          "tests/integration/test_area_css_colors_public_api.py::test_area_css_colors_preserve_measured_outline_and_fill_geometry",
           "tests/ui/test_figure_color_contracts.py::test_swatch_markup_uses_projected_rgba_and_preserves_unsupported_literals_as_text",
           "tests/ui/test_figure_color_contracts.py::test_explicit_picker_edit_changes_only_the_selected_color",
           "tests/ui/test_figure_color_contracts.py::test_unavailable_named_palette_is_preserved_until_explicit_replacement",
@@ -4029,6 +4030,7 @@
           "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_line"
         ],
         "tests": [
+          "tests/integration/test_area_css_colors_public_api.py::test_area_css_colors_preserve_measured_outline_and_fill_geometry",
           "tests/unit/test_area_plot.py::test_normalized_area_precomputes_cumulative_baselines_without_mutation",
           "tests/unit/test_trace_to_plotly.py::TestAreaLineTrace.test_area_fill_and_step_interpolation_are_preserved",
           "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_area_line_fills_against_precomputed_baseline",
