@@ -173,7 +173,7 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
     api.draft_from_scanned_variable.side_effect = lambda variable: StatConfigCodec.from_scanned(
         variable, frozenset()
     )
-    with pytest.raises(ValueError, match="Set distribution bounds"):
+    with pytest.raises(ValueError, match="complete Distribution grid"):
         _parse.build_stat_configs(api, "runs", ["dist"])
     configs, _ = _parse.build_stat_configs(
         api,
@@ -184,7 +184,13 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
             StatConfig(
                 name="dist",
                 type="distribution",
-                params={"minimum": 0, "maximum": 4, "source_type": "distribution"},
+                params={
+                    "minimum": 0,
+                    "maximum": 4,
+                    "source_type": "distribution",
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
+                },
             ),
         ],
     )
@@ -193,7 +199,13 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
     assert configs[2] == StatConfig(
         name="dist",
         type="distribution",
-        params={"minimum": 0, "maximum": 4, "source_type": "distribution"},
+        params={
+            "minimum": 0,
+            "maximum": 4,
+            "source_type": "distribution",
+            "bucket_size": 1,
+            "zero_policy": "missing",
+        },
     )
 
 

@@ -52,13 +52,21 @@ def test_perl_missing_frequency_stats_and_summaries_differ_from_measured_zero(
 ) -> None:
     _, rows = _parse(
         tmp_path,
-        "zero::underflows 0 0% 0%\nzero::0 0 0% 0%\nzero::1 0 0% 0%\n"
-        "zero::overflows 0 0% 0%\nh::0-9 0 0% 0%\n",
+        (
+            "zero::underflows 0 0% 0%\nzero::0 0 0% 0%\nzero::1 0 0% 0%\nzer"
+            "o::overflows 0 0% 0%\nh::0-9 0 0% 0%\n"
+        ),
         [
             StatConfig(
                 "missing",
                 "distribution",
-                params={"source_type": "distribution", "minimum": 0, "maximum": 1},
+                params={
+                    "source_type": "distribution",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
+                },
             ),
             StatConfig(
                 "zero",
@@ -68,6 +76,8 @@ def test_perl_missing_frequency_stats_and_summaries_differ_from_measured_zero(
                     "minimum": 0,
                     "maximum": 1,
                     "statistics": ["mean"],
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
                 },
             ),
             StatConfig(
@@ -282,12 +292,12 @@ def test_perl_singleton_oneline_buckets_and_changing_dump_geometry_conserve_coun
     tmp_path: Path,
 ) -> None:
     text = (
-        "---------- Begin Simulation Statistics ----------\n"
-        "h::bucket_size 1\nh::min_bucket 0\nh::max_bucket 1\nh |9 90% 90% |1 10% 100%\n"
-        "---------- End Simulation Statistics ----------\n"
-        "---------- Begin Simulation Statistics ----------\n"
-        "h::bucket_size 2\nh::min_bucket 0\nh::max_bucket 1\nh |20 100% 100%\n"
-        "---------- End Simulation Statistics ----------\n"
+        "---------- Begin Simulation Statistics ----------\nh::bucket_"
+        "size 1\nh::min_bucket 0\nh::max_bucket 1\nh |9 90% 90% |1 10% 1"
+        "00%\n---------- End Simulation Statistics ----------\n--------"
+        "-- Begin Simulation Statistics ----------\nh::bucket_size 2\nh"
+        "::min_bucket 0\nh::max_bucket 1\nh |20 100% 100%\n---------- En"
+        "d Simulation Statistics ----------\n"
     )
     _, rows = _parse(
         tmp_path,
@@ -390,13 +400,12 @@ def test_perl_scanned_numeric_entries_retain_ambiguous_source_evidence(tmp_path:
 def test_perl_scan_and_parse_reset_geometry_before_zero_suppressed_dump(tmp_path: Path) -> None:
     """An omitted zero bound cannot inherit a previous dump's negative minimum."""
     text = (
-        "---------- Begin Simulation Statistics ----------\n"
-        "h::bucket_size 10\nh::min_bucket -10\nh::max_bucket 9\n"
-        "h |5 41.7% 41.7% |7 58.3% 100%\n"
-        "---------- End Simulation Statistics ----------\n"
-        "---------- Begin Simulation Statistics ----------\n"
-        "h::bucket_size 10\nh::max_bucket 9\nh |10 100% 100%\n"
-        "---------- End Simulation Statistics ----------\n"
+        "---------- Begin Simulation Statistics ----------\nh::bucket_"
+        "size 10\nh::min_bucket -10\nh::max_bucket 9\nh |5 41.7% 41.7% |"
+        "7 58.3% 100%\n---------- End Simulation Statistics ----------"
+        "\n---------- Begin Simulation Statistics ----------\nh::bucket"
+        "_size 10\nh::max_bucket 9\nh |10 100% 100%\n---------- End Simu"
+        "lation Statistics ----------\n"
     )
     (tmp_path / "stats.txt").write_text(text, encoding="utf-8")
     scan = Gem5Parser.aggregate_scan_results(

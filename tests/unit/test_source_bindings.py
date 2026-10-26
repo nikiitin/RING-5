@@ -70,6 +70,8 @@ def test_retired_source_and_selection_representations_are_rejected() -> None:
         bindings.resolve_sources(
             [_request(params={"source_type": "scalar", "selected_sources": ["0"]})],
             [_scalar_pattern()],
+            file_count=1,
+            metadata_columns=(),
         )
 
 
@@ -86,7 +88,9 @@ def test_raw_kind_is_required_and_cannot_be_inferred_from_output_representation(
 def test_scalar_pattern_entry_schema_has_no_second_caller_selection_route() -> None:
     with pytest.raises(ValueError, match="derive only"):
         StatConfigCodec.validate(_request(params={"source_type": "scalar", "entries": ["0"]}))
-    plan = bindings.resolve_sources([_request()], [_scalar_pattern()])
+    plan = bindings.resolve_sources(
+        [_request()], [_scalar_pattern()], file_count=1, metadata_columns=()
+    )
     spec = plan.accumulators[0]
     assert spec.output_name == "IPC"
     assert spec.output_type == "vector"
@@ -100,10 +104,14 @@ def test_scalar_pattern_entry_schema_has_no_second_caller_selection_route() -> N
 
 def test_concrete_selection_and_keep_indices_are_independent_of_output_alias() -> None:
     request = _request(params={"source_type": "scalar", "selected_sources": ["cpu1.ipc"]})
-    plan = bindings.resolve_sources([request], [_scalar_pattern()])
+    plan = bindings.resolve_sources(
+        [request], [_scalar_pattern()], file_count=1, metadata_columns=()
+    )
     assert list(plan.routes) == ["cpu1.ipc"]
     assert plan.accumulators[0].entries == ("1",)
-    kept = bindings.resolve_sources([_request(keep_indices=True)], [_scalar_pattern()])
+    kept = bindings.resolve_sources(
+        [_request(keep_indices=True)], [_scalar_pattern()], file_count=1, metadata_columns=()
+    )
     assert [(s.output_name, s.output_type, s.repeat) for s in kept.accumulators] == [
         ("cpu0.ipc", "scalar", 3),
         ("cpu1.ipc", "scalar", 3),
@@ -126,7 +134,9 @@ def test_genuine_vector_patterns_multiply_spatial_and_temporal_lifecycles() -> N
         source_name=r"cpu\d+.v",
         params={"source_type": "vector", "entries": ["a"]},
     )
-    spec = bindings.resolve_sources([request], [metadata]).accumulators[0]
+    spec = bindings.resolve_sources(
+        [request], [metadata], file_count=1, metadata_columns=()
+    ).accumulators[0]
     assert spec.repeat == 6
     assert spec.entries == ("a",)
     assert spec.config.repeat == 3
@@ -137,7 +147,7 @@ def test_source_aliases_have_separate_accumulators_without_identity_routing() ->
         StatConfig("source", "scalar", params={"source_type": "scalar"}),
         StatConfig("renamed", "scalar", source_name="source", params={"source_type": "scalar"}),
     ]
-    plan = bindings.resolve_sources(configs, None)
+    plan = bindings.resolve_sources(configs, None, file_count=1, metadata_columns=())
     assert [target.output_name for target in plan.routes["source"].targets] == ["source", "renamed"]
     accumulators = SimpleStatsStrategy()._map_variables(plan.accumulators)
     assert set(accumulators) == {"source", "renamed"}
@@ -150,10 +160,15 @@ def test_source_aliases_have_separate_accumulators_without_identity_routing() ->
 
 def test_duplicate_outputs_conflicting_kinds_and_forged_coordinates_fail() -> None:
     with pytest.raises(ValueError, match="Duplicate parser output"):
-        bindings.resolve_sources([_request(), _request()], [_scalar_pattern()])
+        bindings.resolve_sources(
+            [_request(), _request()], [_scalar_pattern()], file_count=1, metadata_columns=()
+        )
     with pytest.raises(ValueError, match="contradicts"):
         bindings.resolve_sources(
-            [_request(params={"source_type": "vector", "entries": ["a"]})], [_scalar_pattern()]
+            [_request(params={"source_type": "vector", "entries": ["a"]})],
+            [_scalar_pattern()],
+            file_count=1,
+            metadata_columns=(),
         )
     forged = ScannedVariable(
         r"cpu\d+.ipc",
@@ -162,7 +177,7 @@ def test_duplicate_outputs_conflicting_kinds_and_forged_coordinates_fail() -> No
         instances=(SourceInstance("cpu0.ipc", ("9",)),),
     )
     with pytest.raises(ValueError, match="coordinates"):
-        bindings.resolve_sources([_request()], [forged])
+        bindings.resolve_sources([_request()], [forged], file_count=1, metadata_columns=())
 
 
 def test_heterogeneous_numeric_families_remain_literal_without_guessing_source_kind() -> None:
@@ -192,27 +207,40 @@ def test_empty_selection_is_incomplete_and_never_means_all_sources() -> None:
     }
     assert StatConfigCodec.to_snapshot(draft)["state"] == "draft"
     with pytest.raises(ValueError, match="concrete non-empty"):
-        bindings.resolve_sources([_request(params=draft["params"])], [_scalar_pattern()])
+        bindings.resolve_sources(
+            [_request(params=draft["params"])],
+            [_scalar_pattern()],
+            file_count=1,
+            metadata_columns=(),
+        )
 
 
 @pytest.mark.parametrize("limit", ["MAX_REGEX_CANDIDATES", "MAX_REGEX_MATCH_ATTEMPTS"])
 def test_pattern_resolution_preserves_candidate_and_attempt_bounds(limit: str) -> None:
     with patch.object(bindings, limit, 1):
         with pytest.raises(ValueError, match="candidate"):
-            bindings.resolve_sources([_request()], [_scalar_pattern()])
+            bindings.resolve_sources(
+                [_request()], [_scalar_pattern()], file_count=1, metadata_columns=()
+            )
 
 
 def test_resolution_preserves_deadline_and_selected_source_cap(monkeypatch) -> None:
     with patch.object(bindings.time, "monotonic", side_effect=[0.0, 10.0]):
         with pytest.raises(ValueError, match="deadline"):
-            bindings.resolve_sources([_request()], [_scalar_pattern()])
+            bindings.resolve_sources(
+                [_request()], [_scalar_pattern()], file_count=1, metadata_columns=()
+            )
     monkeypatch.setenv("RING5_MAX_VAR_REPEAT", "1")
     with pytest.raises(RuntimeError, match="cap of 1"):
-        bindings.resolve_sources([_request()], [_scalar_pattern()])
+        bindings.resolve_sources(
+            [_request()], [_scalar_pattern()], file_count=1, metadata_columns=()
+        )
 
 
 def test_routes_are_immutable_and_exact_filter_names_cannot_be_regexes() -> None:
-    plan = bindings.resolve_sources([_request()], [_scalar_pattern()])
+    plan = bindings.resolve_sources(
+        [_request()], [_scalar_pattern()], file_count=1, metadata_columns=()
+    )
     with pytest.raises(TypeError):
         plan.routes["other"] = plan.routes["cpu0.ipc"]
     assert bindings.literal_source_filter("cpu0.ipc") == r"cpu0\.ipc"
@@ -224,7 +252,10 @@ def test_routes_are_immutable_and_exact_filter_names_cannot_be_regexes() -> None
 def test_histogram_vector_requests_reject_alternate_point_labels(entries):
     with pytest.raises(ValueError, match="inclusive range labels"):
         bindings.resolve_sources(
-            [StatConfig("h", "vector", params={"source_type": "histogram", "entries": entries})], []
+            [StatConfig("h", "vector", params={"source_type": "histogram", "entries": entries})],
+            [],
+            file_count=1,
+            metadata_columns=(),
         )
 
 
@@ -419,8 +450,12 @@ def test_regex_candidate_cap_applies_before_private_record_allocation(monkeypatc
     with patch.object(bindings, "_ScannedSource", wraps=bindings._ScannedSource) as allocate:
         if is_pattern:
             with pytest.raises(ValueError, match="candidate limit"):
-                bindings.resolve_sources([request], [metadata])
+                bindings.resolve_sources([request], [metadata], file_count=1, metadata_columns=())
             assert allocate.call_count == 2
         else:
-            assert set(bindings.resolve_sources([request], [metadata]).routes) == {"cpu0.ipc"}
+            assert set(
+                bindings.resolve_sources(
+                    [request], [metadata], file_count=1, metadata_columns=()
+                ).routes
+            ) == {"cpu0.ipc"}
             assert allocate.call_count == 10

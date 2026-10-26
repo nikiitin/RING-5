@@ -58,6 +58,19 @@ Histogram `statistics_only=True` extracts only configured summaries and retains 
 as NaN. Saved editor drafts remain editable, while jobs and analysis recipes require runnable
 configurations.
 
+Native frequency requests declare `params={"source_type": "distribution", "minimum": 0.25,
+"maximum": 1.25, "bucket_size": 0.5, "zero_policy": "missing"}`. `"nozero"` is an explicit
+producer omission guarantee for present compatible observations. Full native geometry is independent
+of rounded printed labels; summary-only extraction needs no grid.
+
+Custom parser declarations use `DistributionGeometry`, `DistributionColumn`,
+`NativeDistributionLayout` and `OpaqueDistributionLayout`. `ParsedVariableSchema` and
+`ParsedVariableResult` require the keyword `layout`, including `layout=None` for ordinary output.
+A layout binds exact numeric physical columns; full native layouts include every allocated slot,
+both tails and optional summaries. Opaque layouts retain literal selected labels without geometry.
+See [Add a Parser]({{site.baseurl}}/developer-guide/extension-guides/adding-a-parser/) for invariants.
+
+
 Declared Session data methods use `ring5.Table`. `load`, `load_import`, dataset getters, joins,
 appends and comparisons return independently owned tables. Transformation, quality, schema,
 semantics, comparison and plot-data arguments require tables. Both operands of `compare` and

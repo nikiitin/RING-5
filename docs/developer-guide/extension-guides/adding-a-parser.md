@@ -77,7 +77,16 @@ def finalize(
 `ParseBatchResult` requires an immutable Future tuple and the exact source/output/strategy context.
 `ParsedVariableSchema`, `ParsedVariableResult`, `ParsedCell`, `ParsedColumn`, `ParsedSchema`,
 `ParsedFileResult`, `ResolvedParsedRows` and `ParsedOutput` are the actual immutable value
-constructors. Scalar variables own exactly one cell; entry variables may be empty when nothing was
+constructors. `ParsedVariableSchema` and `ParsedVariableResult` require the keyword `layout`,
+including explicit `layout=None` for ordinary output. A non-null layout requires numeric entry
+ownership and exact physical bindings. `ring5.DistributionGeometry`, `ring5.DistributionColumn`,
+`ring5.NativeDistributionLayout` and `ring5.OpaqueDistributionLayout` construct current declarations.
+Full native layouts require finite full-precision geometry, explicit missing/nozero policy, every
+allocated slot and both tails in native order; selected summaries follow without native indices.
+Opaque layouts bind literal labels without geometry or native indices. Physical names are explicit
+and need no variable-name prefix. Declarations assert a decoder contract, not authenticated producer
+identity. One current codec owns schema, file/cache and table-attr layouts; custom backends do not
+supply another representation. Scalar variables own exactly one cell; entry variables may be empty when nothing was
 observed. Every source must provide all declared text and metadata cells; numeric union gaps remain
 NaN. Do not invent a bucket for an unobserved dynamic variable. Complete finalization covers every
 planned source, while partial finalization still rejects duplicate and unplanned source paths.

@@ -146,6 +146,7 @@ class TestParseServiceFinalize:
                     "number",
                     "entries",
                     (ParsedCell("varA..e0", "number", 1.0), ParsedCell("varA..e1", "number", 2.5)),
+                    layout=None,
                 ),
             ),
         )
@@ -184,7 +185,11 @@ class TestParseServiceFinalize:
             "source",
             (
                 ParsedVariableResult(
-                    "configVar", "text", "scalar", (ParsedCell("configVar", "text", "benchmark_x"),)
+                    "configVar",
+                    "text",
+                    "scalar",
+                    (ParsedCell("configVar", "text", "benchmark_x"),),
+                    layout=None,
                 ),
             ),
         )

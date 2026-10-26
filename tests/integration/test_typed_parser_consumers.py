@@ -398,7 +398,13 @@ def test_observed_evidence_and_declared_geometry_survive_source_recipe_and_edito
                 ring5.StatConfig(
                     "d",
                     "distribution",
-                    params={"source_type": "distribution", "minimum": -2.0, "maximum": 4.0},
+                    params={
+                        "source_type": "distribution",
+                        "minimum": -2.0,
+                        "maximum": 4.0,
+                        "bucket_size": 1,
+                        "zero_policy": "missing",
+                    },
                 )
             ],
             scan_limit=0,

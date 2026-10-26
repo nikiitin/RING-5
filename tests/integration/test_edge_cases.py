@@ -18,6 +18,7 @@ from typing import cast
 from unittest.mock import patch
 
 import pytest
+import math
 
 from src.core.models.data_models import SavedConfigData, SavedConfigEntry
 from src.core.models.shaper_models import ShaperStepConfig
@@ -37,7 +38,7 @@ class TestDistributionHistogramEdgeCases:
 
     def test_distribution_basic_processing(self) -> None:
         """Distribution processes a valid set of buckets."""
-        dist = Distribution(repeat=1, minimum=0, maximum=4)
+        dist = Distribution(repeat=1, minimum=0, maximum=4, bucket_size=1, zero_policy="missing")
 
         dist.add_observation(
             {"underflows": 0, "overflows": 5, "0": 10, "1": 20, "2": 30, "3": 15, "4": 25}
@@ -53,7 +54,7 @@ class TestDistributionHistogramEdgeCases:
 
     def test_distribution_with_repeats(self) -> None:
         """Distribution averages across repeated dumps."""
-        dist = Distribution(repeat=2, minimum=0, maximum=2)
+        dist = Distribution(repeat=2, minimum=0, maximum=2, bucket_size=1, zero_policy="missing")
 
         # First dump
         dist.add_observation({"underflows": 0, "overflows": 0, "0": 10, "1": 20, "2": 30})
@@ -71,7 +72,7 @@ class TestDistributionHistogramEdgeCases:
     def test_distribution_maximum_too_large(self) -> None:
         """Distribution raises on absurdly large range."""
         with pytest.raises(ValueError, match="100000"):
-            Distribution(repeat=1, minimum=0, maximum=200_000)
+            Distribution(repeat=1, minimum=0, maximum=200_000, bucket_size=1, zero_policy="missing")
 
     def test_histogram_basic_processing(self) -> None:
         """Histogram processes range-keyed buckets."""
@@ -100,12 +101,16 @@ class TestDistributionHistogramEdgeCases:
         assert result["0-1023"] == 200.0  # (100+300)/2
         assert result["1024-2047"] == 300.0  # (200+400)/2
 
-    def test_distribution_missing_boundaries_raises(self) -> None:
-        """Distribution raises when boundary buckets are missing."""
-        dist = Distribution(repeat=1, minimum=0, maximum=2)
+    def test_distribution_missing_tails_remain_missing(self) -> None:
+        """Missing policy retains omitted tails without inventing measurements."""
+        dist = Distribution(repeat=1, minimum=0, maximum=2, bucket_size=1, zero_policy="missing")
 
-        with pytest.raises((TypeError, RuntimeError)):
-            dist.add_observation({"0": 10, "1": 20, "2": 30})
+        dist.add_observation({"0": 10, "1": 20, "2": 30})
+        assert dist.missing_measurement_count == 2
+        dist.balance_content()
+        dist.reduce_duplicates()
+        assert math.isnan(dist.reduced_content["underflows"])
+        assert math.isnan(dist.reduced_content["overflows"])
 
 
 # Test Class 2: Config service delete/reload cycle
@@ -154,8 +159,10 @@ class TestConfigServiceEdgeCases:
         # Valid config
         valid = config_dir / "valid.json"
         valid.write_text(
-            '{"format": "ring5.pipeline-configuration", "schema_version": 1, '
-            '"name": "valid", "description": "ok", "shapers": []}'
+            (
+                '{"format": "ring5.pipeline-configuration", "schema_version":'
+                ' 1, "name": "valid", "description": "ok", "shapers": []}'
+            )
         )
 
         # Invalid JSON

@@ -50,6 +50,7 @@ def test_submission_passes_one_resolved_plan_and_exact_output_names(
         )
     ]
     source = str(tmp_path / "stats.txt")
+    Path(source).write_text("cpu1.ipc 1.25\n")
     name = "cpu1.ipc" if keep else "IPC"
     result = numeric_file(source, {name: 1.25})
     work = MagicMock(source_path=source, return_value=result)
@@ -58,6 +59,7 @@ def test_submission_passes_one_resolved_plan_and_exact_output_names(
         patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool,
     ):
         strategy = factory.create.return_value
+        strategy.metadata_columns = ()
         strategy.get_work_items.return_value = [work]
         pool.get_instance.return_value.submit_many.side_effect = lambda tasks: [
             completed_future(task()) for task in tasks
@@ -65,7 +67,7 @@ def test_submission_passes_one_resolved_plan_and_exact_output_names(
         batch = Gem5Parser.submit_parse_async(
             str(tmp_path), "stats.txt", [config], str(tmp_path / "out"), scanned_vars=metadata
         )
-        plan = strategy.get_work_items.call_args.args[2]
+        plan = strategy.get_work_items.call_args.args[1]
         assert set(plan.routes) == {"cpu1.ipc"}
         assert plan.accumulators[0].config == config
         assert batch.var_names == (name,)
@@ -78,6 +80,7 @@ def test_submission_passes_one_resolved_plan_and_exact_output_names(
 def test_invalid_runnable_input_rejects_before_pool(
     tmp_path: Path, configs: Any, message: str
 ) -> None:
+    (tmp_path / "stats.txt").write_text("ipc 1\n")
     with patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool:
         with pytest.raises((ValueError, TypeError), match=message):
             Gem5Parser.submit_parse_async(
@@ -86,11 +89,13 @@ def test_invalid_runnable_input_rejects_before_pool(
         pool.get_instance.assert_not_called()
 
 
-def test_missing_pattern_sources_reject_before_strategy_or_pool(tmp_path: Path) -> None:
+def test_missing_pattern_sources_reject_before_work_or_pool(tmp_path: Path) -> None:
+    (tmp_path / "stats.txt").write_text("ipc 1\n")
     with (
         patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool,
         patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory") as factory,
     ):
+        factory.create.return_value.metadata_columns = ()
         with pytest.raises(ValueError, match="source records"):
             Gem5Parser.submit_parse_async(
                 str(tmp_path),
@@ -99,13 +104,15 @@ def test_missing_pattern_sources_reject_before_strategy_or_pool(tmp_path: Path) 
                 str(tmp_path / "out"),
             )
         pool.get_instance.assert_not_called()
-        factory.create.assert_not_called()
+        factory.create.return_value.get_work_items.assert_not_called()
 
 
 def test_empty_strategy_work_raises(tmp_path: Path) -> None:
+    (tmp_path / "stats.txt").write_text("ipc 1\n")
     with patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory") as factory:
+        factory.create.return_value.metadata_columns = ()
         factory.create.return_value.get_work_items.return_value = []
-        with pytest.raises(FileNotFoundError, match="No parse work generated"):
+        with pytest.raises(FileNotFoundError, match="strategy generated no work"):
             Gem5Parser.submit_parse_async(
                 str(tmp_path),
                 "stats.txt",
@@ -138,6 +145,7 @@ class TestFinalizeAndConstructCSV:
                     "number",
                     "entries",
                     (ParsedCell("ipc..0", "number", 10.0), ParsedCell("ipc..1", "number", 20.0)),
+                    layout=None,
                 ),
             ),
         )
@@ -162,7 +170,11 @@ class TestFinalizeAndConstructCSV:
             "source",
             (
                 ParsedVariableResult(
-                    "cycles", "number", "scalar", (ParsedCell("cycles", "number", 42.0),)
+                    "cycles",
+                    "number",
+                    "scalar",
+                    (ParsedCell("cycles", "number", 42.0),),
+                    layout=None,
                 ),
                 ParsedVariableResult(
                     "missing_var",
@@ -170,6 +182,7 @@ class TestFinalizeAndConstructCSV:
                     "scalar",
                     (ParsedCell("missing_var", "number", math.nan),),
                     missing_measurements=1,
+                    layout=None,
                 ),
             ),
         )

@@ -8,6 +8,7 @@ import io
 import math
 import os
 import tempfile
+from itertools import zip_longest
 import threading
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -16,6 +17,8 @@ from typing import IO, Protocol
 import pandas as pd
 
 from src.core.common.file_lock import file_lock
+from src.core.common.distribution_layout_codec import iter_distribution_layout_encoding
+from src.core.common.distribution_metadata import with_distribution_layouts
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
 from src.core.common.parsed_output_codec import (
     ParsedOutputDigest,
@@ -164,7 +167,16 @@ class ParsedOutputIO:
             row: dict[str, ParsedCell] = {}
             for variable in result.variables:
                 previous = declarations.setdefault(variable.name, variable.schema)
-                if previous != variable.schema:
+                if (previous.kind, previous.shape) != (variable.kind, variable.shape) or (
+                    previous.layout is not variable.layout
+                    and any(
+                        left != right
+                        for left, right in zip_longest(
+                            iter_distribution_layout_encoding(previous.layout),
+                            iter_distribution_layout_encoding(variable.layout),
+                        )
+                    )
+                ):
                     raise ValueError(f"Conflicting declaration for variable {variable.name!r}.")
                 entry_orders[variable.name].add(tuple(cell.column for cell in variable.cells))
                 for cell in variable.cells:
@@ -435,7 +447,14 @@ class ParsedOutputIO:
             frame[column.name] = frame[column.name].astype(
                 float if column.kind == "number" else str
             )
-        return frame
+        return with_distribution_layouts(
+            frame,
+            {
+                variable.name: variable.layout
+                for variable in table.schema.variables
+                if variable.layout is not None
+            },
+        )
 
     @staticmethod
     def _missing_variables(

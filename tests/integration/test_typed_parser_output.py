@@ -86,7 +86,7 @@ def test_real_worker_full_incremental_and_playground_share_exact_literal_semanti
     assert result.rows == ((1.25, literal),)
     assert result.missing_variables == () and result.ready_for_full_parse
     assert not (tmp_path / "preview").exists()
-    assert PARSER_RESULT_VERSION == 11 and CACHE_SCHEMA_VERSION == 2
+    assert PARSER_RESULT_VERSION == 11 and CACHE_SCHEMA_VERSION == 3
 
 
 @pytest.mark.parametrize("token", ["0", "-0.0", "1.25", "5e-324", "inf", "-inf", "NaN"])
@@ -154,7 +154,7 @@ def test_exact_source_plan_and_submission_context_remain_owned(tmp_path: Path) -
         first.output_dir = "changed"
 
 
-@pytest.mark.parametrize("mode", ["missing", "malformed", "collision"])
+@pytest.mark.parametrize("mode", ["missing", "malformed"])
 def test_config_aware_metadata_failure_is_a_future_failure_with_partial_row_ownership(
     tmp_path: Path, mode: str
 ) -> None:
@@ -166,8 +166,6 @@ def test_config_aware_metadata_failure_is_a_future_failure_with_partial_row_owne
         (bad.parent / "config.ini").unlink()
     elif mode == "malformed":
         (bad.parent / "config.ini").write_text("not a valid ini", encoding="utf-8")
-    else:
-        variables[0] = replace(variables[0], name="sim_path")
     batch = Gem5Parser.submit_parse_async(
         str(inputs), "stats.txt", variables, str(tmp_path / "out"), "config_aware"
     )
@@ -178,19 +176,33 @@ def test_config_aware_metadata_failure_is_a_future_failure_with_partial_row_owne
             successful.append(future.result(timeout=15))
         except (FileNotFoundError, RuntimeError, ValueError) as exc:
             failed.append(str(exc))
-    assert len(failed) == (2 if mode == "collision" else 1)
-    assert len(successful) == (0 if mode == "collision" else 1)
-    if mode == "collision":
-        assert all("collision" in message for message in failed)
-        with pytest.raises(ValueError, match="non-empty"):
-            Gem5Parser.finalize_parsing(batch, successful, complete=False)
-    else:
-        with pytest.raises(ValueError, match="every planned"):
-            Gem5Parser.finalize_parsing(batch, successful)
-        output = Gem5Parser.finalize_parsing(batch, successful, complete=False)
-        frame = ParsedOutputIO.to_frame(output)
-        assert frame["label"].tolist() == ["NA"]
-        assert json.loads(frame["config_json"].iloc[0]) == {"system": {"CaseSensitive": "95% μ"}}
+    assert len(failed) == len(successful) == 1
+    with pytest.raises(ValueError, match="every planned"):
+        Gem5Parser.finalize_parsing(batch, successful)
+    output = Gem5Parser.finalize_parsing(batch, successful, complete=False)
+    frame = ParsedOutputIO.to_frame(output)
+    assert frame["label"].tolist() == ["NA"]
+    assert json.loads(frame["config_json"].iloc[0]) == {"system": {"CaseSensitive": "95% μ"}}
+
+
+def test_config_metadata_collision_rejects_before_any_worker(tmp_path: Path, monkeypatch) -> None:
+    _source(tmp_path / "inputs", "run", config="[system]\ncores=4\n")
+    variables = _variables("NA")
+    variables[0] = replace(variables[0], name="sim_path")
+    from src.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
+
+    def no_template(*args):
+        raise AssertionError("A colliding request must not allocate a template.")
+
+    monkeypatch.setattr(SimpleStatsStrategy, "_map_variables", no_template)
+    with pytest.raises(ValueError, match="Duplicate planned physical column"):
+        Gem5Parser.submit_parse_async(
+            str(tmp_path / "inputs"),
+            "stats.txt",
+            variables,
+            str(tmp_path / "out"),
+            "config_aware",
+        )
 
 
 def test_incremental_partial_retains_typed_cached_rows_and_failed_cache_promotion_restores_output(
@@ -265,10 +277,12 @@ def test_entry_workers_reduce_before_future_and_keep_absent_histogram_schema_emp
     absent = _source(inputs, "absent")
     present = _source(inputs, "present")
     present.write_text(
-        "simTicks 1.25\nv::a 0\nv::b 2.5\n"
-        "d::underflows 0 0% 0%\nd::0 1 33% 33%\nd::1 2 67% 100%\nd::overflows 0 0% 100%\n"
-        "d::underflows 0 0% 0%\nd::0 2 40% 40%\nd::1 3 60% 100%\nd::overflows 0 0% 100%\n"
-        "h::0-9 1 100% 100%\nh::0-9 2 100% 100%\n",
+        (
+            "simTicks 1.25\nv::a 0\nv::b 2.5\nd::underflows 0 0% 0%\nd::0 1 3"
+            "3% 33%\nd::1 2 67% 100%\nd::overflows 0 0% 100%\nd::underflows "
+            "0 0% 0%\nd::0 2 40% 40%\nd::1 3 60% 100%\nd::overflows 0 0% 100"
+            "%\nh::0-9 1 100% 100%\nh::0-9 2 100% 100%\n"
+        ),
         encoding="utf-8",
     )
     variables = [
@@ -280,7 +294,13 @@ def test_entry_workers_reduce_before_future_and_keep_absent_histogram_schema_emp
             "distribution",
             repeat=2,
             source_name="d",
-            params={"source_type": "distribution", "minimum": 0, "maximum": 1},
+            params={
+                "source_type": "distribution",
+                "minimum": 0,
+                "maximum": 1,
+                "bucket_size": 1,
+                "zero_policy": "missing",
+            },
         ),
         StatConfig(
             "H", "histogram", repeat=2, source_name="h", params={"source_type": "histogram"}

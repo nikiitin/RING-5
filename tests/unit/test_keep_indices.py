@@ -48,7 +48,7 @@ def test_correlated_concrete_selection_is_preserved_without_cartesian_expansion(
         source_name=r"l\d+_cpu\d+.ipc",
         params={"source_type": "scalar", "selected_sources": ["l0_cpu1.ipc", "l1_cpu0.ipc"]},
     )
-    plan = resolve_sources([config], _metadata())
+    plan = resolve_sources([config], _metadata(), file_count=1, metadata_columns=())
     assert set(plan.routes) == {"l0_cpu1.ipc", "l1_cpu0.ipc"}
     assert [spec.output_name for spec in plan.accumulators] == (
         ["l0_cpu1.ipc", "l1_cpu0.ipc"] if keep else ["Output IPC"]
@@ -62,8 +62,14 @@ def test_unfiltered_request_uses_explicit_records_and_empty_selection_fails():
     config = StatConfig(
         r"l\d+_cpu\d+.ipc", "scalar", keep_indices=True, params={"source_type": "scalar"}
     )
-    assert len(resolve_sources([config], _metadata()).accumulators) == 3
+    assert (
+        len(resolve_sources([config], _metadata(), file_count=1, metadata_columns=()).accumulators)
+        == 3
+    )
     with pytest.raises(ValueError, match="Selected sources"):
         resolve_sources(
-            [replace(config, params={"source_type": "scalar", "selected_sources": []})], _metadata()
+            [replace(config, params={"source_type": "scalar", "selected_sources": []})],
+            _metadata(),
+            file_count=1,
+            metadata_columns=(),
         )

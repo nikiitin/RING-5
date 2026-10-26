@@ -67,7 +67,7 @@ def _file_result(
         str((root / f"run-{index}" / "stats.txt").resolve()),
         (
             ParsedVariableResult(
-                name, "number", "scalar", (ParsedCell(name, "number", float(value)),)
+                name, "number", "scalar", (ParsedCell(name, "number", float(value)),), layout=None
             ),
         ),
     )

@@ -23,7 +23,9 @@ def numeric_file(source: str, values: Mapping[str, float]) -> ParsedFileResult:
     return ParsedFileResult(
         source,
         tuple(
-            ParsedVariableResult(name, "number", "scalar", (ParsedCell(name, "number", value),))
+            ParsedVariableResult(
+                name, "number", "scalar", (ParsedCell(name, "number", value),), layout=None
+            )
             for name, value in values.items()
         ),
     )

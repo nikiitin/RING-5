@@ -33,7 +33,9 @@ class TestTypeMapper:
 
     def test_create_stat_scalar(self) -> None:
         config = StatConfig(name="ipc", type="scalar", params={"source_type": "scalar"})
-        stat = TypeMapper.create_stat(resolve_sources([config], []).accumulators[0])
+        stat = TypeMapper.create_stat(
+            resolve_sources([config], [], file_count=1, metadata_columns=()).accumulators[0]
+        )
         assert stat is not None
 
     def test_create_stat_from_dict(self) -> None:
@@ -47,16 +49,26 @@ class TestTypeMapper:
             type="vector",
             params={"source_type": "vector", "entries": ["0", "1", "2"]},
         )
-        stat = TypeMapper.create_stat(resolve_sources([config], []).accumulators[0])
+        stat = TypeMapper.create_stat(
+            resolve_sources([config], [], file_count=1, metadata_columns=()).accumulators[0]
+        )
         assert stat is not None
 
     def test_create_stat_distribution(self) -> None:
         config = StatConfig(
             name="latency",
             type="distribution",
-            params={"source_type": "distribution", "minimum": 0, "maximum": 200},
+            params={
+                "source_type": "distribution",
+                "minimum": 0,
+                "maximum": 200,
+                "bucket_size": 1,
+                "zero_policy": "missing",
+            },
         )
-        stat = TypeMapper.create_stat(resolve_sources([config], []).accumulators[0])
+        stat = TypeMapper.create_stat(
+            resolve_sources([config], [], file_count=1, metadata_columns=()).accumulators[0]
+        )
         assert stat is not None
 
     def test_create_stat_histogram(self) -> None:
@@ -70,14 +82,18 @@ class TestTypeMapper:
                 "entries": ["0-39", "40-79", "80-119", "120-159", "160-199"],
             },
         )
-        stat = TypeMapper.create_stat(resolve_sources([config], []).accumulators[0])
+        stat = TypeMapper.create_stat(
+            resolve_sources([config], [], file_count=1, metadata_columns=()).accumulators[0]
+        )
         assert stat is not None
 
     def test_create_stat_configuration(self) -> None:
         config = StatConfig(
             name="benchmark_name", type="configuration", params={"source_type": "configuration"}
         )
-        stat = TypeMapper.create_stat(resolve_sources([config], []).accumulators[0])
+        stat = TypeMapper.create_stat(
+            resolve_sources([config], [], file_count=1, metadata_columns=()).accumulators[0]
+        )
         assert stat is not None
 
     def test_create_stat_missing_type_raises(self) -> None:

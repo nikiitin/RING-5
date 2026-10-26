@@ -44,7 +44,9 @@ def test_draft_wire_and_typed_value_share_one_owned_configuration() -> None:
     payload["params"]["entries"].append("changed")
     assert configured.params["entries"] == ["0"]
     assert draft == before
-    assert TypeMapper.create_stat(resolve_sources([configured], None).accumulators[0]).entries == [
+    assert TypeMapper.create_stat(
+        resolve_sources([configured], None, file_count=1, metadata_columns=()).accumulators[0]
+    ).entries == [
         "0",
         "mean",
     ]
@@ -89,7 +91,9 @@ def test_histogram_statistics_only_never_discovers_raw_buckets() -> None:
         statistics_only=True,
         params={"statistics": ["mean", "stdev"], "source_type": "histogram"},
     )
-    stat = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
+    stat = TypeMapper.create_stat(
+        resolve_sources([config], None, file_count=1, metadata_columns=()).accumulators[0]
+    )
     stat.add_observation({"0-3": 4.0, "mean": 2.0})
     assert stat.entries == ["mean", "stdev"]
     stat.balance_content()
@@ -208,7 +212,12 @@ def test_recipe_templates_use_the_same_runnable_decoder_after_materialization() 
     configured = StatConfigCodec.from_payload(resolved.source.variables[0])
     assert configured.repeat == 3
     assert payload["repeat"] == "{{repetitions}}"
-    assert TypeMapper.create_stat(resolve_sources([configured], None).accumulators[0]).repeat == 3
+    assert (
+        TypeMapper.create_stat(
+            resolve_sources([configured], None, file_count=1, metadata_columns=()).accumulators[0]
+        ).repeat
+        == 3
+    )
 
 
 def test_summary_roles_follow_the_selected_simulator_metadata() -> None:
@@ -320,7 +329,17 @@ def test_statistics_only_without_selected_summaries_is_a_nonexecutable_editor_dr
     [
         ("scalar", {}, False),
         ("vector", {"entries": ["0"], "statistics": ["mean"]}, False),
-        ("distribution", {"minimum": 0, "maximum": 8, "statistics": ["mean"]}, False),
+        (
+            "distribution",
+            {
+                "minimum": 0,
+                "maximum": 8,
+                "statistics": ["mean"],
+                "bucket_size": 1,
+                "zero_policy": "missing",
+            },
+            False,
+        ),
         ("histogram", {"bins": 4, "max_range": 16, "statistics": ["mean"]}, False),
         ("histogram", {"statistics": ["mean"]}, True),
         ("configuration", {"on_empty": "unknown"}, False),

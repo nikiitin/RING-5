@@ -208,7 +208,7 @@ class TestDistributionMathFsum:
         """A typed complete frequency frame retains its fractional measurement."""
         from src.parsing.gem5.types.distribution import Distribution
 
-        dist = Distribution(repeat=1, minimum=0, maximum=1)
+        dist = Distribution(repeat=1, minimum=0, maximum=1, bucket_size=1, zero_policy="missing")
         dist.add_observation({"underflows": 0.6, "0": 1.0, "1": 2.0, "overflows": 0.0})
         assert dist.content["underflows"] == [pytest.approx(0.6)]
 
@@ -216,7 +216,7 @@ class TestDistributionMathFsum:
         """reduce_duplicates should use math.fsum for precision in averaging."""
         from src.parsing.gem5.types.distribution import Distribution
 
-        dist = Distribution(repeat=2, minimum=0, maximum=0)
+        dist = Distribution(repeat=2, minimum=0, maximum=0, bucket_size=1, zero_policy="missing")
 
         # First content set (repeat 1)
         dist.add_observation({"underflows": 0.30000000000000004, "0": 100.0, "overflows": 0.0})
@@ -234,7 +234,7 @@ class TestDistributionMathFsum:
         """Measured zero boundaries remain zero through numeric reduction."""
         from src.parsing.gem5.types.distribution import Distribution
 
-        dist = Distribution(repeat=1, minimum=0, maximum=0)
+        dist = Distribution(repeat=1, minimum=0, maximum=0, bucket_size=1, zero_policy="missing")
         # All required buckets are explicitly measured in this frame.
         dist.add_observation({"underflows": 0.0, "0": 5.0, "overflows": 0.0})
 
@@ -343,8 +343,9 @@ class TestTypedCsvHeaderUnion:
                         "number",
                         "scalar",
                         (ParsedCell("scalar_var", "number", 99.0),),
+                        layout=None,
                     ),
-                    ParsedVariableResult("dist_var", "number", "entries", ()),
+                    ParsedVariableResult("dist_var", "number", "entries", (), layout=None),
                 ),
             ),
             ParsedFileResult(
@@ -355,6 +356,7 @@ class TestTypedCsvHeaderUnion:
                         "number",
                         "scalar",
                         (ParsedCell("scalar_var", "number", 100.0),),
+                        layout=None,
                     ),
                     ParsedVariableResult(
                         "dist_var",
@@ -364,6 +366,7 @@ class TestTypedCsvHeaderUnion:
                             ParsedCell("dist_var..bucket_0", "number", 5.0),
                             ParsedCell("dist_var..bucket_1", "number", 15.0),
                         ),
+                        layout=None,
                     ),
                 ),
             ),

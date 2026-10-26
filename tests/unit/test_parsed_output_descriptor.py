@@ -20,10 +20,18 @@ def _output(tmp_path: Path):
             "source",
             (
                 ParsedVariableResult(
-                    "literal", "text", "scalar", (ParsedCell("literal", "text", "NaN"),)
+                    "literal",
+                    "text",
+                    "scalar",
+                    (ParsedCell("literal", "text", "NaN"),),
+                    layout=None,
                 ),
                 ParsedVariableResult(
-                    "value", "number", "scalar", (ParsedCell("value", "number", float("nan")),)
+                    "value",
+                    "number",
+                    "scalar",
+                    (ParsedCell("value", "number", float("nan")),),
+                    layout=None,
                 ),
             ),
         )

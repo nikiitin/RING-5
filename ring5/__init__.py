@@ -153,6 +153,12 @@ if TYPE_CHECKING:
         SourceInstance,
     )
     from src.core.models.source_evidence import ResolvedSourceKind, AmbiguousSourceKind
+    from src.core.models.distribution_geometry import DistributionGeometry
+    from src.core.models.native_distribution_layout import (
+        DistributionColumn,
+        NativeDistributionLayout,
+        OpaqueDistributionLayout,
+    )
     from src.core.models.parsed_output_models import (
         ParsedCell,
         ParsedColumn,
@@ -268,6 +274,16 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ParsedFileResult": ("src.core.models.parsed_output_models", "ParsedFileResult"),
     "ParsedOutput": ("src.core.models.parsed_output_models", "ParsedOutput"),
     "ParsedSchema": ("src.core.models.parsed_output_models", "ParsedSchema"),
+    "DistributionGeometry": ("src.core.models.distribution_geometry", "DistributionGeometry"),
+    "DistributionColumn": ("src.core.models.native_distribution_layout", "DistributionColumn"),
+    "NativeDistributionLayout": (
+        "src.core.models.native_distribution_layout",
+        "NativeDistributionLayout",
+    ),
+    "OpaqueDistributionLayout": (
+        "src.core.models.native_distribution_layout",
+        "OpaqueDistributionLayout",
+    ),
     "ParsedVariableResult": ("src.core.models.parsed_output_models", "ParsedVariableResult"),
     "ParsedVariableSchema": ("src.core.models.parsed_output_models", "ParsedVariableSchema"),
     "ResolvedParsedRows": ("src.core.models.parsed_output_models", "ResolvedParsedRows"),
@@ -473,6 +489,10 @@ __all__ = [
     "ParsedFileResult",
     "ParsedOutput",
     "ParsedSchema",
+    "DistributionGeometry",
+    "DistributionColumn",
+    "NativeDistributionLayout",
+    "OpaqueDistributionLayout",
     "ParsedVariableResult",
     "ParsedVariableSchema",
     "ResolvedParsedRows",

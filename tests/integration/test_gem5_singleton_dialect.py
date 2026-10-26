@@ -52,12 +52,13 @@ def test_real_singleton_histogram_vector_and_distribution_contexts(
     tmp_path: Path, metadata: str
 ) -> None:
     text = metadata + (
-        "h::samples 12\nh::mean 0.1\nh::gmean 1\nh::stdev 0.3\n"
-        "h::-1 2 16.67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n"
-        "v::0 5 41.67% 41.67%\nv::1 7 58.33% 100%\nv::total 12\n"
-        "d::samples 12\nd::mean 0.5\nd::stdev 0.2\n"
-        "d::underflows 0 0% 0%\nd::0 5 41.67% 41.67%\n"
-        "d::1 7 58.33% 100%\nd::overflows 0 0% 100%\n"
+        (
+            "h::samples 12\nh::mean 0.1\nh::gmean 1\nh::stdev 0.3\nh::-1 2 16"
+            ".67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\nv::0 5 41.67"
+            "% 41.67%\nv::1 7 58.33% 100%\nv::total 12\nd::samples 12\nd::mea"
+            "n 0.5\nd::stdev 0.2\nd::underflows 0 0% 0%\nd::0 5 41.67% 41.67"
+            "%\nd::1 7 58.33% 100%\nd::overflows 0 0% 100%\n"
+        )
     )
     scanned = {variable.name: variable for variable in _scan(tmp_path, text)}
     assert scanned["h"].type is None
@@ -78,7 +79,13 @@ def test_real_singleton_histogram_vector_and_distribution_contexts(
             StatConfig(
                 "d",
                 "distribution",
-                params={"minimum": 0, "maximum": 1, "source_type": "distribution"},
+                params={
+                    "minimum": 0,
+                    "maximum": 1,
+                    "source_type": "distribution",
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
+                },
             ),
         ],
     )
@@ -114,8 +121,10 @@ def test_explicit_histogram_type_canonicalizes_points_without_inference_markers(
 def test_complete_geometry_retains_point_labels_and_binds_histogram_request(tmp_path: Path) -> None:
     scanned = _scan(
         tmp_path,
-        "h::bucket_size 1\nh::min_bucket -1\nh::max_bucket 1\n"
-        "h::-1 2 16.67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n",
+        (
+            "h::bucket_size 1\nh::min_bucket -1\nh::max_bucket 1\nh::-1 2 16"
+            ".67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n"
+        ),
     )
     assert len(scanned) == 1
     assert scanned[0].type is None
@@ -143,11 +152,19 @@ def test_singleton_histogram_preserves_explicit_entry_type_reinterpretation(
         StatConfig("h", target, params={"entries": ["0-0", "1-1"], "source_type": "histogram"})
         if target == "vector"
         else StatConfig(
-            "h", target, params={"minimum": 0, "maximum": 1, "source_type": "histogram"}
+            "h",
+            target,
+            params={
+                "minimum": 0,
+                "maximum": 1,
+                "bucket_size": 1,
+                "zero_policy": "missing",
+                "source_type": "histogram",
+            },
         )
     )
     if target == "distribution":
-        with pytest.raises(TypeError, match="Missing mandatory keys 'underflows' or 'overflows'"):
+        with pytest.raises(RuntimeError, match="contradicts the declared native grid"):
             _parse(tmp_path, [config])
     else:
         row = _parse(tmp_path, [config])
@@ -160,9 +177,10 @@ def test_distribution_preserves_explicit_entry_type_reinterpretation(
 ) -> None:
     scanned = _scan(
         tmp_path,
-        "d::samples 10\nd::mean 0.1\nd::stdev 0.3\n"
-        "d::underflows 0 0% 0%\nd::0 9 90% 90%\n"
-        "d::1 1 10% 100%\nd::overflows 0 0% 100%\n",
+        (
+            "d::samples 10\nd::mean 0.1\nd::stdev 0.3\nd::underflows 0 0% 0%"
+            "\nd::0 9 90% 90%\nd::1 1 10% 100%\nd::overflows 0 0% 100%\n"
+        ),
     )
     assert scanned[0].type is None
     assert source_kind_candidates(scanned[0].source_evidence) == {"distribution", "vector"}
@@ -180,8 +198,10 @@ def test_declared_histogram_vector_selection_uses_inclusive_output_labels(
 ) -> None:
     scanned = _scan(
         tmp_path,
-        "h::samples 12\nh::mean 0\nh::gmean 1\nh::stdev 1\n"
-        "h::-1 2 16.67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n",
+        (
+            "h::samples 12\nh::mean 0\nh::gmean 1\nh::stdev 1\nh::-1 2 16.67%"
+            " 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n"
+        ),
     )
     histogram = next(variable for variable in scanned if variable.name == "h")
     assert histogram.type is None
@@ -288,10 +308,10 @@ def test_dump_boundaries_clear_reserved_type_context_in_both_perl_paths(
     ).stdout
     server_records = [json.loads(line) for line in printed.splitlines() if line.startswith("{")]
     classifier = (
-        "use TypesFormatRegex; resetLineContext(); "
-        "while (my $line = <STDIN>) { chomp $line; my $items = classifyLine($line); "
-        'print encodeRecord($_), "\\n" for @{ $items // [] }; } '
-        'print encodeRecord($_), "\\n" for @{finishLineContext()};'
+        "use TypesFormatRegex; resetLineContext(); while (my $line = "
+        "<STDIN>) { chomp $line; my $items = classifyLine($line); pri"
+        'nt encodeRecord($_), "\\n" for @{ $items // [] }; } print enc'
+        'odeRecord($_), "\\n" for @{finishLineContext()};'
     )
     classified = subprocess.run(
         ["perl", "-I", str(perl_root / "libs"), "-e", classifier],

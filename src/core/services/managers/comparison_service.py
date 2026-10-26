@@ -9,6 +9,11 @@ from typing import Literal, TypeAlias
 import numpy as np
 import pandas as pd
 
+from src.core.common.distribution_metadata import (
+    inspect_distribution_layouts,
+    with_distribution_layouts,
+)
+
 MetricDirection: TypeAlias = Literal["higher", "lower"]
 ThresholdMode: TypeAlias = Literal["percentage", "absolute"]
 
@@ -65,6 +70,8 @@ class ComparisonService:
             ValueError: Columns, keys, directions, thresholds, or labels are invalid.
         """
         # [impl->req~ring5.analysis.regression-comparison~1]
+        inspect_distribution_layouts(baseline)
+        inspect_distribution_layouts(candidate)
         keys = cls._validated_columns(key_columns, "key")
         metrics = cls._validated_columns(metric_columns, "metric")
         cls._validate_inputs(baseline, candidate, keys, metrics)
@@ -109,7 +116,7 @@ class ComparisonService:
         ]
         if not comparisons:
             return pd.DataFrame(columns=keys + list(_OUTPUT_COLUMNS))
-        return pd.concat(comparisons, ignore_index=True)
+        return with_distribution_layouts(pd.concat(comparisons, ignore_index=True), {})
 
     @staticmethod
     def _validated_columns(columns: Sequence[str], kind: str) -> list[str]:

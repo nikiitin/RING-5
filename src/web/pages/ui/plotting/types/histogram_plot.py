@@ -7,6 +7,7 @@ import math
 import pandas as pd
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.common.distribution_metadata import inspect_distribution_layouts
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import histogram_config
 from src.core.models.plot_config import PlotConfig
@@ -66,6 +67,13 @@ class HistogramPlot(BasePlot):
         histogram_var = config.get("histogram_variable")
         if not histogram_var:
             raise ValueError("No histogram variable specified")
+
+        layout = inspect_distribution_layouts(data).get(str(histogram_var))
+        if layout is not None:
+            raise ValueError(
+                "Native Distribution source layouts require native cell rendering; "
+                "continuous Histogram interpretation is unavailable for this declaration."
+            )
 
         # Extract histogram bucket columns
         bucket_cols = [

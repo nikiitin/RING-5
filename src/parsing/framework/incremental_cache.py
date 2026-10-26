@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -18,6 +18,7 @@ from src.core.common.parsed_output_codec import (
     unique_json_object,
 )
 from src.core.models.parsed_output_models import ParsedFileResult
+from src.core.models.native_distribution_layout import DistributionLayout
 from src.core.common.security_limits import (
     MAX_INCREMENTAL_CACHE_BYTES,
     MAX_PARSE_FILES,
@@ -32,7 +33,7 @@ from src.parsing.framework.result_admission import ResultAdmission
 
 logger = logging.getLogger(__name__)
 
-CACHE_SCHEMA_VERSION = 2
+CACHE_SCHEMA_VERSION = 3
 DEFAULT_CACHE_NAME = ".ring5-incremental-parse.json"
 
 
@@ -75,6 +76,8 @@ def load_cache(
     cache_path: Path,
     expected_configuration_hash: str,
     fingerprints: tuple[tuple[str, str], ...],
+    *,
+    layout_declarations: Mapping[str, DistributionLayout | None] | None = None,
 ) -> CacheReuse:
     """Decode and admit reusable records before accumulating typed cached values.
 
@@ -121,6 +124,8 @@ def load_cache(
             or len(set(names)) != len(names)
         ):
             raise ValueError("cache variable order is malformed")
+        if layout_declarations is not None and set(names) != set(layout_declarations):
+            raise ValueError("Cache declarations do not match the current logical source plan.")
         raw_files = payload["files"]
         if type(raw_files) is not list or len(raw_files) > MAX_PARSE_FILES:
             raise ValueError("cache files require a bounded array")
@@ -132,7 +137,9 @@ def load_cache(
                 raise ValueError("cache file record is malformed")
             fingerprint = raw["fingerprint"]
             _digest(fingerprint)
-            result = parsed_file_from_payload(raw["result"])
+            result = parsed_file_from_payload(
+                raw["result"], layout_declarations=layout_declarations
+            )
             if result.source_path in seen or {
                 variable.name for variable in result.variables
             } != set(names):

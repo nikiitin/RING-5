@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from src.core.common.content_identity import content_signature, frame_signature
+from src.core.common.distribution_metadata import inspect_distribution_layouts
 from src.core.common.security_limits import (
     MAX_TYPED_TABLE_BYTES,
     MAX_TYPED_TABLE_CELLS,
@@ -233,8 +234,8 @@ class TypedTableCodec:
         ):
             raise ValueError("Typed table exceeds its decoded shape budget.")
         try:
-            payload = cls._encode_frame(data)
             cls._validate_attrs(data)
+            payload = cls._encode_frame(data)
             _TableBudget()._frame(payload)
             expected = frame_signature(data)
             if frame_signature(cls.decode(payload)) != expected:
@@ -324,6 +325,7 @@ class TypedTableCodec:
 
     @staticmethod
     def _validate_attrs(data: pd.DataFrame) -> None:
+        inspect_distribution_layouts(data)
         if SEMANTICS_ATTR in data.attrs:
             normalized = semantics_to_payload(inspect_semantics(data))
             if content_signature(normalized) != content_signature(data.attrs[SEMANTICS_ATTR]):

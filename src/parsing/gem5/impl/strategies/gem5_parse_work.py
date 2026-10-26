@@ -10,6 +10,8 @@ from src.parsing.gem5.types.base import StatContent, StatResult, StatType
 from src.core.common.parsed_output_codec import read_numeric_wire
 from src.core.common.source_entry_labels import canonical_source_entry
 from src.core.models.source_evidence import SourceKindBinding
+from src.core.models.native_distribution_layout import NativeDistributionLayout
+from src.parsing.gem5.impl.source_bindings import AccumulatorSpec
 from src.parsing.gem5.impl.source_events import (
     Measurement,
     SourceEvidence,
@@ -24,7 +26,11 @@ from src.core.common.parse_failure import (
     parse_names_text,
 )
 from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataValueError
-from src.core.common.security_limits import MAX_INCREMENTAL_CACHE_COLUMNS, MAX_PARSE_VARIABLES
+from src.core.common.security_limits import (
+    MAX_INCREMENTAL_CACHE_COLUMNS,
+    MAX_PARSE_VARIABLES,
+    MAX_PARSED_CELL_CHARACTERS,
+)
 from src.core.models.parsed_output_models import (
     ParsedCell,
     ParsedFileResult,
@@ -119,20 +125,58 @@ class Gem5ParseWork:
         self._entry_buffer = {}
         self._entry_ordinals = {}
 
+    @staticmethod
+    def _matches_native_header(value: float, token: str) -> bool:
+        """Compare the exact declared double at the printed fixed decimal precision."""
+        if (
+            len(token) > MAX_PARSED_CELL_CHARACTERS
+            or re.fullmatch(r"-?\d+(?:\.\d+)?", token) is None
+        ):
+            return False
+        places = len(token.partition(".")[2])
+        return format(value, f".{places}f") == token
+
     def _oneline_entries(
-        self, measurement: Measurement, source: SourceEvidence, source_kind: str
+        self,
+        measurement: Measurement,
+        source_kind: str,
+        spec: AccumulatorSpec,
     ) -> list[tuple[str, str]]:
-        """Decode current integral layouts only after the source contract is bound."""
-        route = self._routes[source.name]
-        specs = [self._specs[target.output_name] for target in route.targets]
-        if all(spec.config.statistics_only for spec in specs):
+        """Admit each selected representation against its own declared source grid."""
+        if spec.config.statistics_only:
             return []
         reported = dict(measurement.reported_geometry)
-        if source_kind == "histogram":
+        layout = spec.layout
+        if source_kind == "distribution" and type(layout) is NativeDistributionLayout:
+            geometry = layout.geometry
+            expected = {
+                "bucket_size": geometry.bucket_size,
+                "min_bucket": geometry.minimum,
+                "max_bucket": geometry.maximum,
+            }
+            if "bucket_size" not in reported or any(
+                key not in reported and not (layout.zero_policy == "nozero" and value == 0.0)
+                for key, value in expected.items()
+            ):
+                raise ParseDataValueError(
+                    "Oneline Distribution requires its reported width and declared bounds."
+                )
+            if any(
+                not self._matches_native_header(expected[key], value)
+                for key, value in reported.items()
+            ):
+                raise ParseDataValueError("Printed geometry contradicts the declared native grid.")
+            labels = [column.source_label for column in layout.columns if column.role == "bucket"]
+        elif source_kind in {"histogram", "distribution"} and (
+            source_kind == "histogram" or spec.output_type == "histogram"
+        ):
             if set(reported) != {"bucket_size", "min_bucket", "max_bucket"} or any(
                 re.fullmatch(r"-?\d+", value) is None for value in reported.values()
             ):
-                raise ParseDataValueError("Oneline Histogram requires complete integral geometry.")
+                raise ParseDataValueError(
+                    "Generic Histogram requires complete integral geometry; use a declared "
+                    "native Distribution grid for fractional storage cells."
+                )
             integral: dict[str, int] = {}
             for key, value in reported.items():
                 read_numeric_wire(value)
@@ -142,48 +186,29 @@ class Gem5ParseWork:
                     if type(exc) is not ValueError:
                         raise
                     raise ParseDataValueError(
-                        "Integral source geometry exceeds supported integer conversion."
+                        "Integral source geometry exceeds its bound."
                     ) from exc
             width, low, high = (
                 integral[key] for key in ("bucket_size", "min_bucket", "max_bucket")
             )
             if width <= 0 or high < low:
-                raise ParseDataValueError("Invalid oneline Histogram geometry.")
-            count = (high - low) // width + 1
-            if count != len(measurement.values):
                 raise ParseDataValueError(
-                    "Oneline source cell count contradicts its current geometry."
+                    "Invalid oneline Histogram geometry; use a declared native Distribution "
+                    "grid for native storage cells."
                 )
+            count = (high - low) // width + 1
+            if count > MAX_INCREMENTAL_CACHE_COLUMNS:
+                raise ParseDataValueError("Oneline Histogram exceeds the physical column limit.")
             labels = [
                 f"{low + index * width}-{min(low + (index + 1) * width - 1, high)}"
                 for index in range(count)
             ]
-        elif source_kind == "distribution":
-            bounds = {
-                (spec.config.params.get("minimum"), spec.config.params.get("maximum"))
-                for spec in specs
-                if not spec.config.statistics_only
-            }
-            if len(bounds) != 1 or "bucket_size" not in reported:
-                raise ParseDataValueError("Oneline Distribution needs one declared current grid.")
-            low_value, high_value = next(iter(bounds))
-            if not isinstance(low_value, (int, float)) or not isinstance(high_value, (int, float)):
-                raise ParseDataValueError("Distribution requires its declared integral bounds.")
-            low, high, width = int(low_value), int(high_value), 1
-            expected = {"bucket_size": 1.0, "min_bucket": float(low), "max_bucket": float(high)}
-            if any(read_numeric_wire(value) != expected[key] for key, value in reported.items()):
-                raise ParseDataValueError("Printed geometry contradicts the declared current grid.")
-            count = high - low + 1
-            if count != len(measurement.values):
-                raise ParseDataValueError(
-                    "Oneline source cell count contradicts its current geometry."
-                )
-            labels = [str(low + index) for index in range(count)]
         else:
             raise ParseDataValueError(
-                "Oneline Vector has no entry names; an entry-order contract is required."
+                "Oneline Vector has no entry-order contract; select native Distribution "
+                "output with an explicit full grid."
             )
-        if count != len(measurement.values):
+        if len(labels) != len(measurement.values):
             raise ParseDataValueError("Oneline source cell count contradicts its current geometry.")
         return list(zip(labels, measurement.values, strict=True))
 
@@ -203,14 +228,30 @@ class Gem5ParseWork:
             raise ParseDataRuntimeError(
                 f"Declared source contract contradicts actual observations for {source.name!r}."
             ) from exc
+        measurements = self._source_buffer.pop(source.name, [])
+        native_headers = source_kind == "distribution" and any(
+            item.shape == "entry" and item.entry == "samples" for item in measurements
+        )
+        frame_index = 0
+        samples_seen = 0
         oneline_index = 0
-        for measurement in self._source_buffer.pop(source.name, []):
-            sample_index = None
+        for measurement in measurements:
+            if native_headers and measurement.shape == "entry" and measurement.entry == "samples":
+                frame_index = samples_seen
+                samples_seen += 1
+            sample_index = frame_index if native_headers else None
             if measurement.shape == "oneline":
-                entries = self._oneline_entries(measurement, source, source_kind)
-                sample_index = oneline_index
+                if not native_headers:
+                    sample_index = oneline_index
                 oneline_index += 1
-            elif measurement.shape == "entry":
+                for target in route.targets:
+                    spec = self._specs[target.output_name]
+                    for entry, value in self._oneline_entries(measurement, source_kind, spec):
+                        self._buffer_entry(
+                            target.output_name, source.name, entry, value, sample_index=sample_index
+                        )
+                continue
+            if measurement.shape == "entry":
                 assert measurement.entry is not None and measurement.value is not None
                 entry = measurement.entry
                 if source_kind in {"histogram", "distribution"} and entry in {
@@ -220,39 +261,49 @@ class Gem5ParseWork:
                 }:
                     continue
                 entry = canonical_source_entry(source_kind, entry)
-                entries = [(entry, measurement.value)]
-            else:
-                assert measurement.value is not None
                 for target in route.targets:
                     spec = self._specs[target.output_name]
+                    if spec.output_type not in _ENTRY_TYPES or target.entry_name is not None:
+                        raise RuntimeError("Entry source has an incompatible planned destination.")
                     if (
-                        spec.output_type == "vector"
-                        and source_kind == "scalar"
-                        and target.entry_name is not None
-                    ):
-                        self._buffer_entry(
-                            target.output_name, source.name, target.entry_name, measurement.value
+                        source_kind == "distribution"
+                        and spec.output_type == "histogram"
+                        and (
+                            re.fullmatch(r"-?\d+(?:--?\d+)?", entry) is None
+                            and any(character.isdigit() for character in entry)
                         )
-                    elif (
-                        spec.output_type in {"scalar", "configuration"}
-                        and target.entry_name is None
                     ):
-                        self._accumulators[target.output_name].add_observation(
-                            measurement.value
-                            if spec.output_type == "configuration"
-                            else read_numeric_wire(measurement.value)
+                        raise ParseDataValueError(
+                            "Generic Histogram cannot interpret fractional native cells; use "
+                            "Distribution output with an explicit full grid."
                         )
-                    else:
-                        raise RuntimeError("Point source has an incompatible planned destination.")
+                    self._buffer_entry(
+                        target.output_name,
+                        source.name,
+                        entry,
+                        measurement.value,
+                        sample_index=sample_index,
+                    )
                 continue
+            assert measurement.value is not None
             for target in route.targets:
                 spec = self._specs[target.output_name]
-                if spec.output_type not in _ENTRY_TYPES or target.entry_name is not None:
-                    raise RuntimeError("Entry source has an incompatible planned destination.")
-                for entry, value in entries:
+                if (
+                    spec.output_type == "vector"
+                    and source_kind == "scalar"
+                    and target.entry_name is not None
+                ):
                     self._buffer_entry(
-                        target.output_name, source.name, entry, value, sample_index=sample_index
+                        target.output_name, source.name, target.entry_name, measurement.value
                     )
+                elif spec.output_type in {"scalar", "configuration"} and target.entry_name is None:
+                    self._accumulators[target.output_name].add_observation(
+                        measurement.value
+                        if spec.output_type == "configuration"
+                        else read_numeric_wire(measurement.value)
+                    )
+                else:
+                    raise RuntimeError("Point source has an incompatible planned destination.")
 
     def _process_line(self, line: str) -> None:
         event = decode_source_event(line)
@@ -360,5 +411,7 @@ class Gem5ParseWork:
             column_count += len(cells)
             if column_count > MAX_INCREMENTAL_CACHE_COLUMNS:
                 raise ParseDataRuntimeError("PARSER: output exceeds the physical column limit.")
-            variables.append(ParsedVariableResult(name, kind, shape, cells, missing))
+            variables.append(
+                ParsedVariableResult(name, kind, shape, cells, missing, layout=spec.layout)
+            )
         return ParsedFileResult(self._file_to_parse, tuple(variables))

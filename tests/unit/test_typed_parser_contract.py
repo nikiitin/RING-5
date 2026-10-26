@@ -29,9 +29,16 @@ def _result(source: str = "source", *, absent: int = 0) -> ParsedFileResult:
         source,
         (
             ParsedVariableResult(
-                "number", "number", "scalar", (ParsedCell("number", "number", math.nan),), absent
+                "number",
+                "number",
+                "scalar",
+                (ParsedCell("number", "number", math.nan),),
+                absent,
+                layout=None,
             ),
-            ParsedVariableResult("label", "text", "scalar", (ParsedCell("label", "text", "NA"),)),
+            ParsedVariableResult(
+                "label", "text", "scalar", (ParsedCell("label", "text", "NA"),), layout=None
+            ),
         ),
         (ParsedCell("sim_path", "text", source),),
     )

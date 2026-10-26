@@ -359,6 +359,8 @@ def test_scanner_payload_owner_keeps_evidence_separate_from_requested_geometry()
                     "source_type": "distribution",
                     "minimum": -2,
                     "maximum": 4,
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
                 },
             )
         ],
@@ -383,6 +385,8 @@ def test_scanner_payload_owner_keeps_evidence_separate_from_requested_geometry()
         "source_type": "distribution",
         "minimum": -2,
         "maximum": 4,
+        "bucket_size": 1,
+        "zero_policy": "missing",
     }
     generic = SourceContextCodec.scanned_variables(source)[0]
     assert generic.type is None

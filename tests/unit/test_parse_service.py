@@ -42,10 +42,12 @@ class TestSubmitParseAsync:
         stats_dir = tmp_path / "data"
         stats_dir.mkdir()
         strategy = MagicMock()
+        strategy.metadata_columns = ()
+        (stats_dir / "stats.txt").write_text("simTicks 1\n")
         strategy.get_work_items.return_value = []
         mock_sf.create.return_value = strategy
 
-        with pytest.raises(FileNotFoundError, match="No parse work generated"):
+        with pytest.raises(FileNotFoundError, match="strategy generated no work"):
             Gem5Parser.submit_parse_async(
                 str(stats_dir),
                 "stats.txt",
@@ -76,7 +78,11 @@ class TestSubmitParseAsync:
         stats_dir.mkdir()
 
         strategy = MagicMock()
-        sources = (str(stats_dir / "a.txt"), str(stats_dir / "b.txt"))
+        strategy.metadata_columns = ()
+        sources = (str(stats_dir / "a" / "stats.txt"), str(stats_dir / "b" / "stats.txt"))
+        for source in sources:
+            Path(source).parent.mkdir()
+            Path(source).write_text("simTicks 1\n")
         work_items = [
             MagicMock(
                 source_path=source,
@@ -117,7 +123,9 @@ class TestSubmitParseAsync:
         stats_dir.mkdir()
 
         strategy = MagicMock()
+        strategy.metadata_columns = ()
         source = str(stats_dir / "stats.txt")
+        Path(source).write_text("simTicks 1\n")
         strategy.get_work_items.return_value = [
             MagicMock(
                 source_path=source,
@@ -162,7 +170,7 @@ class TestSubmitParseAsync:
             scanned_vars=scanned,
         )
 
-        plan = strategy.get_work_items.call_args.args[2]
+        plan = strategy.get_work_items.call_args.args[1]
         assert tuple(plan.routes) == ("system.cpu0.ipc", "system.cpu1.ipc")
         assert all(
             tuple(target.output_name for target in route.targets) == (r"system\.cpu\d+\.ipc",)
@@ -187,6 +195,7 @@ def _entries(name: str, values: dict[str, float]) -> ParsedVariableResult:
         "number",
         "entries",
         tuple(ParsedCell(f"{name}..{entry}", "number", value) for entry, value in values.items()),
+        layout=None,
     )
 
 
@@ -294,6 +303,7 @@ class TestConstructFinalCsv:
                     "scalar",
                     (ParsedCell("missing_var", "number", math.nan),),
                     missing_measurements=1,
+                    layout=None,
                 ),
             ),
         )

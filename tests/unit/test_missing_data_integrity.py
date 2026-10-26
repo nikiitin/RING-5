@@ -32,6 +32,7 @@ def _make_result(source: str, values: list[float], repeat: int) -> ParsedFileRes
                 "scalar",
                 (ParsedCell("ipc", "number", scalar.reduced_content),),
                 missing,
+                layout=None,
             ),
         ),
     )

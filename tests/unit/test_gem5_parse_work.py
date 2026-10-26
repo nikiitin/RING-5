@@ -37,7 +37,7 @@ def _source(name, kind, entries=()):
 
 
 def _worker(configs, metadata=None, path="unused"):
-    plan = resolve_sources(configs, metadata)
+    plan = resolve_sources(configs, metadata, file_count=1, metadata_columns=())
     accumulators = {spec.output_name: TypeMapper.create_stat(spec) for spec in plan.accumulators}
     return Gem5ParseWork(path, accumulators, plan), accumulators
 
@@ -177,7 +177,12 @@ def test_unknown_and_malformed_records_do_not_populate_outputs(caplog):
 
 
 def test_worker_rejects_accumulator_maps_that_do_not_match_plan():
-    plan = resolve_sources([StatConfig("ipc", "scalar", params={"source_type": "scalar"})], [])
+    plan = resolve_sources(
+        [StatConfig("ipc", "scalar", params={"source_type": "scalar"})],
+        [],
+        file_count=1,
+        metadata_columns=(),
+    )
     with pytest.raises(RuntimeError, match="requires logical accumulators"):
         Gem5ParseWork("unused", {}, plan)
     with pytest.raises(ValueError, match="exactly match"):

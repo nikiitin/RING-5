@@ -114,3 +114,32 @@ def decode_distribution_geometry(value: object) -> DistributionGeometry:
         maximum=cast(float, value["maximum"]),
         bucket_size=cast(float, value["bucket_size"]),
     )
+
+
+def native_bucket_label(geometry: DistributionGeometry, index: int) -> str:
+    """Return the pinned native printer's literal label for one storage cell.
+
+    Labels use the native stream's six significant digits. They identify storage
+    slots, including allocated slots above maximum, rather than continuous support.
+
+    Args:
+        geometry: Full-precision declared native grid.
+        index: Actual allocated native slot.
+
+    Returns:
+        The exact point or inclusive-looking range spelling emitted by DistPrint.
+
+    Raises:
+        TypeError: The geometry or index has an invalid type.
+        ValueError: The index or resulting coordinates are unsupported.
+    """
+    if type(geometry) is not DistributionGeometry or type(index) is not int:
+        raise TypeError("Native labels require typed geometry and an integer slot.")
+    if not 0 <= index < geometry.bucket_count:
+        raise ValueError("Native slot lies outside the declared allocation.")
+    low = index * geometry.bucket_size + geometry.minimum
+    high = min(low + geometry.bucket_size - 1.0, geometry.maximum)
+    if not math.isfinite(low) or not math.isfinite(high):
+        raise ValueError("Native label coordinates must remain finite.")
+    label = format(low, ".6g")
+    return f"{label}-{high:.6g}" if low < high else label
