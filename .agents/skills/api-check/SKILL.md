@@ -27,9 +27,16 @@ by presentation code. This gate checks service/state access and submit/finalize 
 ```python
 futures   = api.submit_scan_async(stats_path, pattern, limit=5)
 scan      = api.finalize_scan([f.result() for f in futures])
-configs   = api.compile_parse_variables(
-    [api.draft_from_scanned_variable(v.to_dict()) for v in scan.variables]
-)
+drafts    = [api.draft_from_scanned_variable(v.to_dict()) for v in scan.variables]
+```
+Scanning supplies evidence and editable drafts. Complete every missing or ambiguous output/source
+choice before compilation; each runnable draft needs compatible `params.source_type`. Full native
+Distribution frequencies also require caller-declared `minimum`, `maximum`, positive `bucket_size`
+and explicit `zero_policy`. A scan supplies neither that grid nor an omission guarantee.
+Statistics-only extraction needs no grid. Continue only with the caller-completed `drafts`:
+
+```python
+configs   = api.compile_parse_variables(drafts)
 batch     = api.submit_parse_async(stats_path, pattern, configs, out_dir, scanned_vars=scan.variables)
 output    = api.finalize_parsing(batch, [f.result() for f in batch.futures])
 ```

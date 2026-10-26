@@ -15,11 +15,17 @@ Layout: `src/parsing/` (protocol, registry, services) and `src/parsing/gem5/` (i
 # Scan: discover variables
 futures   = api.submit_scan_async(stats_path, pattern="stats.txt", limit=5)
 scan      = api.finalize_scan([f.result() for f in futures])
-configs   = api.compile_parse_variables(
-    [api.draft_from_scanned_variable(v.to_dict()) for v in scan.variables]
-)
+drafts    = [api.draft_from_scanned_variable(v.to_dict()) for v in scan.variables]
+```
+Scanned evidence can leave output and source choices incomplete or ambiguous. Complete those
+choices explicitly before compilation, including compatible `params.source_type`. Full native
+Distribution frequencies require caller-declared `minimum`, `maximum`, positive `bucket_size`
+and explicit `zero_policy`; neither labels nor scans supply a grid or omission guarantee.
+Statistics-only extraction needs no grid. The following continuation uses caller-completed `drafts`:
 
-# Parse: extract selected variables → CSV
+```python
+configs  = api.compile_parse_variables(drafts)
+# Parse: extract selected variables → typed output
 batch    = api.submit_parse_async(stats_path, pattern, configs, out_dir,
                                   strategy_type="simple", scanned_vars=scan.variables)
 output   = api.finalize_parsing(batch, [f.result() for f in batch.futures])
@@ -39,8 +45,8 @@ output   = api.finalize_parsing(batch, [f.result() for f in batch.futures])
   are excluded from selection.
 
 ## Add a new gem5 variable (stat) type
-Stat types self-register; there are two halves — **Python** (model + reduction) and **Perl**
-(line classification). Existing types: `scalar`, `vector`, `distribution`, `histogram`,
+Stat types self-register. Python owns output models/reduction; the shared Perl decoder owns
+observed source contracts. Existing types: `scalar`, `vector`, `distribution`, `histogram`,
 `configuration` (in `src/parsing/gem5/types/`).
 
 1. **Python type** — `src/parsing/gem5/types/<name>.py`:
@@ -74,13 +80,16 @@ Stat types self-register; there are two halves — **Python** (model + reduction
    `StatTypeRegistry.create("mytype", ...)` then dispatch by name. (There is **no**
    `TYPE_TO_SCRIPT`/`TYPE_TO_COLUMNS` dict — registration is purely the decorator.)
 
-2. **Perl classification** — add/extend a regex module under
-   `src/parsing/gem5/perl/libs/Scanning/Type/<Name>.pm`, then wire it into the single
-   `TypesFormatRegex::classifyLine` classifier. It returns an ordered record list; each measurement
-   retains its source entry, scan label, and value. The scanner aggregates those records and the
-   persistent worker serializes them. Preserve dump events and deferred geometry; validate oneline
-   geometry while preserving gem5's zero-suppressed bounds. Test both consumers with the same raw
-   fixtures.
+2. **Shared source decoding** — extend `src/parsing/gem5/perl/libs/TypesFormatRegex.pm`
+   when the supported wire contract needs new observation semantics. It owns `source-events-1`:
+   `classifyLine` emits measurements and `finishLineContext` completes source evidence or errors
+   at dump/end-of-file boundaries. `statsScanner.pl` and `fileParserServer.pl` consume that same
+   owner; Python validates events through `src/parsing/gem5/impl/source_events.py`.
+   Preserve literal labels, observed headers, dump boundaries and bounded bytes. Overlapping wire
+   forms retain ambiguous compatible contracts, without choosing a runnable source/output type.
+   Caller declarations bind execution and are checked against completed evidence. Native grids
+   remain full-precision request declarations; oneline cells must match each selected alias's grid
+   and actual count without padding. Test both consumers with the same raw fixtures.
 
 3. **Register the type string** in `SimulatorRegistry` `GEM5_INFO.variable_types`
    (`src/parsing/registry.py`) so the UI offers it.
@@ -98,8 +107,10 @@ Stat types self-register; there are two halves — **Python** (model + reduction
 - **Missing/empty columns:** `src/core/common/parsed_output.py::ParsedOutputIO.resolve` unions
   explicit typed columns across the submitted source plan. Inspect each worker result's ownership,
   kinds and diagnostics; do not infer a schema from one sample or fabricate absent values.
-- **Wrong values / type mismatch:** Perl may report `Vector` where the user expected
-  `Distribution`/`Histogram`; explicit source/output routing is handled in `gem5/impl/strategies/gem5_parse_work.py`.
+- **Wrong values / incompatible requests:** inspect `source_evidence`, nullable suggested `type`,
+  explicit `params.source_type` and requested output separately. Ambiguous evidence needs a caller
+  choice, not a guessed physical kind. `gem5/impl/source_bindings.py` plans compatible routes;
+  `gem5/impl/strategies/gem5_parse_work.py` checks actual completed evidence before ingestion.
 - **Never fabricate:** on regex non-match the parser logs/raises — keep it that way; don't default to 0.
 - Worker keys are validated against leading-dash flag injection before reaching the pool — preserve that.
 

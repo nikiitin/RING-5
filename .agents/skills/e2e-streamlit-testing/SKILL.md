@@ -49,8 +49,13 @@ engine selectors use radio roles; inspect checked state before clicking an activ
 - Settings basics are Layout, Themes, Typography and Legends. Advanced mode adds Axes, Data
   Labels, Colors and Advanced. Test the toggle with an advanced-only pill such as Colors.
   Themes exposes preset application and JSON import/export through the normal render flow.
-- Per-family configuration differs: stacked bars select statistics through "Statistics to Stack";
-  histogram plots require gem5 bucket columns. Follow the actual labels and widgets for the family.
+- Per-family configuration differs: stacked bars select statistics through "Statistics to Stack".
+  Histograms select a declared native layout by its logical variable key and explicit physical
+  bindings, or use caller-declared generic interval columns such as `variable..0-9`. Native point
+  or range labels do not infer continuous geometry or create additional prefix aliases. Native
+  controls offer count, probability and percent with cumulative views/CDF, without continuous
+  rebinning or noncumulative density. Opaque Distribution source-label layouts show a missing-grid
+  explanation and cannot render a native histogram. Follow each family's actual labels and widgets.
 - Forms batch changes until submission. Dialogs can close on rerun. For fragment interactions,
   synchronize the observable result with the existing action helper before asserting or navigating.
 - `app.py` owns a browser-session-scoped `ApplicationAPI` and closes it via `on_release`.

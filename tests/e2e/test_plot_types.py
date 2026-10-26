@@ -159,11 +159,11 @@ class TestPlotCreation:
     def test_06_create_histogram(self, tier1_page: Page) -> None:
         """Create a histogram; with scalar data it shows the no-vars guidance.
 
-        The histogram plot needs gem5 histogram-bucket columns (e.g.
-        ``latency..0-9``, ``latency..10-19``). The e2e fixture has only scalar
-        columns, so a chart cannot render — the app surfaces an informative
-        warning instead of crashing, and that graceful behaviour is what we
-        verify (the histogram plot type is exercised end-to-end, sans data).
+        Histograms use a declared native layout or explicit generic intervals
+        such as ``latency..0-9`` and ``latency..10-19``. This fixture has only
+        scalar columns and no declared layout, so it cannot render a histogram.
+        The app displays informative missing-variable guidance; this exercises
+        the histogram controls without supplying frequency data.
         """
         mp = ManagePlotsPage(tier1_page)
         _create_and_finalize(mp, "E2E Histogram", "histogram")
