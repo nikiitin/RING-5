@@ -1730,6 +1730,7 @@
           "tests/unit/test_rendering_correctness_regressions.py::test_computed_group_ticks_keep_minor_renames_when_major_aliases_are_configured",
           "tests/integration/test_canonical_legend_state.py::test_legend_labels_survive_configuration_copy_and_portfolio_replay",
           "tests/integration/test_canonical_source_legend_rendering.py::test_public_aliases_preserve_original_style_order_values_and_direct_reapply",
+          "tests/integration/test_canonical_source_legend_rendering.py::test_current_documents_replay_original_style_identity_and_reject_retired_versions",
           "tests/integration/test_canonical_source_legend_rendering.py::test_real_dashboard_keeps_colliding_labels_and_reprojects_shared_entries",
           "tests/ui/test_canonical_legend_labels.py::test_real_reorder_preserves_raw_identity_and_value_keyed_rename_widgets",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
@@ -2368,6 +2369,7 @@
           "src/core/common/plot_payload.py::validate_plot_config_keys"
         ],
         "tests": [
+          "tests/integration/test_canonical_source_legend_rendering.py::test_current_documents_replay_original_style_identity_and_reject_retired_versions",
           "tests/integration/test_portfolio_schema.py::test_obsolete_schema_is_rejected_before_state_changes",
           "tests/unit/test_portfolio_contract.py::test_unsupported_schema_is_rejected",
           "tests/integration/test_canonical_legend_state.py::test_unsupported_plot_state_fails_before_restoration_or_upload",

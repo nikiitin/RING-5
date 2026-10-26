@@ -255,7 +255,9 @@ def test_portfolio_origin_is_explicit_integrity_covered_and_restored_before_edit
     state.set_stats_path("unloaded-editor-request")
     service = PortfolioService(state)
     payload = json.loads(service.serialize_workspace(data, [], {}, 0, origin=origin))
-    assert payload["schema_version"] == 10
+    from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
+
+    assert payload["schema_version"] == CURRENT_PORTFOLIO_SCHEMA_VERSION
     assert payload["loaded_origin"]["source"]["path"] == "actual.csv"
     assert PortfolioIntegrityService.verify(payload).checksum_valid
     state.set_data(pd.DataFrame({"other": [3.0]}))

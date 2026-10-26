@@ -355,12 +355,11 @@ Covers:
 -->
 
 Under **Colors**, applicable plots expose per-series color, bar pattern, marker symbol and size,
-and line width. Display names are edited under **Legends**. Typed renderer styles also carry opacity and borders. **Rewind** returns
-a series to its current palette color.
+and line width. Display names are edited under **Legends**. Typed renderer styles also carry opacity
+and borders. **Rewind** returns a series to its current palette color.
 
 Programmatic `series_styles` use original text series names and style mappings. Display text uses
-`legend_labels`. A bar `pattern` is a
-string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`. Both engines render all
+`legend_labels`. A bar `pattern` is a string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`. Both engines render all
 forms; Plotly projects circle/star forms through native SVG pattern paths. **Default (trace/theme)**
 omits the override and preserves intrinsic hatching. **Solid** explicitly clears it. Explicit
 series choices take precedence over default stripe patterns and appear on legend swatches.

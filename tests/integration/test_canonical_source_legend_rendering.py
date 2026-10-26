@@ -1,6 +1,7 @@
 """Original series identities survive native styling, display aliases and composition."""
 
 from copy import deepcopy
+from pathlib import Path
 from typing import Any, Literal
 
 import matplotlib.pyplot as plt
@@ -260,3 +261,57 @@ def test_source_style_slots_include_hidden_and_underscore_sources_across_axes(
         assert values == {"primary": (3.0,), "secondary": (5.0,), "_raw": (7.0,)}
         plt.close(native.figure)
     assert [trace.name for trace in traces] == ["primary", "hidden", "secondary", "_raw"]
+
+
+@pytest.mark.public_api
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_current_documents_replay_original_style_identity_and_reject_retired_versions(
+    engine: Engine, tmp_path: Path, portfolios_dir: Path
+) -> None:
+    # [test->req~ring5.figure.ordering-renaming~2]
+    # [test->req~ring5.portfolio.schema~1]
+    import json
+
+    from ring5.errors import PortfolioVersionError, RecipeError
+
+    source = tmp_path / "source.csv"
+    _frame().to_csv(source, index=False)
+    expected = [("B", "#0000ff", (7.0, 9.0)), ("A", "#ff0000", (3.0, 5.0))]
+    with Session() as session:
+        loaded = session.load(str(source))
+        plot = session.create_plot("bar", data=loaded, config=_config())
+        session.render(plot, engine=engine)
+        session.save_portfolio("canonical")
+        saved = json.loads((portfolios_dir / "canonical.json").read_text())
+        assert saved["schema_version"] == 11
+        assert saved["version"] == "11.0"
+        assert saved["plots"][0]["config"]["legend_labels"] == _config()["legend_labels"]
+        recipe = session.capture_analysis_recipe("Canonical labels")
+        recipe_wire = json.loads(session.export_analysis_recipe(recipe))
+        assert recipe_wire["schema_version"] == 6
+        assert recipe_wire["plots"][0]["config"]["legend_labels"] == _config()["legend_labels"]
+        assert session.load_portfolio("canonical").complete
+        restored = session.plots[0]
+        session.render(restored, engine=engine)
+        native = restored.render_artifact.native_result
+        assert native is not None
+        assert _state(native) == expected
+        assert _legend_texts(native) == ["Same", "Same"]
+        session.run_analysis_recipe(session.decode_analysis_recipe(json.dumps(recipe_wire)))
+        replayed = session.plots[0]
+        session.render(replayed, engine=engine)
+        native = replayed.render_artifact.native_result
+        assert native is not None
+        assert _state(native) == expected
+        assert _legend_texts(native) == ["Same", "Same"]
+        retained = session.plots
+        saved["schema_version"] = 10
+        saved["version"] = "10.0"
+        (portfolios_dir / "retired.json").write_text(json.dumps(saved))
+        with pytest.raises(PortfolioVersionError, match="schema_version"):
+            session.load_portfolio("retired")
+        assert session.plots == retained
+        recipe_wire["schema_version"] = 5
+        with pytest.raises(RecipeError, match="schema version"):
+            session.decode_analysis_recipe(json.dumps(recipe_wire))
+        assert session.plots == retained

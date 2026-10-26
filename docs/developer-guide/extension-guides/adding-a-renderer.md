@@ -55,8 +55,8 @@ including hidden sources. A rename never changes style keys, source values or le
 Plotly generated facet titles use reserved ordinal annotation role names, with the corresponding
 source association held in the result. Missing or duplicated owned roles fail visibly. Compositors
 transfer associations to actual copied destination traces and panel roles. Direct native copies
-require explicit associations for connector restyling; they cannot reuse the original result or recover identities
-from aliased text. Foreign decorations remain outside the owned source set.
+require explicit associations for connector restyling; they cannot reuse the original result or
+recover identities from aliased text. Foreign decorations remain outside the owned source set.
 
 The result owns generated legend/colorbar outputs. Reapply updates existing owned outputs; a
 structural colorbar change checks current callback/backlink and layout generation before removal.

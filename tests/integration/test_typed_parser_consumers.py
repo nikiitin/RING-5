@@ -244,7 +244,9 @@ def test_reviewed_import_parameterized_recipe_replays_actual_options_and_rejecte
         )
         pd.testing.assert_frame_equal(_active(session).frame, expected.frame)
         wire = json.loads(session.export_analysis_recipe(parameterized))
-        assert wire["schema_version"] == 5
+        from src.core.models.recipe_models import ANALYSIS_RECIPE_SCHEMA_VERSION
+
+        assert wire["schema_version"] == ANALYSIS_RECIPE_SCHEMA_VERSION
         assert wire["source"]["csv_policy"]["rejected_rows"] == "exclude"
         path.write_text("ignored\nlabel;value\nreject;bad\n", encoding="utf-8")
         with pytest.raises(ring5.RecipeError):
