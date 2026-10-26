@@ -179,7 +179,8 @@ Covers:
 
 Choose a named palette or explicit per-series colors. Colorblind-safe palettes are identified in
 the selector. A saved custom palette remains a color sequence until you explicitly select a named
-palette. Background, grid, axis, and transparent paper or plot colors are stored with the plot.
+palette. Area outlines and fills use the same supported RGB/RGBA and HSL/HSLA color forms.
+Background, grid, axis, and transparent paper or plot colors are stored with the plot.
 
 Opening a color picker preserves the saved CSS spelling and alpha until you change its RGB value.
 Colors without a static RGB picker projection appear as editable CSS text; the selected native

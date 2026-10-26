@@ -529,7 +529,7 @@ class MatplotlibTraceRenderer:
                 rendered_x,
                 rendered_y,
                 baseline,
-                color=color or "#4472C4",
+                color=css_color_to_matplotlib(color or "#4472C4"),
                 alpha=spec.opacity,
                 step=step,
                 label="_nolegend_",
