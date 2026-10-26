@@ -50,8 +50,12 @@ class RecipeSource:
         strategy: Registered parser strategy.
         variables: Serialized parser-variable configurations.
         scanned_variables: Captured scanner metadata used by parser variables.
-        scan_limit: Parser discovery sample limit; zero is exhaustive.
-        strict: Whether missing parser statistics fail execution.
+        scan_limit: Captured discovery limit; zero is exhaustive and ``None``
+            records a resolved request that performed no discovery.
+        strict: Whether missing numeric variable values reject parser finalization.
+        simulator: Declared backend identifier used for parser replay.
+        parser_contract_version: Shared parser semantic contract required for replay.
+        csv_policy: Captured inference or reviewed-import policy used for CSV replay.
     """
 
     kind: RecipeSourceKind

@@ -3506,15 +3506,17 @@ class Session:
     ) -> AnalysisRecipe:
         """Capture this session's source, plots, and pipelines as a recipe.
 
-        The active CSV path or parser provenance is used when ``source`` is
-        omitted. Runtime placeholders use ``{{parameter_name}}`` in source
-        paths, shaper values, plot configuration values, and export paths.
+        Omitting ``source`` uses the immutable request associated with the loaded
+        data. Retained recipe transformations appear once, followed by the supplied
+        ``transformations``. An explicit source uses only the supplied steps.
+        Runtime placeholders use ``{{parameter_name}}`` in source paths, shaper
+        values, plot configuration values, and export paths.
 
         Args:
             name: Stable recipe name.
             description: Human-readable purpose.
             parameters: Typed runtime placeholder declarations.
-            source: Explicit source, or ``None`` to capture current provenance.
+            source: Explicit source, or ``None`` to reuse the loaded request context.
             transformations: Dataset-wide shapers applied before every plot.
             exports: Named-plot output instructions.
 
@@ -3523,7 +3525,7 @@ class Session:
             to retain it locally.
 
         Raises:
-            RecipeError: Current provenance or recipe content is invalid.
+            RecipeError: The loaded source cannot be reused or recipe content is invalid.
         """
         # [impl->req~ring5.portfolio.analysis-recipes~1]
         try:
@@ -3740,10 +3742,10 @@ class Session:
     ) -> AnalysisRecipeRunResult:
         """Execute a recipe in this session and write its configured exports.
 
-        CSV recipes load their source directly. Parser recipes use the normal
-        owned scan/parse job lifecycle before applying dataset-wide and
-        per-plot shapers. Plot mappings are validated before existing session
-        plots are replaced.
+        CSV recipes replay their captured ingestion policy. Parser recipes submit
+        their saved variable and scanner declarations without rescanning, then
+        apply dataset-wide and per-plot shapers. Plot mappings are validated before
+        existing session plots are replaced.
 
         Args:
             recipe: Recipe object or exact locally saved recipe name.
