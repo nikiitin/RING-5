@@ -139,7 +139,7 @@ class MatplotlibTraceRenderer:
         created via ``ax.twinx()``, stored as ``ax._ring5_twin``.
 
         Returns:
-            A ``MatplotlibRenderResult`` with trace count and heatmap metadata.
+            A ``MatplotlibRenderResult`` with source bindings and heatmap metadata.
 
         Raises:
             TypeError: A trace has no supported concrete family.
@@ -228,7 +228,6 @@ class MatplotlibTraceRenderer:
                         bargroupgap=bargroupgap,
                         bar_border_width=bar_border_width,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, BoxTraceConfig):
                     drawn = MatplotlibTraceRenderer._draw_box(
                         trace,
@@ -237,7 +236,6 @@ class MatplotlibTraceRenderer:
                         horizontal_box_ticks,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, ViolinTraceConfig):
                     drawn = MatplotlibTraceRenderer._draw_violin(
                         trace,
@@ -246,41 +244,34 @@ class MatplotlibTraceRenderer:
                         horizontal_box_ticks,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, LineTraceConfig):
                     drawn = MatplotlibTraceRenderer._draw_line(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, RadarTraceConfig):
                     drawn = MatplotlibTraceRenderer._draw_radar(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, WaterfallTraceConfig):
                     drawn = MatplotlibTraceRenderer._draw_waterfall(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, SankeyTraceConfig):
                     drawn = MatplotlibTraceRenderer._draw_sankey(trace, target)
-                    result.trace_count += 1
                 elif isinstance(trace, ParallelCoordinatesTraceConfig):
                     drawn = MatplotlibTraceRenderer._draw_parallel_coordinates(trace, target)
-                    result.trace_count += 1
                 elif isinstance(trace, ScatterTraceConfig):
                     drawn = MatplotlibTraceRenderer._draw_scatter(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, HeatmapTraceConfig):
                     drawn = MatplotlibTraceRenderer._draw_heatmap(
                         trace,
@@ -289,7 +280,6 @@ class MatplotlibTraceRenderer:
                         vmin=heatmap_vmin,
                         vmax=heatmap_vmax,
                     )
-                    result.trace_count += 1
                 else:
                     raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
             except (TypeError, ValueError, OverflowError) as exc:
