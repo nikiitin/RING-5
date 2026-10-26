@@ -491,3 +491,35 @@ def test_invalid_source_text_rejects_before_scan_or_workspace_mutation(
     assert _editor(state) == editor
     assert session.plots == plots
     assert tuple(session._owned_tmpdirs) == owned
+
+
+def test_source_request_budget_rejects_after_discovery_before_parse_or_data_publication(
+    workspace: tuple[ring5.Session, ExampleParser, MagicMock, ring5.AnalysisRecipe],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A resolved request must fit owned JSON before parse work can be submitted."""
+    session, backend, submit, recipe = workspace
+    state = session.api.state_manager
+    before = state.get_data()
+    assert before is not None
+    origin, plots, owned = state.get_loaded_origin(), session.plots, tuple(session._owned_tmpdirs)
+    monkeypatch.setattr("src.core.common.source_context_codec.MAX_PARSED_CELL_CHARACTERS", 3)
+    with pytest.raises(ring5.ParseError, match="Invalid parser source request") as error:
+        session.parse_submit(
+            recipe.source.path,
+            [ring5.StatConfig("value", "scalar", params={"source_type": "scalar"})],
+            pattern="*.txt",
+            scan_limit=1,
+        )
+    assert isinstance(error.value.__cause__, ValueError)
+    assert "text exceeds its character limit" in str(error.value.__cause__)
+    assert backend.scans == 1
+    submit.assert_not_called()
+    actual = state.get_data()
+    assert actual is not None
+    pd.testing.assert_frame_equal(actual, before)
+    assert state.get_loaded_origin() is origin
+    assert session.plots == plots
+    assert tuple(session._owned_tmpdirs) == owned
+    assert state.get_stats_path() == recipe.source.path
+    assert state.get_stats_pattern() == "*.txt"
