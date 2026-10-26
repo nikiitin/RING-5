@@ -7,7 +7,6 @@ import shutil
 import tempfile
 import threading
 from collections.abc import Mapping, Sequence
-from contextlib import nullcontext
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -83,7 +82,7 @@ from src.core.models.visualization.engine import EngineMode
 from src.core.models.visualization.export_options import TexSystem, validate_tex_system
 from src.parsing.parser_protocol import SimulationParser
 from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.rendering._matplotlib_lock import MATPLOTLIB_LOCK
+from src.web.rendering._matplotlib_copy import copy_matplotlib_figure
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 from ring5 import _dashboard, _export, _parse, _render, _scan, _small_multiples
@@ -2768,14 +2767,14 @@ class Session:
             Initial immutable job snapshot. The completed result is the path.
 
         Raises:
-            JobError: Submission metadata or the session job center is invalid.
+            JobError: The figure snapshot, submission metadata or session job center is invalid.
         """
-        # A concurrent PGF export temporarily escapes native artist text.
-        with MATPLOTLIB_LOCK if isinstance(fig, MplFigure) else nullcontext():
-            captured_figure = copy.deepcopy(fig)
-        captured_kwargs = copy.deepcopy(kwargs)
-        selected_label = label or f"Download {Path(path).name or 'figure'}"
         try:
+            captured_figure = (
+                copy_matplotlib_figure(fig) if isinstance(fig, MplFigure) else copy.deepcopy(fig)
+            )
+            captured_kwargs = copy.deepcopy(kwargs)
+            selected_label = label or f"Download {Path(path).name or 'figure'}"
             return self.api.submit_background_operation(
                 "export",
                 selected_label,

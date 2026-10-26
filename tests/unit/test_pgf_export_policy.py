@@ -58,18 +58,21 @@ def test_pgf_savefig_receives_safe_request_and_restores_state(
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "123")
     calls: list[dict[str, Any]] = []
 
-    def savefig(buffer: BytesIO, **kwargs: Any) -> None:
+    def savefig(owned: Figure, buffer: BytesIO, **kwargs: Any) -> None:
         calls.append(kwargs)
+        assert owned is not figure
         assert mpl.rcParams["pgf.texsystem"] == compiler
         assert mpl.rcParams["pgf.preamble"] == ""
-        assert axis.get_title() == escape_latex_text(original_title)
+        assert owned.axes[0].get_title() == escape_latex_text(original_title)
+        assert axis.get_title() == original_title
+        assert [(text, text.get_text()) for text in figure.findobj(mpl.text.Text)] == texts_before
         assert os.environ["SOURCE_DATE_EPOCH"] == ("0" if deterministic else "123")
-        assert [cast(Rectangle, bar).get_height() for bar in axis.patches] == [3.0, 4.0]
+        assert [cast(Rectangle, bar).get_height() for bar in owned.axes[0].patches] == [3.0, 4.0]
         if fails:
             raise RuntimeError("Deliberate savefig failure")
         buffer.write(b"PGF policy verified without TeX execution")
 
-    monkeypatch.setattr(figure, "savefig", savefig)
+    monkeypatch.setattr(Figure, "savefig", savefig)
     if fails:
         with pytest.raises(RuntimeError, match="Deliberate savefig failure"):
             matplotlib_download_bytes(

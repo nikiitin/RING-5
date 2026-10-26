@@ -34,6 +34,7 @@ from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.export_options import TexSystem, validate_tex_system
+from src.web.rendering._matplotlib_copy import copy_matplotlib_figure
 from src.web.rendering._matplotlib_lock import MATPLOTLIB_LOCK
 from src.web.rendering.latex_security import disabled_figure_usetex, escaped_figure_text
 
@@ -329,6 +330,9 @@ def matplotlib_download_bytes(
     # SOURCE_DATE_EPOCH round-trip below would otherwise race a concurrent
     # export or render (losing settings, determinism, or leaking epoch=0).
     with MATPLOTLIB_LOCK:
+        # Temporary text/usetex changes belong to this request. Submission can
+        # snapshot caller-owned figures immediately while another export runs.
+        fig = copy_matplotlib_figure(fig)
         saved_epoch: str | None = None
         if deterministic:
             saved_epoch = os.environ.get("SOURCE_DATE_EPOCH")

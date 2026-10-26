@@ -56,10 +56,13 @@ Chart display and downloads consume that same artifact. Matplotlib figures and s
 not duplicated in session state. Downloads use the artifact's engine and configured export scale.
 Plot configuration reads are defensive snapshots; configuration changes use complete assignment.
 
-Native Matplotlib builds, panel composition, reports, export snapshots and byte exports share one
-reentrant operation lock. It protects temporary global settings, including fonts and the PGF
+Native Matplotlib builds, panel composition, reports and byte exports share one reentrant
+operation lock. It protects temporary global settings, including fonts and the PGF
 compiler, until each operation restores them. Direct connector entry points use the same lock;
-background exports wait for active native work before saving.
+background exports wait for active native work before saving. Byte exports mutate a private
+figure copy, so foreground submission can capture its input and return a job ID immediately.
+Snapshots preserve native subclasses and owned categorical units across shared and inset axes
+without registering pyplot managers.
 
 ## Plot settings
 

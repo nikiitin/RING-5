@@ -112,7 +112,7 @@ def export_bytes(
                 tex_system=compiler,
                 deterministic=deterministic,
             )
-        except (OSError, RuntimeError, ValueError) as exc:
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
             # matplotlib pre-checks the TeX toolchain for PGF and raises a
             # RuntimeError naming the missing executable.
             missing_compiler = (
