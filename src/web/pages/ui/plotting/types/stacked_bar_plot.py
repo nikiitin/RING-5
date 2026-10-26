@@ -116,8 +116,7 @@ class StackedBarPlot(BasePlot):
         series_styles = config.get("series_styles", {})
         style = series_styles.get(y_col, {})
 
-        # Use custom name if defined, otherwise use y_col
-        trace_name = style.get("name", y_col)
+        trace_name = y_col
 
         # Only use per-series color when explicitly enabled via use_color;
         # otherwise let the palette mechanism assign colors.

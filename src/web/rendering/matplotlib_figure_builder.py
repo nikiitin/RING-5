@@ -7,10 +7,7 @@ row per heatmap, with shared or per-trace colorbars.
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 from matplotlib.axes import Axes
-from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
@@ -21,7 +18,8 @@ from src.web.rendering._connector_protocol import (
     validate_annotation_types,
     validate_trace_types,
 )
-from src.web.rendering._render_result import MatplotlibRenderResult
+from src.web.rendering._render_result import MatplotlibFigureResult, MatplotlibRenderResult
+from src.web.rendering.matplotlib_colorbar import prepare_colorbars, apply_colorbars
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 from src.web.rendering.figure_preparation import PreparedFigure
@@ -55,7 +53,7 @@ def draw_matplotlib_axes(
         bar_border_width=float(prepared.config.get("bar_border_width", 0.0)),
         category_order=spec.axes.x.category_order,
     )
-    FigureSpecToMatplotlib.apply(spec, ax, rendered, apply_margins=apply_margins)
+    FigureSpecToMatplotlib._apply_panel(spec, rendered, apply_margins=apply_margins)
     FigureSpecToMatplotlib.draw_layout_shapes(
         ax, result.separator_lines, result.shaded_regions, result.rule_lines
     )
@@ -65,14 +63,14 @@ def draw_matplotlib_axes(
 @serialized_matplotlib
 def build_matplotlib_figure_from_prepared(
     prepared: PreparedFigure,
-) -> tuple[MplFigure, FigureConfig]:
+) -> MatplotlibFigureResult:
     """Allocate and draw a native figure from its already resolved preparation.
 
     Args:
         prepared: The single neutral preparation of the registered plot.
 
     Returns:
-        Native figure and the exact resolved specification used to render it.
+        Native figure with the actual source bindings of every drawn panel.
     """
     # [impl->req~ring5.render.matplotlib~1]
     return _assemble_matplotlib_figure(prepared)
@@ -80,7 +78,7 @@ def build_matplotlib_figure_from_prepared(
 
 def _assemble_matplotlib_figure(
     prepared: PreparedFigure,
-) -> tuple[MplFigure, FigureConfig]:
+) -> MatplotlibFigureResult:
     """Choose native facet geometry, then draw the prepared traces and styling."""
     result, spec = prepared.trace_result, prepared.spec
     validate_trace_types(result.traces)
@@ -92,23 +90,25 @@ def _assemble_matplotlib_figure(
     # 2a. Multi-heatmap: one subplot row per heatmap trace
     heatmap_traces = [t for t in result.traces if isinstance(t, HeatmapTraceConfig)]
     if uses_heatmap_panels(result):
-        return _build_multi_heatmap(heatmap_traces, spec), spec
+        return _build_multi_heatmap(heatmap_traces, spec)
 
     # 3. Blank figure + 4. traces + 5. styling + 5b. layout shapes
     mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
     try:
-        draw_matplotlib_axes(prepared, ax)
+        rendered = draw_matplotlib_axes(prepared, ax)
+        native = MatplotlibFigureResult(mpl_fig, (rendered,))
+        apply_colorbars(prepare_colorbars(native, (spec,)))
     except Exception:
         plt.close(mpl_fig)
         raise
 
-    return mpl_fig, spec
+    return native
 
 
 def _build_multi_heatmap(
     heatmap_traces: list[HeatmapTraceConfig],
     spec: FigureConfig,
-) -> MplFigure:
+) -> MatplotlibFigureResult:
     """One subplot row per heatmap trace, with shared or per-trace colorbars."""
     import matplotlib.pyplot as plt
 
@@ -152,20 +152,16 @@ def _build_multi_heatmap(
             render_results.append(rr)
 
             # Apply styling per-axes (skip colorbar — handled below)
-            FigureSpecToMatplotlib.apply(spec, ax, render_result=replace(rr, heatmap_image=None))
-            ax.set_title(trace.name)
+            rr.title_source = rr.bindings[0]
+            FigureSpecToMatplotlib._apply_panel(spec, rr)
             if i < n - 1:
                 ax.set_xlabel("")
                 ax.tick_params(axis="x", labelbottom=False, labeltop=False)
 
-        FigureSpecToMatplotlib.apply_multi_heatmap_colorbars(
-            spec,
-            mpl_fig,
-            axes_list,
-            render_results,
-        )
+        native = MatplotlibFigureResult(mpl_fig, tuple(render_results))
+        apply_colorbars(prepare_colorbars(native, tuple(spec for _ in render_results)))
     except Exception:
         plt.close(mpl_fig)
         raise
 
-    return mpl_fig
+    return native

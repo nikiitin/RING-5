@@ -44,7 +44,7 @@ This file is informative; normative items are in the other generated files.
 - `data_label_config_fields`: 12
 - `data_services_api_members`: 50
 - `dimension_config_fields`: 7
-- `figure_config_fields`: 21
+- `figure_config_fields`: 22
 - `figure_decoration_members`: 12
 - `figure_spec_fields`: 58
 - `legend_config_fields`: 30
@@ -65,7 +65,7 @@ This file is informative; normative items are in the other generated files.
 - `scan_job_members`: 2
 - `scan_result_fields`: 3
 - `scanned_variable_fields`: 5
-- `series_style_config_fields`: 9
+- `series_style_config_fields`: 8
 - `session_methods`: 116
 - `settings_sections`: 8
 - `shaper_config_fields`: 13

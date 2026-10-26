@@ -16,6 +16,7 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.rendering.figure_preparation import prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+from src.web.rendering._render_result import MatplotlibRenderResult
 from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
 from src.web.rendering.trace_to_plotly import traces_to_plotly
 
@@ -55,7 +56,7 @@ def test_unknown_annotations_reject_before_native_allocation(
         pytest.raises(TypeError, match="Unsupported annotation type"),
     ):
         if engine == "plotly":
-            traces_to_plotly(result)
+            traces_to_plotly(result).figure
         else:
             prepared = prepare_figure(
                 pd.DataFrame({"x": ["a"], "y": [1.0]}), {}, "bar", lambda data, config: result
@@ -103,7 +104,7 @@ def test_direct_axes_annotation_admission_prevents_partial_drawing(kind: str) ->
     try:
         spec = FigureConfig(annotations=[AnnotationConfig(text="valid"), _unknown(kind)])
         with pytest.raises(TypeError, match="Unsupported annotation type"):
-            FigureSpecToMatplotlib._apply_annotations(spec, axis)
+            FigureSpecToMatplotlib._apply_annotations(spec, MatplotlibRenderResult(axis))
         assert not axis.texts
     finally:
         plt.close(figure)

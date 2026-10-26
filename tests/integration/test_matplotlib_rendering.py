@@ -2,7 +2,7 @@
 Integration tests for the Matplotlib rendering path.
 
 Validates the full pipeline:
-  Plotly figure → PlotlyTraceExtractor → MatplotlibTraceRenderer → matplotlib Figure
+  Neutral traces → MatplotlibTraceRenderer → explicit native result → styled Figure
 """
 
 from typing import Any, cast
@@ -23,6 +23,7 @@ from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
+from src.web.rendering._render_result import MatplotlibFigureResult
 
 # Use non-interactive backend for tests
 matplotlib.use("Agg")
@@ -248,7 +249,7 @@ class TestMatplotlibFullPipeline:
     """Test the complete FigureConfig → matplotlib pipeline."""
 
     def test_bar_pipeline(self) -> None:
-        """Config + Plotly bar figure → styled matplotlib figure."""
+        """Config and neutral bar traces produce a styled native figure."""
         config = _minimal_config()
         config["title"] = "Bar Chart"
         spec = ConfigSpecBuilder.from_config(config, "bar")
@@ -273,8 +274,8 @@ class TestMatplotlibFullPipeline:
         barmode = "group"
 
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
-        MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
-        FigureSpecToMatplotlib.apply(spec, ax)
+        rendered = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
+        FigureSpecToMatplotlib.apply(spec, MatplotlibFigureResult(mpl_fig, (rendered,)))
 
         assert isinstance(mpl_fig, Figure)
         assert isinstance(ax, Axes)
@@ -283,7 +284,7 @@ class TestMatplotlibFullPipeline:
         plt.close(mpl_fig)
 
     def test_line_pipeline(self) -> None:
-        """Config + Plotly line figure → styled matplotlib figure."""
+        """Config and neutral line traces produce a styled native figure."""
         config = _minimal_config()
         config["title"] = "Line Plot"
         spec = ConfigSpecBuilder.from_config(config, "line")
@@ -295,8 +296,8 @@ class TestMatplotlibFullPipeline:
         ]
 
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
-        MatplotlibTraceRenderer.render(traces, ax)
-        FigureSpecToMatplotlib.apply(spec, ax)
+        rendered = MatplotlibTraceRenderer.render(traces, ax)
+        FigureSpecToMatplotlib.apply(spec, MatplotlibFigureResult(mpl_fig, (rendered,)))
 
         assert isinstance(mpl_fig, Figure)
         assert ax.get_title() == "Line Plot"
@@ -304,7 +305,7 @@ class TestMatplotlibFullPipeline:
         plt.close(mpl_fig)
 
     def test_scatter_pipeline(self) -> None:
-        """Config + Plotly scatter figure → styled matplotlib figure."""
+        """Config and neutral scatter traces produce a styled native figure."""
         config = _minimal_config()
         config["title"] = "Scatter Plot"
         spec = ConfigSpecBuilder.from_config(config, "scatter")
@@ -315,8 +316,8 @@ class TestMatplotlibFullPipeline:
         ]
 
         mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
-        MatplotlibTraceRenderer.render(traces, ax)
-        FigureSpecToMatplotlib.apply(spec, ax)
+        rendered = MatplotlibTraceRenderer.render(traces, ax)
+        FigureSpecToMatplotlib.apply(spec, MatplotlibFigureResult(mpl_fig, (rendered,)))
 
         assert isinstance(mpl_fig, Figure)
         assert ax.get_title() == "Scatter Plot"

@@ -5,6 +5,8 @@ handling, the group-label annotation builder, and the FigureSpec/Builder
 surface that emits the flat config keys.
 """
 
+from typing import Any
+
 import pytest
 
 from src.web.pages.ui.plotting.utils.grouped_bar_utils import GroupedBarUtils
@@ -16,7 +18,7 @@ CATS = ["a", "b", "c"]
 GROUPS = {"a": "G1", "b": "G1", "c": "G2"}
 
 
-def _coords(config):
+def _coords(config: dict[str, Any]) -> dict[str, Any]:
     base = {"bargroupgap": 0.5}
     base.update(config)
     return GroupedBarUtils.calculate_grouped_coordinates(CATS, ["p"], base)
@@ -24,7 +26,7 @@ def _coords(config):
 
 class TestGroupSeparators:
     # [test->req~ring5.figure.category-groups~1]
-    def test_boundary_gets_bold_separator_and_within_group_stays_faint(self):
+    def test_boundary_gets_bold_separator_and_within_group_stays_faint(self) -> None:
         res = _coords({"show_separators": True, "category_groups": GROUPS})
         seps = res["separator_lines"]
         assert len(seps) == 2
@@ -35,13 +37,13 @@ class TestGroupSeparators:
         assert faint.x == pytest.approx(0.75)
         assert bold.x == pytest.approx(2.25)
 
-    def test_boundary_drawn_even_without_show_separators(self):
+    def test_boundary_drawn_even_without_show_separators(self) -> None:
         res = _coords({"show_separators": False, "category_groups": GROUPS})
         seps = res["separator_lines"]
         assert len(seps) == 1
         assert seps[0].color == "#444444" and seps[0].x == pytest.approx(2.25)
 
-    def test_separator_style_overrides(self):
+    def test_separator_style_overrides(self) -> None:
         res = _coords(
             {
                 "category_groups": GROUPS,
@@ -53,12 +55,12 @@ class TestGroupSeparators:
         sep = res["separator_lines"][0]
         assert (sep.color, sep.width, sep.dash) == ("#111111", 2.5, "dot")
 
-    def test_isolated_last_group_keeps_isolation_separator(self):
+    def test_isolated_last_group_keeps_isolation_separator(self) -> None:
         # label change at the isolation boundary -> only the thick #333 isolation line
         res = _coords({"category_groups": GROUPS, "isolate_last_group": True, "isolation_gap": 0.5})
         assert [s.color for s in res["separator_lines"]] == ["#333333"]
 
-    def test_no_category_groups_unchanged(self):
+    def test_no_category_groups_unchanged(self) -> None:
         res = _coords({"show_separators": True})
         assert res["category_group_centers"] == []
         assert all(s.color == "#E0E0E0" for s in res["separator_lines"])
@@ -66,14 +68,14 @@ class TestGroupSeparators:
 
 class TestGroupCenters:
     # [test->req~ring5.figure.category-groups~1]
-    def test_centers_are_run_means(self):
+    def test_centers_are_run_means(self) -> None:
         res = _coords({"category_groups": GROUPS})
         assert res["category_group_centers"] == [
             (pytest.approx(0.75), "G1"),  # mean of centers 0 and 1.5
             (pytest.approx(3.0), "G2"),
         ]
 
-    def test_unmapped_categories_get_no_label_but_make_a_boundary(self):
+    def test_unmapped_categories_get_no_label_but_make_a_boundary(self) -> None:
         res = _coords({"category_groups": {"a": "G1", "b": "G1"}})  # "c" unmapped
         assert res["category_group_centers"] == [(pytest.approx(0.75), "G1")]
         assert len(res["separator_lines"]) == 1  # G1 -> unmapped boundary
@@ -81,7 +83,7 @@ class TestGroupCenters:
 
 class TestGroupRules:
     # [test->req~ring5.figure.category-groups~1]
-    def test_rules_span_each_run_with_inset(self):
+    def test_rules_span_each_run_with_inset(self) -> None:
         res = _coords({"category_groups": GROUPS})
         rules = res["category_group_rules"]
         assert len(rules) == 2
@@ -93,7 +95,7 @@ class TestGroupRules:
         assert g1.y == pytest.approx(-0.255)
         assert g1.color == "#444444" and g1.width == 1.0
 
-    def test_rule_style_and_position_overrides(self):
+    def test_rule_style_and_position_overrides(self) -> None:
         res = _coords(
             {
                 "category_groups": GROUPS,
@@ -107,12 +109,12 @@ class TestGroupRules:
         assert (rule.color, rule.width, rule.y) == ("#999999", 1.5, -0.4)
         assert rule.x0 == pytest.approx(-0.5) and rule.x1 == pytest.approx(2.0)
 
-    def test_rules_disabled(self):
+    def test_rules_disabled(self) -> None:
         res = _coords({"category_groups": GROUPS, "category_group_rule": False})
         assert res["category_group_rules"] == []
         assert len(res["category_group_centers"]) == 2  # labels unaffected
 
-    def test_matplotlib_draws_rules_unclipped(self):
+    def test_matplotlib_draws_rules_unclipped(self) -> None:
         import matplotlib
 
         matplotlib.use("Agg")
@@ -132,12 +134,12 @@ class TestGroupRules:
         assert rules[0].get_color() == "#444444"
         plt.close(fig)
 
-    def test_plotly_emits_rule_shape(self):
+    def test_plotly_emits_rule_shape(self) -> None:
         from src.core.models.visualization.trace_build_result import RuleLine, TraceBuildResult
         from src.web.rendering.trace_to_plotly import traces_to_plotly
 
         result = TraceBuildResult(rule_lines=[RuleLine(x0=0.0, x1=2.0, y=-0.2)])
-        fig = traces_to_plotly(result)
+        fig = traces_to_plotly(result).figure
         shapes = fig.layout.shapes
         assert len(shapes) == 1
         assert shapes[0].type == "line" and shapes[0].yref == "paper"
@@ -146,7 +148,7 @@ class TestGroupRules:
 
 class TestGroupAnnotations:
     # [test->req~ring5.figure.category-groups~1]
-    def test_annotation_content(self):
+    def test_annotation_content(self) -> None:
         anns = GroupedBarUtils.build_category_group_annotations(
             [(1.0, "G1")], font_size=9, font_color="#222222", y_offset=-0.3
         )
@@ -160,42 +162,42 @@ class TestGroupAnnotations:
 
 
 class TestMajorLabelRotationOverrides:
-    def test_per_label_rotation_override(self):
+    def test_per_label_rotation_override(self) -> None:
         anns = GroupedBarUtils.build_category_annotations(
             [(0.0, "a"), (1.0, "mean")], rotation=30.0, rotation_overrides={"mean": 90.0}
         )
         assert [a.text_angle for a in anns] == [30.0, 90.0]
         assert [a.xanchor for a in anns] == ["right", "right"]
 
-    def test_override_to_horizontal_recenters(self):
+    def test_override_to_horizontal_recenters(self) -> None:
         anns = GroupedBarUtils.build_category_annotations(
             [(0.0, "a"), (1.0, "mean")], rotation=30.0, rotation_overrides={"mean": 0.0}
         )
         assert anns[1].text_angle == 0.0 and anns[1].xanchor == "center"
 
-    def test_spec_emits_overrides(self):
+    def test_spec_emits_overrides(self) -> None:
         cfg = FigureSpec(major_label_rotation_overrides={"mean": 90}).to_config()
         assert cfg["major_label_rotation_overrides"] == {"mean": 90}
         assert "major_label_rotation_overrides" not in FigureSpec().to_config()
 
-    def test_direct_spec(self):
+    def test_direct_spec(self) -> None:
         spec = FigureSpec(major_label_rotation_overrides={"mean": 90})
         assert spec.major_label_rotation_overrides == {"mean": 90}
 
 
 class TestFigureSpecSurface:
-    def test_spec_emits_flat_keys(self):
+    def test_spec_emits_flat_keys(self) -> None:
         cfg = FigureSpec(category_groups={"a": "G1"}, category_group_label_size=9).to_config()
         assert cfg["category_groups"] == {"a": "G1"}
         assert cfg["category_group_label_size"] == 9
         assert cfg["category_group_separator_color"] == "#444444"
 
-    def test_spec_omits_keys_when_unset(self):
+    def test_spec_omits_keys_when_unset(self) -> None:
         cfg = FigureSpec().to_config()
         assert "category_groups" not in cfg
         assert "category_group_label_size" not in cfg
 
-    def test_spec_emits_rule_keys(self):
+    def test_spec_emits_rule_keys(self) -> None:
         cfg = FigureSpec(category_groups={"a": "G1"}, category_group_rule_width=1.4).to_config()
         assert cfg["category_group_rule"] is True
         assert cfg["category_group_rule_width"] == 1.4
@@ -204,7 +206,7 @@ class TestFigureSpecSurface:
         cfg = FigureSpec(category_groups={"a": "G1"}, category_group_rule_y=-0.4).to_config()
         assert cfg["category_group_rule_y"] == -0.4
 
-    def test_direct_spec_fields(self):
+    def test_direct_spec_fields(self) -> None:
         spec = FigureSpec(
             category_groups={"a": "G1"},
             category_group_separator_width=2.0,

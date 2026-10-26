@@ -365,13 +365,14 @@ def test_native_publication_retains_verified_key_and_clears_all_metadata_togethe
 
     plot = BarPlot(0, "Measured")
     prepared = prepare_figure(_data(), {"x": "x", "y": "y"}, "bar", plot.create_traces)
-    figure = (
+    rendered = (
         build_plotly_figure(prepared)
         if engine == "plotly"
-        else build_matplotlib_figure_from_prepared(prepared)[0]
+        else build_matplotlib_figure_from_prepared(prepared)
     )
+    figure = rendered.figure
     plot.publish_render_artifact(
-        RenderArtifact(None, figure, prepared, cast(Any, engine), "verified-content")
+        RenderArtifact(None, rendered, prepared, cache_key="verified-content")
     )
     assert plot.config == prepared.config
     assert plot.render_artifact.figure is figure

@@ -23,6 +23,25 @@ _PLOT_FIELDS = frozenset(
 )
 
 
+def validate_legend_labels(value: object) -> dict[str, str]:
+    """Validate and own an original-series-name to display-text mapping.
+
+    Args:
+        value: Concrete legend labels after any recipe parameters are resolved.
+
+    Returns:
+        A fresh mapping retaining the supplied text values without coercion.
+
+    Raises:
+        ValueError: The value does not map text names to text labels.
+    """
+    if not isinstance(value, Mapping) or any(
+        not isinstance(name, str) or not isinstance(label, str) for name, label in value.items()
+    ):
+        raise ValueError("legend_labels must map text series names to text labels.")
+    return dict(value)
+
+
 def validate_plot_config_keys(config: Mapping[str, Any], *, plot_type: str | None = None) -> None:
     """Validate current editable plot key names without interpreting template values.
 
@@ -41,6 +60,11 @@ def validate_plot_config_keys(config: Mapping[str, Any], *, plot_type: str | Non
     )
     if unsupported:
         raise ValueError(f"Unsupported plot configuration keys: {', '.join(unsupported)}.")
+    styles = config.get("series_styles")
+    if isinstance(styles, Mapping) and any(
+        isinstance(style, Mapping) and "name" in style for style in styles.values()
+    ):
+        raise ValueError("Series style 'name' is unsupported. Use legend_labels for display text.")
     retired = sorted(
         key
         for key in config
@@ -77,11 +101,13 @@ def validate_plot_config_values(config: Mapping[str, Any], *, plot_type: str | N
         plot_type: Exact plot identifier when the caller owns that context.
 
     Raises:
-        ValueError: A legend orientation, PGF compiler or series pattern is unsupported.
+        ValueError: Legend labels, orientation, PGF compiler or series pattern is unsupported.
     """
     # [impl->req~ring5.api.plot-validation~1]
     if "tex_system" in config:
         validate_tex_system(config["tex_system"])
+    if "legend_labels" in config:
+        validate_legend_labels(config["legend_labels"])
     for prefix in ("legend_", "legend2_", "legend3_"):
         key = f"{prefix}orientation"
         if key in config and (

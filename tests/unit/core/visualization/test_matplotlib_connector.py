@@ -9,13 +9,17 @@ Covers:
   - _apply_data_labels: bar_label on containers
   - _apply_hatching: bar patch hatching patterns
   - _apply_axis_colors: tick_font_color, spine colour/width
-  - create_figure: layout='constrained'
+  - create_figure: dimensions and explicit subplot layout
 """
+
+from collections.abc import Iterator
 
 import matplotlib
 from matplotlib.axes import Axes  # noqa: E402
 from matplotlib.colors import to_hex, to_rgba  # noqa: E402
+from matplotlib.container import BarContainer  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
+from matplotlib.text import Annotation  # noqa: E402
 
 matplotlib.use("Agg")  # non-interactive backend for CI
 
@@ -37,10 +41,28 @@ from src.core.models.visualization.figure_config import (  # noqa: E402
     FigureConfig,
 )
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib  # noqa: E402
+from src.web.rendering._render_result import (  # noqa: E402
+    MatplotlibFigureResult,
+    MatplotlibRenderResult,
+    MatplotlibTraceBinding,
+)
+
+
+def _bar_panel(ax: Axes, *sources: tuple[str, BarContainer]) -> MatplotlibRenderResult:
+    """Associate explicitly named fixture sources with their actual native containers."""
+    return MatplotlibRenderResult(
+        ax,
+        bindings=tuple(
+            MatplotlibTraceBinding(
+                index, name, ax, "primary", "", True, "bar", (bars,), (bars,), bars
+            )
+            for index, (name, bars) in enumerate(sources)
+        ),
+    )
 
 
 @pytest.fixture()
-def ax():  # type: ignore[no-untyped-def]
+def ax() -> Iterator[Axes]:
     """Provide a fresh axes and close figure after test."""
     fig, ax = plt.subplots()
     yield ax
@@ -90,8 +112,7 @@ class TestMatplotlibFontFamily:
         assert all(t.get_fontfamily() == ["monospace"] for t in ax.get_xticklabels())
 
     def test_font_family_never_mutates_global_rcparams(self, ax: Axes) -> None:
-        """The old global mutation made the FIRST figure of every process
-        render in the wrong font and leaked state into unrelated figures."""
+        """Styling this figure preserves the process-wide font configuration."""
         original = matplotlib.rcParams["font.family"]
         spec = FigureConfig(font_family="monospace")
         FigureSpecToMatplotlib._apply_font_family(spec, ax)
@@ -110,8 +131,9 @@ class TestMatplotlibFontFamily:
         spec = FigureConfig(font_family="monospace", title="My Title")
         fig, ax = FigureSpecToMatplotlib.create_figure(spec)
         try:
-            ax.bar(["a", "b"], [1.0, 2.0])
-            FigureSpecToMatplotlib.apply(spec, ax)
+            bars = ax.bar(["a", "b"], [1.0, 2.0])
+            rendered = MatplotlibFigureResult(fig, (_bar_panel(ax, ("bars", bars)),))
+            FigureSpecToMatplotlib.apply(spec, rendered)
             assert ax.title.get_fontfamily() == ["monospace"]
             assert all(t.get_fontfamily() == ["monospace"] for t in ax.get_xticklabels())
             assert matplotlib.rcParams["font.family"] == original
@@ -201,25 +223,25 @@ class TestMatplotlibDataLabels:
     # [test->req~ring5.figure.data-labels~1]
 
     def test_data_labels_on_bar(self, ax: Axes) -> None:
-        ax.bar(["A", "B"], [10, 20])
+        bars = ax.bar(["A", "B"], [10, 20])
         dl = DataLabelConfig(enabled=True, font_size=12, format_string=".0f")
         spec = FigureConfig(data_labels=dl)
-        FigureSpecToMatplotlib._apply_data_labels(spec, ax)
+        FigureSpecToMatplotlib._apply_data_labels(spec, _bar_panel(ax, ("bars", bars)))
         # bar_label adds text objects
         texts = ax.texts
         assert len(texts) >= 2
 
     def test_data_labels_disabled_no_op(self, ax: Axes) -> None:
-        ax.bar(["A"], [5])
+        bars = ax.bar(["A"], [5])
         spec = FigureConfig(data_labels=None)
-        FigureSpecToMatplotlib._apply_data_labels(spec, ax)
+        FigureSpecToMatplotlib._apply_data_labels(spec, _bar_panel(ax, ("bars", bars)))
         assert len(ax.texts) == 0
 
     def test_data_labels_custom_color(self, ax: Axes) -> None:
-        ax.bar(["A"], [5])
+        bars = ax.bar(["A"], [5])
         dl = DataLabelConfig(enabled=True, color_mode="custom", custom_color="#FF0000")
         spec = FigureConfig(data_labels=dl)
-        FigureSpecToMatplotlib._apply_data_labels(spec, ax)
+        FigureSpecToMatplotlib._apply_data_labels(spec, _bar_panel(ax, ("bars", bars)))
         # At least one text element should have the custom color
         assert len(ax.texts) >= 1
 
@@ -240,7 +262,7 @@ class TestMatplotlibAnnotations:
                 )
             ]
         )
-        FigureSpecToMatplotlib._apply_annotations(spec, ax)
+        FigureSpecToMatplotlib._apply_annotations(spec, MatplotlibRenderResult(ax))
         assert len(ax.texts) == 1
         assert ax.texts[0].get_text() == "Line1\nLine2\nLine3"
 
@@ -259,7 +281,7 @@ class TestMatplotlibAnnotations:
                 )
             ]
         )
-        FigureSpecToMatplotlib._apply_annotations(spec, ax)
+        FigureSpecToMatplotlib._apply_annotations(spec, MatplotlibRenderResult(ax))
         assert len(ax.texts) == 1
         bbox = ax.texts[0].get_bbox_patch()
         assert bbox is not None
@@ -268,16 +290,20 @@ class TestMatplotlibAnnotations:
         assert bbox.get_facecolor() == to_rgba("#ffffff")
 
     def test_empty_annotations_noop(self, ax: Axes) -> None:
-        FigureSpecToMatplotlib._apply_annotations(FigureConfig(annotations=[]), ax)
+        FigureSpecToMatplotlib._apply_annotations(
+            FigureConfig(annotations=[]), MatplotlibRenderResult(ax)
+        )
         assert len(ax.texts) == 0
 
     def test_annotation_without_arrow_has_no_arrowpatch(self, ax: Axes) -> None:
         spec = FigureConfig(
             annotations=[AnnotationConfig(text="plain", x=0.5, y=0.5, xref="paper", yref="paper")]
         )
-        FigureSpecToMatplotlib._apply_annotations(spec, ax)
+        FigureSpecToMatplotlib._apply_annotations(spec, MatplotlibRenderResult(ax))
         assert len(ax.texts) == 1
-        assert ax.texts[0].arrow_patch is None
+        annotation = ax.texts[0]
+        assert isinstance(annotation, Annotation)
+        assert annotation.arrow_patch is None
 
     def test_annotation_with_arrow_uses_arrow_color(self, ax: Axes) -> None:
         spec = FigureConfig(
@@ -294,9 +320,11 @@ class TestMatplotlibAnnotations:
                 )
             ]
         )
-        FigureSpecToMatplotlib._apply_annotations(spec, ax)
+        FigureSpecToMatplotlib._apply_annotations(spec, MatplotlibRenderResult(ax))
         assert len(ax.texts) == 1
-        arrow = ax.texts[0].arrow_patch
+        annotation = ax.texts[0]
+        assert isinstance(annotation, Annotation)
+        arrow = annotation.arrow_patch
         assert arrow is not None
         assert to_hex(arrow.get_edgecolor()) == "#ff0000"
 
@@ -308,24 +336,24 @@ class TestMatplotlibHatching:
     """Test _apply_hatching."""
 
     def test_hatching_applied(self, ax: Axes) -> None:
-        ax.bar(["A", "B"], [10, 20])
+        bars = ax.bar(["A", "B"], [10, 20])
         spec = FigureConfig(enable_stripes=True, hatching_sequence=["/", "\\"])
-        FigureSpecToMatplotlib._apply_hatching(spec, ax)
+        FigureSpecToMatplotlib._apply_hatching(spec, _bar_panel(ax, ("bars", bars)))
         # Check hatching on patches in the first container
         assert ax.containers[0][0].get_hatch() == "/"
         assert ax.containers[0][1].get_hatch() == "/"
 
     def test_hatching_disabled_no_op(self, ax: Axes) -> None:
-        ax.bar(["A"], [5])
+        bars = ax.bar(["A"], [5])
         spec = FigureConfig(enable_stripes=False, hatching_sequence=["/"])
-        FigureSpecToMatplotlib._apply_hatching(spec, ax)
+        FigureSpecToMatplotlib._apply_hatching(spec, _bar_panel(ax, ("bars", bars)))
         assert ax.containers[0][0].get_hatch() is None
 
     def test_multiple_containers_cycle(self, ax: Axes) -> None:
-        ax.bar([0], [10], label="A")
-        ax.bar([1], [20], label="B")
+        bars_a = ax.bar([0], [10], label="A")
+        bars_b = ax.bar([1], [20], label="B")
         spec = FigureConfig(enable_stripes=True, hatching_sequence=["/", "x"])
-        FigureSpecToMatplotlib._apply_hatching(spec, ax)
+        FigureSpecToMatplotlib._apply_hatching(spec, _bar_panel(ax, ("A", bars_a), ("B", bars_b)))
         assert ax.containers[0][0].get_hatch() == "/"
         assert ax.containers[1][0].get_hatch() == "x"
 
@@ -363,11 +391,11 @@ class TestMatplotlibAxisColors:
         FigureSpecToMatplotlib._apply_axis_colors(spec, ax)
 
 
-# create_figure with layout='constrained'
+# create_figure
 
 
 class TestMatplotlibCreateFigure:
-    """Test create_figure uses constrained layout."""
+    """Test explicit figure dimensions and manual subplot layout."""
 
     def test_create_figure_returns_fig_ax(self) -> None:
         spec = FigureConfig()

@@ -17,6 +17,11 @@ from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.figure_preparation import prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+from src.web.rendering._render_result import (
+    MatplotlibFigureResult,
+    MatplotlibRenderResult,
+    MatplotlibTraceBinding,
+)
 
 
 def test_all_registered_examples_prepare_once_without_constructing_native_figures() -> None:
@@ -64,7 +69,8 @@ def test_preparation_owns_callback_config_and_reusable_trace_metadata() -> None:
     prepared = prepare_figure(pd.DataFrame({"value": [2.0]}), config, "custom", callback)
     assert config == original
     assert prepared.config["custom"]["values"] == ["source", "callback"]
-    assert prepared.trace_result.traces[0].name == "Display"
+    assert prepared.trace_result.traces[0].name == "raw"
+    assert prepared.spec.legend_labels == {"raw": "Display"}
     prepared.trace_result.traces[0].custom_data["labels"].append("changed")
     prepared.trace_result.traces[0].y.append(99.0)
     prepared.trace_result.annotations.clear()
@@ -125,9 +131,26 @@ def test_numbered_annotation_does_not_create_a_trace_legend_on_another_panel() -
     prepared = prepare_figure(pd.DataFrame(), {}, "custom", lambda data, config: result)
     figure, axes = plt.subplots(1, 2)
     try:
-        axes[0].plot([0, 1], [1, 2], label="left panel")
+        left = axes[0].plot([0, 1], [1, 2], label="left panel")[0]
         axes[1].plot([0, 1], [3, 4], label="right panel")
-        FigureSpecToMatplotlib.apply(prepared.spec, axes[0])
+        panel = MatplotlibRenderResult(
+            axes[0],
+            bindings=(
+                MatplotlibTraceBinding(
+                    0,
+                    "left panel",
+                    axes[0],
+                    "primary",
+                    "",
+                    True,
+                    "line",
+                    (left,),
+                    (left,),
+                    left,
+                ),
+            ),
+        )
+        FigureSpecToMatplotlib.apply(prepared.spec, MatplotlibFigureResult(figure, (panel,)))
         assert axes[0].get_legend() is not None
         assert axes[1].get_legend() is None
         assert [legend.role for legend in prepared.spec.legends] == ["primary"]

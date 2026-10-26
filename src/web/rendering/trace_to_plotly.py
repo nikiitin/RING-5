@@ -29,6 +29,11 @@ from src.core.models.visualization.trace_config import (
 )
 from src.web.rendering._heatmap_utils import heatmap_text_colors
 from src.web.rendering._hatch_utils import plotly_hatch
+from src.web.rendering._render_result import (
+    PlotlyLayoutRole,
+    PlotlyRenderResult,
+    PlotlyTraceBinding,
+)
 from src.web.rendering._connector_protocol import (
     uses_heatmap_panels,
     validate_annotation_types,
@@ -43,9 +48,9 @@ def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
     return {"type": "data", "array": error_y, "visible": True}
 
 
-def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
+def traces_to_plotly(result: TraceBuildResult) -> PlotlyRenderResult:
     # [impl->req~ring5.render.plotly~1]
-    """Convert a ``TraceBuildResult`` into a Plotly ``go.Figure``.
+    """Convert neutral output into an explicitly bound native Plotly result.
 
     The returned figure contains all traces, shapes, annotations,
     barmode, and custom tick overrides from the build result.
@@ -56,7 +61,7 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         result: Engine-agnostic output from a plot type.
 
     Returns:
-        A fully populated (but unstyled) ``go.Figure``.
+        A populated native figure with original-source and generated-role associations.
 
     Raises:
         TypeError: A trace or annotation has no supported concrete family.
@@ -67,7 +72,9 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
     heatmap_only = uses_heatmap_panels(result)
 
     if heatmap_only:
-        subplot_titles = [trace.name for trace in traces_list]
+        # Nonempty placeholders request every generated title's actual layout geometry.
+        # Raw names and aliases are projected later through explicit role bindings.
+        subplot_titles = [" " for trace in traces_list]
         fig = make_subplots(
             rows=len(traces_list),
             cols=1,
@@ -79,6 +86,21 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
     else:
         fig = go.Figure()
 
+    facet_titles = (
+        [
+            {
+                **annotation.to_plotly_json(),
+                "name": f"ring5-facet-title-{index}",
+                "text": trace.name,
+            }
+            for index, (trace, annotation) in enumerate(
+                zip(traces_list, fig.layout.annotations or (), strict=True)
+            )
+        ]
+        if heatmap_only
+        else []
+    )
+    bindings: list[PlotlyTraceBinding] = []
     for index, trace in enumerate(traces_list, start=1):
         plotly_trace = _convert_trace(trace)
         if (
@@ -94,6 +116,16 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
             fig.add_trace(plotly_trace, secondary_y=secondary)
         else:
             fig.add_trace(plotly_trace)
+        bindings.append(
+            PlotlyTraceBinding(
+                index - 1,
+                trace.name,
+                fig.data[-1],
+                trace.legend_role,
+                trace.legendgroup,
+                trace.show_in_legend,
+            )
+        )
 
     # Layout updates
     layout_updates: dict[str, Any] = {"barmode": result.barmode}
@@ -182,8 +214,8 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         # Shades first (drawn under), then separators, then span rules.
         layout_updates["shapes"] = shade_shapes + separator_shapes + rule_shapes
 
-    if result.annotations:
-        layout_updates["annotations"] = _convert_annotations(result.annotations)
+    if facet_titles or result.annotations:
+        layout_updates["annotations"] = facet_titles + _convert_annotations(result.annotations)
 
     fig.update_layout(**layout_updates)
 
@@ -193,7 +225,15 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
     # Heatmap totals separator lines
     _add_heatmap_separator_lines(fig, traces_list, heatmap_only)
 
-    return fig
+    roles = (
+        tuple(
+            PlotlyLayoutRole(f"ring5-facet-title-{index}", binding)
+            for index, binding in enumerate(bindings)
+        )
+        if heatmap_only
+        else ()
+    )
+    return PlotlyRenderResult(fig, (tuple(bindings),), roles)
 
 
 # Private helpers

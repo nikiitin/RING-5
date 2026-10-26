@@ -42,7 +42,7 @@ class TestPreparedFigureStyling:
                 "bargroupgap": 0.1,
             },
         )
-        result = build_plotly_figure(prepared)
+        result = build_plotly_figure(prepared).figure
         assert result.layout.width == 1000
         assert result.layout.title.text == "Test"
         assert result.layout.bargap == 0.2 and result.layout.bargroupgap == 0.1
@@ -52,7 +52,7 @@ class TestPreparedFigureStyling:
         prepared = _prepare(
             "bar", {"show_values": True, "text_format": ".1f", "text_position": "outside"}
         )
-        result = build_plotly_figure(prepared)
+        result = build_plotly_figure(prepared).figure
         assert cast(go.Bar, result.data[0]).textposition == "outside"
         assert prepared.spec.data_labels is not None
         assert prepared.spec.data_labels.format_string == ".1f"
@@ -60,7 +60,7 @@ class TestPreparedFigureStyling:
     def test_with_shapes(self) -> None:
         shapes = [{"type": "line", "x0": 0, "x1": 1, "y0": 0.5, "y1": 0.5}]
         prepared = _prepare("bar", {"shapes": shapes})
-        result = build_plotly_figure(prepared)
+        result = build_plotly_figure(prepared).figure
         assert [shape.to_plotly_json() for shape in result.layout.shapes] == shapes
         assert prepared.config["shapes"] == shapes
         assert list(cast(go.Bar, result.data[0]).y) == [1.0, 3.0, 2.0, 4.0]

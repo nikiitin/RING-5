@@ -994,8 +994,9 @@ class TestLegendItemOrderRename:
 
         result = self._component().render(saved)
 
-        assert result["series_styles"]["col_a"]["name"] == "Alpha"
-        assert result["series_styles"]["col_b"]["color"] == "#FF0000"
+        assert result["legend_labels"] == {"col_a": "Alpha"}
+        assert saved["series_styles"] == {"col_b": {"color": "#FF0000"}}
+        assert {**saved, **result}["series_styles"]["col_b"]["color"] == "#FF0000"
 
     @patch("src.web.components.plotting.settings.legend_settings.render_reorderable_list")
     @patch("src.web.components.plotting.settings.legend_settings.st")

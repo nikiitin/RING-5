@@ -40,8 +40,7 @@ def _single_plot_figure(plot: BasePlot) -> MplFigure:
     if plot.processed_data is None:
         raise ValueError(f"Report plot '{plot.name}' has no processed data.")
     prepared = prepare_figure(plot.processed_data, plot.config, plot.plot_type, plot.create_traces)
-    figure, _spec = build_matplotlib_figure_from_prepared(prepared)
-    return figure
+    return build_matplotlib_figure_from_prepared(prepared).figure
 
 
 def _single_plot_plotly(plot: BasePlot) -> go.Figure:
@@ -49,7 +48,7 @@ def _single_plot_plotly(plot: BasePlot) -> go.Figure:
     if plot.processed_data is None:
         raise ValueError(f"Report plot '{plot.name}' has no processed data.")
     prepared = prepare_figure(plot.processed_data, plot.config, plot.plot_type, plot.create_traces)
-    return build_plotly_figure(prepared)
+    return build_plotly_figure(prepared).figure
 
 
 @serialized_matplotlib

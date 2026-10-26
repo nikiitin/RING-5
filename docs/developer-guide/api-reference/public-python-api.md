@@ -40,7 +40,7 @@ Use `session.load(result)` to retain exact numeric/text semantics and source pro
 `result.csv_path` is the derived external exchange location; `session.load(result.csv_path)` uses
 ordinary CSV inference/null policy. The descriptor's SHA-256 binds schema meaning and CSV bytes.
 The public typed backend constructors and `resolve_parsed_output`/`publish_parsed_output` helpers
-are documented in the [parser extension guide](../extension-guides/adding-a-parser.md).
+are documented in the [parser extension guide]({{ site.baseurl }}/developer-guide/extension-guides/adding-a-parser/).
 
 Use `ring5.StatConfig` for explicit runnable parser settings. Configuration fields and `params`
 use snake_case; `repeat` is a positive integer, `entries` and `statistics` are separate text lists,
@@ -240,7 +240,13 @@ configuration mapping. Existing raw mappings retain their exact settings and ren
 `reverse_colorscale` and `show_values`. Plugin-owned configurations and typed heatmap trace
 colorscales keep their separate contracts.
 
-Per-series overrides use `series_styles`, a mapping from text series names to style mappings.
+Per-series overrides use `series_styles`, a mapping from original text series names to style mappings.
+Display names use `legend_labels`, such as `{"ipc": "Instructions per cycle"}`. Set both mappings
+through `FigureSpec.extra` or the editable configuration mapping. Styles and ordering keep using
+`"ipc"` after the rename; repeated or empty display labels preserve each source series. Rendering
+returns the selected engine's native figure. Source-to-native associations remain internal and
+are not required to export that fully styled figure.
+
 Its `pattern` field is a string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`.
 Both native engines render this vocabulary. Plotly uses native SVG pattern paths for the
 circle/star forms. An omitted `pattern` preserves the trace or theme hatch; an explicit empty
@@ -357,7 +363,7 @@ Automatic recipe capture describes the active loaded data, independently of pars
 A source is reusable only while its exact request is retained: named-data retention, selection and
 revision restoration preserve it; generic frame or manager edits clear it. Partial parser results
 and undeclared injected backends require an explicit caller `RecipeSource` for recipe creation.
-Recipe5 retains the declared simulator, current parser contract, actual discovery/strict policy and
+Recipe schema 6 retains the declared simulator, current parser contract, actual discovery/strict policy and
 resolved scanner metadata. Replay uses those records directly without scanning again.
 
 `RecipeSource.csv_policy` is `InferredCsvPolicy(configuration_columns)` for ordinary CSV inference
@@ -369,6 +375,10 @@ values, with exact typed scalar controls.
 
 A successfully executed recipe retains its source and exact dataset-wide transformations. Capturing
 without an explicit source includes those steps once, followed by any explicitly supplied additional
-steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio10 saves
+steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio schema 11 saves
 this frame-associated origin separately from editable parser controls. A snapshot or arbitrary Table
 has no inferred reusable origin.
+
+Current documents use portfolio schema 11 (`version: "11.0"`) or recipe schema 6. Serialized
+plot display names use `legend_labels`; per-series style mappings retain original series keys.
+Unsupported schema versions and nested style name fields are rejected before restoration or replay.

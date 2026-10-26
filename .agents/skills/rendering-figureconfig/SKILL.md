@@ -6,7 +6,7 @@ description: Work on RING-5's figure styling / rendering pipeline — FigureConf
 # Rendering & FigureConfig (dual-engine styling)
 
 Styling is decoupled from plots. A plot emits engine-agnostic traces; **all visual styling** is
-described by one immutable-ish config and applied identically to both engines.
+described by one engine-independent configuration and projected through both engines.
 
 ## The pipeline
 ```
@@ -37,12 +37,30 @@ effective config   ──▶ ConfigSpecBuilder ──▶ FigureConfig ──▶ 
   heatmap-specific styling in `FigureSpecToPlotly.apply`; preserve palette, explicit override
   and legend precedence when changing either connector.
 
-`prepare_figure` owns effective defaults, one registered trace callback, encodings, display names
+`prepare_figure` owns effective defaults, one registered trace callback, encodings, raw source names
 and one resolved `FigureConfig`. `PreparedFigure` feeds the native builders directly for Session,
 report and dashboard rendering. Standalone Matplotlib figures and dashboard panels share
 `draw_matplotlib_axes`. Trace `legend_role` selects trace ownership; numbered annotations refer to
 a style role independently. Legend font sizes retain fractional points. All flat legend tiers use
 `anchor_x`/`anchor_y`; native annotation `xanchor`/`yanchor` remain connector properties.
+
+Native builders return `PlotlyRenderResult` or `MatplotlibFigureResult`. The artifact owns this
+one result; figure and engine are derived. Connectors require that explicit result and return
+`None`. Matplotlib's private panel helpers require `MatplotlibRenderResult` and derive their axes
+from it. A `MatplotlibRenderResult` without source bindings is appropriate for paper annotations or
+layout; meaningful data tests use real neutral emissions or explicit known-source/native associations.
+
+`legend_labels` owns display text. Keep neutral names, style keys, order, group and role identity
+unchanged; apply styles before projecting text into native legends or facet titles. Per-series
+styles contain no name field. Cycle positional styles by original emission ordinal, including
+hidden slots. Native membership, unique ownership and generated roles must pass whole-root
+preflight before restyling. Native copies need deliberate association transfer; do not discover
+identity from labels or attach private source IDs. Export copies consume fully styled figures.
+
+Shared legends merge only matching original identities, roles/groups and known final glyphs.
+Unknown or array-valued glyph state keeps separate entries. Owned legend/colorbar outputs are
+reused or replaced through their explicit result, preserving foreign outputs. Structural colorbar
+changes require callback and layout generation ownership; foreign adoption requires a fresh build.
 
 ## Golden rule: change BOTH engines, in order
 Any new styling capability must be implemented in **both** connectors and slot into the correct

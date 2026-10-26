@@ -7,6 +7,7 @@ from src.web.rendering._connector_protocol import uses_heatmap_panels
 from src.web.rendering.figure_preparation import PreparedFigure
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 from src.web.rendering.trace_to_plotly import traces_to_plotly
+from src.web.rendering._render_result import PlotlyRenderResult
 
 
 def apply_axis_title_annotations(spec: FigureConfig, figure: go.Figure) -> None:
@@ -56,19 +57,20 @@ def apply_heatmap_panel_axes(prepared: PreparedFigure, figure: go.Figure) -> Non
     bottom.showticklabels = prepared.spec.axes.x.show_tick_labels
 
 
-def build_plotly_figure(prepared: PreparedFigure) -> go.Figure:
+def build_plotly_figure(prepared: PreparedFigure) -> PlotlyRenderResult:
     """Build and style one native figure without preparing or resolving it again.
 
     Args:
         prepared: Owned neutral output and the resolved styling for this render.
 
     Returns:
-        A styled native Plotly figure, including genuine editable Plotly shapes.
+        A styled native figure with explicit source bindings and editable Plotly shapes.
     """
     # [impl->req~ring5.figure.shapes-annotations~1]
     # [impl->req~ring5.render.plotly~1]
-    figure = traces_to_plotly(prepared.trace_result)
-    FigureSpecToPlotly.apply(prepared.spec, figure)
+    rendered = traces_to_plotly(prepared.trace_result)
+    FigureSpecToPlotly.apply(prepared.spec, rendered)
+    figure = rendered.figure
     apply_axis_title_annotations(prepared.spec, figure)
     apply_heatmap_panel_axes(prepared, figure)
     shapes = prepared.config.get("shapes")
@@ -76,4 +78,5 @@ def build_plotly_figure(prepared: PreparedFigure) -> go.Figure:
         figure.update_layout(shapes=[*(figure.layout.shapes or ()), *shapes])
     if not prepared.trace_result.traces:
         figure.update_layout(title_text="Please select at least one X and one Y column.")
-    return figure
+    rendered.validate()
+    return rendered

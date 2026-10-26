@@ -49,13 +49,13 @@ def build_render_artifact(
         view.processed_data = data
         owned_config = deepcopy(config)
         composite = prepare_small_multiples([view], multiples, owned_config)
-        figure = build_small_multiples_figure(composite, multiples, engine=engine)
-        return RenderArtifact(owned_config, figure, composite, engine, source_data=data)
+        rendered = build_small_multiples_figure(composite, multiples, engine=engine)
+        return RenderArtifact(owned_config, rendered, composite, source_data=data)
 
     prepared = prepare_figure(data, config, plot.plot_type, plot.create_traces)
-    figure = (
+    rendered = (
         build_plotly_figure(prepared)
         if engine == "plotly"
-        else build_matplotlib_figure_from_prepared(prepared)[0]
+        else build_matplotlib_figure_from_prepared(prepared)
     )
-    return RenderArtifact(None, figure, prepared, engine, source_data=data)
+    return RenderArtifact(None, rendered, prepared, source_data=data)

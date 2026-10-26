@@ -133,7 +133,7 @@ class TestStackedBarCreateFigure:
         fig = cast(go.Figure, plot_session.render(plot))
 
         assert len(list(fig.data)) == 2
-        layout = cast("go.Layout", fig.layout)
+        layout = fig.layout
         assert layout.barmode == "stack"
 
     def test_with_error_bars_and_styles(self, plot_session: Session) -> None:
@@ -144,14 +144,8 @@ class TestStackedBarCreateFigure:
             "x": "bench",
             "y_columns": ["ipc"],
             "show_error_bars": True,
-            "series_styles": {
-                "ipc": {
-                    "name": "IPC",
-                    "color": "#ff0000",
-                    "use_color": True,
-                    "pattern": "/",
-                },
-            },
+            "series_styles": {"ipc": {"color": "#ff0000", "use_color": True, "pattern": "/"}},
+            "legend_labels": {"ipc": "IPC"},
         }
         plot.processed_data = _sample_stacked_data()
         plot.config = config
@@ -195,7 +189,7 @@ class TestStackedBarCreateFigure:
         plot.config = config
         fig = cast(go.Figure, plot_session.render(plot))
 
-        layout = cast("go.Layout", fig.layout)
+        layout = fig.layout
         annotations = cast("tuple[Any, ...]", layout.annotations)
         assert annotations is not None
         assert len(annotations) == 3
@@ -247,7 +241,7 @@ class TestStackedBarCreateFigure:
         plot.config = config
         fig = cast(go.Figure, plot_session.render(plot))
 
-        layout = cast("go.Layout", fig.layout)
+        layout = fig.layout
         annotations = cast("tuple[Any, ...]", layout.annotations)
         assert len(annotations) == 0
 

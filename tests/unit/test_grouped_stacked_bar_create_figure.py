@@ -3,7 +3,7 @@
 from ring5 import Session
 from ring5.errors import RenderError
 
-from typing import cast
+from typing import Any, cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -63,7 +63,7 @@ class TestCreateFigure:
 
     def test_no_x_returns_empty_traces(self, plot: GroupedStackedBarPlot) -> None:
         """When x_col is missing, returns empty TraceBuildResult."""
-        config = {"x": None, "group": "Config", "y_columns": []}
+        config: dict[str, Any] = {"x": None, "group": "Config", "y_columns": []}
         result = plot.create_traces(pd.DataFrame(), config)
         assert result.traces == []
 
@@ -297,7 +297,7 @@ class TestHelperMethods:
         result = plot.create_traces(
             sample_data, {"x": "Benchmark", "group": "Config", "y_columns": ["Ticks", "Energy"]}
         )
-        figure = traces_to_plotly(result)
+        figure = traces_to_plotly(result).figure
         for trace in figure.data:
             bar = cast(go.Bar, trace)
             assert "customdata" in cast(str, bar.hovertemplate)

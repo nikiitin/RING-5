@@ -140,7 +140,7 @@ def test_multiple_heatmap_traces_render_as_subplots() -> None:
         ]
     )
 
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
 
     assert len(cast(tuple[Any, ...], fig.data)) == 2
     assert fig.layout.xaxis2 is not None
@@ -213,7 +213,7 @@ def test_heatmap_plotly_annotations_have_contrast_colors() -> None:
         ]
     )
 
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
     annotations = list(fig.layout.annotations)
     assert len(annotations) == 2
 
@@ -248,7 +248,7 @@ def test_heatmap_subplot_annotations_use_correct_axis_refs() -> None:
         ]
     )
 
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
     annotations = list(fig.layout.annotations)
 
     # make_subplots adds subplot_titles as annotations; filter to cell annotations
@@ -681,7 +681,7 @@ def test_heatmap_plotly_separator_line_right() -> None:
             ),
         ]
     )
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
     shapes = list(fig.layout.shapes)
     # Should have at least one vertical separator line
     sep_shapes = [s for s in shapes if s.type == "line"]
@@ -704,7 +704,7 @@ def test_heatmap_plotly_separator_line_top() -> None:
             ),
         ]
     )
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
     shapes = list(fig.layout.shapes)
     sep_shapes = [s for s in shapes if s.type == "line"]
     assert len(sep_shapes) >= 1
@@ -724,7 +724,7 @@ def test_heatmap_plotly_no_separator_without_totals() -> None:
             ),
         ]
     )
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
     shapes = list(fig.layout.shapes or [])
     assert len(shapes) == 0
 
@@ -743,8 +743,8 @@ def test_plotly_shared_colorbar_zmin_zmax_match() -> None:
 
     fig = go.Figure(
         data=[
-            go.Heatmap(x=["A", "B"], y=["m1"], z=[[1.0, 5.0]], name="hm1"),
-            go.Heatmap(x=["A", "B"], y=["m1"], z=[[2.0, 8.0]], name="hm2"),
+            go.Heatmap({"x": ["A", "B"], "y": ["m1"], "z": [[1.0, 5.0]], "name": "hm1"}),
+            go.Heatmap({"x": ["A", "B"], "y": ["m1"], "z": [[2.0, 8.0]], "name": "hm2"}),
         ]
     )
     legend = LegendConfig(
@@ -779,8 +779,8 @@ def test_plotly_individual_colorbar_mode() -> None:
 
     fig = go.Figure(
         data=[
-            go.Heatmap(x=["A", "B"], y=["m1"], z=[[1.0, 5.0]], name="hm1"),
-            go.Heatmap(x=["A", "B"], y=["m1"], z=[[2.0, 8.0]], name="hm2"),
+            go.Heatmap({"x": ["A", "B"], "y": ["m1"], "z": [[1.0, 5.0]], "name": "hm1"}),
+            go.Heatmap({"x": ["A", "B"], "y": ["m1"], "z": [[2.0, 8.0]], "name": "hm2"}),
         ]
     )
     legend = LegendConfig(
@@ -807,7 +807,7 @@ def test_plotly_colorbar_title_side_is_top() -> None:
 
     fig = go.Figure(
         data=[
-            go.Heatmap(x=["A", "B"], y=["m1"], z=[[1.0, 5.0]], name="hm1"),
+            go.Heatmap({"x": ["A", "B"], "y": ["m1"], "z": [[1.0, 5.0]], "name": "hm1"}),
         ]
     )
     legend = LegendConfig(

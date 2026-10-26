@@ -347,7 +347,6 @@ class ConfigSpecBuilder:
             trace_overrides[t_name] = SeriesStyleConfig(
                 color=(str(sd["color"]) if sd.get("use_color") and sd.get("color") else ""),
                 symbol=str(sd.get("symbol", "")),
-                display_name=str(sd.get("name", "")),
                 marker_size=int(sd.get("marker_size") or 0),
                 line_width=float(sd.get("line_width") or 0.0),
                 hatching_pattern=sd.get("pattern"),
@@ -381,6 +380,7 @@ class ConfigSpecBuilder:
             reference_lines=reference_lines,
             series_styles=series_styles,
             trace_overrides=trace_overrides,
+            legend_labels=config.get("legend_labels", {}),
             color_palette=color_palette,
             show_error_bars=show_error_bars,
             enable_stripes=enable_stripes,

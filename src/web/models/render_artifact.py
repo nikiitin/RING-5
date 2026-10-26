@@ -13,6 +13,11 @@ from src.core.models.visualization.engine import EngineMode
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.rendering.figure_preparation import PreparedDashboard, PreparedFigure
+from src.web.rendering._render_result import (
+    MatplotlibFigureResult,
+    NativeRenderResult,
+    PlotlyRenderResult,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,27 +25,22 @@ class RenderArtifact:
     """Own one complete native generation or its configuration-only detached state."""
 
     _config: PlotConfig | None
-    figure: go.Figure | MplFigure | None = None
+    native_result: NativeRenderResult | None = None
     preparation: PreparedFigure | PreparedDashboard | None = None
-    engine: EngineMode | None = None
     cache_key: str | None = None
     source_data: pd.DataFrame | None = None
     generation: str = field(default_factory=lambda: uuid4().hex)
 
     def __post_init__(self) -> None:
-        if self.figure is None:
+        if self.native_result is None:
             if any(
-                value is not None
-                for value in (self.preparation, self.engine, self.cache_key, self.source_data)
+                value is not None for value in (self.preparation, self.cache_key, self.source_data)
             ):
                 raise ValueError("Detached artifacts retain configuration only.")
         else:
-            expected_engine = "plotly" if isinstance(self.figure, go.Figure) else "matplotlib"
-            if (
-                not isinstance(self.figure, (go.Figure, MplFigure))
-                or self.engine != expected_engine
-            ):
-                raise ValueError("A render artifact's engine must match its native figure.")
+            if not isinstance(self.native_result, (PlotlyRenderResult, MatplotlibFigureResult)):
+                raise ValueError("A render artifact requires its actual engine-native result.")
+            self.native_result.validate()
             if not isinstance(self.preparation, (PreparedFigure, PreparedDashboard)):
                 raise ValueError("A native artifact requires its actual neutral preparation.")
         if isinstance(self.preparation, PreparedFigure):
@@ -48,6 +48,18 @@ class RenderArtifact:
                 raise ValueError("Single-figure configuration belongs to its preparation.")
         elif self._config is None:
             raise ValueError("Detached and composite artifacts require configuration state.")
+
+    @property
+    def figure(self) -> go.Figure | MplFigure | None:
+        """Return the native root from this generation's one native authority."""
+        return self.native_result.figure if self.native_result is not None else None
+
+    @property
+    def engine(self) -> EngineMode | None:
+        """Return the engine declared by the concrete native result."""
+        if isinstance(self.native_result, PlotlyRenderResult):
+            return "plotly"
+        return "matplotlib" if self.native_result is not None else None
 
     @property
     def config(self) -> PlotConfig:

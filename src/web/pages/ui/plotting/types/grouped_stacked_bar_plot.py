@@ -213,11 +213,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         if not configured_order:
             return traces
 
-        series_styles: dict[str, Any] = config.get("series_styles", {})
-        ordered_names = [
-            str(series_styles.get(key, {}).get("name", key)) for key in configured_order
-        ]
-        rank = {name: index for index, name in enumerate(ordered_names)}
+        rank = {name: index for index, name in enumerate(configured_order)}
         fallback = len(rank)
         return [
             trace

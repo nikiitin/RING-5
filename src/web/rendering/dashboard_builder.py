@@ -19,6 +19,15 @@ from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_figure_builder import draw_matplotlib_axes
 from src.web.rendering.plotly_figure_builder import build_plotly_figure
 from src.web.rendering._connector_protocol import uses_heatmap_panels
+from src.web.rendering._render_result import (
+    NativeRenderResult,
+    PlotlyRenderResult,
+    PlotlyTraceBinding,
+    PlotlyLayoutRole,
+    MatplotlibFigureResult,
+)
+from src.web.rendering._legend_projection import project_plotly_shared
+from src.web.rendering.matplotlib_colorbar import prepare_colorbars, apply_colorbars
 
 DashboardEngine = Literal["plotly", "matplotlib"]
 DashboardFigure = go.Figure | MplFigure
@@ -66,12 +75,12 @@ def render_dashboard(
     # [impl->req~ring5.plots.multi-panel-dashboard~1]
     # [impl->req~ring5.figure.panel-composition~1]
     """Prepare and render registered plots in the configured native dashboard grid."""
-    return build_dashboard_figure(prepare_dashboard(plots, spec), engine=engine)
+    return build_dashboard_figure(prepare_dashboard(plots, spec), engine=engine).figure
 
 
 def build_dashboard_figure(
     prepared: PreparedDashboard, *, engine: DashboardEngine = "plotly"
-) -> DashboardFigure:
+) -> NativeRenderResult:
     """Render one actual set of prepared panels without another source callback."""
     if engine == "plotly":
         return _render_plotly_dashboard(prepared)
@@ -142,6 +151,7 @@ def _copy_panel_decorations(
     target_x: Any,
     target_y: Any,
     target_y2: Any | None,
+    role_names: dict[str, str],
 ) -> None:
     """Copy data- and paper-space annotations/shapes into one panel domain."""
     x_ref = _trace_axis_ref(target_x)
@@ -152,6 +162,8 @@ def _copy_panel_decorations(
 
     for source in child.layout.annotations or ():
         annotation = dict(source.to_plotly_json())
+        if annotation.get("name") in role_names:
+            annotation["name"] = role_names[annotation["name"]]
         _map_ref(
             annotation,
             coordinate="x",
@@ -286,12 +298,15 @@ def _add_domain_panel_text(
             )
 
 
-def _render_plotly_dashboard(preparation: PreparedDashboard) -> go.Figure:
+def _render_plotly_dashboard(preparation: PreparedDashboard) -> PlotlyRenderResult:
     spec = preparation.layout
+    child_results: list[PlotlyRenderResult] = []
     child_figures: list[go.Figure] = []
     secondary_flags: list[bool] = []
     for prepared, plot_name in zip(preparation.panels, preparation.plot_names, strict=True):
-        child = build_plotly_figure(prepared)
+        rendered = build_plotly_figure(prepared)
+        child = rendered.figure
+        child_results.append(rendered)
         if _has_nested_subplots(child):
             raise ValueError(
                 f"Plot '{plot_name}' already contains nested subplots and cannot be placed "
@@ -328,11 +343,24 @@ def _render_plotly_dashboard(preparation: PreparedDashboard) -> go.Figure:
         vertical_spacing=spec.resolved_vertical_spacing,
     )
 
-    legend_names: set[str] = set()
+    destination_panels: list[tuple[PlotlyTraceBinding, ...]] = []
+    destination_roles: list[PlotlyLayoutRole] = []
     inferred_x_title = ""
     inferred_y_title = ""
     next_legend = 1
     for index, child in enumerate(child_figures):
+        source_result = child_results[index]
+        sources = {
+            id(binding.native_trace): binding
+            for panel in source_result.panel_bindings
+            for binding in panel
+        }
+        copied: list[PlotlyTraceBinding] = []
+        copied_sources: dict[int, PlotlyTraceBinding] = {}
+        role_names = {
+            role.role_name: f"ring5-panel-{index}-facet-title-{ordinal}"
+            for ordinal, role in enumerate(source_result.layout_roles)
+        }
         row, column = divmod(index, spec.columns)
         row += 1
         column += 1
@@ -360,17 +388,28 @@ def _render_plotly_dashboard(preparation: PreparedDashboard) -> go.Figure:
             if spec.shared_legend and hasattr(trace, "showlegend"):
                 if hasattr(trace, "legend"):
                     trace.legend = "legend"
-                name = str(getattr(trace, "name", ""))
-                originally_visible = getattr(trace, "showlegend", None) is not False
-                trace.showlegend = originally_visible and name not in legend_names
-                if originally_visible:
-                    legend_names.add(name)
             elif not spec.shared_legend and hasattr(trace, "legend"):
                 trace.legend = legend_mapping[str(getattr(trace, "legend", None) or "legend")]
             if family == "xy":
                 dashboard.add_trace(trace, row=row, col=column, secondary_y=secondary)
             else:
                 dashboard.add_trace(trace, row=row, col=column)
+            source_binding = sources[id(source_trace)]
+            binding = PlotlyTraceBinding(
+                source_binding.source_ordinal,
+                source_binding.original_name,
+                dashboard.data[-1],
+                source_binding.legend_role,
+                source_binding.legendgroup,
+                source_binding.show_in_legend,
+            )
+            copied.append(binding)
+            copied_sources[id(source_binding)] = binding
+        destination_panels.append(tuple(sorted(copied, key=lambda binding: binding.source_ordinal)))
+        destination_roles.extend(
+            PlotlyLayoutRole(role_names[role.role_name], copied_sources[id(role.source)])
+            for role in source_result.layout_roles
+        )
 
         target = cast(Any, dashboard.get_subplot(row, column))
         if families[index] != "xy":
@@ -413,6 +452,7 @@ def _render_plotly_dashboard(preparation: PreparedDashboard) -> go.Figure:
             target_x=target_x,
             target_y=target_y,
             target_y2=target_y2,
+            role_names=role_names,
         )
         _add_plotly_panel_text(
             dashboard,
@@ -470,7 +510,11 @@ def _render_plotly_dashboard(preparation: PreparedDashboard) -> go.Figure:
             textangle=-90,
             showarrow=False,
         )
-    return dashboard
+    rendered = PlotlyRenderResult(
+        dashboard, tuple(destination_panels), tuple(destination_roles), spec.shared_legend
+    )
+    project_plotly_shared(rendered)
+    return rendered
 
 
 def _matplotlib_relative_spacing(normalized_gap: float, panel_count: int) -> float:
@@ -481,7 +525,7 @@ def _matplotlib_relative_spacing(normalized_gap: float, panel_count: int) -> flo
 
 
 @serialized_matplotlib
-def _render_matplotlib_dashboard(preparation: PreparedDashboard) -> MplFigure:
+def _render_matplotlib_dashboard(preparation: PreparedDashboard) -> MatplotlibFigureResult:
     # [impl->req~ring5.figure.accessible-themes~1]
     import matplotlib.pyplot as plt
 
@@ -546,33 +590,11 @@ def _render_matplotlib_dashboard(preparation: PreparedDashboard) -> MplFigure:
         for ax in axes[len(preparation.panels) :]:
             ax.set_axis_off()
 
+        rendered = MatplotlibFigureResult(figure, tuple(panel_render_results), spec.shared_legend)
         if spec.shared_legend:
-            handles_by_label: dict[str, Any] = {}
-            for ax, rendered in zip(
-                axes[: len(preparation.panels)], panel_render_results, strict=True
-            ):
-                for _, handle in rendered.legend_handles:
-                    label = str(handle.get_label())
-                    if label and not label.startswith("_"):
-                        handles_by_label.setdefault(label, handle)
-                candidates = [ax]
-                twin = getattr(ax, "_ring5_twin", None)
-                if twin is not None:
-                    candidates.append(twin)
-                for candidate in candidates:
-                    FigureSpecToMatplotlib._clear_owned_legends(candidate)
-            if handles_by_label:
-                primary_legend = first_figure_spec.legends[0]
-                options = FigureSpecToMatplotlib._legend_kwargs(primary_legend)
-                options.update(
-                    loc="lower center",
-                    ncol=min(4, len(handles_by_label)),
-                    bbox_to_anchor=(0.5, 0.01),
-                )
-                legend = figure.legend(
-                    list(handles_by_label.values()), list(handles_by_label), **options
-                )
-                FigureSpecToMatplotlib._style_legend(primary_legend, legend)
+            FigureSpecToMatplotlib._project_shared_legends(
+                rendered, tuple(panel.spec for panel in preparation.panels)
+            )
 
         font_kwargs = (
             {"fontfamily": first_figure_spec.font_family}
@@ -617,7 +639,10 @@ def _render_matplotlib_dashboard(preparation: PreparedDashboard) -> MplFigure:
             wspace=wspace,
             hspace=hspace,
         )
-        return figure
+        apply_colorbars(
+            prepare_colorbars(rendered, tuple(panel.spec for panel in preparation.panels))
+        )
+        return rendered
     except Exception:
         plt.close(figure)
         raise

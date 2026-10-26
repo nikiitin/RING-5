@@ -33,9 +33,10 @@ def test_create_figure_renaming(sample_data: Any, plot_session: Session) -> None
         "group": "Config",
         "y_columns": ["Ticks", "Energy"],
         "series_styles": {
-            "Ticks": {"name": "Total Cycles", "color": "#FF0000", "use_color": True},
-            "Energy": {"name": "Joules", "color": "#00FF00", "use_color": True},
+            "Ticks": {"color": "#FF0000", "use_color": True},
+            "Energy": {"color": "#00FF00", "use_color": True},
         },
+        "legend_labels": {"Ticks": "Total Cycles", "Energy": "Joules"},
     }
 
     plot.processed_data = sample_data

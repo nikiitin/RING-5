@@ -271,6 +271,10 @@ and heatmap facets under **Axes**. Legend entries and stack series are ordered a
 **Legends**, independently for each visible legend tier. These settings do not rewrite processed
 data.
 
+`legend_labels` is the series-name-to-display-text mapping. Series ordering, color and pattern
+overrides keep using the original series name after a rename. Empty, numeric-looking and repeated
+display labels are preserved; they do not identify or merge distinct series.
+
 ### Stack totals
 
 <!--
@@ -350,12 +354,12 @@ Covers:
 
 -->
 
-Under **Colors**, applicable plots expose per-series color, display name, bar pattern, marker symbol
-and size, and line width. Typed renderer styles also carry opacity and borders. **Rewind** returns
-a series to its current palette color.
+Under **Colors**, applicable plots expose per-series color, bar pattern, marker symbol and size,
+and line width. Display names are edited under **Legends**. Typed renderer styles also carry opacity
+and borders. **Rewind** returns a series to its current palette color.
 
-Programmatic `series_styles` use text series names and style mappings. A bar `pattern` is a
-string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`. Both engines render all
+Programmatic `series_styles` use original text series names and style mappings. Display text uses
+`legend_labels`. A bar `pattern` is a string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`. Both engines render all
 forms; Plotly projects circle/star forms through native SVG pattern paths. **Default (trace/theme)**
 omits the override and preserves intrinsic hatching. **Solid** explicitly clears it. Explicit
 series choices take precedence over default stripe patterns and appear on legend swatches.

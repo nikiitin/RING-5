@@ -5,6 +5,8 @@ import ring5
 from typing import Literal
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+from matplotlib.text import Annotation
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
@@ -60,7 +62,10 @@ def test_stack_total_values_and_coordinates_survive_reorder_and_duplicate_displa
             "6.00": (0.0, 6.0),
             "8.00": (2.0, 8.0),
         }
-        centers = [patch.get_x() + patch.get_width() / 2 for patch in axis.patches]
+        centers = []
+        for patch in axis.patches:
+            assert isinstance(patch, Rectangle)
+            centers.append(patch.get_x() + patch.get_width() / 2)
         assert centers == pytest.approx([1.0, 2.0, 0.0, 1.0, 2.0, 0.0])
     pd.testing.assert_frame_equal(data, original)
 
@@ -77,8 +82,11 @@ def test_annotation_context_preserves_numeric_positions_paper_coordinates_and_un
                 AnnotationConfig(x="missing", y=2, text="unknown", xref="data", yref="data"),
             ]
         )
-        FigureSpecToMatplotlib._apply_annotations(spec, axis, result)
-        texts = {text.get_text(): text for text in axis.texts}
+        FigureSpecToMatplotlib._apply_annotations(spec, result)
+        texts = {}
+        for text in axis.texts:
+            assert isinstance(text, Annotation)
+            texts[text.get_text()] = text
         assert set(texts) == {"numeric", "paper"}
         assert texts["numeric"].get_position() == (10, 2)
         assert texts["paper"].get_position() == (0.25, 0.75)
@@ -97,7 +105,10 @@ def test_precomputed_group_coordinates_do_not_gain_categorical_mapping() -> None
             category_order=["B", "A"],
         )
         assert not result.x_category_positions
-        centers = [patch.get_x() + patch.get_width() / 2 for patch in axis.patches]
+        centers = []
+        for patch in axis.patches:
+            assert isinstance(patch, Rectangle)
+            centers.append(patch.get_x() + patch.get_width() / 2)
         assert centers == [7.0, 9.0]
     finally:
         plt.close(figure)

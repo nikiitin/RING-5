@@ -309,7 +309,7 @@ def test_matplotlib_facets_never_discard_a_supported_mixed_trace(mixed: bool) ->
         )
     prepared = prepare_figure(pd.DataFrame(), {"xlabel": "Category"}, "custom", lambda *_: result)
     original = prepared.spec.to_dict()
-    figure, _ = build_matplotlib_figure_from_prepared(prepared)
+    figure = build_matplotlib_figure_from_prepared(prepared).figure
     try:
         assert prepared.spec.to_dict() == original
         if mixed:
