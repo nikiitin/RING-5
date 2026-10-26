@@ -40,22 +40,6 @@ class PreparedDashboard:
     plot_names: tuple[str, ...]
 
 
-def _relabel_traces(
-    result: TraceBuildResult, legend_labels: dict[str, str] | None
-) -> TraceBuildResult:
-    """Apply display names once before either native engine consumes traces."""
-    # [impl->req~ring5.figure.ordering-renaming~2]
-    if not legend_labels:
-        return result
-    return replace(
-        result,
-        traces=[
-            replace(trace, name=legend_labels.get(trace.name, trace.name))
-            for trace in result.traces
-        ],
-    )
-
-
 def prepare_figure(
     data: pd.DataFrame,
     config: PlotConfig,
@@ -87,7 +71,6 @@ def prepare_figure(
     validate_annotation_types(result.annotations)
     result = deepcopy(result)
     result = AccessibilityService.apply_non_color_encodings(result, effective)
-    result = _relabel_traces(result, effective.get("legend_labels"))
     if result.secondary_y and not effective.get("unified_legend", True):
         result = replace(
             result,

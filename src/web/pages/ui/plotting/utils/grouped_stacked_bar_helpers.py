@@ -309,7 +309,7 @@ def build_right_axis_traces(
         error_y_vals: list[float] | None = data[sd_col].tolist() if sd_col else None
 
         style: dict[str, Any] = series_styles.get(y_col, {})
-        trace_name: str = style.get("name", y_col)
+        trace_name = y_col
 
         if trace_type == "bars":
             traces.append(

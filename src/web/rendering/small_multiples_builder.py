@@ -20,6 +20,7 @@ from src.web.rendering.dashboard_builder import (
     prepare_dashboard,
     build_dashboard_figure,
 )
+from src.web.rendering._render_result import NativeRenderResult
 
 
 def _panel_rows(
@@ -113,12 +114,13 @@ def prepare_small_multiples(
 
 def build_small_multiples_figure(
     prepared: PreparedDashboard, spec: SmallMultiplesSpec, *, engine: DashboardEngine
-) -> DashboardFigure:
+) -> NativeRenderResult:
     """Assemble prepared facets in the selected native engine."""
-    figure = build_dashboard_figure(prepared, engine=engine)
+    rendered = build_dashboard_figure(prepared, engine=engine)
+    figure = rendered.figure
     if isinstance(figure, go.Figure):
         _match_all_plotly_axes(figure, spec)
-    return figure
+    return rendered
 
 
 def render_small_multiples(
@@ -134,7 +136,7 @@ def render_small_multiples(
     if plot is None:
         raise ValueError(f"Small multiples references unknown plot ID: {spec.plot_id}.")
     prepared = prepare_small_multiples(plots, spec, plot.config)
-    return build_small_multiples_figure(prepared, spec, engine=engine)
+    return build_small_multiples_figure(prepared, spec, engine=engine).figure
 
 
 __all__ = ["render_small_multiples"]

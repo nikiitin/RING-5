@@ -18,9 +18,9 @@ from src.core.common.plot_payload import BAR_HATCH_PATTERNS
 class SeriesStyleConfig:
     r"""Per-trace styling overrides.
 
-    Each ``SeriesStyleConfig`` maps 1:1 to a trace in the figure.  If
-    ``FigureSpec.series_styles`` has fewer entries than traces, the
-    remaining traces use default styling.
+    ``FigureConfig.series_styles`` cycles by the original source ordinal within
+    each panel, including hidden sources. Named ``trace_overrides`` apply after
+    that positional style. Display text belongs to ``FigureConfig.legend_labels``.
 
     Attributes:
         line_width: Line width in points (for line/scatter traces).
@@ -44,7 +44,6 @@ class SeriesStyleConfig:
     # Per-trace overrides (keyed by trace name in FigureSpec.trace_overrides)
     color: str = ""  # explicit trace color
     symbol: str = ""  # marker symbol (e.g., "square", "diamond")
-    display_name: str = ""  # rename the trace legend entry
 
     def __post_init__(self) -> None:
         """Reject non-string or unsupported explicit hatch values."""
@@ -67,7 +66,6 @@ class SeriesStyleConfig:
             "hatching_pattern": self.hatching_pattern,
             "color": self.color,
             "symbol": self.symbol,
-            "display_name": self.display_name,
         }
 
     @classmethod
@@ -79,7 +77,12 @@ class SeriesStyleConfig:
 
         Returns:
             New SeriesStyleConfig instance.
+
+        Raises:
+            ValueError: A retired display field or unsupported hatch is supplied.
         """
+        if "display_name" in data:
+            raise ValueError("Series style display_name is unsupported. Use legend_labels.")
         return cls(
             line_width=float(data.get("line_width", 2.0)),
             marker_size=int(data.get("marker_size", 6)),
@@ -89,5 +92,4 @@ class SeriesStyleConfig:
             hatching_pattern=data.get("hatching_pattern"),
             color=str(data.get("color", "")),
             symbol=str(data.get("symbol", "")),
-            display_name=str(data.get("display_name", "")),
         )

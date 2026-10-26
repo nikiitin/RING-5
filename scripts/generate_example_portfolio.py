@@ -250,10 +250,10 @@ def build_example_plots(data: pd.DataFrame) -> list[BasePlot]:
             "x": "benchmark",
             "y_columns": ["front_end_cycles", "execution_cycles", "memory_cycles"],
             "show_totals": True,
-            "series_styles": {
-                "front_end_cycles": {"name": "Front end"},
-                "execution_cycles": {"name": "Execution"},
-                "memory_cycles": {"name": "Memory"},
+            "legend_labels": {
+                "front_end_cycles": "Front end",
+                "execution_cycles": "Execution",
+                "memory_cycles": "Memory",
             },
         }
     )
@@ -276,10 +276,10 @@ def build_example_plots(data: pd.DataFrame) -> list[BasePlot]:
             "group_order": CONFIGURATION_ORDER,
             "y_columns": ["front_end_cycles", "execution_cycles", "memory_cycles"],
             "show_totals": False,
-            "series_styles": {
-                "front_end_cycles": {"name": "Front end"},
-                "execution_cycles": {"name": "Execution"},
-                "memory_cycles": {"name": "Memory"},
+            "legend_labels": {
+                "front_end_cycles": "Front end",
+                "execution_cycles": "Execution",
+                "memory_cycles": "Memory",
             },
         }
     )
