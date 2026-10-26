@@ -36,11 +36,9 @@ dependencies = [
   "regex==2026.9.29",
   # Security floors for dependencies used by Streamlit/Matplotlib.
   "click>=8.5.0",
-  "gitpython>=3.2.1",
   "pillow>=13.0.0",
   "python-multipart>=0.0.32",
-  "starlette>=1.9.0",
-  "tornado>=6.6",
+  "starlette>=1.10.0",
 ]
 
 [project.optional-dependencies]

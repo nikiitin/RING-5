@@ -23,7 +23,6 @@ from src.core.models.environment_models import (
 _RUNTIME_DEPENDENCIES = (
     "choreographer",
     "click",
-    "gitpython",
     "kaleido",
     "matplotlib",
     "numpy",
@@ -38,7 +37,6 @@ _RUNTIME_DEPENDENCIES = (
     "scipy",
     "starlette",
     "streamlit",
-    "tornado",
 )
 _RENDERERS = ("matplotlib", "plotly")
 
