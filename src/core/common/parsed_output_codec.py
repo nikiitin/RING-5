@@ -11,21 +11,27 @@ from src.core.common.security_limits import (
     MAX_INCREMENTAL_CACHE_COLUMNS,
     MAX_PARSED_CELL_CHARACTERS,
     MAX_PARSED_SCHEMA_BYTES,
+    MAX_PARSED_DESCRIPTOR_BYTES,
     MAX_PARSE_VARIABLES,
 )
-from src.core.models.csv_contract import MISSING_VALUE
 from src.core.models.parse_failure_models import ParseDataValueError
 from src.core.models.parsed_output_models import (
     ParsedCell,
+    ParsedColumn,
     ParsedFileResult,
     ParsedKind,
+    ParsedOutput,
     ParsedSchema,
     ParsedShape,
     ParsedValue,
     ParsedVariableResult,
+    ParsedVariableSchema,
 )
 
+MISSING_VALUE = "NaN"
+
 PARSED_SCHEMA_VERSION = 1
+PARSED_OUTPUT_VERSION = 1
 
 
 def unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -176,6 +182,103 @@ def encode_parsed_schema(schema: ParsedSchema) -> bytes:
         record({"name": column.name, "kind": column.kind, "owner": column.owner})
     append(b"]}")
     return bytes(encoded)
+
+
+def _decode_document(payload: bytes, limit: int) -> object:
+    if type(payload) is not bytes or len(payload) > limit:
+        raise ValueError("Parser descriptor document exceeds its byte limit.")
+    try:
+        return json.loads(payload, object_pairs_hook=unique_json_object)
+    except (json.JSONDecodeError, UnicodeError, RecursionError) as exc:
+        raise ValueError("Parser descriptor document is invalid JSON.") from exc
+
+
+def _schema_from_payload(value: object) -> ParsedSchema:
+    document = _record(value, {"format", "version", "variables", "columns"})
+    if (
+        document["format"] != "ring5.parsed-schema"
+        or type(document["version"]) is not int
+        or document["version"] != PARSED_SCHEMA_VERSION
+    ):
+        raise ValueError("Unsupported parser schema format/version.")
+    variables, columns = document["variables"], document["columns"]
+    if type(variables) is not list or len(variables) > MAX_PARSE_VARIABLES:
+        raise ValueError("Parser schema variables require a bounded array.")
+    if type(columns) is not list or len(columns) > MAX_INCREMENTAL_CACHE_COLUMNS:
+        raise ValueError("Parser schema columns require a bounded array.")
+    declarations: list[ParsedVariableSchema] = []
+    for raw in variables:
+        record = _record(raw, {"name", "kind", "shape"})
+        shape = record["shape"]
+        if type(shape) is not str or shape not in ("scalar", "entries"):
+            raise ValueError("Parser schema shape must be scalar or entries.")
+        declarations.append(
+            ParsedVariableSchema(
+                _text(record["name"]), _kind_value(record["kind"]), cast(ParsedShape, shape)
+            )
+        )
+    fields: list[ParsedColumn] = []
+    for raw in columns:
+        record = _record(raw, {"name", "kind", "owner"})
+        owner = record["owner"]
+        fields.append(
+            ParsedColumn(
+                _text(record["name"]),
+                _kind_value(record["kind"]),
+                None if owner is None else _text(owner),
+            )
+        )
+    return ParsedSchema(tuple(declarations), tuple(fields))
+
+
+def decode_parsed_schema(payload: bytes) -> ParsedSchema:
+    """Decode only the bounded current schema with explicit logical ownership."""
+    schema = _schema_from_payload(_decode_document(payload, MAX_PARSED_SCHEMA_BYTES))
+    encode_parsed_schema(schema)
+    return schema
+
+
+def encode_parsed_output(output: ParsedOutput) -> str:
+    """Encode a bounded current path/digest/schema descriptor for existing owners."""
+    if type(output) is not ParsedOutput:
+        raise TypeError("Parser output encoding requires ParsedOutput.")
+    document = (
+        b'{"format":"ring5.parsed-output","version":'
+        + str(PARSED_OUTPUT_VERSION).encode("ascii")
+        + b',"csv_path":'
+        + json.dumps(output.csv_path, ensure_ascii=False).encode("utf-8")
+        + b',"sha256":'
+        + json.dumps(output.sha256).encode("ascii")
+        + b',"schema":'
+        + encode_parsed_schema(output.schema)
+        + b"}"
+    )
+    if len(document) > MAX_PARSED_DESCRIPTOR_BYTES:
+        raise ValueError("Parser output descriptor exceeds its byte limit.")
+    return document.decode("utf-8")
+
+
+def decode_parsed_output(payload: str) -> ParsedOutput:
+    """Decode the current descriptor without consulting files or filename history."""
+    if type(payload) is not str or len(payload) > MAX_PARSED_DESCRIPTOR_BYTES:
+        raise ValueError("Parser output descriptor requires bounded text.")
+    document = _record(
+        _decode_document(payload.encode("utf-8"), MAX_PARSED_DESCRIPTOR_BYTES),
+        {"format", "version", "csv_path", "sha256", "schema"},
+    )
+    if (
+        document["format"] != "ring5.parsed-output"
+        or type(document["version"]) is not int
+        or document["version"] != PARSED_OUTPUT_VERSION
+    ):
+        raise ValueError("Unsupported parser output format/version.")
+    output = ParsedOutput(
+        _text(document["csv_path"]),
+        _text(document["sha256"]),
+        _schema_from_payload(document["schema"]),
+    )
+    encode_parsed_output(output)
+    return output
 
 
 class ParsedOutputDigest:

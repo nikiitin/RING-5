@@ -89,6 +89,12 @@ Confirm that the file is readable, has a non-empty header, contains a data row, 
 row widths. RING-5 does not require specific gem5 columns. Operations later validate the columns and
 types they need.
 
+For parser results, pass the complete `ParseResult` to `session.load` to retain declared numeric and
+text types. Typed loading verifies the exact schema, CSV row encoding and schema-bound digest;
+missing or changed output fails visibly. Passing the result's CSV pathname instead uses ordinary
+CSV inference and null handling. Literal text such as `NA`, empty strings and `001` remains exact
+through typed loading or the reviewed import workflow with explicit text corrections.
+
 ## A plot is blank or reports missing columns
 
 Inspect the finalized pipeline output, not only the workspace table. A selector or pivot may have

@@ -38,10 +38,10 @@ sequenceDiagram
     Pool-->>API: results and visible failures
     UI->>API: finalize batch
     opt incremental parse
-        Parser->>Cache: reuse fingerprint-matched scalar rows
+        Parser->>Cache: reuse fingerprint-matched typed file records
         Parser->>Cache: atomically replace successful merged rows
     end
-    API->>Parser: assemble and validate CSV
+    API->>Parser: resolve schema and atomically publish typed CSV descriptor
     API->>State: store table and provenance
 ```
 
@@ -61,15 +61,19 @@ before execution has no start timestamp.
 
 Incremental submission first discovers the same bounded file set and hashes complete input
 contents. It filters the normal strategy work items to new or changed paths; it does not introduce
-a synchronous parser or bypass the shared worker pool. Finalization uses each worker result's
-internal source provenance to replace exactly that file's finalized row, retains unchanged rows,
-and omits deleted paths. The JSON cache contains strings and fingerprints rather than pickles or
-live parser objects. The final CSV and cache are each replaced atomically, and the cache is written
+a synchronous parser or bypass the shared worker pool. Finalization uses each immutable worker result's
+explicit source path to replace exactly that file's finalized row, retains unchanged rows,
+and omits deleted paths. The current JSON cache contains typed file records and fingerprints rather than pickles or
+live accumulator objects. The final CSV and cache are each replaced atomically, and the cache is written
 only after every changed worker succeeds.
 
-`Session.load` and the CSV pool converge on `ApplicationAPI.load_data`, which stores a DataFrame in
-the session repository. The generic CSV contract requires a header and rows; individual services
-validate operation-specific columns and types.
+`Session.load(ParseResult)` passes the explicit descriptor and actual request context to
+`ApplicationAPI.load_data`. `Session.load(str)` and CSV pool imports use genuine CSV inference at
+that same ingestion owner. Successful publication commits the exact frame and immutable loaded
+origin together. The descriptor path is never a lookup key for recovering schema or request state.
+The session repository stores the owned DataFrame; individual services validate operation-specific
+columns and types. Typed parser admission verifies schema and digest, while genuine CSV ingestion
+retains its inference/null policy.
 
 The review-before-load path first creates an immutable `ImportPreview` in the core service. Format
 detection, corrections, inference, and row classification do not touch session state. Loading

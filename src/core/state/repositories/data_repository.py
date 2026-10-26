@@ -8,8 +8,11 @@ from uuid import uuid4
 
 import pandas as pd
 
+from src.core.models.source_context_models import LoadedDataOrigin
+
 from src.core.common.dataframe_copy import copy_dataframe
 from src.core.common.content_identity import frame_signature
+from src.core.common.source_context_codec import SourceContextCodec
 from src.core.models.dataset_workspace_models import (
     DatasetInfo,
     DatasetInputIdentity,
@@ -26,6 +29,7 @@ class _StoredDatasetRevision:
 
     info: DatasetRevision
     data: pd.DataFrame
+    origin: LoadedDataOrigin | None
 
 
 class DataRepository:
@@ -34,6 +38,7 @@ class DataRepository:
     def __init__(self) -> None:
         """Initialize in-memory storage."""
         self._data: pd.DataFrame | None = None
+        self._origin: LoadedDataOrigin | None = None
         self._processed_data: pd.DataFrame | None = None
         self._datasets: dict[str, pd.DataFrame] = {}
         self._selected_dataset: str | None = None
@@ -62,6 +67,7 @@ class DataRepository:
         *,
         operation: str = "Update dataset",
         source_datasets: tuple[str, ...] = (),
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         """
         Store the primary dataset with optional change callback.
@@ -71,9 +77,14 @@ class DataRepository:
             on_change: Optional callback to execute after setting data.
             operation: Human-readable lineage operation for named data.
             source_datasets: Other named datasets used by the operation.
+            origin: Explicit replay facts for this exact frame; None clears them.
         """
+        origin = SourceContextCodec.origin_from_payload(SourceContextCodec.origin_payload(origin))
+        if data is None and origin is not None:
+            raise ValueError("Cleared data cannot retain a loaded source origin.")
         if data is None:
             self._data = None
+            self._origin = None
             self._selected_dataset = None
         elif self._selected_dataset is not None:
             self._record_revision(
@@ -81,9 +92,11 @@ class DataRepository:
                 data,
                 operation=operation,
                 source_datasets=source_datasets,
+                origin=origin,
             )
         else:
             self._data = copy_dataframe(data)
+            self._origin = origin
 
         if on_change:
             on_change()
@@ -94,6 +107,10 @@ class DataRepository:
             )
         else:
             logger.info("DATA_REPO: Data cleared")
+
+    def get_loaded_origin(self) -> LoadedDataOrigin | None:
+        """Return the immutable request associated with the current source frame."""
+        return self._origin
 
     def get_processed_data(self) -> pd.DataFrame | None:
         """
@@ -128,6 +145,7 @@ class DataRepository:
         """
         self._data = None
         self._processed_data = None
+        self._origin = None
         self._datasets.clear()
         self._selected_dataset = None
         self._revisions.clear()
@@ -149,6 +167,7 @@ class DataRepository:
         replace: bool = False,
         operation: str = "Add dataset",
         source_datasets: tuple[str, ...] = (),
+        origin: LoadedDataOrigin | None = None,
     ) -> DatasetInfo:
         """Store a defensive copy under a session-unique name.
 
@@ -159,6 +178,7 @@ class DataRepository:
             replace: Permit replacing a dataset with the same name.
             operation: Human-readable operation that produced the dataset.
             source_datasets: Named source datasets used by the operation.
+            origin: Explicit replay facts for this exact retained frame, when available.
 
         Returns:
             Metadata for the stored dataset.
@@ -175,10 +195,12 @@ class DataRepository:
             data,
             operation=operation,
             source_datasets=source_datasets,
+            origin=origin,
         )
         if select or self._selected_dataset is None:
             self._selected_dataset = resolved
             self._data = self._datasets[resolved]
+            self._origin = self._revisions[self._current_revision_ids[resolved]].origin
             self._processed_data = None
         return self._dataset_info(resolved)
 
@@ -213,6 +235,7 @@ class DataRepository:
             raise KeyError(f"Dataset {resolved!r} does not exist.")
         self._selected_dataset = resolved
         self._data = self._datasets[resolved]
+        self._origin = self._revisions[self._current_revision_ids[resolved]].origin
         self._processed_data = None
         return copy_dataframe(self._data)
 
@@ -233,6 +256,11 @@ class DataRepository:
         self._selected_dataset = next(iter(self._datasets), None)
         self._data = (
             self._datasets[self._selected_dataset] if self._selected_dataset is not None else None
+        )
+        self._origin = (
+            self._revisions[self._current_revision_ids[self._selected_dataset]].origin
+            if self._selected_dataset is not None
+            else None
         )
         self._processed_data = None
 
@@ -325,6 +353,7 @@ class DataRepository:
         *,
         operation: str,
         source_datasets: tuple[str, ...],
+        origin: LoadedDataOrigin | None,
     ) -> DatasetRevision:
         """Snapshot a named dataset and connect it to its reproducible ancestry."""
         if not isinstance(data, pd.DataFrame):
@@ -344,6 +373,7 @@ class DataRepository:
             if source_revision not in parents:
                 parents.append(source_revision)
 
+        origin = SourceContextCodec.origin_from_payload(SourceContextCodec.origin_payload(origin))
         snapshot = copy_dataframe(data)
         fingerprint = frame_signature(snapshot)
         self._revision_counter += 1
@@ -361,7 +391,9 @@ class DataRepository:
             source_datasets=resolved_sources,
             parent_revision_ids=tuple(parents),
         )
-        self._revisions[revision_id] = _StoredDatasetRevision(info=info, data=snapshot)
+        self._revisions[revision_id] = _StoredDatasetRevision(
+            info=info, data=snapshot, origin=origin
+        )
         revision_ids.append(revision_id)
         self._current_revision_ids[name] = revision_id
         self._redo_revision_ids.setdefault(name, []).clear()
@@ -369,6 +401,7 @@ class DataRepository:
         self._advance_dataset_input_version(name)
         if self._selected_dataset == name:
             self._data = snapshot
+            self._origin = origin
             self._processed_data = None
         return replace(info, current=True)
 
@@ -380,6 +413,7 @@ class DataRepository:
         self._advance_dataset_input_version(name)
         if self._selected_dataset == name:
             self._data = restored
+            self._origin = stored.origin
             self._processed_data = None
         return replace(stored.info, current=True)
 

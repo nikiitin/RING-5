@@ -19,6 +19,7 @@ _SECTION_NAMES = ("inputs", "configuration", "outputs")
 _INPUT_KEYS = (
     "csv_path",
     "data",
+    "loaded_origin",
     "parse_variables",
     "scanned_variables",
     "stats_path",

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import logging
 
-import pandas as pd
 
 from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.common.source_context_codec import SourceContextCodec
 from src.core.models.portfolio_models import PortfolioData, RestoreReport
 from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
 from src.core.state.repositories.config_repository import ConfigRepository
@@ -62,23 +62,6 @@ class SessionRepository:
 
         logger.info("SESSION_REPO: Session initialized with default values")
 
-    def enforce_config_dtypes(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Cast configuration-typed columns to str on a copy of *data*.
-
-        Configuration columns are grouping keys, so every ingestion path
-        (fresh load and portfolio restore) must agree on their dtype. Returns
-        a new frame; never mutates the caller's.
-        """
-        result = data.copy()
-        try:
-            variables = self.parser_repo.get_parse_variables()
-            config_vars = [v["name"] for v in variables if v.get("type") == "configuration"]
-            for col in (c for c in config_vars if c in result.columns):
-                result[col] = result[col].astype(str)
-        except (KeyError, TypeError, ValueError) as e:
-            logger.error("SESSION_REPO: config dtype enforcement failed: %s", e)
-        return result
-
     def restore_from_portfolio(self, portfolio_data: PortfolioData) -> RestoreReport:
         # [impl->req~ring5.portfolio.restore~1]
         # [impl->req~ring5.portfolio.partial-report~1]
@@ -105,6 +88,11 @@ class SessionRepository:
         if {"data_csv", "data_semantics"} & portfolio_data.keys():
             raise ValueError("Unsupported retired portfolio table fields.")
         decoded_data = TypedTableCodec.decode(portfolio_data.get("data"))
+        if "loaded_origin" not in portfolio_data:
+            raise ValueError("Portfolio requires an explicit nullable loaded_origin field.")
+        decoded_origin = SourceContextCodec.origin_from_payload(portfolio_data["loaded_origin"])
+        if decoded_data is None and decoded_origin is not None:
+            raise ValueError("Portfolio origin requires a loaded table.")
         plot_payloads = portfolio_data.get("plots", [])
         if not isinstance(plot_payloads, list):
             raise ValueError("Portfolio plots must be an array.")
@@ -155,7 +143,7 @@ class SessionRepository:
                 df = decoded_data
                 if df is None:
                     raise ValueError("Present table payload decoded as absence.")
-                self.data_repo.set_data(df)
+                self.data_repo.set_data(df, origin=decoded_origin)
                 data_restored = True
                 logger.info("SESSION_REPO: Restored data - %d rows", len(df))
             except Exception as e:

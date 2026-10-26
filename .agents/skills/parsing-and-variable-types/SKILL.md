@@ -21,7 +21,7 @@ configs   = api.compile_parse_variables(
 # Parse: extract selected variables → CSV
 batch    = api.submit_parse_async(stats_path, pattern, configs, out_dir,
                                   strategy_type="simple", scanned_vars=scan.variables)
-csv_path = api.finalize_parsing(out_dir, [f.result() for f in batch.futures])
+output = api.finalize_parsing(batch, [f.result() for f in batch.futures])
 ```
 - **Always pass `scanned_vars`** when parsing regex/pattern variables — it's needed to bind
   explicit `SourceInstance(source_name, indices)` records. Never reconstruct names from indices.
@@ -83,8 +83,8 @@ Stat types self-register; there are two halves — **Python** (model + reduction
   if `last_used < 60s`; `is_busy` uses GIL atomicity). Pools register `atexit` cleanup and have
   `shutdown()` — call `ApplicationAPI.cancel_pending_scans()` to release THAT instance's scan
   futures/memory (handle-based; pool facades keep none; the web app shares one cached instance).
-- **Missing/empty columns in CSV:** `construct_final_csv` unions headers across files; a variable
-  absent in the first file is fine. If a header is *permanently* short, suspect header being built
+- **Missing/empty columns in CSV:** `ParsedOutputIO.resolve` unions explicitly owned columns across typed
+  file results; a variable absent in the first file is fine. If a header is *permanently* short, suspect header being built
   from a sample file rather than the variable config.
 - **Wrong values / type mismatch:** Perl may report `Vector` where the user expected
   `Distribution`/`Histogram`; explicit source/output routing is handled in `gem5/impl/strategies/gem5_parse_work.py`.

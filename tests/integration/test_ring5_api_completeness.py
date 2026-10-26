@@ -17,10 +17,14 @@ from ring5._parse import ParseJob, ParserPlaygroundJob
 from ring5._scan import ScanJob
 from src.core.models.parsing_models import (
     ParserPlaygroundBatchResult,
+    ParseBatchResult,
     ScanFileResult,
     ScannedVariable,
     ScanResult,
 )
+
+from src.core.models.parsed_output_models import ParsedFileResult
+from tests.helpers.parsed_values import numeric_file, parser_context
 
 pytestmark = pytest.mark.public_api
 
@@ -153,39 +157,32 @@ def test_parser_playground_job_timeout_and_failures_are_typed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def make_job(
-        future: Future[dict[str, Any]], api: MagicMock | None = None
+        future: Future[ParsedFileResult], api: MagicMock | None = None
     ) -> ParserPlaygroundJob:
         playground_api = api or MagicMock()
         batch = ParserPlaygroundBatchResult(
-            futures=[future],
-            var_names=["simTicks"],
+            futures=(future,),
+            var_names=("simTicks",),
             output_dir="/preview",
             strategy_type="simple",
             matched_file_count=1,
             sampled_files=("/inputs/run/stats.txt",),
         )
-        return ParserPlaygroundJob(
-            playground_api,
-            batch,
-            [future],
-            "/preview",
-            "/inputs",
-            "stats.txt",
-        )
+        return ParserPlaygroundJob(playground_api, batch)
 
-    pending: Future[dict[str, Any]] = Future()
+    pending: Future[ParsedFileResult] = Future()
     monkeypatch.setattr("ring5._parse.PARSER_PLAYGROUND_TIMEOUT_SECONDS", 0)
     with pytest.raises(ring5.ParseError, match=r"1 pending file\(s\) were cancelled"):
         make_job(pending).finalize()
     assert pending.cancelled()
 
-    failed: Future[dict[str, Any]] = Future()
+    failed: Future[ParsedFileResult] = Future()
     failed.set_exception(KeyError("bad sample"))
     with pytest.raises(ring5.ParseError, match="worker failed"):
         make_job(failed).finalize()
 
-    finished: Future[dict[str, Any]] = Future()
-    finished.set_result({"simTicks": 1})
+    finished: Future[ParsedFileResult] = Future()
+    finished.set_result(numeric_file("/inputs/run/stats.txt", {"simTicks": 1.0}))
     failing_api = MagicMock()
     failing_api.finalize_parser_playground.side_effect = RuntimeError("bad preview")
     with pytest.raises(ring5.ParseError, match="configuration test failed"):
@@ -198,25 +195,21 @@ def test_session_close_defers_cleanup_for_running_parse(tmp_path: Path) -> None:
     # [test->req~ring5.quality.async-ownership~1]
     output = tmp_path / "owned"
     output.mkdir()
-    running: Future[dict[str, Any]] = Future()
+    running: Future[ParsedFileResult] = Future()
     assert running.set_running_or_notify_cancel()
     session = ring5.Session()
     session._owned_tmpdirs.append(str(output))
     session._parse_jobs.append(
         ParseJob(
             api=session.api,
-            futures=[running],
-            var_names=["x"],
-            output_dir=str(output),
-            strategy="simple",
-            stats_path="runs",
-            stats_pattern="stats.txt",
+            batch=ParseBatchResult((running,), ("x",), ("source",), str(output), "simple"),
+            source_context=parser_context(),
         )
     )
 
     session.close()
     assert output.exists()
-    running.set_result({})
+    running.set_result(numeric_file("source", {"x": 1.0}))
     assert not output.exists()
     session.close()  # idempotent
 

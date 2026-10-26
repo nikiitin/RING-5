@@ -30,12 +30,16 @@ from ring5.errors import Ring5Error
 from ring5.figure_spec import DualAxisOpts, FigureSpec, LegendOpts
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
+    ParseBatchResult,
     ScanFileResult,
     ScanResult,
     StatConfig,
 )
 from src.core.models.portfolio_models import RestoreReport
 from src.parsing.gem5.models import Gem5ScannedVariable
+
+from src.core.common.parsed_output import ParsedOutputIO
+from tests.helpers.parsed_values import numeric_file, numeric_output, parser_context
 
 pytestmark = pytest.mark.public_api
 
@@ -114,8 +118,15 @@ def test_export_error_normalization(tmp_path: Path) -> None:
             _export.export_file(mpl, str(tmp_path / "out.pdf"))
 
 
-def _parse_job(api: MagicMock, futures: list[Future[Any]]) -> _parse.ParseJob:
-    return _parse.ParseJob(api, futures, ["x"], "out", "simple", "runs", "stats.txt")
+def _parse_job(api: MagicMock, futures: list[Future[Any]], names=("x",)) -> _parse.ParseJob:
+    batch = ParseBatchResult(
+        tuple(futures),
+        tuple(names),
+        tuple(f"source-{i}" for i in range(len(futures))),
+        "out",
+        "simple",
+    )
+    return _parse.ParseJob(api, batch, parser_context(names))
 
 
 def test_parse_job_failure_edges(tmp_path: Path) -> None:
@@ -124,22 +135,24 @@ def test_parse_job_failure_edges(tmp_path: Path) -> None:
         _parse_job(api, [_future(error=RuntimeError("boom"))]).finalize()
 
     api.finalize_parsing.return_value = None
-    with pytest.raises(ring5.ParseError, match="produced no CSV"):
-        _parse_job(api, [_future({})]).finalize()
+    with pytest.raises(ring5.ParseError, match="requires a ParsedOutput"):
+        _parse_job(api, [_future(numeric_file("source-0", {"x": 1.0}))]).finalize()
 
-    api.finalize_parsing.side_effect = None
-    api.finalize_parsing.return_value = str(tmp_path / "result.csv")
-    with patch("ring5._parse.pd.read_csv", side_effect=UnicodeError("encoding")):
+    api.finalize_parsing.return_value = numeric_output(tmp_path / "result.csv", {"x": 1.0})
+    with patch("ring5._parse.ParsedOutputIO.read", side_effect=UnicodeError("encoding")):
         with pytest.raises(ring5.ParseError, match="validate parser output"):
-            _parse_job(api, [_future({})]).finalize()
+            _parse_job(api, [_future(numeric_file("source-0", {"x": 1.0}))]).finalize()
 
-    csv_path = tmp_path / "missing.csv"
-    pd.DataFrame({"x": [float("nan")]}).to_csv(csv_path, index=False)
-    api.finalize_parsing.return_value = str(csv_path)
+    output = numeric_output(tmp_path / "missing.csv", {"x": float("nan"), "absent": float("nan")})
+    api.finalize_parsing.return_value = output
     with pytest.raises(ring5.MissingStatError) as error:
-        _parse_job(api, [_future({})]).finalize()
-    assert error.value.missing == ["x"]
-    assert _parse._find_missing_stats(str(csv_path), ["x", "absent"]) == ["x", "absent"]
+        _parse_job(
+            api,
+            [_future(numeric_file("source-0", {"x": float("nan"), "absent": float("nan")}))],
+            ("x", "absent"),
+        ).finalize()
+    assert error.value.missing == ["x", "absent"]
+    assert ParsedOutputIO.read(output).missing_variables == ("x", "absent")
 
 
 def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
@@ -319,14 +332,14 @@ def test_session_lifecycle_and_submission_edges(tmp_path: Path) -> None:
             assert session._incremental_output_dirs[unrelated_key] == "other-output"
 
         incremental_batch = IncrementalParseBatchResult(
-            futures=[],
-            var_names=["x"],
+            futures=(),
+            var_names=("x",),
             output_dir="/unused",
             strategy_type="simple",
             cache_path="/unused/cache.json",
             configuration_hash="a" * 64,
-            fingerprints=(),
-            cached_rows=(),
+            fingerprints=(("source", "a" * 64),),
+            cached_results=(numeric_file("source", {"x": 1.0}),),
             changed_files=(),
             removed_files=(),
         )
@@ -421,7 +434,9 @@ def test_cli_warning_file_error_and_module_entry(
     fake_session = MagicMock()
     fake_session.__enter__.return_value = fake_session
     fake_session.__exit__.return_value = None
-    fake_session.parse.return_value = _parse.ParseResult(str(source), ["x"], parsed_files=0)
+    fake_session.parse.return_value = _parse.ParseResult(
+        numeric_output(source, {"x": float("nan")}), parser_context(), ("x",), parsed_files=0
+    )
     with patch("ring5._session.Session", return_value=fake_session):
         assert (
             ring5_cli.main(

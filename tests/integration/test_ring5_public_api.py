@@ -140,11 +140,11 @@ class TestFullWorkflow:
                 variables=["simTicks", "hostSeconds"],
                 output_dir=str(tmp_path / "parse_out"),
             )
-            assert result.missing_stats == []
+            assert result.missing_stats == ()
             assert Path(result.csv_path).exists()
 
             # load + shape
-            df = s.load(result.csv_path)
+            df = s.load(result)
             assert "simTicks" in df.columns()
             assert len(df) > 0
             shaped = s.shape(df, [{"type": "columnSelector", "columns": ["simTicks"]}])

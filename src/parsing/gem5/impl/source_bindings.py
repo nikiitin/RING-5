@@ -134,6 +134,7 @@ def resolve_sources(
         ValueError: Source identity, selection, output schema, or a bound is invalid.
         RuntimeError: The selected source/accumulator workload exceeds a configured cap.
     """
+    # [impl->req~ring5.ingestion.pattern-index-selection~1]
     configs = StatConfigCodec.validate_many(variables)
     if not configs:
         raise ValueError("A parse request requires at least one runnable variable.")

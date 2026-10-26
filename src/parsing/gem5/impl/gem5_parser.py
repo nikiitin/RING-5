@@ -454,7 +454,6 @@ class Gem5Parser(SimulationParser):
             The typed-content descriptor for the successfully published CSV.
         """
         # [impl->req~ring5.ingestion.parse-integrity~1]
-        # [impl->req~ring5.ingestion.pattern-index-selection~1]
         if type(batch) is not ParseBatchResult:
             raise TypeError("Full parsing requires its exact ParseBatchResult context.")
         StrategyFactory.create(batch.strategy_type)

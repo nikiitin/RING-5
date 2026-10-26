@@ -28,10 +28,12 @@ Covers:
 -->
 
 1. Read `src/parsing/parser_protocol.py` and the gem5 implementation.
-2. Create the simulator package with scanning, parsing, strategies, and model adapters needed by the
-   protocol.
-3. Produce the CSV contract in `src/core/models/csv_contract.py`; use `NaN` for missing numeric
-   values and report malformed input.
+2. Create the simulator package with scanning, parsing, and strategies implementing the protocol.
+   Complete reduction before each Future resolves to immutable `ParsedFileResult` values.
+3. Declare each variable's kind, explicit scalar/entries shape and owned physical columns. Numeric
+   cells require floats, including NaN; text cells require exact strings. Metadata columns are
+   explicit text cells. Reject missing text and physical column collisions before publication.
+   Finalize with the submitted batch's complete plan using the public helpers below.
 4. Add a `SimulatorInfo` entry and parser factory in `src/parsing/registry.py`.
 5. Import the backend registration from the parsing composition path.
 6. Keep scan and parse submission asynchronous. Finalization aggregates caller-owned results and
@@ -40,6 +42,49 @@ Covers:
 Metadata supplies the UI display name, default file pattern, strategies, variable types, and any
 internal statistics excluded from selection. Do not add simulator conditionals to a generic web
 component when metadata or a protocol method can express the difference.
+
+## Public typed output SDK
+
+External backends import their transport values and helpers from `ring5`:
+
+```python
+from pathlib import Path
+import ring5
+
+def finalize(
+    batch: ring5.ParseBatchResult,
+    results: list[ring5.ParsedFileResult],
+    *,
+    complete: bool = True,
+) -> ring5.ParsedOutput:
+    resolved = ring5.resolve_parsed_output(
+        results, batch.var_names, batch.source_paths, complete=complete
+    )
+    return ring5.publish_parsed_output(
+        resolved, Path(batch.output_dir) / "results.csv"
+    )
+```
+
+`ParseBatchResult` requires an immutable Future tuple and the exact source/output/strategy context.
+`ParsedVariableSchema`, `ParsedVariableResult`, `ParsedCell`, `ParsedColumn`, `ParsedSchema`,
+`ParsedFileResult`, `ResolvedParsedRows` and `ParsedOutput` are the actual immutable value
+constructors. Scalar variables own exactly one cell; entry variables may be empty when nothing was
+observed. Every source must provide all declared text and metadata cells; numeric union gaps remain
+NaN. Do not invent a bucket for an unobserved dynamic variable. Complete finalization covers every
+planned source, while partial finalization still rejects duplicate and unplanned source paths.
+
+The single sequence is `resolve_parsed_output(results, ...)` then
+`publish_parsed_output(resolved, path)`. Helpers raise `ParseError` for invalid resolution or
+publication; individual immutable constructors reject wrong shapes/types with `TypeError` or
+`ValueError`. `ParsedOutput.sha256` binds canonical schema meaning and CSV bytes, not just raw CSV
+bytes. Consumers must retain the descriptor and verify it through the canonical reader. No backend
+writes a second CSV format or embeds provenance in a magic statistic name.
+
+Inject a backend with `Session(parser=backend)`. Its automatic source capture requires a declared
+simulator; an undeclared injected backend can still execute an explicit caller `RecipeSource`.
+Backend factories registered through the repository composition can be replayed by that registered
+identifier. A backend's arbitrary internal memory remains its responsibility; gem5's admitted work
+uses the shared per-submitted-batch result budget.
 
 ## Add or change a gem5 stat type
 

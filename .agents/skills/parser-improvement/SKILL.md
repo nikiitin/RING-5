@@ -48,8 +48,8 @@ Profiled on the real 586-file bench (16-core host). Start from these facts, not 
    deadlock ([[perl-pool-highconc-stall]]). Keep the drainer thread.
 3. **Strategy work** — `simple` (stats.txt only) and `config_aware` (also reads `config.ini`) via
    `StrategyFactory`. New strategies go here; they must still produce no-fabrication output.
-4. **CSV assembly** — `construct_final_csv` unions headers across files; if you touch it, keep the
-   immutability rule (no `inplace=True`) — but it's not where the time is.
+4. **CSV assembly** — `ParsedOutputIO.resolve` unions explicitly owned columns across typed file
+   results; if you touch it, keep the immutability rule (no `inplace=True`) — but it's not where the time is.
 5. **Retire cruft as you go** — substitute, don't adapt ([[substitute-not-adapt-ring5]]): one canonical
    path, no parallel/legacy code. (There are no production `ParseService`/`ScannerService` shims — that
    was verified absent; the only `as ParseService` aliases are test-local cosmetics.)

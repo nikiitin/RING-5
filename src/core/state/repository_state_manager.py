@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Concatenate, ParamSpec, TypeVar
 
 from src.core.common.plot_render_state import PlotRenderBinding
+from src.core.models.source_context_models import LoadedDataOrigin
 from src.core.models.preview_models import PreviewContext
 
 import pandas as pd
@@ -200,6 +201,7 @@ class RepositoryStateManager:
         *,
         operation: str = "Update dataset",
         source_datasets: tuple[str, ...] = (),
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         """Store source data, then invoke a callback after releasing the publication lock.
 
@@ -211,17 +213,13 @@ class RepositoryStateManager:
             raise ValueError(
                 "State-change callbacks must run after the surrounding transaction exits."
             )
-        # Copy + enforce configuration-column dtypes via the shared ingestion
-        # helper, so fresh loads and portfolio restores agree on dtypes.
-        if data is not None:
-            data = self._session_repo.enforce_config_dtypes(data)
-
         with self._transaction_lock:
             try:
                 self._session_repo.data_repo.set_data(
                     data,
                     operation=operation,
                     source_datasets=source_datasets,
+                    origin=origin,
                 )
             finally:
                 self._source_version += 1
@@ -230,6 +228,10 @@ class RepositoryStateManager:
         # Run them only after the source version is committed and the lock released.
         if on_change is not None:
             on_change()
+
+    def get_loaded_origin(self) -> LoadedDataOrigin | None:
+        """Return immutable replay facts for the current exact frame."""
+        return self._session_repo.data_repo.get_loaded_origin()
 
     def get_processed_data(self) -> pd.DataFrame | None:
         """Return the current processed data."""
@@ -272,16 +274,17 @@ class RepositoryStateManager:
         replace: bool = False,
         operation: str = "Add dataset",
         source_datasets: tuple[str, ...] = (),
+        origin: LoadedDataOrigin | None = None,
     ) -> DatasetInfo:
-        """Retain a named dataset after applying shared dtype rules."""
-        normalized = self._session_repo.enforce_config_dtypes(data)
+        """Retain an exact owned named dataset."""
         return self._session_repo.data_repo.add_dataset(
             name,
-            normalized,
+            data,
             select=select,
             replace=replace,
             operation=operation,
             source_datasets=source_datasets,
+            origin=origin,
         )
 
     def list_datasets(self) -> tuple[DatasetInfo, ...]:

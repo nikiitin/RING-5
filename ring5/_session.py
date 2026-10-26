@@ -16,6 +16,13 @@ from matplotlib.figure import Figure as MplFigure
 
 from src.core.application_api import ApplicationAPI
 from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.models.source_context_models import (
+    CsvSourceContext,
+    InferredCsvPolicy,
+    ParserSourceContext,
+    ReviewedCsvPolicy,
+)
 from src.core.models.accessibility_models import AccessibilityReport
 from src.core.models.report_models import AnalysisReport, ReportFigure
 from src.core.models.recipe_models import (
@@ -48,6 +55,7 @@ from src.core.models.import_models import ImportColumnCorrection, ImportOptions,
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     ParseBatchResult,
+    PARSER_RESULT_VERSION,
     ScanResult,
     StatConfig,
 )
@@ -81,6 +89,9 @@ from src.core.models.guided_analysis_models import GuidedAnalysisProgress
 from src.core.models.visualization.engine import EngineMode
 from src.core.models.visualization.export_options import TexSystem, validate_tex_system
 from src.parsing.parser_protocol import SimulationParser
+from src.parsing.registry import SimulatorRegistry
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.services.import_preview_service import ImportPreviewService
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.rendering._matplotlib_copy import copy_matplotlib_figure
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
@@ -388,7 +399,7 @@ class Session:
     def parser_playground_submit(
         self,
         stats_path: str,
-        variables: list[str | StatConfig],
+        variables: Sequence[str | StatConfig],
         *,
         pattern: str = "stats.txt",
         strategy: str = "simple",
@@ -450,10 +461,6 @@ class Session:
         job = _parse.ParserPlaygroundJob(
             api=self.api,
             batch=batch,
-            futures=list(batch.futures),
-            output_dir=out_dir,
-            stats_path=stats_path,
-            stats_pattern=pattern,
         )
         self._parse_jobs.append(job)
         return job
@@ -461,7 +468,7 @@ class Session:
     def parse_submit(
         self,
         stats_path: str,
-        variables: list[str | StatConfig],
+        variables: Sequence[str | StatConfig],
         *,
         pattern: str = "stats.txt",
         strategy: str = "simple",
@@ -511,6 +518,39 @@ class Session:
             )
         except (TypeError, ValueError) as exc:
             raise ParseError(f"Invalid statistic configuration: {exc}") from exc
+        try:
+            source = SourceContextCodec.parser(
+                stats_path=stats_path,
+                stats_pattern=pattern,
+                strategy_type=strategy,
+                variables=configs,
+                scanned_variables=[v.to_dict() for v in scanned],
+                simulator="gem5" if self._parser_override is None else None,
+                scan_limit=scan_limit,
+                strict=True,
+            )
+        except (TypeError, ValueError) as exc:
+            raise ParseError(f"Invalid parser source request: {exc}") from exc
+        return self._submit_resolved_parse(
+            source, output_dir=output_dir, incremental=incremental, cache_path=cache_path
+        )
+
+    def _submit_resolved_parse(
+        self,
+        source: ParserSourceContext,
+        *,
+        output_dir: str | None = None,
+        incremental: bool = False,
+        cache_path: str | None = None,
+    ) -> _parse.ParseJob:
+        """Submit the exact owned request without scanning or consulting editor state."""
+        stats_path, pattern, strategy = (
+            source.stats_path,
+            source.stats_pattern,
+            source.strategy_type,
+        )
+        configs = SourceContextCodec.variables(source)
+        scanned = SourceContextCodec.scanned_variables(source)
         created_output = False
         if output_dir is None and incremental:
             cache_key = (
@@ -563,22 +603,17 @@ class Session:
                         self._incremental_output_dirs.pop(key)
             raise ParseError(f"Parse submission failed: {exc}") from exc
 
-        # Store parse provenance for portfolio restoration and replay.
+        # Editable controls are independent of the loaded frame's immutable origin.
         sm = self.api.state_manager
         sm.set_stats_path(stats_path)
         sm.set_stats_pattern(pattern)
         sm.set_parser_strategy(strategy)
         sm.set_parse_variables([StatConfigCodec.to_draft(config) for config in configs])
-        sm.set_scanned_variables([variable.to_dict() for variable in scanned])
+        sm.set_scanned_variables(SourceContextCodec.scanned_payloads(source))
         job = _parse.ParseJob(
             api=self.api,
-            futures=list(batch.futures),
-            var_names=list(batch.var_names),
-            output_dir=out_dir,
-            strategy=strategy,
-            stats_path=stats_path,
-            stats_pattern=pattern,
-            incremental_batch=(batch if isinstance(batch, IncrementalParseBatchResult) else None),
+            batch=batch,
+            source_context=source,
         )
         self._parse_jobs.append(job)
         return job
@@ -586,7 +621,7 @@ class Session:
     def parse(
         self,
         stats_path: str,
-        variables: list[str | StatConfig],
+        variables: Sequence[str | StatConfig],
         *,
         pattern: str = "stats.txt",
         strategy: str = "simple",
@@ -633,27 +668,29 @@ class Session:
         return job.finalize(strict=strict)
 
     # data
-    def load(self, csv_path: str) -> Table:
-        """Load a CSV into the session.
+    def load(self, source: str | _parse.ParseResult) -> Table:
+        """Load a genuine CSV or preserve a parser result's exact declared types.
 
         Args:
-            csv_path: CSV file to load.
+            source: CSV path with ordinary inference, or the explicit ParseResult.
 
         Returns:
-            The loaded table.
+            The loaded owned table.
 
         Raises:
-            DataLoadError: The file is missing, unreadable, malformed, or
-                produces no table.
+            DataLoadError: Reading, integrity/type validation or publication fails.
         """
         # [impl->req~ring5.ingestion.csv-load~1]
         try:
-            self.api.load_data(csv_path)
-        except (OSError, ValueError, UnicodeError) as exc:
-            raise DataLoadError(f"Could not load CSV {csv_path!r}: {exc}") from exc
+            if isinstance(source, _parse.ParseResult):
+                self.api.load_data(source.output, source_context=source.source_context)
+            else:
+                self.api.load_data(source)
+        except (OSError, TypeError, ValueError, UnicodeError) as exc:
+            raise DataLoadError(f"Could not load data: {exc}") from exc
         data = self.api.state_manager.get_data()
         if data is None:
-            raise DataLoadError(f"Loading {csv_path!r} produced no data.")
+            raise DataLoadError("Loading the source produced no data.")
         return Table(data)
 
     def preview_import(
@@ -3138,14 +3175,18 @@ class Session:
 
         sm = self.api.state_manager
         try:
+            with sm.transaction():
+                data = sm.get_data()
+                origin = sm.get_loaded_origin()
             self.api.data_services.save_portfolio(
                 name=name,
-                data=sm.get_data(),
+                data=data,
                 plots=sm.get_plots(),
                 config=sm.get_config(),
                 plot_counter=sm.get_plot_counter(),
                 csv_path=sm.get_csv_path(),
                 parse_variables=sm.get_parse_variables(),
+                origin=origin,
                 figure_spec_enricher=build_figure_spec_dict,
                 overwrite=overwrite,
                 signing_key=signing_key,
@@ -3733,25 +3774,55 @@ class Session:
         )
 
         source = materialized.source
+        source_context: CsvSourceContext | ParserSourceContext
         try:
             if source.kind == "csv":
-                data = self.api.data_services.load_csv_file(source.path)
+                source_context = CsvSourceContext(source.path, source.csv_policy)
+                if isinstance(source.csv_policy, InferredCsvPolicy):
+                    data = self.api.data_services.load_csv_file(
+                        source.path, configuration_columns=source.csv_policy.configuration_columns
+                    )
+                else:
+                    assert isinstance(source.csv_policy, ReviewedCsvPolicy)
+                    preview = self.api.preview_import(source.path, source.csv_policy.options)
+                    data = ImportPreviewService.load(preview)
                 source_path = source.path
             else:
-                parser_variables = [
-                    StatConfigCodec.from_payload(value) for value in source.variables
-                ]
-                parsed = self.parse(
-                    source.path,
-                    cast(list[str | StatConfig], parser_variables),
-                    pattern=source.pattern,
-                    strategy=source.strategy,
+                if source.parser_contract_version != str(PARSER_RESULT_VERSION):
+                    raise ValueError("Recipe parser contract is unsupported by this runtime.")
+                parser_context = SourceContextCodec.parser(
+                    stats_path=source.path,
+                    stats_pattern=source.pattern,
+                    strategy_type=source.strategy,
+                    variables=[StatConfigCodec.from_payload(v) for v in source.variables],
+                    scanned_variables=source.scanned_variables,
+                    simulator=source.simulator,
                     scan_limit=source.scan_limit,
                     strict=source.strict,
+                    parser_contract_version=source.parser_contract_version,
                 )
+                if self._parser_override is None:
+                    parser = SimulatorRegistry.get_parser(source.simulator)
+                    output_dir = tempfile.mkdtemp(prefix="ring5_recipe_parse_")
+                    self._owned_tmpdirs.append(output_dir)
+                    try:
+                        with Session(parser=parser) as child:
+                            parsed = child._submit_resolved_parse(
+                                parser_context, output_dir=output_dir
+                            ).finalize(strict=source.strict)
+                            data = ParsedOutputIO.to_frame(parsed.output)
+                    except (KeyError, OSError, TypeError, ValueError, Ring5Error):
+                        shutil.rmtree(output_dir, ignore_errors=True)
+                        self._owned_tmpdirs.remove(output_dir)
+                        raise
+                else:
+                    parsed = self._submit_resolved_parse(parser_context).finalize(
+                        strict=source.strict
+                    )
+                    data = ParsedOutputIO.to_frame(parsed.output)
                 source_path = parsed.csv_path
-                data = self.api.data_services.load_csv_file(parsed.csv_path)
-        except (OSError, TypeError, UnicodeError, ValueError) as exc:
+                source_context = parser_context
+        except (KeyError, OSError, TypeError, UnicodeError, ValueError) as exc:
             raise RecipeError(f"Could not load recipe source {source.path!r}: {exc}") from exc
 
         transformed = self.shape(Table(data), materialized.transformations)
@@ -3762,16 +3833,43 @@ class Session:
             validate_plot_config(resolved_type, plot_data.frame, dict(plot_spec.config))
             prepared.append((plot_spec, plot_data))
 
+        origin = SourceContextCodec.origin(
+            source_context, [dict(step) for step in materialized.transformations]
+        )
+        parser_drafts = (
+            [StatConfigCodec.to_draft(v) for v in SourceContextCodec.variables(source_context)]
+            if isinstance(source_context, ParserSourceContext)
+            else None
+        )
+        scanner_records = (
+            SourceContextCodec.scanned_payloads(source_context)
+            if isinstance(source_context, ParserSourceContext)
+            else None
+        )
         state = self.api.state_manager
-        for existing in state.get_plots():
-            state.remove_visualization_config(existing.plot_id)
-        state.set_plots([])
-        state.set_plot_counter(0)
-        state.set_current_plot_id(None)
-        state.set_data(transformed.frame, operation=f"Run analysis recipe: {materialized.name}")
-        state.set_processed_data(None)
-        state.set_csv_path(source_path)
-        state.set_use_parser(source.kind == "parser")
+        with state.transaction():
+            for existing in state.get_plots():
+                state.remove_visualization_config(existing.plot_id)
+            state.set_plots([])
+            state.set_plot_counter(0)
+            state.set_current_plot_id(None)
+            state.set_data(
+                transformed.frame,
+                operation=f"Run analysis recipe: {materialized.name}",
+                origin=origin,
+            )
+            state.set_processed_data(None)
+            state.set_csv_path(source_path)
+            state.set_use_parser(source.kind == "parser")
+            if isinstance(source_context, ParserSourceContext):
+                assert parser_drafts is not None and scanner_records is not None
+                assert source_context.simulator is not None
+                state.set_stats_path(source_context.stats_path)
+                state.set_stats_pattern(source_context.stats_pattern)
+                state.set_parser_strategy(source_context.strategy_type)
+                state.set_simulator(source_context.simulator)
+                state.set_parse_variables(parser_drafts)
+                state.set_scanned_variables(scanner_records)
 
         created: dict[str, BasePlot] = {}
         for plot_spec, plot_data in prepared:

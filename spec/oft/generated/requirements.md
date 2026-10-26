@@ -238,12 +238,12 @@ Needs: impl, test, uman
 
 Tags: api, csv, data, status_approved
 
-### Generic CSV contract
+### Typed parser output contract
 
 `req~ring5.ingestion.csv-contract~1`
 Status: approved
 
-CSV input shall have a header and at least one data row, remain simulator-independent, and report malformed or empty input explicitly.
+Parser output shall declare simulator-independent logical variable kinds and physical column ownership, contain at least one exact typed source row, and reject malformed schema, CSV encoding, row shape or content-integrity mismatches explicitly.
 
 Covers:
 - feat~ring5.ingestion~1
