@@ -699,6 +699,21 @@ class ManagePlotsPage(BasePage):
 
     #  ACTIONS — Pipeline editor
 
+    def open_transformation_menu(self) -> Locator:
+        """Open the transformation menu without filtering its options.
+
+        Returns:
+            The visible listbox owned by the Add transformation control.
+        """
+        widget = self.add_transformation_selectbox
+        control = widget.get_by_role("combobox")
+        if control.get_attribute("aria-expanded", timeout=self.RENDER_TIMEOUT) != "true":
+            widget.get_by_role("button", name="Open", exact=True).click(timeout=self.RENDER_TIMEOUT)
+        expect(control).to_have_attribute("aria-expanded", "true", timeout=self.RENDER_TIMEOUT)
+        _, listbox = self._owned_listbox(control, timeout=self.RENDER_TIMEOUT)
+        expect(listbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        return listbox
+
     def add_shaper(self, shaper_name: str) -> None:
         """Select a shaper type and click 'Add to Pipeline'.
 

@@ -408,12 +408,12 @@ class TestPlotFeatures:
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
         mp.select_plot("Refactor Test Bar")
-        mp.add_transformation_selectbox.get_by_role("combobox").click()
-        expect(shared_page.get_by_role("option", name="Sort", exact=True)).to_be_visible(
+        menu = mp.open_transformation_menu()
+        expect(menu.get_by_role("option", name="Sort", exact=True)).to_be_visible(
             timeout=_E2E_TIMEOUT
         )
         expect(
-            shared_page.get_by_role("option", name="Reference Line Normalizer", exact=True)
+            menu.get_by_role("option", name="Reference Line Normalizer", exact=True)
         ).not_to_be_visible(timeout=5_000)
         shared_page.keyboard.press("Escape")
 
