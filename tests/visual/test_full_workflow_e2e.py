@@ -98,6 +98,8 @@ class TestFullWorkflow:
 
     # Test 1: Verify parsed data in Data Managers
 
+    # The first case also owns the shared scan, configuration and parse setup.
+    @pytest.mark.timeout(600)
     @pytest.mark.order(1)
     def test_01_verify_parsed_data(self, shared_page: Page) -> None:
         """After parsing, Data Managers should show rows and columns.
