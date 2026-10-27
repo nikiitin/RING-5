@@ -174,12 +174,7 @@ class BasePage:
         expect(self.main_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def assert_on_page(self, page_name: str) -> None:
-        """Assert that a specific sidebar nav button is active (primary type).
-
-        Streamlit renders the active nav button with ``type="primary"``,
-        which maps to ``data-testid="stBaseButton-primary"`` or the primary
-        CSS class.
-        """
+        """Assert the requested navigation button has Streamlit's active marker."""
         btn = self.sidebar.get_by_role("button", name=page_name)
         expect(btn).to_be_visible()
         expect(btn).to_have_attribute("data-testid", "stBaseButton-primary")

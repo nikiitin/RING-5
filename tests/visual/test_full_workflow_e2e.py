@@ -11,9 +11,8 @@ The ordered test exercises the application workflow with production-like data:
 7. **Portfolio** — save and verify load
 8. **Widget verification** — confirm UI reflects correct state
 
-Data source: ``tests/data/results-micro26-sens/`` — gem5 HTM sensitivity analysis
-with 25 configurations × 8 STAMP benchmarks × 3 seeds = 586 stats files.
-This test uses a 3-config subset to keep parse time under ~2 minutes.
+Data source: ``tests/data/results-micro26-sens/`` — the complete gem5 HTM
+sensitivity fixture, with 586 statistics files across 25 configuration directories.
 """
 
 from __future__ import annotations
@@ -76,10 +75,7 @@ class TestFullWorkflow:
         live_server_url: str,
         _reset_app_state: None,
     ) -> None:
-        """Parse real gem5 data (3 configs × 8 benchmarks × 3 seeds).
-
-        Adds 6 scalar statistics and parses them from the full dataset.
-        """
+        """Parse six scalar statistics and the seed from the complete gem5 fixture."""
         ds = DataSourcePage(shared_page)
         ds.goto_and_wait(live_server_url)
         ds.assert_step_header_visible()

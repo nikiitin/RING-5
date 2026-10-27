@@ -691,14 +691,11 @@ class DataManagersPage(BasePage):
         return self._by_label("stTextInput", "Search term").locator("input")
 
     def assert_dataframe_visible(self) -> None:
-        """Assert a dataframe is rendered and visible.
-
-        The Data Visualization tab renders a ``### Data Table (…)``
-        heading immediately before ``st.dataframe()``.  Checking for
-        this heading confirms the tab fragment has finished rendering.
-        """
+        """Assert the visualization tab's heading and data table are visible."""
         heading = self.page.locator("h3").filter(has_text="Data Table")
         expect(heading).to_be_visible(timeout=30_000)
+        panel = self.page.get_by_role("tabpanel", name="Data Visualization", exact=True)
+        expect(panel.get_by_test_id("stDataFrame")).to_be_visible(timeout=30_000)
 
     # E2E: Operations History tab
 
