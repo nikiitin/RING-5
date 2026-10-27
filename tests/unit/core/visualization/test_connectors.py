@@ -7,7 +7,7 @@ Covers:
   - ConfigSpecBuilder: project editable configuration into typed styling
 """
 
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import plotly.graph_objects as go
 import pytest
@@ -918,8 +918,8 @@ class TestPlotlyConnectorLegendAnchor:
         layout = cast(Any, fig.layout)
         assert layout.legend.yanchor == "bottom"
 
-    def test_auto_anchor_not_set(self) -> None:
-        """Auto anchors should not be explicitly set on Plotly legend."""
+    def test_auto_anchors_clear_prior_values(self) -> None:
+        """Automatic anchors explicitly remove stale native anchor values."""
         legend = LegendConfig(
             role="primary",
             anchor_x="auto",
@@ -931,8 +931,8 @@ class TestPlotlyConnectorLegendAnchor:
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1], name="t")])
         FigureSpecToPlotly._apply_legends(spec, fig)
         legend_dict = FigureSpecToPlotly._build_legend_dict(legend)
-        assert "xanchor" not in legend_dict
-        assert "yanchor" not in legend_dict
+        assert legend_dict["xanchor"] is None
+        assert legend_dict["yanchor"] is None
 
 
 class TestConfigBuilderLegendAnchor:
@@ -952,14 +952,15 @@ class TestConfigBuilderLegendAnchor:
         assert primary.anchor_y == "top"
 
     def test_anchor_defaults_to_auto(self) -> None:
-        """Omitted anchor keys auto-derive from default position (1.02, 1.0)."""
+        """Omitted coordinates and anchors retain native automatic placement."""
         from src.web.rendering.config_builder import ConfigSpecBuilder
 
         spec = ConfigSpecBuilder.from_config({})
         primary = spec.legends[0]
-        # Default position is (1.02, 1.0) → derive_anchors → ("left", "bottom")
-        assert primary.anchor_x == "left"
-        assert primary.anchor_y == "bottom"
+        assert (primary.position_x, primary.position_y) == (-1.0, -1.0)
+        assert not primary.custom_position
+        assert primary.anchor_x == "auto"
+        assert primary.anchor_y == "auto"
 
 
 class TestMatplotlibLegendAnchor:
@@ -1325,13 +1326,14 @@ class TestConfigBuilderAutoAnchors:
         assert legend.anchor_x == "center"
         assert legend.anchor_y == "middle"
 
-    def test_default_primary_position_derives_left(self) -> None:
-        """Default primary position (1.02, 1.0) auto-derives left/bottom."""
+    def test_explicit_outside_primary_position_derives_left(self) -> None:
+        """A caller's outside position retains its original anchors."""
         from src.web.rendering.config_builder import ConfigSpecBuilder
 
-        spec = ConfigSpecBuilder.from_config({})
+        spec = ConfigSpecBuilder.from_config({"legend_x": 1.02, "legend_y": 1.0})
         legend = spec.legends[0]
-        # 1.02 > 0.8 → "left", 1.0 > 0.8 → "bottom"
+        assert (legend.position_x, legend.position_y) == (1.02, 1.0)
+        assert legend.custom_position
         assert legend.anchor_x == "left"
         assert legend.anchor_y == "bottom"
 
@@ -1373,8 +1375,8 @@ class TestPlotlyColorbarPosition:
         hm = cast(Any, fig.data[0])
         assert hm.colorbar.orientation == "h"
 
-    def test_colorbar_default_vertical_no_orientation(self) -> None:
-        """Default vertical orientation does not set explicit orientation."""
+    def test_colorbar_default_vertical_orientation(self) -> None:
+        """Default vertical orientation replaces an earlier horizontal orientation."""
         fig = go.Figure(
             data=[go.Heatmap(x=cast(Any, ["A"]), y=cast(Any, ["m1"]), z=cast(Any, [[5.0]]))]
         )
@@ -1382,4 +1384,153 @@ class TestPlotlyColorbarPosition:
         spec = FigureConfig(legends=[legend])
         FigureSpecToPlotly._apply_heatmap_colorbars(spec, fig)
         hm = cast(Any, fig.data[0])
-        assert hm.colorbar.orientation is None
+        assert hm.colorbar.orientation == "v"
+
+
+@pytest.mark.parametrize("config", [{}, {"legend_x": -1.0, "legend_y": -1.0}])
+def test_automatic_legend_position_survives_typed_roundtrip(config: dict[str, Any]) -> None:
+    """Omission and the current automatic sentinel project the same native policy."""
+    from src.web.rendering.config_builder import ConfigSpecBuilder
+    from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+
+    original = dict(config)
+    spec = ConfigSpecBuilder.from_config(config)
+    restored = FigureConfig.from_dict(spec.to_dict())
+    assert restored.to_dict() == spec.to_dict()
+    legend = restored.legends[0]
+    assert (legend.position_x, legend.position_y) == (-1.0, -1.0)
+    assert not legend.custom_position
+    assert (legend.anchor_x, legend.anchor_y) == ("auto", "auto")
+    mpl_options = FigureSpecToMatplotlib._legend_kwargs(legend)
+    assert mpl_options["loc"] == "best"
+    assert "bbox_to_anchor" not in mpl_options
+    plotly_options = FigureSpecToPlotly._build_legend_dict(legend)
+    assert all(plotly_options[key] is None for key in ("x", "y", "xanchor", "yanchor"))
+    assert config == original
+
+
+@pytest.mark.parametrize(
+    "config, expected_bbox, expected_loc",
+    [
+        ({"legend_x": 0.3}, (0.3, 1.0), "upper left"),
+        ({"legend_y": 0.4}, (0.0, 0.4), "upper left"),
+        (
+            {
+                "legend_x": 1.2,
+                "legend_y": 1.1,
+                "legend_anchor_x": "left",
+                "legend_anchor_y": "bottom",
+            },
+            (1.2, 1.1),
+            "lower left",
+        ),
+    ],
+)
+def test_explicit_legend_coordinates_reach_both_connectors(
+    config: dict[str, Any], expected_bbox: tuple[float, float], expected_loc: str
+) -> None:
+    """Partial and outside coordinates remain explicit rather than being fitted away."""
+    from src.web.rendering.config_builder import ConfigSpecBuilder
+    from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+
+    original = dict(config)
+    spec = ConfigSpecBuilder.from_config(config)
+    legend = FigureConfig.from_dict(spec.to_dict()).legends[0]
+    assert legend.custom_position
+    options = FigureSpecToMatplotlib._legend_kwargs(legend)
+    assert options["bbox_to_anchor"] == expected_bbox
+    assert options["loc"] == expected_loc
+    projected = FigureSpecToPlotly._build_legend_dict(legend)
+    for suffix in ("x", "y", "anchor_x", "anchor_y"):
+        key = f"legend_{suffix}"
+        native_key = {"anchor_x": "xanchor", "anchor_y": "yanchor"}.get(suffix, suffix)
+        if key in config:
+            assert projected[native_key] == config[key]
+    assert config == original
+
+
+def test_anchor_only_legend_style_keeps_automatic_coordinates() -> None:
+    """Explicit anchors constrain native placement without inventing a position."""
+    from src.web.rendering.config_builder import ConfigSpecBuilder
+    from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+
+    spec = ConfigSpecBuilder.from_config({"legend_anchor_x": "center", "legend_anchor_y": "top"})
+    legend = spec.legends[0]
+    assert not legend.custom_position
+    assert (legend.position_x, legend.position_y) == (-1.0, -1.0)
+    mpl_options = FigureSpecToMatplotlib._legend_kwargs(legend)
+    assert mpl_options["loc"] == "upper center"
+    assert "bbox_to_anchor" not in mpl_options
+    plotly_options = FigureSpecToPlotly._build_legend_dict(legend)
+    assert (plotly_options["xanchor"], plotly_options["yanchor"]) == ("center", "top")
+    assert plotly_options["x"] is None and plotly_options["y"] is None
+
+
+@pytest.mark.parametrize("role", ["primary", "secondary"])
+def test_plotly_legend_reapplication_clears_only_owned_placement(
+    role: Literal["primary", "secondary"],
+) -> None:
+    """The same native legend supports explicit, automatic and explicit placement."""
+    figure = go.Figure(data=[go.Bar(x=["A", "B", "C"], y=[1, 3, 2], name="mass")])
+    figure.update_layout(meta={"caller": "retained"}, xaxis={"range": [0, 4]})
+    key = "legend" if role == "primary" else "legend2"
+    figure.update_layout(**{key: {"uirevision": "caller-owned", "itemclick": False}})
+    trace = figure.data[0]
+    scientific_before = trace.to_plotly_json()
+    explicit = LegendConfig(
+        role=role,
+        custom_position=True,
+        position_x=1.2,
+        position_y=0.8,
+        anchor_x="left",
+        anchor_y="top",
+        orientation="horizontal",
+    )
+    automatic = LegendConfig(role=role)
+    for style, expected in (
+        (explicit, (1.2, 0.8, "left", "top", "h")),
+        (automatic, (None, None, None, None, "v")),
+        (explicit, (1.2, 0.8, "left", "top", "h")),
+    ):
+        legends = [style] if role == "primary" else [LegendConfig(), style]
+        FigureSpecToPlotly._apply_legends(FigureConfig(legends=legends), figure)
+        native = getattr(figure.layout, key)
+        assert (native.x, native.y, native.xanchor, native.yanchor, native.orientation) == expected
+        assert native.uirevision == "caller-owned" and native.itemclick is False
+        assert figure.layout.meta == {"caller": "retained"}
+        assert tuple(figure.layout.xaxis.range) == (0, 4)
+        assert figure.data[0] is trace and trace.to_plotly_json() == scientific_before
+
+
+def test_plotly_colorbar_reapplication_clears_owned_coordinates_and_orientation() -> None:
+    """Automatic heatmap colorbar placement removes stale custom and horizontal values."""
+    figure = go.Figure(
+        data=[
+            go.Heatmap(
+                x=cast(Any, ["A", "B"]),
+                y=cast(Any, ["u", "v"]),
+                z=cast(Any, [[1.0, 2.0], [3.0, 4.0]]),
+            )
+        ]
+    )
+    trace = figure.data[0]
+    assert isinstance(trace, go.Heatmap)
+    trace.update(colorbar={"outlinecolor": "magenta", "len": 0.7}, hovertemplate="retained")
+    scientific_before = (trace.x, trace.y, trace.z)
+    explicit = LegendConfig(
+        custom_position=True,
+        position_x=0.3,
+        position_y=0.8,
+        orientation="horizontal",
+    )
+    automatic = LegendConfig()
+    for style, expected in (
+        (explicit, (0.3, 0.8, "h")),
+        (automatic, (None, None, "v")),
+        (explicit, (0.3, 0.8, "h")),
+    ):
+        FigureSpecToPlotly._apply_heatmap_colorbars(FigureConfig(legends=[style]), figure)
+        assert (trace.colorbar.x, trace.colorbar.y, trace.colorbar.orientation) == expected
+        assert trace.colorbar.outlinecolor == "magenta" and trace.colorbar.len == 0.7
+        assert trace.hovertemplate == "retained"
+        assert figure.data[0] is trace and (trace.x, trace.y, trace.z) == scientific_before

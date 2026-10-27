@@ -1,8 +1,17 @@
 """Typed access to namespaced, transient Streamlit session state."""
 
+from dataclasses import dataclass
 from typing import Any
 
 import streamlit as st
+
+
+@dataclass(frozen=True, slots=True)
+class _WidgetGenerations:
+    """Track the latest reset of each logical widget scope within one plot."""
+
+    counter: int = 0
+    scopes: tuple[tuple[str, int], ...] = ()
 
 
 class WidgetKeyBuilder:
@@ -19,8 +28,24 @@ class WidgetKeyBuilder:
 
     @staticmethod
     def plot_key(plot_id: int, *parts: str) -> str:
-        """Build a namespaced key for plot-level state."""
-        return f"plot.{plot_id}.{'_'.join(parts)}"
+        """Build a plot key whose widget identity changes only after a scoped reset."""
+        suffix = "_".join(parts)
+        key = f"plot.{plot_id}.{suffix}"
+        if suffix.startswith("widgets."):
+            generations = st.session_state.get(f"plot.{plot_id}.widget_generations")
+            if isinstance(generations, _WidgetGenerations):
+                widget = suffix.removeprefix("widgets.")
+                generation = max(
+                    (
+                        value
+                        for scope, value in generations.scopes
+                        if not scope or widget == scope or widget.startswith(scope + ".")
+                    ),
+                    default=0,
+                )
+                if generation:
+                    key += f".__reset_{generation}"
+        return key
 
     @staticmethod
     def manager_key(manager: str, *parts: str) -> str:
@@ -49,14 +74,30 @@ class _PlotUIState:
         )
 
     def reset_widgets(self, plot_id: int, *sections: str) -> None:
-        """Reset this plot's controls, optionally within a named widget section.
+        """Discard scoped values and give their next widgets fresh browser identities.
 
         Native artifacts and transfer notices have separate ownership and remain intact.
+        A nested reset preserves sibling controls and the surrounding editor's draft.
         """
+        scope = ".".join(sections)
         prefix = WidgetKeyBuilder.plot_key(plot_id, "widgets") + "."
-        if sections:
-            prefix += ".".join(sections) + "."
+        if scope:
+            prefix += scope + "."
         _clear_keys((prefix,))
+
+        state_key = WidgetKeyBuilder.plot_key(plot_id, "widget_generations")
+        previous = st.session_state.get(state_key)
+        if not isinstance(previous, _WidgetGenerations):
+            previous = _WidgetGenerations()
+        generation = previous.counter + 1
+        # Parent resets supersede child scopes; later child resets remain monotonic.
+        scopes = {
+            name: value
+            for name, value in previous.scopes
+            if scope and name != scope and not name.startswith(scope + ".")
+        }
+        scopes[scope] = generation
+        st.session_state[state_key] = _WidgetGenerations(generation, tuple(sorted(scopes.items())))
 
     def cleanup(self, plot_id: int) -> None:
         """Remove this plot's transient state without touching another plot."""

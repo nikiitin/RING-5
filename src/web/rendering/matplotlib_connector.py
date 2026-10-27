@@ -679,15 +679,20 @@ class FigureSpecToMatplotlib:
         if legend.orientation == "horizontal" and kwargs["ncol"] <= 1:
             kwargs["ncol"] = 999  # matplotlib clamps to actual item count
 
-        if legend.custom_position and legend.position_x >= 0:
+        has_position = legend.custom_position and (legend.position_x >= 0 or legend.position_y >= 0)
+        if has_position or legend.anchor_x != "auto" or legend.anchor_y != "auto":
             kwargs["loc"] = FigureSpecToMatplotlib._anchor_to_mpl_loc(
                 legend.anchor_x,
                 legend.anchor_y,
             )
-            kwargs["bbox_to_anchor"] = (
-                legend.position_x,
-                legend.position_y if legend.position_y >= 0 else 1.0,
-            )
+            if has_position:
+                kwargs["bbox_to_anchor"] = (
+                    legend.position_x if legend.position_x >= 0 else 0.0,
+                    legend.position_y if legend.position_y >= 0 else 1.0,
+                )
+        else:
+            # Automatic placement belongs inside the fixed figure canvas.
+            kwargs["loc"] = "best"
 
         if legend.bgcolor:
             kwargs["facecolor"] = css_color_to_matplotlib(legend.bgcolor)

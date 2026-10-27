@@ -12,12 +12,23 @@ Data Injection Pattern:
 """
 
 from pathlib import Path
+from unittest.mock import patch
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from streamlit.testing.v1 import AppTest
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 _APP_PATH: str = str(Path(__file__).parents[2] / "app.py")
+
+
+def plot_widget_key(app: AppTest, plot_id: int, suffix: str) -> str:
+    """Resolve the current identity against this AppTest session's actual reset state."""
+    with patch("src.web.state.ui_state_manager.st") as state:
+        state.session_state = app.session_state
+        return WidgetKeyBuilder.plot_key(plot_id, suffix)
+
 
 # Rich e2e sample data
 

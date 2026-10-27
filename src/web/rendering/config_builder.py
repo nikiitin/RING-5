@@ -449,8 +449,8 @@ def _build_legend_from_config(
     _orient_raw = config.get(f"{prefix}orientation", "vertical")
 
     # Position and anchor derivation
-    pos_x = float(config.get(f"{prefix}x", 1.02 if role == "primary" else -1.0))
-    pos_y = float(config.get(f"{prefix}y", 1.0 if role == "primary" else -1.0))
+    pos_x = float(config.get(f"{prefix}x", -1.0))
+    pos_y = float(config.get(f"{prefix}y", -1.0))
 
     raw_anchor_x = config.get(f"{prefix}anchor_x", "auto")
     raw_anchor_y = config.get(f"{prefix}anchor_y", "auto")
@@ -475,7 +475,7 @@ def _build_legend_from_config(
         entrywidth=int(config.get(f"{prefix}entrywidth", 0)),
         itemwidth=int(config.get(f"{prefix}itemwidth", 30)),
         indentation=int(config.get(f"{prefix}indentation", 0)),
-        custom_position=True,
+        custom_position=pos_x >= 0 or pos_y >= 0,
         visible=True,
         bgcolor=config.get(f"{prefix}bgcolor", ""),
         bgalpha=float(config.get(f"{prefix}bgalpha", -1.0)),

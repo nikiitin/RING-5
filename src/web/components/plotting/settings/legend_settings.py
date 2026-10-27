@@ -352,11 +352,11 @@ class LegendSettingsComponent:
                 widget_key=WidgetKeyBuilder.plot_key(
                     self.plot_id, f"widgets.appearance.{key_prefix}leg_x"
                 ),
-                default=1.02 if config_prefix == "legend_" else 1.0,
+                default=-1.0 if config_prefix == "legend_" else 1.0,
                 step=0.05,
                 format="%.2f",
                 help=(
-                    "Horizontal position on the plot area. "
+                    "Horizontal position on the plot area; -1.0 = automatic. "
                     "0.0 = left edge, 1.0 = right edge. "
                     "Values > 1.0 place the legend outside the plot."
                 ),
@@ -371,19 +371,19 @@ class LegendSettingsComponent:
                 widget_key=WidgetKeyBuilder.plot_key(
                     self.plot_id, f"widgets.appearance.{key_prefix}leg_y"
                 ),
-                default=1.0,
+                default=-1.0 if config_prefix == "legend_" else 1.0,
                 step=0.05,
                 format="%.2f",
                 help=(
-                    "Vertical position on the plot area. "
+                    "Vertical position on the plot area; -1.0 = automatic. "
                     "0.0 = bottom edge, 1.0 = top edge. "
                     "Values > 1.0 place the legend above the plot."
                 ),
             )
 
         st.caption(
-            "Position (0, 0) = bottom-left, (1, 1) = top-right. "
-            "Values outside 0\u20131 place the legend outside the plot area."
+            "Position -1 = automatic. (0, 0) = bottom-left, (1, 1) = top-right. "
+            "Values above 1 place the legend outside the plot area."
         )
 
         orientation = select_option(

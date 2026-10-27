@@ -1580,7 +1580,8 @@
           "tests/ui_logic/test_settings_pills.py::TestSectionDispatch.test_legend_tiers_match_the_legends_that_are_actually_visible",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorLegendAnchor",
           "tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation",
-          "tests/unit/test_figure_preparation.py::test_numbered_annotation_does_not_create_a_trace_legend_on_another_panel"
+          "tests/unit/test_figure_preparation.py::test_numbered_annotation_does_not_create_a_trace_legend_on_another_panel",
+          "tests/integration/test_default_legend_bounds.py::test_default_public_legend_fits_fixed_canvas_and_survives_replay"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#legends"

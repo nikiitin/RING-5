@@ -206,17 +206,14 @@ class TestFullWorkflow:
 
         # Select columns to merge
         mixer_multi = dm.mixer_columns_multiselect
-        mixer_multi.click()
-        shared_page.wait_for_timeout(300)
-
-        # Select simTicks, simInsts, simOps from the dropdown
+        # Require each intended column; a missing option must fail this workflow.
         for col_name in ["simTicks", "simInsts", "simOps"]:
-            option = shared_page.locator(
-                "[data-testid='stSelectboxVirtualDropdown'] li"
-            ).get_by_text(col_name, exact=True)
-            if option.count() > 0:
-                option.click()
-                shared_page.wait_for_timeout(200)
+            mixer_multi.get_by_role("combobox").fill(col_name)
+            option = shared_page.get_by_role("option", name=col_name, exact=True)
+            expect(option).to_be_visible(timeout=_E2E_TIMEOUT)
+            option.click()
+            expect(mixer_multi.locator("[data-tag]", has_text=col_name)).to_have_count(1)
+        shared_page.keyboard.press("Escape")
 
         # Set a name for the new column (use exact label match to avoid
         # ambiguity with Preprocessor's "New column name" input)
@@ -359,17 +356,14 @@ class TestFullWorkflow:
             has_text="Statistics to Stack"
         )
         expect(y_multi).to_be_visible(timeout=_E2E_TIMEOUT)
-        y_multi.click()
-        shared_page.wait_for_timeout(300)
-        # Select simTicks and system.cpu0.ipc
+        # Require the two statistics this workflow promises to plot.
         for col in ["simTicks", "system.cpu0.ipc"]:
-            opt = shared_page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
-                col, exact=True
-            )
-            if opt.count() > 0:
-                opt.click()
-                shared_page.wait_for_timeout(200)
-        # Press Escape to close the dropdown
+            y_multi.get_by_role("combobox").fill(col)
+            option = shared_page.get_by_role("option", name=col, exact=True)
+            expect(option).to_be_visible(timeout=_E2E_TIMEOUT)
+            option.click()
+            expect(y_multi.locator("[data-tag]", has_text=col)).to_have_count(1)
+        expect(y_multi.locator("[data-tag]")).to_have_count(2)
         shared_page.keyboard.press("Escape")
 
         mp.refresh_plot()

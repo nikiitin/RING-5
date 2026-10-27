@@ -154,6 +154,11 @@ Covers:
 PGF export preserves physical size for LaTeX inclusion and uses the selected TeX system. The web
 download reports a visible PDF fallback when raster content prevents PGF serialization.
 
+Omitted primary legend coordinates use automatic placement. Matplotlib places the legend inside
+the axes; Plotly uses its automatic legend layout. The legend controls retain `-1` for automatic
+coordinates. Explicit positions and anchors remain as configured, including outside positions;
+allow enough space for them when using PGF's fixed figure canvas.
+
 For multi-item analysis documents rather than individual figures, use the
 [analysis report workflow]({{site.baseurl}}/user-guide/workflows/batch-reports/). Report HTML embeds every asset;
 report PDF uses the dependency-free Matplotlib path and includes the same provenance metadata.
