@@ -7,6 +7,8 @@ from typing import Any
 
 import pytest
 
+from tests.conftest import columns_side_effect
+
 from src.core.models.plot_config import PlotConfig
 from src.core.models.visualization.figure_config import FigureConfig
 from src.web.rendering.config_builder import ConfigSpecBuilder
@@ -71,6 +73,7 @@ def test_primary_position_controls_preserve_automatic_and_explicit_values(
     mock_st: MagicMock, coordinates: PlotConfig
 ) -> None:
     """Opening legend controls never changes automatic placement into outside placement."""
+    mock_st.columns.side_effect = columns_side_effect
     original = dict(coordinates)
     calls: dict[str, dict[str, Any]] = {}
 
