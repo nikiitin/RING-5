@@ -250,8 +250,7 @@ class FigureSpecToPlotly:
 
         update["tickfont"] = dict(size=typo.font_size_yticks)
 
-        if y_axis.tick_angle != 0:
-            update["tickangle"] = y_axis.tick_angle
+        update["tickangle"] = y_axis.tick_angle
 
         if y_axis.range is not None:
             update["range"] = y_axis.range
@@ -306,6 +305,7 @@ class FigureSpecToPlotly:
         update["tickfont"] = dict(
             size=typo.font_size_y2ticks, color=y2.tick_font_color or y2.axis_color
         )
+        update["tickangle"] = y2.tick_angle
 
         if y2.range is not None:
             update["range"] = y2.range

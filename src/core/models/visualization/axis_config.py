@@ -35,7 +35,7 @@ class AxisConfig:
     title_angle: float | None = None  # clockwise degrees; None uses the native axis title
 
     # Ticks
-    tick_angle: float = 0.0  # rotation in degrees
+    tick_angle: float = 0.0  # clockwise degrees from horizontal
     tick_pad: float = 5.0  # distance from axis (pts)
     tick_ha: Literal["left", "center", "right"] = "center"  # horizontal alignment
     tick_offset: float = 0.0  # horizontal offset (pts, for fine-tuning)

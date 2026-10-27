@@ -1145,3 +1145,74 @@ def test_public_source_instances_keep_identity_and_coordinates_independent() -> 
     assert ring5.ScannedVariable.from_dict(wire) == scanned
     wire["instances"][0]["indices"].append("9")
     assert instance.indices == ("012",)
+
+
+@pytest.mark.parametrize(
+    "family", ["bar", "grouped_bar", "stacked_bar", "grouped_stacked_bar", "dual_axis_bar_dot"]
+)
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_public_bar_families_keep_duplicate_rows_in_current_config_replay(
+    family: str, engine: Literal["plotly", "matplotlib"]
+) -> None:
+    """Public render and flat-config replay retain measured rows and native placements."""
+    # [test->req~ring5.api.plot-validation~1]
+    from matplotlib.container import BarContainer
+
+    source = pd.DataFrame(
+        {
+            "category": ["A", "A"],
+            "comparison": ["G", "G"],
+            "left": [2.0, 3.0],
+            "right": [5.0, 7.0],
+        }
+    )
+    before = source.copy(deep=True)
+    table = ring5.Table(source)
+    stacked = family in {"stacked_bar", "grouped_stacked_bar"}
+    spec = ring5.FigureSpec(
+        x="category",
+        group="comparison" if family in {"grouped_bar", "grouped_stacked_bar"} else None,
+        y_columns=["left", "right"] if stacked else ["left"],
+        extra={"y_bar": "left", "y_dot": "right"} if family == "dual_axis_bar_dot" else {},
+    )
+    config = spec.to_config(plot_type=family)
+    # JSON round-trip exercises the same current flat input used by saved configuration.
+    replay = json.loads(json.dumps(config))
+    assert replay == config
+    with ring5.Session() as session:
+        for configuration in (spec, replay):
+            figure = session.plot(family, data=table, config=configuration, engine=engine)
+            if engine == "matplotlib":
+                assert isinstance(figure, Figure)
+                containers = [
+                    container
+                    for container in figure.axes[0].containers
+                    if isinstance(container, BarContainer)
+                ]
+                assert len(containers) == (2 if stacked else 1)
+                assert [bar.get_height() for group in containers for bar in group.patches] == (
+                    [2.0, 3.0, 5.0, 7.0] if stacked else [2.0, 3.0]
+                )
+                assert [bar.get_y() for group in containers for bar in group.patches] == (
+                    [0.0, 2.0, 5.0, 10.0] if stacked else [0.0, 0.0]
+                )
+                if family == "dual_axis_bar_dot":
+                    assert len(figure.axes) == 2
+                    assert len(figure.axes[1].lines) == 1
+                    assert list(figure.axes[1].lines[0].get_ydata()) == [5.0, 7.0]
+            else:
+                assert isinstance(figure, go.Figure)
+                bars = [trace for trace in figure.data if isinstance(trace, go.Bar)]
+                assert len(bars) == (2 if stacked else 1)
+                assert [list(trace.y) for trace in bars] == (
+                    [[2.0, 3.0], [5.0, 7.0]] if stacked else [[2.0, 3.0]]
+                )
+                expected_base = None if stacked else 0
+                assert all(trace.base == expected_base for trace in bars)
+                if family == "dual_axis_bar_dot":
+                    dots = [trace for trace in figure.data if isinstance(trace, go.Scatter)]
+                    assert len(dots) == 1 and dots[0].yaxis == "y2"
+                    assert list(dots[0].y) == [5.0, 7.0]
+            pd.testing.assert_frame_equal(source, before)
+            pd.testing.assert_frame_equal(table.frame, before)
+            assert spec.to_config(plot_type=family) == config

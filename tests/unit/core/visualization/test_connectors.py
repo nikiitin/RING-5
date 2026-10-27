@@ -1117,7 +1117,7 @@ class TestPlotlyConnectorYTickAngle:
         assert layout.yaxis.tickangle == 45.0
 
     def test_zero_angle_not_set(self) -> None:
-        """Zero tick_angle does not set tickangle on Plotly Y-axis."""
+        """Zero tick_angle explicitly restores horizontal Plotly Y-axis labels."""
         spec = FigureConfig(
             axes=AxesConfig(y=AxisConfig(tick_angle=0.0)),
         )
@@ -1125,8 +1125,7 @@ class TestPlotlyConnectorYTickAngle:
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1], name="t")])
         FigureSpecToPlotly._apply_yaxis(resolved, fig)
         layout = cast(Any, fig.layout)
-        # tickangle should be None when not set (Plotly default)
-        assert layout.yaxis.tickangle is None
+        assert layout.yaxis.tickangle == 0.0
 
 
 class TestConfigBuilderYTickAngle:
@@ -1534,3 +1533,54 @@ def test_plotly_colorbar_reapplication_clears_owned_coordinates_and_orientation(
         assert trace.colorbar.outlinecolor == "magenta" and trace.colorbar.len == 0.7
         assert trace.hovertemplate == "retained"
         assert figure.data[0] is trace and (trace.x, trace.y, trace.z) == scientific_before
+
+
+class TestPlotlyConnectorSignedTickRotation:
+    """All three axes retain clockwise angles and explicitly clear an earlier angle."""
+
+    @pytest.mark.parametrize("axis_name", ["xaxis", "yaxis", "yaxis2"])
+    def test_signed_angles_and_zero_reset(
+        self, axis_name: Literal["xaxis", "yaxis", "yaxis2"]
+    ) -> None:
+        """Repeated full apply projects both signs and zero without changing raw observations."""
+        # [test->req~ring5.figure.axes~1]
+        figure = go.Figure(
+            data=[
+                go.Bar(x=["A", "B", "C"], y=[1.0, 3.0, 2.0], name="bars"),
+                go.Scatter(x=["A", "B", "C"], y=[2.0, 4.0, 3.0], yaxis="y2", name="line"),
+            ]
+        )
+        rendered = PlotlyRenderResult(
+            figure,
+            (
+                (
+                    PlotlyTraceBinding(0, "bars", figure.data[0], "primary", "", True),
+                    PlotlyTraceBinding(1, "line", figure.data[1], "secondary", "", True),
+                ),
+            ),
+        )
+        raw_before = [
+            (trace["x"], trace["y"], trace.get("yaxis", "y"))
+            for trace in figure.to_plotly_json()["data"]
+        ]
+        for angle in (37.5, -45.0, 0.0):
+            configured = AxisConfig(tick_angle=angle)
+            spec = FigureConfig(
+                axes=AxesConfig(
+                    x=configured if axis_name == "xaxis" else AxisConfig(),
+                    y=configured if axis_name == "yaxis" else AxisConfig(),
+                    y2=configured if axis_name == "yaxis2" else AxisConfig(),
+                )
+            )
+            config_before = spec.to_dict()
+            FigureSpecToPlotly.apply(resolve_config(spec), rendered)
+            layout: object = figure.to_plotly_json()["layout"]
+            assert isinstance(layout, dict)
+            native_axis: object = layout[axis_name]
+            assert isinstance(native_axis, dict)
+            assert native_axis["tickangle"] == angle
+            assert spec.to_dict() == config_before
+            assert [
+                (trace["x"], trace["y"], trace.get("yaxis", "y"))
+                for trace in figure.to_plotly_json()["data"]
+            ] == raw_before

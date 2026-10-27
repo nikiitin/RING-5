@@ -41,6 +41,14 @@ concrete trace families plus backend-neutral separators, shaded regions, rules, 
 `AnnotationConfig` entries, tick positions, and secondary-axis metadata. Histogram plots emit bar
 traces with shared measured bucket geometry.
 
+Bar renderers preserve row order, raw heights and uncertainty arrays. Grouped and overlay modes
+start every bar at zero. Stacked mode accumulates all preceding visible rows at the same position
+and on the same Y axis, including earlier rows of the current trace; relative mode separates
+negative and nonnegative chains. Missing or nonfinite heights contribute no stack amount.
+Plotly's grouped bars require an explicit zero base to prevent its implicit accumulation of
+duplicate positions. Scientific conformance tests check native mark geometry as well as emitted
+trace arrays.
+
 `src/web/rendering/figure_preparation.py::prepare_figure` owns effective semantic/accessibility
 configuration, one trace callback, non-color encoding and relabeling, and one typed styling
 build/resolve. It returns an owned `PreparedFigure` without constructing native figures.

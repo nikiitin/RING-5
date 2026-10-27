@@ -137,7 +137,8 @@ test-nonbrowser:
 		--timeout=60 --no-cov
 
 test-export:
-	$(PYTEST) tests/unit/test_plotly_download.py -m "serial" -n 0 --timeout=120 --no-cov
+	$(PYTEST) tests/unit/test_plotly_download.py tests/unit/test_duplicate_bar_geometry.py \
+		-m "serial" -n 0 --timeout=120 --no-cov
 
 test-api: test-data mock-data
 	$(PYTEST) -m "public_api" -n 0 --cov=ring5 --cov-branch \

@@ -19,8 +19,10 @@ Design notes:
 
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from collections.abc import Sequence
 from dataclasses import dataclass
+from heapq import merge
 from typing import Any, Literal, cast
 
 import numpy as np
@@ -366,8 +368,8 @@ class MatplotlibTraceRenderer:
         # 3) Sanitize y-values (None -> np.nan)
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
 
-        # 4) Compute stacking bottom
-        if barmode in {"stack", "relative"} and bar_idx > 0:
+        # 4) Compute stacking bottom, including repeated rows in the first trace.
+        if barmode in {"stack", "relative"}:
             if is_categorical:
                 bottom = _stack_bottom(bar_idx, bar_specs, relative=barmode == "relative")
             else:
@@ -1202,17 +1204,13 @@ def _stack_bottom(
     relative: bool = False,
 ) -> list[float]:
     """Stack matching categories only within the same axis and sign partition."""
-    current = bar_specs[bar_idx]
-    bottom = [0.0] * len(current.y)
-    for previous in bar_specs[:bar_idx]:
-        if previous.yaxis != current.yaxis:
-            continue
-        by_category = dict(zip(map(str, previous.x), previous.y))
-        for index, category in enumerate(current.x):
-            value = by_category.get(str(category))
-            if value is not None and (not relative or (value >= 0) == (current.y[index] >= 0)):
-                bottom[index] += float(value)
-    return bottom
+    return _stack_bottom_for_positions(
+        bar_idx,
+        bar_specs,
+        [str(value) for value in bar_specs[bar_idx].x],
+        numeric=False,
+        relative=relative,
+    )
 
 
 def _stack_bottom_numeric(
@@ -1223,19 +1221,81 @@ def _stack_bottom_numeric(
     relative: bool = False,
 ) -> list[float]:
     """Stack pre-positioned bars by coordinate without mixing primary/secondary units."""
+    return _stack_bottom_for_positions(
+        bar_idx, bar_specs, x_positions, numeric=True, relative=relative
+    )
+
+
+def _stack_bottom_for_positions(
+    bar_idx: int,
+    bar_specs: list[BarTraceConfig],
+    current_positions: Sequence[str | float],
+    *,
+    numeric: bool,
+    relative: bool,
+) -> list[float]:
+    """Accumulate every preceding measured mark, including the current trace prefix."""
     current = bar_specs[bar_idx]
-    bottom = [0.0] * len(x_positions)
-    for previous in bar_specs[:bar_idx]:
-        if previous.yaxis != current.yaxis:
+    bottom = [0.0] * len(current_positions)
+    totals: dict[tuple[str | float, bool], float] = {}
+    histories: dict[tuple[str | float, bool], list[tuple[int, int, float]]] = {}
+    position_rows: list[tuple[int, Sequence[str | float]]] = []
+    for previous_idx, previous in enumerate(bar_specs[: bar_idx + 1]):
+        if not previous.visible or previous.yaxis != current.yaxis:
             continue
-        positions = previous.x_positions or [float(value) for value in previous.x]
-        for index, coordinate in enumerate(x_positions):
-            for previous_index, other in enumerate(positions):
-                if abs(coordinate - other) < 1e-6 and previous_index < len(previous.y):
-                    value = previous.y[previous_index]
-                    if value is not None and (
-                        not relative or (value >= 0) == (current.y[index] >= 0)
-                    ):
-                        bottom[index] += float(value)
-                    break
+        positions: Sequence[str | float]
+        if previous_idx == bar_idx:
+            positions = current_positions
+        elif numeric:
+            positions = previous.x_positions or [float(value) for value in previous.x]
+        else:
+            positions = [str(value) for value in previous.x]
+        position_rows.append((previous_idx, positions))
+    numeric_positions = (
+        sorted(
+            {
+                float(coordinate)
+                for _, positions in position_rows
+                for coordinate in positions
+                if np.isfinite(float(coordinate))
+            }
+        )
+        if numeric
+        else []
+    )
+    for previous_idx, positions in position_rows:
+        previous = bar_specs[previous_idx]
+        for index, (coordinate, value) in enumerate(zip(positions, previous.y, strict=False)):
+            if (
+                value is None
+                or not np.isfinite(value)
+                or (numeric and not np.isfinite(float(coordinate)))
+            ):
+                continue
+            # Relative mode has separate signs; ordinary stack has one signed chain.
+            negative = relative and value < 0
+            if previous_idx == bar_idx:
+                if numeric:
+                    position = float(coordinate)
+                    lower = bisect_left(numeric_positions, position - 1e-6)
+                    upper = bisect_right(numeric_positions, position + 1e-6)
+                    matching = [
+                        other
+                        for other in numeric_positions[lower:upper]
+                        if abs(position - other) < 1e-6 and (other, negative) in totals
+                    ]
+                    if len(matching) == 1:
+                        bottom[index] = totals[(matching[0], negative)]
+                    elif matching:
+                        # Nearby coordinates still accumulate in original emitted row order.
+                        for _, _, height in merge(
+                            *(histories[(other, negative)] for other in matching)
+                        ):
+                            bottom[index] += height
+                else:
+                    bottom[index] = totals.get((coordinate, negative), 0.0)
+            key = (coordinate, negative)
+            totals[key] = totals.get(key, 0.0) + float(value)
+            if numeric:
+                histories.setdefault(key, []).append((previous_idx, index, float(value)))
     return bottom

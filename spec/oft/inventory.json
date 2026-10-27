@@ -1338,7 +1338,8 @@
         ],
         "tests": [
           "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure",
-          "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization"
+          "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization",
+          "tests/visual/test_dual_axis_engines.py::TestDualAxisEngines.test_01_plotly_screenshot"
         ],
         "documentation": [
           "docs/user-guide/reference/plot-types.md#selection-guide"
@@ -1574,7 +1575,11 @@
           "tests/ui_logic/test_settings_pills_e2e.py::TestAxesAxisLineControls",
           "tests/unit/core/visualization/test_axis_spec.py::TestAxisSpecRoundTrip",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorTickSide",
-          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorYTickAngle"
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorYTickAngle",
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAxisTickRotation.test_signed_tick_rotation_and_zero_reset",
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAxisTickRotation.test_full_apply_rotates_and_clears_automatic_labels",
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAxisTickRotation.test_secondary_signed_rotation_and_zero_reset",
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorSignedTickRotation.test_signed_angles_and_zero_reset"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#axes"
@@ -2109,7 +2114,8 @@
         ],
         "tests": [
           "tests/unit/test_trace_to_plotly.py::TestTracesToPlotly",
-          "tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly"
+          "tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly",
+          "tests/unit/test_duplicate_bar_geometry.py::test_plotly_exported_svg_duplicate_bar_geometry"
         ],
         "documentation": [
           "docs/user-guide/reference/rendering-export.md#plotly-rendering"
@@ -2131,7 +2137,8 @@
         ],
         "tests": [
           "tests/integration/test_matplotlib_rendering.py::TestMatplotlibTraceRenderer",
-          "tests/integration/test_matplotlib_rendering.py::TestMatplotlibFullPipeline"
+          "tests/integration/test_matplotlib_rendering.py::TestMatplotlibFullPipeline",
+          "tests/unit/test_duplicate_bar_geometry.py::test_matplotlib_duplicate_bar_rectangles"
         ],
         "documentation": [
           "docs/user-guide/reference/rendering-export.md#matplotlib-rendering"
@@ -2218,7 +2225,8 @@
           "tests/unit/test_plotly_download.py::TestPlotlyPNG",
           "tests/unit/test_plotly_download.py::TestPlotlySVG",
           "tests/unit/test_plotly_download.py::TestPlotlyPDF",
-          "tests/unit/test_plotly_download.py::TestChromeNotFound"
+          "tests/unit/test_plotly_download.py::TestChromeNotFound",
+          "tests/unit/test_duplicate_bar_geometry.py::test_plotly_exported_svg_duplicate_bar_geometry"
         ],
         "documentation": [
           "docs/user-guide/reference/rendering-export.md#plotly-static-formats"
@@ -3486,7 +3494,8 @@
           "tests/integration/test_native_rendering_review_regressions.py::test_noncanonical_orientation_rejects_before_public_or_restore_publication",
           "tests/integration/test_native_rendering_review_regressions.py::test_canonical_orientation_values_reach_both_native_models",
           "tests/integration/test_figure_value_admission.py::test_public_heatmap_context_rejects_before_registering_plot",
-          "tests/integration/test_figure_value_admission.py::test_invalid_style_value_rejects_at_public_restore_and_capture_boundaries"
+          "tests/integration/test_figure_value_admission.py::test_invalid_style_value_rejects_at_public_restore_and_capture_boundaries",
+          "tests/integration/test_ring5_public_api.py::test_public_bar_families_keep_duplicate_rows_in_current_config_replay"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#workspace"
