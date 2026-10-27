@@ -41,7 +41,7 @@ class TestDataSourceRendering:
         # Info box with three data input methods
         ds.assert_info_box_visible()
         expect(ds.info_box).to_contain_text("Parse gem5 Stats Files")
-        expect(ds.info_box).to_contain_text("Upload CSV")
+        expect(ds.info_box).to_contain_text("Upload Data or Portfolio")
         expect(ds.info_box).to_contain_text("Load from Recent")
 
         # Segmented control
@@ -54,11 +54,11 @@ class TestDataSourceRendering:
             "Data Managers",
             "Manage Plots",
             "Save/Load Portfolio",
-            "Performance",
         ]
         for item in nav_items:
             btn = ds.sidebar.get_by_role("button", name=item)
             expect(btn).to_be_visible()
+        expect(ds.sidebar.get_by_role("button", name="Performance")).not_to_be_visible()
 
     def test_segmented_control_cycling(self, shared_page: Page, live_server_url: str) -> None:
         """All segmented control interactions work correctly.

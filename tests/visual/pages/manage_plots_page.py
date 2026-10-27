@@ -912,7 +912,7 @@ class ManagePlotsPage(BasePage):
     def toggle_advanced_settings(self) -> None:
         """Toggle 'Show advanced settings', verifying the switch actually flipped.
 
-        The toggle renders as a ``role=checkbox``; we read its state, click the
+        The toggle renders as a ``role=switch``; we read its state, click the
         label, then assert the checked state inverted so a missed click fails
         loudly. This toggle gates only the *advanced* settings-section pills
         (Axes / Data Labels / Colors / Advanced); the basic Layout / Typography
@@ -927,6 +927,38 @@ class ManagePlotsPage(BasePage):
             expect(checkbox).not_to_be_checked(timeout=self.RENDER_TIMEOUT)
         else:
             expect(checkbox).to_be_checked(timeout=self.RENDER_TIMEOUT)
+
+    def set_advanced_settings(self, enabled: bool) -> None:
+        """Set advanced disclosure without inverting an already-correct state."""
+        checkbox = self.page.get_by_role("switch", name="Show advanced settings")
+        expect(checkbox).to_be_attached(timeout=self.RENDER_TIMEOUT)
+        if checkbox.is_checked() != enabled:
+            self.viz_show_advanced_toggle.click()
+            self.wait_for_streamlit(expect_rerun=True)
+        if enabled:
+            expect(checkbox).to_be_checked(timeout=self.RENDER_TIMEOUT)
+        else:
+            expect(checkbox).not_to_be_checked(timeout=self.RENDER_TIMEOUT)
+
+    def select_settings_section(self, section: str) -> None:
+        """Select a styling section without deselecting its active pill."""
+        pill = self.viz_settings_pills.get_by_role("radio", name=section)
+        expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if not pill.is_checked():
+            pill.click()
+            self.wait_for_streamlit(expect_rerun=True)
+        expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
+
+    def select_axis(self, axis: str) -> None:
+        """Select one available axis in the active Axes settings section."""
+        pill = self.page.get_by_role("radiogroup", name="Axis", exact=True).get_by_role(
+            "radio", name=axis
+        )
+        expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if not pill.is_checked():
+            pill.click()
+            self.wait_for_streamlit(expect_rerun=True)
+        expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     def select_engine(self, engine: str) -> None:
         """Select a rendering engine and wait for figure regeneration.

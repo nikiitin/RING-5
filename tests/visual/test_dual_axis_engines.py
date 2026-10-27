@@ -32,7 +32,12 @@ class TestDualAxisEngines:
     """Render the dual-axis bar+dot plot and screenshot each engine (ordered)."""
 
     @pytest.fixture(scope="class", autouse=True)
-    def _setup_dual_axis_plot(self, shared_page: Page, live_server_url: str) -> None:
+    def _setup_dual_axis_plot(
+        self,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
         """Load CSV → create + finalize a dual_axis_bar_dot plot once per class."""
         assert _E2E_CSV.exists(), f"Fixture CSV not found: {_E2E_CSV}"
 
@@ -55,6 +60,7 @@ class TestDualAxisEngines:
         """Capture the dual-axis chart in the Plotly engine."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
+        mp.select_engine("plotly")
         mp.assert_chart_visible(timeout=_CHART_TIMEOUT)
         shared_page.screenshot(
             path=str(shared_screenshot_dir / "dual_axis_plotly.png"),

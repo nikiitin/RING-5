@@ -70,7 +70,12 @@ class TestFullWorkflow:
     # -- Step 0: Parse real data ------------------------------------
 
     @pytest.fixture(autouse=True, scope="class")
-    def _parse_real_data(self, shared_page: Page, live_server_url: str) -> None:
+    def _parse_real_data(
+        self,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
         """Parse real gem5 data (3 configs × 8 benchmarks × 3 seeds).
 
         Adds 6 scalar statistics and parses them from the full dataset.

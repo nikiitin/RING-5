@@ -122,7 +122,12 @@ class TestManagePlotsWorkflow:
     """
 
     @pytest.fixture(autouse=True, scope="class")
-    def _load_data(self, shared_page: Page, live_server_url: str) -> None:
+    def _load_data(
+        self,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
         """Parse benchmarks data once for the entire test class."""
         _parse_benchmarks(shared_page, live_server_url)
 
@@ -249,7 +254,12 @@ class TestPipelineManipulation:
     """
 
     @pytest.fixture(autouse=True, scope="class")
-    def _load_data(self, shared_page: Page, live_server_url: str) -> None:
+    def _load_data(
+        self,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
         """Parse benchmarks data once for the entire test class."""
         _parse_benchmarks(shared_page, live_server_url)
 
@@ -283,7 +293,12 @@ class TestAdvancedSettings:
     """
 
     @pytest.fixture(autouse=True, scope="class")
-    def _load_data_and_render(self, shared_page: Page, live_server_url: str) -> None:
+    def _load_data_and_render(
+        self,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
         """Parse data, create a plot, and render a chart."""
         _parse_benchmarks(shared_page, live_server_url)
         mp = ManagePlotsPage(shared_page)
@@ -321,7 +336,12 @@ class TestManagePlotsScreenshots:
     """
 
     @pytest.fixture(autouse=True, scope="class")
-    def _load_data_and_render(self, shared_page: Page, live_server_url: str) -> None:
+    def _load_data_and_render(
+        self,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
         """Parse data and create a plot with a rendered chart."""
         _parse_benchmarks(shared_page, live_server_url)
         mp = ManagePlotsPage(shared_page)

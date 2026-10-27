@@ -65,15 +65,18 @@ engine selectors use radio roles; inspect checked state before clicking an activ
 ## Browser execution and resource use
 
 `make test-e2e` uses `E2E_WORKERS=2` with loadgroup scheduling for non-serial cases, then a separate
-`-n 0` invocation for cases marked `serial`. `make test-visual` runs serially. The Make targets own
-these defaults; inspect them before changing parallelism.
+`-n 0` invocation for cases marked `serial`. `make test-visual` runs serially. All three browser
+invocations use `--order-scope=class`: numbered steps run together within their owning class, so
+class-scoped pages and tier fixtures retain state throughout the flow. Each class starts from its
+own reset boundary; order numbers do not coordinate different classes. The Make targets own these
+defaults; inspect them before changing parallelism.
 
 For a memory-constrained session or an isolated diagnosis, use:
 
 ```bash
 make test-e2e E2E_WORKERS=0
 ./python_venv/bin/pytest tests/e2e/test_plot_types.py -m requires_browser -n 0 \
-  --timeout=240 --timeout-method=thread --no-cov
+  --order-scope=class --timeout=240 --timeout-method=thread --no-cov
 ```
 
 Each browser worker can own a Streamlit server and Chromium processes. Check available memory,

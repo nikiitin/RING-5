@@ -166,7 +166,9 @@ class TestMatplotlibPGF:
         simple_mpl_figure.axes[0].set_title(title)
         data = matplotlib_download_bytes(simple_mpl_figure, "pgf")
         assert b"\\begin{pgfpicture}" in data
+        assert rb"Measurement\_1 \& 50\% \$value\$" in data
         assert simple_mpl_figure.axes[0].get_title() == title
+        assert simple_mpl_figure.axes[0].title.get_parse_math()
 
 
 # Error handling

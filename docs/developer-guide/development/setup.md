@@ -58,8 +58,8 @@ Optional dependencies are purpose-specific:
 
 `ring5/_chrome_install.py` is the installer used by the public `ring5 install-chrome` command,
 Make, and CI. Its packaged `ring5/resources/chrome-for-testing.json` admits one exact Stable
-release and its Linux x64 and ARM64 artifacts. Use the CLI from installed wheels as well as
-checkouts; Make delegates to the same installer.
+release and its Linux x64 and ARM64 manifest entries. ARM64 is untested and may be unavailable.
+Use the CLI from installed wheels as well as checkouts; Make delegates to the same installer.
 
 Installation uses only pinned official HTTPS URLs. It verifies the expected size, object
 generation, provider MD5 transfer checksum, and reviewed project SHA-256 before safe staged

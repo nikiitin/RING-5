@@ -108,7 +108,8 @@ identifiers such as `columnSelector`. Each operation and document kind has one c
 When replacing a contract, update every caller, serializer, fixture and example together, reject
 unsupported versions and keys explicitly, and remove the retired implementation. Do not add
 migrations, compatibility aliases or alternate execution paths. Current simulator variants,
-Linux architectures, output-column naming and revision history remain supported features.
+output-column naming and revision history remain supported features.
+ARM64 is untested and may be unavailable; preserve its reviewed manifest entries.
 
 Every plot implementation must build engine-independent traces and render correctly through both
 connectors. Every shaper must validate its configuration, avoid input mutation, and participate in

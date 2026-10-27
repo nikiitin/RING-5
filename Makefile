@@ -162,13 +162,13 @@ test-ci: test-data mock-data test-api
 
 test-e2e:
 	$(PYTEST) tests/e2e -m "requires_browser and not serial" \
-		-n $(E2E_WORKERS) --dist loadgroup \
+		-n $(E2E_WORKERS) --dist loadgroup --order-scope=class \
 		--timeout=240 --timeout-method=thread --no-cov
-	$(PYTEST) tests/e2e -m "requires_browser and serial" -n 0 \
+	$(PYTEST) tests/e2e -m "requires_browser and serial" -n 0 --order-scope=class \
 		--timeout=240 --timeout-method=thread --no-cov
 
 test-visual:
-	$(PYTEST) tests/visual -n 0 --timeout=120 --no-cov
+	$(PYTEST) tests/visual -n 0 --order-scope=class --timeout=120 --no-cov
 
 format:
 	$(VENV_BIN)/black --workers $(RING5_NATIVE_THREADS) $(PYTHON_SOURCES)

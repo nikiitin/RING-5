@@ -47,7 +47,8 @@ class TestDataManagers:
         # All tabs visible
         dm.assert_tabs_visible()
 
-        # Summary is default
+        # Inspect Summary independently of another screenshot's selected tab.
+        dm.select_tab("Summary")
         dm.assert_tab_active("Summary")
 
         # Switch through every other tab
