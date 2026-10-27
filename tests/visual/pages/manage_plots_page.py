@@ -708,7 +708,7 @@ class ManagePlotsPage(BasePage):
         widget = self.add_transformation_selectbox
         control = widget.get_by_role("combobox")
         if control.get_attribute("aria-expanded", timeout=self.RENDER_TIMEOUT) != "true":
-            widget.get_by_role("button", name="Open", exact=True).click(timeout=self.RENDER_TIMEOUT)
+            control.press("ArrowDown", timeout=self.RENDER_TIMEOUT)
         expect(control).to_have_attribute("aria-expanded", "true", timeout=self.RENDER_TIMEOUT)
         _, listbox = self._owned_listbox(control, timeout=self.RENDER_TIMEOUT)
         expect(listbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
