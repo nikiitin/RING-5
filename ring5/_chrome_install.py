@@ -9,7 +9,6 @@ import hashlib
 import json
 import os
 import platform
-import posixpath
 import re
 import stat
 import tempfile
@@ -33,8 +32,6 @@ _MAX_ARCHIVE_BYTES = 512 * 1024**2
 _MAX_EXTRACTED_BYTES = 2 * 1024**3
 _MAX_MEMBERS = 10_000
 _MAX_PATH_PARTS = 32
-_MAX_LINKS = 32
-_MAX_LINK_BYTES = 4096
 _CHUNK_BYTES = 1024**2
 _DOWNLOAD_SECONDS = 900
 _CATALOG_URL = (
@@ -44,12 +41,6 @@ _CATALOG_URL = (
 _EXECUTABLES = {
     "linux64": "chrome-linux64/chrome",
     "linux-arm64": "chrome-linux-arm64/chrome",
-    "mac-x64": "chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/"
-    "Google Chrome for Testing",
-    "mac-arm64": "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/"
-    "Google Chrome for Testing",
-    "win32": "chrome-win32/chrome.exe",
-    "win64": "chrome-win64/chrome.exe",
 }
 
 
@@ -128,22 +119,19 @@ def _load_manifest() -> dict[str, _Artifact]:
 
 
 def _host_platform() -> str:
-    """Map a native OS/architecture without silently choosing an emulated browser."""
+    """Select a supported native Linux artifact without choosing emulation."""
     system, machine = platform.system(), platform.machine().lower()
+    if system != "Linux":
+        raise Ring5Error(
+            f"Chrome installation supports Linux only; unsupported host: {system}/{machine}."
+        )
     names = {
-        ("Linux", "x86_64"): "linux64",
-        ("Linux", "amd64"): "linux64",
-        ("Linux", "aarch64"): "linux-arm64",
-        ("Linux", "arm64"): "linux-arm64",
-        ("Darwin", "x86_64"): "mac-x64",
-        ("Darwin", "arm64"): "mac-arm64",
-        ("Windows", "amd64"): "win64",
-        ("Windows", "x86_64"): "win64",
-        ("Windows", "x86"): "win32",
-        ("Windows", "i386"): "win32",
-        ("Windows", "i686"): "win32",
+        "x86_64": "linux64",
+        "amd64": "linux64",
+        "aarch64": "linux-arm64",
+        "arm64": "linux-arm64",
     }
-    name = names.get((system, machine))
+    name = names.get(machine)
     if name is None:
         raise Ring5Error(
             f"Chrome for Testing has no supported native artifact for {system}/{machine}. "
@@ -235,38 +223,9 @@ def _safe_path(name: str, root: str) -> PurePosixPath:
     return path
 
 
-def _link_target(path: PurePosixPath, target: str, root: str) -> PurePosixPath:
-    if (
-        not target
-        or target.startswith("/")
-        or "\\" in target
-        or ":" in target
-        or "\x00" in target
-        or ".." in target.split("/")
-    ):
-        raise ValueError("Unsafe Chrome archive link target.")
-    return _safe_path(posixpath.normpath(str(path.parent / target)), root)
-
-
-def _resolve_link(path: PurePosixPath, links: dict[PurePosixPath, str], root: str) -> PurePosixPath:
-    seen: set[PurePosixPath] = set()
-    while True:
-        for index in range(1, len(path.parts) + 1):
-            prefix = PurePosixPath(*path.parts[:index])
-            if prefix in links:
-                if prefix in seen or len(seen) >= _MAX_LINKS:
-                    raise ValueError("Chrome archive has a cyclic or excessive link chain.")
-                seen.add(prefix)
-                expanded = _link_target(prefix, links[prefix], root).joinpath(*path.parts[index:])
-                path = _safe_path(expanded.as_posix(), root)
-                break
-        else:
-            return path
-
-
 def _zip_plan(
     archive: zipfile.ZipFile, artifact: _Artifact
-) -> tuple[list[tuple[zipfile.ZipInfo, PurePosixPath, int]], dict[PurePosixPath, str]]:
+) -> list[tuple[zipfile.ZipInfo, PurePosixPath, int]]:
     """Validate the complete bounded graph before creating any archive member."""
     infos = archive.infolist()
     if (
@@ -279,13 +238,12 @@ def _zip_plan(
     entries = []
     kinds: dict[PurePosixPath, int] = {}
     folded: set[str] = set()
-    links: dict[PurePosixPath, str] = {}
     for info in infos:
         path = _safe_path(info.filename.removesuffix("/") if info.is_dir() else info.filename, root)
         mode = info.external_attr >> 16
         kind = stat.S_IFMT(mode)
         if (
-            kind not in {stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK}
+            kind not in {stat.S_IFREG, stat.S_IFDIR}
             or (kind == stat.S_IFDIR) != info.is_dir()
             or info.flag_bits & ((1 << 0) | (1 << 5) | (1 << 6))
             or info.compress_type not in {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
@@ -297,33 +255,22 @@ def _zip_plan(
         folded.add(path.as_posix().casefold())
         kinds[path] = kind
         entries.append((info, path, mode))
-        if kind == stat.S_IFLNK:
-            if (
-                not artifact.platform.startswith("mac-")
-                or info.file_size > _MAX_LINK_BYTES
-                or len(links) >= _MAX_LINKS
-            ):
-                raise ValueError("Chrome archive exceeds its supported link policy.")
-            links[path] = archive.read(info).decode("utf-8")
     known = set(kinds)
     for path in kinds:
         for parent in path.parents[:-1]:
             if parent in kinds and kinds[parent] != stat.S_IFDIR:
-                raise ValueError("Chrome archive member descends through a file or link alias.")
+                raise ValueError("Chrome archive member descends through a file.")
             known.add(parent)
             if len(known) > _MAX_MEMBERS:
                 raise ValueError("Chrome archive exceeds its file and directory graph limit.")
     if len({path.as_posix().casefold() for path in known}) != len(known):
         raise ValueError("Chrome archive has case-colliding parent directories.")
-    for path in links:
-        if _resolve_link(path, links, root) not in known:
-            raise ValueError("Chrome archive link has a missing target.")
-    return entries, links
+    return entries
 
 
 def _extract(archive_path: Path, directory: Path, artifact: _Artifact) -> None:
     with zipfile.ZipFile(archive_path) as archive:
-        entries, links = _zip_plan(archive, artifact)
+        entries = _zip_plan(archive, artifact)
         for info, path, mode in entries:
             target = directory / path
             if stat.S_ISDIR(mode):
@@ -334,10 +281,6 @@ def _extract(archive_path: Path, directory: Path, artifact: _Artifact) -> None:
                     while chunk := source.read(_CHUNK_BYTES):
                         output.write(chunk)
                 target.chmod(stat.S_IMODE(mode) & 0o777)
-        for path, link_target in links.items():
-            location = directory / path
-            location.parent.mkdir(parents=True, exist_ok=True)
-            location.symlink_to(link_target)
 
 
 def _tree_digest(directory: Path) -> str:
@@ -387,7 +330,7 @@ def _check_executable(directory: Path, artifact: _Artifact) -> Path:
     executable = directory / artifact.executable
     if not executable.is_file() or executable.is_symlink() or executable.stat().st_size == 0:
         raise ValueError("Chrome archive does not contain its expected regular executable.")
-    if not artifact.platform.startswith("win") and not os.access(executable, os.X_OK):
+    if not os.access(executable, os.X_OK):
         raise ValueError("Chrome executable has no executable permission.")
     return executable
 
@@ -422,41 +365,26 @@ def _install_lock(root: Path, artifact: _Artifact) -> Iterator[None]:
 
 
 def _publish_noreplace(source: Path, destination: Path) -> None:
-    """Atomically publish a staged directory without replacing any destination."""
-    system = platform.system()
-    if system == "Windows":
-        # Windows os.rename is exclusive, unlike ordinary POSIX rename.
-        os.rename(source, destination)
-        return
-    arguments: tuple[int | bytes, ...]
-    if system == "Linux":
-        symbol = "renameat2"
-        argument_types = [
-            ctypes.c_int,
-            ctypes.c_char_p,
-            ctypes.c_int,
-            ctypes.c_char_p,
-            ctypes.c_uint,
-        ]
-        # Absolute paths ignore AT_FDCWD (-100); RENAME_NOREPLACE is 1.
-        arguments = (-100, os.fsencode(source), -100, os.fsencode(destination), 1)
-    elif system == "Darwin":
-        symbol = "renamex_np"
-        argument_types = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
-        # Darwin's RENAME_EXCL is 4, with the same no-replacement contract.
-        arguments = (os.fsencode(source), os.fsencode(destination), 4)
-    else:
-        raise OSError(errno.ENOSYS, "Exclusive Chrome publication is unsupported", destination)
+    """Publish a Linux installation atomically with native RENAME_NOREPLACE."""
+    if platform.system() != "Linux":
+        raise OSError(errno.ENOSYS, "Chrome publication requires Linux", destination)
     try:
-        function = getattr(ctypes.CDLL(None, use_errno=True), symbol)
+        function = ctypes.CDLL(None, use_errno=True).renameat2
     except AttributeError as exc:
         raise OSError(
-            errno.ENOSYS, f"Exclusive Chrome publication needs native {symbol}", destination
+            errno.ENOSYS, "Exclusive Chrome publication needs native renameat2", destination
         ) from exc
-    function.argtypes = argument_types
+    function.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    ]
     function.restype = ctypes.c_int
     ctypes.set_errno(0)
-    if function(*arguments) != 0:
+    # Absolute paths ignore AT_FDCWD (-100); RENAME_NOREPLACE is 1.
+    if function(-100, os.fsencode(source), -100, os.fsencode(destination), 1) != 0:
         error = ctypes.get_errno() or errno.EIO
         raise OSError(
             error, f"Exclusive Chrome publication failed: {os.strerror(error)}", destination
@@ -464,10 +392,10 @@ def _publish_noreplace(source: Path, destination: Path) -> None:
 
 
 def install_chrome(*, cache_directory: str | None = None) -> Path:
-    """Install or verify the reviewed native browser, returning its absolute path.
+    """Install or verify the reviewed native Linux browser, returning its absolute path.
 
     Args:
-        cache_directory: Explicit cache root, or the platform user cache when omitted.
+        cache_directory: Explicit cache root, or the Linux user cache when omitted.
 
     Returns:
         Absolute browser executable path for explicit ``BROWSER_PATH`` selection.
@@ -491,9 +419,7 @@ def install_chrome(*, cache_directory: str | None = None) -> Path:
         except RuntimeError as exc:
             # Python 3.12 wraps this native loop failure in RuntimeError.
             context = exc.__context__
-            if not isinstance(context, OSError) or (
-                context.errno != errno.ELOOP and getattr(context, "winerror", None) != 1921
-            ):
+            if not isinstance(context, OSError) or context.errno != errno.ELOOP:
                 raise
             raise OSError(errno.ELOOP, "Chrome cache path contains a symlink loop", root) from exc
         if "\n" in str(root) or "\r" in str(root):

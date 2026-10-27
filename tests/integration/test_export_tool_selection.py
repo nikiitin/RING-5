@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import os
 import subprocess
 from typing import Any
 from unittest.mock import MagicMock
@@ -38,19 +37,18 @@ def test_actual_public_routes_agree_without_launching_browser_or_compiler(
 ) -> None:
     # [test->req~ring5.api.doctor~2]
     # [test->req~ring5.portfolio.environment-metadata~1]
-    suffix = ".exe" if os.name == "nt" else ""
     for name in ("downloaded", "path-browser", "override"):
-        path = tmp_path / (name + suffix)
+        path = tmp_path / name
         path.write_text("never executed", encoding="utf-8")
         path.chmod(0o700)
-    discovered = str(tmp_path / (("downloaded" if downloaded else "path-browser") + suffix))
+    discovered = str(tmp_path / ("downloaded" if downloaded else "path-browser"))
     discover = MagicMock(return_value=discovered)
     monkeypatch.setattr(Chromium, "find_browser", discover)
     if override is None:
         monkeypatch.delenv("BROWSER_PATH", raising=False)
         selected = discovered
     else:
-        selected = str(tmp_path / ("override" + suffix)) if override == "valid" else override
+        selected = str(tmp_path / "override") if override == "valid" else override
         monkeypatch.setenv("BROWSER_PATH", selected)
     available = override in (None, "valid")
     versions: list[str | None] = []

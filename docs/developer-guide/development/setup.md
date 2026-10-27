@@ -9,7 +9,7 @@ permalink: /developer-guide/development/setup/
 
 # Development setup
 
-RING-5 requires Python 3.12 or newer. Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
+RING-5 runs on Linux and requires Python 3.12 or newer. Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
 for checkout setup. Make uses `uvx` to run the pinned project tool, uv 0.13.5.
 Install Git, Make, and Perl before running parser tests.
 
@@ -38,7 +38,7 @@ below the repository. Installed wheels default to the platform user-data directo
 `platformdirs.user_data_path("ring5", appauthor=False)`. The environment override takes precedence.
 
 `make sync-dev` reproduces all development dependencies without downloading browsers. The lock
-covers Python 3.12 through 3.15; CI tests each supported version. After editing dependency pins, run
+resolves Linux dependencies for Python 3.12 through 3.15; CI tests each supported version. After editing dependency pins, run
 `make lock` and review `uv.lock` before running the full gates. To upgrade transitive packages
 intentionally, run `uv lock --upgrade`, then `make sync-dev`.
 
@@ -58,15 +58,14 @@ Optional dependencies are purpose-specific:
 
 `ring5/_chrome_install.py` is the installer used by the public `ring5 install-chrome` command,
 Make, and CI. Its packaged `ring5/resources/chrome-for-testing.json` admits one exact Stable
-release and the six official native artifacts. Use the CLI from installed wheels as well as
-checkouts; no repository script or vendor installer is required. Native Windows can run
-`python_venv/Scripts/python.exe -m ring5.cli install-chrome`; Make callers can override `PYTHON`.
+release and its Linux x64 and ARM64 artifacts. Use the CLI from installed wheels as well as
+checkouts; Make delegates to the same installer.
 
 Installation uses only pinned official HTTPS URLs. It verifies the expected size, object
 generation, provider MD5 transfer checksum, and reviewed project SHA-256 before safe staged
 extraction and atomic publication. A receipt identifies the release and installed files. Publication
 requires native exclusive rename support from the cache filesystem; unavailable support produces
-an installation error. Relative archive links contain no parent-traversal components. Reuse
+an installation error. Archive links are rejected before extraction. Reuse
 checks the receipt and file contents. Failures preserve existing and unrelated cache directories.
 The CLI never executes a browser; CI explicitly passes the returned path through `BROWSER_PATH`
 to its serial native export tests.
@@ -78,7 +77,7 @@ official HTTPS, compare the provider's object size, MD5, and generation, and rec
 SHA-256 and ZIP layout before updating the manifest. Google publishes no archive SHA-256 or
 release-signature field in that catalog; the first verified HTTPS acquisition is the bootstrap
 trust step. MD5 is a transfer check, and the reviewed SHA-256 is a project pin. Preserve the
-acquisition evidence with the review and run all-platform inert archive tests, installed-wheel
+acquisition evidence with the review and run both Linux-architecture inert archive tests, installed-wheel
 checks, and the supported native serial export gates before admission.
 
 A newer Stable catalog entry requires a reviewed manifest update. Dependabot's Python, Actions,

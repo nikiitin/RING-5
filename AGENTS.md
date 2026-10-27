@@ -5,7 +5,7 @@ the code and prefer links to detailed documentation over duplicating it here.
 
 RING-5 (*Reproducible Instrumentation for Numerical Graphics for gem5*) turns simulator statistics
 into publication-ready figures. It provides a Streamlit application, a headless Python API, and a
-command-line interface. Python 3.12 or newer is required.
+command-line interface. Linux and Python 3.12 or newer are required.
 
 ## Required invariants
 
@@ -108,7 +108,7 @@ identifiers such as `columnSelector`. Each operation and document kind has one c
 When replacing a contract, update every caller, serializer, fixture and example together, reject
 unsupported versions and keys explicitly, and remove the retired implementation. Do not add
 migrations, compatibility aliases or alternate execution paths. Current simulator variants,
-platform support, output-column naming and revision history remain supported features.
+Linux architectures, output-column naming and revision history remain supported features.
 
 Every plot implementation must build engine-independent traces and render correctly through both
 connectors. Every shaper must validate its configuration, avoid input mutation, and participate in

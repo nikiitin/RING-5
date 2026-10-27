@@ -102,8 +102,6 @@ install-latex:
 		sudo apt-get update; \
 		sudo apt-get install -y texlive-latex-base texlive-fonts-recommended \
 			texlive-fonts-extra texlive-latex-extra texlive-xetex cm-super; \
-	elif command -v brew >/dev/null 2>&1; then \
-		brew install --cask mactex; \
 	else \
 		echo "Install TeX Live with XeLaTeX using your system package manager."; \
 		exit 1; \

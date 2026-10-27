@@ -5,7 +5,7 @@ transforms tabular results, and renders figures through a Streamlit application 
 `ring5` Python API and CLI. The included parser supports gem5; parser protocols allow additional
 simulators to be added.
 
-RING-5 requires Python 3.12 or newer. Parsing gem5 statistics also requires Perl. Checkout setup uses [uv 0.13.5](https://docs.astral.sh/uv/getting-started/installation/).
+RING-5 runs on Linux and requires Python 3.12 or newer. Parsing gem5 statistics also requires Perl. Checkout setup uses [uv 0.13.5](https://docs.astral.sh/uv/getting-started/installation/).
 
 ## Install and run the web application
 

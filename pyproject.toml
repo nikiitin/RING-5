@@ -14,6 +14,7 @@ keywords = ["gem5", "data-analysis", "visualization", "performance-analysis"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
+  "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -189,5 +190,6 @@ ignore_missing_imports = true
 skips = ["B603", "B404"]
 
 [tool.uv]
+environments = ["sys_platform == 'linux'"]
 default-groups = []
 required-version = "==0.13.5"

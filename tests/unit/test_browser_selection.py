@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import FrozenInstanceError
 from pathlib import Path
-import os
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -24,7 +23,7 @@ def _executable(path: Path) -> str:
 def test_present_override_resolves_executable_without_vendor_discovery(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str
 ) -> None:
-    browser_name = "chrome.exe" if os.name == "nt" else "chrome"
+    browser_name = "chrome"
     executable = _executable(tmp_path / browser_name)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PATH", str(tmp_path))
@@ -51,8 +50,6 @@ def test_present_override_resolves_executable_without_vendor_discovery(
 def test_invalid_override_remains_selected_without_fallback(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str
 ) -> None:
-    if os.name == "nt" and kind in {"not-executable", "broken-link"}:
-        pytest.skip("POSIX execute bits and unprivileged symlinks are platform-specific.")
     path = tmp_path / kind
     if kind == "directory":
         path.mkdir()
@@ -75,8 +72,7 @@ def test_absent_override_uses_exact_required_provider_selection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, available: bool
 ) -> None:
     monkeypatch.delenv("BROWSER_PATH", raising=False)
-    name = "downloaded.exe" if os.name == "nt" else "downloaded"
-    selected = _executable(tmp_path / name) if available else None
+    selected = _executable(tmp_path / "downloaded") if available else None
     discovery = MagicMock(return_value=selected)
     monkeypatch.setattr(Chromium, "find_browser", discovery)
 

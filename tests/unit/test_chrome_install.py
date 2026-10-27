@@ -56,7 +56,7 @@ def _artifact(content: bytes, name: str = "linux64") -> chrome._Artifact:
 
 def test_packaged_manifest_is_complete_stable_and_uses_exact_official_artifacts() -> None:
     artifacts = chrome._load_manifest()
-    assert set(artifacts) == {"linux64", "linux-arm64", "mac-x64", "mac-arm64", "win32", "win64"}
+    assert set(artifacts) == {"linux64", "linux-arm64"}
     for name, artifact in artifacts.items():
         assert artifact.version == "156.0.8078.47"
         assert artifact.revision == "1706539"
@@ -72,13 +72,6 @@ def test_packaged_manifest_is_complete_stable_and_uses_exact_official_artifacts(
         ("Linux", "AMD64", "linux64"),
         ("Linux", "aarch64", "linux-arm64"),
         ("Linux", "arm64", "linux-arm64"),
-        ("Darwin", "x86_64", "mac-x64"),
-        ("Darwin", "arm64", "mac-arm64"),
-        ("Windows", "AMD64", "win64"),
-        ("Windows", "x86_64", "win64"),
-        ("Windows", "x86", "win32"),
-        ("Windows", "i386", "win32"),
-        ("Windows", "i686", "win32"),
     ],
 )
 def test_native_platform_mapping(
@@ -90,7 +83,19 @@ def test_native_platform_mapping(
 
 
 @pytest.mark.parametrize(
-    ("system", "machine"), [("Windows", "ARM64"), ("Linux", "i686"), ("FreeBSD", "x86_64")]
+    ("system", "machine"),
+    [
+        ("Windows", "ARM64"),
+        ("Windows", "AMD64"),
+        ("Windows", "x86_64"),
+        ("Windows", "x86"),
+        ("Windows", "i386"),
+        ("Windows", "i686"),
+        ("Darwin", "x86_64"),
+        ("Darwin", "arm64"),
+        ("Linux", "i686"),
+        ("FreeBSD", "x86_64"),
+    ],
 )
 def test_unsupported_platform_never_chooses_emulation(
     system: str, machine: str, monkeypatch: pytest.MonkeyPatch
@@ -156,7 +161,7 @@ def test_manifest_rejects_noncanonical_contracts(
     elif mutation == "platforms-type":
         manifest["artifacts"] = []
     elif mutation == "platform-missing":
-        del manifest["artifacts"]["win64"]
+        del manifest["artifacts"]["linux-arm64"]
     elif mutation == "platform-extra":
         manifest["artifacts"]["win-arm64"] = {}
     else:
@@ -248,41 +253,12 @@ def test_network_opener_uses_bounded_timeout_and_no_redirect_handler(
 
 def _inert_layout(name: str) -> list[tuple[str, bytes, int]]:
     executable = chrome._load_manifest()[name].executable
-    entries = [(executable, b"inert browser fixture; never execute", 0o100755)]
     root = f"chrome-{name}"
-    entries.extend(
-        [(f"{root}/", b"", 0o40755), (f"{root}/resources/data.bin", b"fixture data", 0o100644)]
-    )
-    if name.startswith("mac-"):
-        framework = (
-            f"{root}/Google Chrome for Testing.app/Contents/Frameworks/"
-            "Google Chrome for Testing Framework.framework"
-        )
-        version = "156.0.8078.47"
-        for folder in ("Resources", "Libraries", "Helpers"):
-            entries.append(
-                (f"{framework}/Versions/{version}/{folder}/data", b"mac fixture", 0o100644)
-            )
-        entries.append(
-            (
-                f"{framework}/Versions/{version}/Google Chrome for Testing Framework",
-                b"inert framework",
-                0o100755,
-            )
-        )
-        # Observed provider order includes links before their chained Current link.
-        for link, target in [
-            ("Resources", "Versions/Current/Resources"),
-            ("Versions/Current", version),
-            ("Libraries", "Versions/Current/Libraries"),
-            (
-                "Google Chrome for Testing Framework",
-                "Versions/Current/Google Chrome for Testing Framework",
-            ),
-            ("Helpers", "Versions/Current/Helpers"),
-        ]:
-            entries.append((f"{framework}/{link}", target.encode(), 0o120755))
-    return entries
+    return [
+        (executable, b"inert browser fixture; never execute", 0o100755),
+        (f"{root}/", b"", 0o40755),
+        (f"{root}/resources/data.bin", b"fixture data", 0o100644),
+    ]
 
 
 def _install_fixture(
@@ -296,9 +272,7 @@ def _install_fixture(
     return artifact, network
 
 
-@pytest.mark.parametrize(
-    "name", ["linux64", "linux-arm64", "mac-x64", "mac-arm64", "win32", "win64"]
-)
+@pytest.mark.parametrize("name", ["linux64", "linux-arm64"])
 def test_all_platforms_install_inert_observed_layout_and_verify_reuse(
     name: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -314,20 +288,6 @@ def test_all_platforms_install_inert_observed_layout_and_verify_reuse(
     assert (
         json.loads((destination / "receipt.json").read_text())["archive_sha256"] == artifact.sha256
     )
-    if name.startswith("mac-"):
-        framework = (
-            destination / f"chrome-{name}/Google Chrome for Testing.app/Contents/Frameworks/"
-            "Google Chrome for Testing Framework.framework"
-        )
-        assert (framework / "Versions/Current").is_symlink()
-        assert (framework / "Versions/Current").readlink() == Path(artifact.version)
-        for part in ("Resources", "Libraries", "Helpers"):
-            assert (framework / part).is_symlink()
-            assert (framework / part / "data").read_bytes() == b"mac fixture"
-        assert (framework / "Google Chrome for Testing Framework").is_symlink()
-        assert (
-            framework / "Google Chrome for Testing Framework"
-        ).read_bytes() == b"inert framework"
     assert chrome.install_chrome(cache_directory=str(cache)) == executable
     network.assert_called_once_with(artifact.url)
     assert sorted(p.name for p in cache.iterdir()) == [destination.name]
@@ -369,7 +329,7 @@ def test_archive_member_path_rejections(bad_path: str) -> None:
         "duplicate",
         "case-collision",
         "file-parent",
-        "non-mac-link",
+        "symlink",
         "large-link",
         "many-links",
         "absolute-link",
@@ -388,9 +348,8 @@ def test_invalid_archive_graph_rejected_before_any_member_is_extracted(
     failure: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # [test->req~ring5.cli.install-chrome~1]
-    name = "mac-arm64" if "link" in failure or failure == "alias-descendant" else "linux64"
-    artifact = chrome._load_manifest()[name]
-    root = f"chrome-{name}"
+    artifact = chrome._load_manifest()["linux64"]
+    root = "chrome-linux64"
     entries = [(artifact.executable, b"inert", 0o100755)]
     if failure == "empty":
         entries = []
@@ -420,10 +379,6 @@ def test_invalid_archive_graph_rejected_before_any_member_is_extracted(
             [(f"{root}/parent", b"file", 0o100644), (f"{root}/parent/child", b"child", 0o100644)]
         )
     else:
-        if failure == "non-mac-link":
-            name, root = "linux64", "chrome-linux64"
-            artifact = chrome._load_manifest()[name]
-            entries = [(artifact.executable, b"inert", 0o100755)]
         target = {
             "absolute-link": b"/outside",
             "drive-link": b"C:/outside",
@@ -582,28 +537,22 @@ def test_tree_validation_enforces_entry_byte_and_special_file_limits(
     with pytest.raises(ValueError, match="size limit"):
         chrome._tree_digest(tmp_path)
     (tmp_path / "content").unlink()
-    if hasattr(os, "mkfifo"):
-        os.mkfifo(tmp_path / "special")
-        with pytest.raises(ValueError, match="special file"):
-            chrome._tree_digest(tmp_path)
+    os.mkfifo(tmp_path / "special")
+    with pytest.raises(ValueError, match="special file"):
+        chrome._tree_digest(tmp_path)
 
 
-def test_graph_checks_implicit_case_collisions_and_bounded_link_resolution() -> None:
-    from pathlib import PurePosixPath
-
-    artifact = chrome._load_manifest()["mac-arm64"]
+def test_graph_checks_implicit_case_collisions() -> None:
+    artifact = chrome._load_manifest()["linux64"]
     content = _zip(
         [
-            ("chrome-mac-arm64/folder/a", b"a", 0o100644),
-            ("chrome-mac-arm64/FOLDER/b", b"b", 0o100644),
+            ("chrome-linux64/folder/a", b"a", 0o100644),
+            ("chrome-linux64/FOLDER/b", b"b", 0o100644),
         ]
     )
     with zipfile.ZipFile(io.BytesIO(content)) as archive:
         with pytest.raises(ValueError, match="parent directories"):
             chrome._zip_plan(archive, artifact)
-    links = {PurePosixPath(f"chrome-mac-arm64/link{i}"): f"link{i+1}" for i in range(33)}
-    with pytest.raises(ValueError, match="excessive link chain"):
-        chrome._resolve_link(PurePosixPath("chrome-mac-arm64/link0"), links, "chrome-mac-arm64")
 
 
 def test_no_browser_execution_or_resolution_is_part_of_installation() -> None:
@@ -698,16 +647,24 @@ def test_exact_graph_budget_remains_reusable_and_implicit_dirs_are_bounded(
             chrome._zip_plan(archive, artifact)
 
 
-def test_member_and_expanded_link_paths_have_explicit_depth_bounds() -> None:
-    from pathlib import PurePosixPath
-
+def test_member_depth_and_nested_link_attacks_reject_before_extraction(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         chrome._safe_path("chrome-linux64/" + "/".join(["nested"] * 32), "chrome-linux64")
-    links = {PurePosixPath("chrome-mac-arm64/link"): "/".join(["nested"] * 30)}
-    with pytest.raises(ValueError):
-        chrome._resolve_link(
-            PurePosixPath("chrome-mac-arm64/link/tail/tail"), links, "chrome-mac-arm64"
-        )
+    artifact = chrome._load_manifest()["linux64"]
+    payload = _zip(
+        [
+            (artifact.executable, b"inert", 0o100755),
+            ("chrome-linux64/link", "/".join(["nested"] * 30).encode(), 0o120755),
+            ("chrome-linux64/link/tail/tail", b"child", 0o100644),
+        ]
+    )
+    archive = tmp_path / "nested-link.zip"
+    archive.write_bytes(payload)
+    output = tmp_path / "installation"
+    output.mkdir()
+    with pytest.raises(ValueError, match="member type"):
+        chrome._extract(archive, output, artifact)
+    assert list(output.iterdir()) == []
 
 
 def test_installed_wheel_verifier_rejects_absent_packaged_manifest(
@@ -768,3 +725,18 @@ def test_cli_rejects_multiline_output_paths_without_creating_cache(
 def test_archive_members_reject_nonportable_control_characters() -> None:
     with pytest.raises(ValueError):
         chrome._safe_path("chrome-linux64/line\nbreak", "chrome-linux64")
+
+
+@pytest.mark.parametrize("system", ["Darwin", "Windows", "FreeBSD"])
+def test_unsupported_host_fails_before_cache_or_network(
+    system: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(chrome.platform, "system", lambda: system)
+    monkeypatch.setattr(chrome.platform, "machine", lambda: "x86_64")
+    network = MagicMock(side_effect=AssertionError("unsupported hosts must not download"))
+    monkeypatch.setattr(chrome, "_open_archive", network)
+    cache = tmp_path / "unused-cache"
+    with pytest.raises(Ring5Error, match="supports Linux only"):
+        chrome.install_chrome(cache_directory=str(cache))
+    assert not cache.exists()
+    network.assert_not_called()

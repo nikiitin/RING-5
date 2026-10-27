@@ -246,6 +246,7 @@ class _Assessment:
             "revision",
             "requires-python",
             "resolution-markers",
+            "supported-markers",
             "package",
         }:
             raise ValueError("uv.lock: unknown root schema.")
@@ -255,6 +256,8 @@ class _Assessment:
             or document.get("revision") != 5
         ):
             raise ValueError("uv.lock: unsupported lock schema version.")
+        if document.get("supported-markers") != ["sys_platform == 'linux'"]:
+            raise ValueError("uv.lock: supported-markers must declare Linux only.")
         if (
             not isinstance(document.get("requires-python"), str)
             or not isinstance(document.get("resolution-markers", []), list)

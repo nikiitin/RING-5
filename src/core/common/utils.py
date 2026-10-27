@@ -94,11 +94,7 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
     base: str = str(Path(base_str).resolve())
     # Use os.path.commonpath for robust containment check
     # (avoids sibling-path bypass, e.g. "/allowed/base_evil" matching "/allowed/base")
-    try:
-        common: str = os.path.commonpath([resolved, base])
-    except ValueError as exc:
-        # On Windows, paths on different drives raise ValueError
-        raise ValueError(f"Path traversal detected: {resolved} is outside {base}") from exc
+    common: str = os.path.commonpath([resolved, base])
     if common != base:
         raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
     # Callers must inspect/unlink the requested leaf, never an alias target.

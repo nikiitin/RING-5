@@ -37,7 +37,7 @@ then use **Deep Scan** when variables differ between runs. Parsing needs Perl; c
 
 If the path is outside the allowed web roots, start RING-5 from the results parent directory or set
 `RING5_ALLOWED_STATS_ROOTS` before starting the server. The Data Source page lists the active roots.
-Separate multiple roots with `:` on Linux and macOS or `;` on Windows.
+Separate multiple roots with `:`.
 
 If a scan reports a line, file-size, file-count, or timeout limit, narrow the selected results tree
 or split the analysis. The scanner fails that file visibly; it never returns the first part of an
@@ -113,7 +113,7 @@ Plotly PNG, SVG, and PDF require a Chrome-family browser. Use Plotly HTML, switc
 run `ring5 install-chrome` and set `BROWSER_PATH` to the printed executable path before starting
 RING-5. An existing empty or invalid `BROWSER_PATH` must be corrected or unset; it remains
 authoritative. See [installation]({{site.baseurl}}/user-guide/getting-started/installation/#install-chrome-for-plotly-static-exports)
-for PowerShell instructions and installation-cache options.
+for Linux shell instructions and installation-cache options.
 
 ## PGF export fails or becomes PDF
 

@@ -8,6 +8,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from io import StringIO
 from types import SimpleNamespace
+from typing import NoReturn, cast
 
 import pytest
 
@@ -34,7 +35,11 @@ from src.parsing.gem5.impl.strategies.perl_worker_pool import PerlWorker, PerlWo
     "error_type",
     [ParseDataRuntimeError, ParseDataTypeError, ParseDataValueError, ResultAdmissionError],
 )
-def test_expected_failure_keeps_concrete_type_and_bounded_immutable_facts(error_type) -> None:
+def test_expected_failure_keeps_concrete_type_and_bounded_immutable_facts(
+    error_type: type[
+        ParseDataRuntimeError | ParseDataTypeError | ParseDataValueError | ResultAdmissionError
+    ],
+) -> None:
     original = error_type("specific data rejection " + "x" * 10_000)
     original.add_note("not retained " + "y" * 10_000)
     original.__cause__ = UnicodeDecodeError("utf8", b"raw buffer" * 10_000, 0, 1, "bad byte")
@@ -48,13 +53,14 @@ def test_expected_failure_keeps_concrete_type_and_bounded_immutable_facts(error_
         fail(12)
     except error_type as caught:
         fresh = detach_parse_failure(caught, "/planned/stats.txt")
+    assert fresh is not None
     assert type(fresh) is error_type and fresh is not original
     assert fresh.args[0].startswith("specific data rejection")
     assert len(fresh.args[0]) <= MAX_PARSE_FAILURE_MESSAGE
     assert fresh.args[0].endswith("[truncated]")
-    assert fresh.__traceback__ is fresh.__cause__ is fresh.__context__ is None
+    assert fresh.__traceback__ is None and fresh.__cause__ is None and fresh.__context__ is None
     assert not hasattr(fresh, "__notes__")
-    facts = fresh.failure_facts
+    facts: object = getattr(fresh, "failure_facts")
     assert type(facts) is ParseFailureFacts
     assert facts.source_path == "/planned/stats.txt"
     assert len(facts.origin) <= MAX_PARSE_FAILURE_ORIGIN
@@ -79,22 +85,25 @@ def test_expected_failure_keeps_concrete_type_and_bounded_immutable_facts(error_
         (OSError, errno.EIO),
     ],
 )
-def test_builtin_io_failure_preserves_exact_errno_and_both_filenames(error_type, code) -> None:
+def test_builtin_io_failure_preserves_exact_errno_and_both_filenames(
+    error_type: type[OSError], code: int
+) -> None:
     original = error_type(code, "specific IO failure", "/input", None, "/output")
     fresh = detach_parse_failure(original, "/planned/stats.txt")
+    assert isinstance(fresh, OSError)
     assert type(fresh) is error_type
     assert fresh.errno == code and fresh.strerror == "specific IO failure"
     assert fresh.filename == "/input" and fresh.filename2 == "/output"
     assert str(fresh) == str(original)
-    assert fresh.__cause__ is fresh.__context__ is fresh.__traceback__ is None
+    assert fresh.__cause__ is None and fresh.__context__ is None and fresh.__traceback__ is None
 
 
 def test_diagnostic_rendering_never_invokes_arbitrary_argument_hooks() -> None:
     class Forbidden:
-        def __str__(self):
+        def __str__(self) -> str:
             pytest.fail("an arbitrary diagnostic string hook ran")
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             pytest.fail("an arbitrary diagnostic repr hook ran")
 
     assert parse_error_text(ParseDataValueError(Forbidden())) == "<Forbidden>"
@@ -102,11 +111,11 @@ def test_diagnostic_rendering_never_invokes_arbitrary_argument_hooks() -> None:
 
 def test_non_native_io_metadata_is_declined_before_constructor_hooks() -> None:
     class Forbidden:
-        def __index__(self):
+        def __index__(self) -> int:
             pytest.fail("an arbitrary IO constructor hook ran")
 
     for field, value in (
-        ("winerror", Forbidden()),
+        ("errno", Forbidden()),
         ("errno", 1 << 100_000),
         ("filename", object()),
     ):
@@ -122,7 +131,7 @@ def test_unmarked_programming_exception_retains_identity_and_original_traceback(
     class Work:
         source_path = "/planned/stats.txt"
 
-        def __call__(self):
+        def __call__(self) -> NoReturn:
             raise unexpected
 
     with ThreadPoolExecutor(max_workers=1) as executor:
@@ -152,14 +161,15 @@ def test_io_and_nominal_subclass_hooks_are_not_used_for_cloning() -> None:
 def test_pool_retry_does_not_swallow_unmarked_programming_error() -> None:
     unexpected = RuntimeError("unexpected worker implementation failure")
 
-    def fail(*args):
+    def fail(*args: object) -> NoReturn:
         raise unexpected
 
     worker = SimpleNamespace(worker_id=0, is_healthy=True, is_busy=False, parse_file=fail)
     pool = SimpleNamespace(workers=[worker], _lock=threading.Lock(), worker_queue=queue.Queue())
     pool.worker_queue.put(worker)
     with pytest.raises(RuntimeError) as caught:
-        PerlWorkerPool.parse_file(pool, "/input", ["v"])
+        # Exercise the real method with an inert receiver, without starting a pool.
+        PerlWorkerPool.parse_file(cast(PerlWorkerPool, pool), "/input", ["v"])
     assert caught.value is unexpected
     assert worker.is_busy is False and pool.worker_queue.get_nowait() is worker
 
@@ -167,7 +177,7 @@ def test_pool_retry_does_not_swallow_unmarked_programming_error() -> None:
 def test_worker_transport_does_not_convert_unmarked_programming_error_to_retry() -> None:
     unexpected = RuntimeError("unexpected reader implementation failure")
 
-    def fail(*, timeout):
+    def fail(*, timeout: float) -> NoReturn:
         raise unexpected
 
     worker = SimpleNamespace(
@@ -178,5 +188,6 @@ def test_worker_transport_does_not_convert_unmarked_programming_error_to_retry()
         _read_line_with_timeout=fail,
     )
     with pytest.raises(RuntimeError) as caught:
-        PerlWorker.parse_file(worker, "/input", ["v"])
+        # Exercise the transport owner without spawning its subprocess.
+        PerlWorker.parse_file(cast(PerlWorker, worker), "/input", ["v"])
     assert caught.value is unexpected and worker.is_healthy

@@ -73,7 +73,7 @@ def test_required_workflow_contract_matches_every_pr_matrix_job() -> None:
     assert config["allow_major"] is False
     assert config["default_reviewer"] == "nikiitin"
     assert config["max_open_prs"] == 100
-    expected = {"CI": ("ci.yml", 16), "CodeQL": ("codeql.yml", 1)}
+    expected = {"CI": ("ci.yml", 14), "CodeQL": ("codeql.yml", 1)}
     assert set(config["required_workflows"]) == set(expected)
     for display_name, (filename, count) in expected.items():
         definition = config["required_workflows"][display_name]

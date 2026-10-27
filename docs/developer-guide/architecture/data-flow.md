@@ -144,11 +144,10 @@ unselected dataset results. Preview invalidation separately tracks changes to th
 Headless replay loads the same portfolio, renders each restored plot through the selected connector,
 and exports it. A partial restore remains visible through `RestoreReport`.
 
-Local configuration imports hold a reentrant thread lock and a portable operating-system file
-lock across logical-name lookup, allocation, and publication. Parse runtimes retain an exclusive
-file lock for their lifetime; startup cleanup removes only unlocked orphan workspaces. Native
-Windows uses `msvcrt`, while Unix uses `flock`. These advisory locks coordinate cooperating
-processes on local filesystems.
+Local configuration imports hold a reentrant thread lock and a Linux `flock` lock across
+logical-name lookup, allocation, and publication. Parse runtimes retain an exclusive file lock for
+their lifetime; startup cleanup removes only unlocked orphan workspaces. These advisory locks
+coordinate cooperating processes on local filesystems.
 
 Mean and Normalize cache full retained-frame identity, including uncertainties, column labels,
 dtypes, index and semantic attributes. `core.common.content_identity.frame_signature` owns this
