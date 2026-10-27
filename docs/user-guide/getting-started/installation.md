@@ -95,10 +95,10 @@ RING-5's Matplotlib PDF export does not require LaTeX.
 ## Install Chrome for Plotly static exports
 
 <!--
-`uman~ring5.cli.install-chrome.documentation~1`
+`uman~ring5.cli.install-chrome.documentation~2`
 
 Covers:
-- req~ring5.cli.install-chrome~1
+- req~ring5.cli.install-chrome~2
 
 -->
 

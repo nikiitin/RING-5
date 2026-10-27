@@ -204,7 +204,7 @@ def test_download_checks_transfer_facts_and_reviewed_digest(
 def test_download_rejects_changed_truncated_or_unbounded_input(
     failure: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # [test->req~ring5.cli.install-chrome~1]
+    # [test->req~ring5.cli.install-chrome~2]
     payload = b"inert archive bytes"
     artifact = _artifact(payload)
     body = payload
@@ -276,7 +276,7 @@ def _install_fixture(
 def test_all_platforms_install_inert_observed_layout_and_verify_reuse(
     name: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # [test->req~ring5.cli.install-chrome~1]
+    # [test->req~ring5.cli.install-chrome~2]
     content = _zip(_inert_layout(name))
     artifact, network = _install_fixture(monkeypatch, content, name)
     cache = tmp_path / "cache with spaces" / "Zoë"
@@ -347,7 +347,7 @@ def test_archive_member_path_rejections(bad_path: str) -> None:
 def test_invalid_archive_graph_rejected_before_any_member_is_extracted(
     failure: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # [test->req~ring5.cli.install-chrome~1]
+    # [test->req~ring5.cli.install-chrome~2]
     artifact = chrome._load_manifest()["linux64"]
     root = "chrome-linux64"
     entries = [(artifact.executable, b"inert", 0o100755)]
@@ -495,7 +495,7 @@ def test_existing_unowned_or_corrupt_destination_is_never_replaced(
 def test_cli_emits_only_absolute_executable_and_preserves_browser_selection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # [test->req~ring5.cli.install-chrome~1]
+    # [test->req~ring5.cli.install-chrome~2]
     import os
 
     _install_fixture(monkeypatch, _zip(_inert_layout("linux64")))
@@ -740,3 +740,90 @@ def test_unsupported_host_fails_before_cache_or_network(
         chrome.install_chrome(cache_directory=str(cache))
     assert not cache.exists()
     network.assert_not_called()
+
+
+@pytest.fixture(params=["file", "directory", "broken"])
+def external_symlink_target(tmp_path: Path, request: pytest.FixtureRequest) -> tuple[Path, Path]:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    sentinel = outside / "sentinel"
+    sentinel.write_bytes(b"foreign sentinel bytes")
+    target = (
+        sentinel
+        if request.param == "file"
+        else outside if request.param == "directory" else outside / "absent"
+    )
+    return target, sentinel
+
+
+def test_tree_rejects_symlinks_without_following_external_targets(
+    external_symlink_target: tuple[Path, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target, sentinel = external_symlink_target
+    tree = tmp_path / "installation"
+    tree.mkdir()
+    regular = tree / "regular"
+    regular.write_bytes(b"owned regular bytes")
+    link = tree / "link"
+    link.symlink_to(target)
+    before = link.lstat()
+    original_open = Path.open
+
+    def guarded_open(path: Path, *args: Any, **kwargs: Any) -> Any:
+        assert not path.is_relative_to(link) and not path.is_relative_to(sentinel.parent)
+        return original_open(path, *args, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "open", guarded_open)
+        with pytest.raises(ValueError, match="special file"):
+            chrome._tree_digest(tree)
+    after = link.lstat()
+    assert (after.st_ino, after.st_mode, link.readlink()) == (
+        before.st_ino,
+        before.st_mode,
+        target,
+    )
+    assert sentinel.read_bytes() == b"foreign sentinel bytes"
+    assert regular.read_bytes() == b"owned regular bytes"
+
+
+def test_cached_tree_rejects_symlinks_without_following_or_replacing_files(
+    external_symlink_target: tuple[Path, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # [test->req~ring5.cli.install-chrome~2]
+    target, sentinel = external_symlink_target
+    artifact, network = _install_fixture(monkeypatch, _zip(_inert_layout("linux64")))
+    cache = tmp_path / "cache"
+    executable = chrome.install_chrome(cache_directory=str(cache))
+    destination = executable.parent.parent
+    receipt = destination / "receipt.json"
+    receipt_bytes = receipt.read_bytes()
+    link = destination / "unexpected-link"
+    link.symlink_to(target)
+    before = link.lstat()
+    original_open = Path.open
+
+    def guarded_open(path: Path, *args: Any, **kwargs: Any) -> Any:
+        assert not path.is_relative_to(link) and not path.is_relative_to(sentinel.parent)
+        return original_open(path, *args, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "open", guarded_open)
+        with pytest.raises(Ring5Error, match="special file") as failure:
+            chrome.install_chrome(cache_directory=str(cache))
+    assert isinstance(failure.value.__cause__, ValueError)
+    after = link.lstat()
+    assert (after.st_ino, after.st_mode, link.readlink()) == (
+        before.st_ino,
+        before.st_mode,
+        target,
+    )
+    assert sentinel.read_bytes() == b"foreign sentinel bytes"
+    assert receipt.read_bytes() == receipt_bytes
+    assert executable.read_bytes() == b"inert browser fixture; never execute"
+    assert list(cache.iterdir()) == [destination]
+    network.assert_called_once_with(artifact.url)

@@ -2675,14 +2675,23 @@
     {
       "id": "cli.install-chrome",
       "group": "automation",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Reviewed Chrome installation",
-      "description": "The ring5 install-chrome command shall use the packaged reviewed Stable Chrome for Testing manifest to install or verify the native artifact with bounded transfer, provider size, checksum and generation facts, project SHA-256 verification, a bounded archive graph and internal-link policy, and native exclusive cache publication. It shall preserve existing unrelated cache entries on failure, print the absolute executable path for explicit BROWSER_PATH selection, and report expected operational failures as exit code 2 without launching a browser or changing browser selection.",
+      "description": "The ring5 install-chrome command shall use the packaged reviewed Stable Chrome for Testing manifest to install or verify the native Linux artifact with bounded transfer, provider size, checksum and generation facts, project SHA-256 verification, a bounded archive graph that rejects links, and native exclusive cache publication. It shall preserve existing unrelated cache entries on failure, print the absolute executable path for explicit BROWSER_PATH selection, and report expected operational failures as exit code 2 without launching a browser or changing browser selection.",
       "tags": [
         "cli",
         "dependencies",
         "export"
+      ],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Reviewed Chrome installation",
+          "description": "The ring5 install-chrome command shall use the packaged reviewed Stable Chrome for Testing manifest to install or verify the native artifact with bounded transfer, provider size, checksum and generation facts, project SHA-256 verification, a bounded archive graph and internal-link policy, and native exclusive cache publication. It shall preserve existing unrelated cache entries on failure, print the absolute executable path for explicit BROWSER_PATH selection, and report expected operational failures as exit code 2 without launching a browser or changing browser selection.",
+          "reason": "Restricts native installation to Linux and rejects archive and installed-tree links."
+        }
       ],
       "evidence": {
         "implementation": [
@@ -2693,6 +2702,7 @@
           "tests/unit/test_chrome_install.py::test_all_platforms_install_inert_observed_layout_and_verify_reuse",
           "tests/unit/test_chrome_install.py::test_download_rejects_changed_truncated_or_unbounded_input",
           "tests/unit/test_chrome_install.py::test_invalid_archive_graph_rejected_before_any_member_is_extracted",
+          "tests/unit/test_chrome_install.py::test_cached_tree_rejects_symlinks_without_following_or_replacing_files",
           "tests/unit/test_chrome_install_review.py::test_empty_foreign_directory_created_at_native_boundary_survives_install",
           "tests/unit/test_chrome_install.py::test_cli_emits_only_absolute_executable_and_preserves_browser_selection",
           "tests/unit/test_chrome_cache_expansion.py::test_actual_unknown_user_console_is_typed_before_cache_creation"

@@ -132,7 +132,7 @@ def test_empty_foreign_directory_created_at_native_boundary_survives_install(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # [test->req~ring5.cli.install-chrome~1]
+    # [test->req~ring5.cli.install-chrome~2]
     artifact, _ = _install_fixture(monkeypatch, _zip(_inert_layout("linux64")))
     destination = tmp_path / f"{artifact.version}-{artifact.platform}-{artifact.sha256}"
     native = ctypes.CDLL(None, use_errno=True).renameat2

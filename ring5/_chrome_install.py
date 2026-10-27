@@ -275,7 +275,7 @@ def _extract(archive_path: Path, directory: Path, artifact: _Artifact) -> None:
             target = directory / path
             if stat.S_ISDIR(mode):
                 target.mkdir(parents=True, exist_ok=True)
-            elif stat.S_ISREG(mode):
+            else:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 with archive.open(info) as source, target.open("xb") as output:
                     while chunk := source.read(_CHUNK_BYTES):
@@ -284,7 +284,7 @@ def _extract(archive_path: Path, directory: Path, artifact: _Artifact) -> None:
 
 
 def _tree_digest(directory: Path) -> str:
-    """Hash names, file bytes, permissions and literal links without following links."""
+    """Hash regular files and directories, rejecting links and other special files."""
     digest = hashlib.sha256()
     total = 0
     paths = []
@@ -298,9 +298,7 @@ def _tree_digest(directory: Path) -> str:
         relative = path.relative_to(directory).as_posix()
         mode = path.lstat().st_mode
         identity: list[str | int] = [relative, stat.S_IFMT(mode), stat.S_IMODE(mode)]
-        if stat.S_ISLNK(mode):
-            identity.append(os.readlink(path))
-        elif stat.S_ISREG(mode):
+        if stat.S_ISREG(mode):
             content_hash = hashlib.sha256()
             with path.open("rb") as source:
                 while chunk := source.read(_CHUNK_BYTES):
@@ -403,7 +401,7 @@ def install_chrome(*, cache_directory: str | None = None) -> Path:
     Raises:
         Ring5Error: Unsupported platform, network, integrity, archive, cache or disk failure.
     """
-    # [impl->req~ring5.cli.install-chrome~1]
+    # [impl->req~ring5.cli.install-chrome~2]
     try:
         artifact = _load_manifest()[_host_platform()]
         if cache_directory is None:
