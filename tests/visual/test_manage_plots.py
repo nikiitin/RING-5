@@ -81,8 +81,6 @@ def _create_and_finalize_bar(
 
     # Navigate away and back to force a full page rerun
     # so the render fragment sees processed_data.
-    # Do NOT call select_plot() — the plot is auto-selected from
-    # session_state, and re-clicking a selected pill would deselect it.
     mp.navigate_to("Data Source")
     mp.navigate()
 
@@ -158,8 +156,6 @@ class TestManagePlotsWorkflow:
         mp.finalize_pipeline()
 
         # Navigate away and back to force a full page rerun.
-        # Do NOT call select_plot() — the pill is auto-selected from
-        # session_state; re-clicking toggles it off.
         mp.navigate_to("Data Source")
         mp.navigate()
 
@@ -208,20 +204,15 @@ class TestManagePlotsWorkflow:
         mp.create_plot("Control Test", "line")
         mp.assert_plot_pill_visible("Control Test")
 
-        # The newly created plot is auto-selected (it is the first/only
-        # plot on this worker).  Do NOT call select_plot() — clicking an
-        # already-selected pill toggles it off and confuses session state.
-
-        # Rename — the pill updates one rerun behind because the selector
-        # renders before the controller sets plot.name.  After rename,
-        # navigate away and back to force a fresh render.
         mp.rename_plot("Renamed Plot")
-        mp.navigate_to("Data Source")
-        mp.navigate()
         mp.assert_plot_pill_visible("Renamed Plot")
+        expect(mp.get_plot_pill("Renamed Plot")).to_be_checked()
 
         # Duplicate
         plot_count = mp.plot_selector_pills.get_by_role("radio").count()
+        first_surviving_name = (
+            mp.plot_selector_pills.get_by_role("radio").all_text_contents()[0].strip()
+        )
         mp.duplicate_plot()
         mp.page.wait_for_timeout(1000)
         mp.wait_for_streamlit()
@@ -237,6 +228,7 @@ class TestManagePlotsWorkflow:
         mp.assert_plot_pill_not_visible("Renamed Plot (copy)")
         mp.assert_plot_pill_visible("Renamed Plot")
         expect(mp.plot_selector_pills.get_by_role("radio")).to_have_count(plot_count)
+        expect(mp.get_plot_pill(first_surviving_name)).to_be_checked()
 
     # -- Test: Multiple Plot Types ----------------------------------
 

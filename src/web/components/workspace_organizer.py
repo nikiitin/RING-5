@@ -154,7 +154,6 @@ class WorkspaceOrganizerComponent:
             if not any(plot.plot_id == plot_id for plot in api.state_manager.get_plots()):
                 raise KeyError(f"Plot {plot_id} is no longer available.")
             api.state_manager.set_current_plot_id(plot_id)
-            st.session_state.pop("plot_selector", None)
             UIStateManager().nav.set_current_page("Manage Plots")
             return
         if artifact.kind == "portfolio":

@@ -292,9 +292,7 @@ class TestFullWorkflow:
         mp.assert_pipeline_step_count(1)
         mp.finalize_pipeline()
 
-        # Navigate away and back — do NOT call select_plot() because
-        # the plot is auto-selected from session_state and re-clicking
-        # the pill would deselect it.
+        # Refresh the full-page view so it sees the finalized pipeline.
         mp.navigate_to("Data Source")
         mp.navigate()
 

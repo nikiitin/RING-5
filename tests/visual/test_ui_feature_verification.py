@@ -168,6 +168,8 @@ class TestPlotFeatures:
 
     # -- Summary metrics --
 
+    # The first case also owns the shared scan, configuration, parse and plot setup.
+    @pytest.mark.timeout(600)
     @pytest.mark.order(1)
     def test_view_current_data_removed(self, shared_page: Page) -> None:
         """The retired View Current Data expander is absent on every page."""

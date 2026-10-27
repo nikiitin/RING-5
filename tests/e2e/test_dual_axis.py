@@ -28,8 +28,7 @@ def dual_axis_page(tier1_page: Page) -> Page:
     Mirrors the ``_create_and_finalize_bar`` pattern: create the plot, add a
     Sort shaper (keeps every column so both numeric Y candidates survive),
     finalize, then navigate away and back to force a full rerun so the render
-    fragment sees ``processed_data``. The freshly created plot stays selected
-    in session state, so tests must NOT re-click its pill (that would deselect).
+    fragment sees ``processed_data``. Creation leaves the new plot selected.
     """
     mp = ManagePlotsPage(tier1_page)
     mp.navigate()

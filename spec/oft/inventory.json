@@ -159,7 +159,8 @@
         "implementation": ["app.py::run_app", "src/core/state/repository_state_manager.py::RepositoryStateManager.clear_data"],
         "tests": [
           "tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state",
-          "tests/ui/test_plot_widget_ownership.py::test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners"
+          "tests/ui/test_plot_widget_ownership.py::test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners",
+          "tests/ui/test_plot_selector_identity.py::test_workspace_replacement_reuses_id_and_pushes_its_new_label"
         ],
         "documentation": ["docs/user-guide/getting-started/concepts.md#core-concepts"]
       }
@@ -1166,7 +1167,10 @@
         ],
         "tests": [
           "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_create_plot",
-          "tests/ui/test_e2e_manage_plots.py::TestPlotCreation.test_create_multiple_plots_unique_ids"
+          "tests/ui/test_e2e_manage_plots.py::TestPlotCreation.test_create_multiple_plots_unique_ids",
+          "tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection",
+          "tests/ui/test_plot_selector_identity.py::test_user_selection_retires_only_old_key_before_workspace_activation",
+          "tests/ui/test_plot_selector_identity.py::test_duplicate_labels_and_renaming_preserve_integer_identity"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#create-a-plot"
@@ -1186,7 +1190,9 @@
           "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
         ],
         "tests": [
-          "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_rename_updates_plot_name"
+          "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_rename_updates_plot_name",
+          "tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection",
+          "tests/ui/test_plot_selector_identity.py::test_duplicate_labels_and_renaming_preserve_integer_identity"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#create-a-plot"
@@ -1210,7 +1216,8 @@
           "tests/ui/test_duplicate_plot_style_identity.py::test_duplicate_colors_use_the_new_strategy_instance_id_and_preserve_source_custom_state",
           "tests/integration/test_native_artifact_lifecycle.py::test_duplicate_detaches_native_state_before_copy_and_preserves_private_domain_values",
           "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_duplicate_plot",
-          "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy"
+          "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy",
+          "tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#create-a-plot"
@@ -1237,7 +1244,8 @@
           "tests/unit/test_plot_retirement_transactions.py::test_retirement_callbacks_can_wait_for_foreign_source_and_slot_publication",
           "tests/integration/test_native_artifact_lifecycle.py::test_real_native_retirement_cannot_clear_a_new_publication_or_readmitted_plot",
           "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_delete_plot",
-          "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_delete_calls_lifecycle_and_cleanup"
+          "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_delete_calls_lifecycle_and_cleanup",
+          "tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#create-a-plot"

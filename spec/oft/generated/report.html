@@ -620,8 +620,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 
 </style>
     <title>RING-5 feature coverage · OpenFastTrace</title>
-    <meta name="ring5-inventory-sha256" content="8590d024751d02ceceb29d7da33391ad8426d718e383e94ea6a5ec788c53fd9c">
-  <meta name="ring5-evidence-sha256" content="72cc2be8dc30b465d3c0be460d6d467ef1356aca5c2b891ab6fca00de28571f5">
+    <meta name="ring5-inventory-sha256" content="e4eaccdb301206d7a6df6129c8a52125c3738eb8782b1aeb04c2f13c91fcc7d1">
+  <meta name="ring5-evidence-sha256" content="7437809b3ebb0f213afeb4e142a33b40f9f1a525f9d056f7f1273dd4ae7c520e">
 </head>
   <body>
 
@@ -887,9 +887,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </div>
   </div>
   <p>Users shall be able to clear loaded data, plots, and session state from the sidebar without affecting other browser sessions.</p>
-  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
+  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/getting-started/concepts.md#L13"><code>docs/user-guide/getting-started/concepts.md#core-concepts</code><b>open source ↗</b></a><span>line 13 · <a href="#uman~ring5.workspace.reset.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../app.py#L145"><code>app.py::run_app</code><b>open source ↗</b></a><span>line 145 · <a href="#impl~ring5.workspace.reset-2646460485~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/state/repository_state_manager.py#L252"><code>src/core/state/repository_state_manager.py::RepositoryStateManager.clear_data</code><b>open source ↗</b></a><span>line 252 · <a href="#impl~ring5.workspace.reset-1749461767~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/ui/test_e2e_data_loaded.py#L173"><code>tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state</code><b>open source ↗</b></a><span>line 173 · <a href="#test~ring5.workspace.reset-3496616399~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_widget_ownership.py#L360"><code>tests/ui/test_plot_widget_ownership.py::test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners</code><b>open source ↗</b></a><span>line 360 · <a href="#test~ring5.workspace.reset-4158742637~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 6 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/getting-started/concepts.md#L13"><code>docs/user-guide/getting-started/concepts.md#core-concepts</code><b>open source ↗</b></a><span>line 13 · <a href="#uman~ring5.workspace.reset.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../app.py#L145"><code>app.py::run_app</code><b>open source ↗</b></a><span>line 145 · <a href="#impl~ring5.workspace.reset-2646460485~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/state/repository_state_manager.py#L252"><code>src/core/state/repository_state_manager.py::RepositoryStateManager.clear_data</code><b>open source ↗</b></a><span>line 252 · <a href="#impl~ring5.workspace.reset-1749461767~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/ui/test_e2e_data_loaded.py#L173"><code>tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state</code><b>open source ↗</b></a><span>line 173 · <a href="#test~ring5.workspace.reset-3496616399~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_widget_ownership.py#L360"><code>tests/ui/test_plot_widget_ownership.py::test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners</code><b>open source ↗</b></a><span>line 360 · <a href="#test~ring5.workspace.reset-4158742637~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_selector_identity.py#L213"><code>tests/ui/test_plot_selector_identity.py::test_workspace_replacement_reuses_id_and_pushes_its_new_label</code><b>open source ↗</b></a><span>line 213 · <a href="#test~ring5.workspace.reset-963283400~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">reset</span><span class="human-tag">state</span><span class="human-tag">web</span></div></div>
     <a href="#req~ring5.workspace.reset~1">View canonical OFT trace ↓</a>
@@ -2647,9 +2647,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </div>
   </div>
   <p>Users shall create named plots of registered types and select among all plots in the current workspace.</p>
-  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
+  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 6 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L23"><code>docs/user-guide/workflows/plotting.md#create-a-plot</code><b>open source ↗</b></a><span>line 23 · <a href="#uman~ring5.plots.create-multiple.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/controllers/plot/creation_controller.py#L73"><code>src/web/controllers/plot/creation_controller.py::PlotCreationController.render_create_section</code><b>open source ↗</b></a><span>line 73 · <a href="#impl~ring5.plots.create-multiple-1549666097~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/controllers/plot/creation_controller.py#L96"><code>src/web/controllers/plot/creation_controller.py::PlotCreationController.render_selector</code><b>open source ↗</b></a><span>line 96 · <a href="#impl~ring5.plots.create-multiple-2721711497~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_service.py#L27"><code>src/web/pages/ui/plotting/plot_service.py::PlotService.create_plot</code><b>open source ↗</b></a><span>line 27 · <a href="#impl~ring5.plots.create-multiple-2512839509~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_plot_lifecycle.py#L14"><code>tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_create_plot</code><b>open source ↗</b></a><span>line 14 · <a href="#test~ring5.plots.create-multiple-3573467459~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_e2e_manage_plots.py#L68"><code>tests/ui/test_e2e_manage_plots.py::TestPlotCreation.test_create_multiple_plots_unique_ids</code><b>open source ↗</b></a><span>line 68 · <a href="#test~ring5.plots.create-multiple-3364719726~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 9 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L23"><code>docs/user-guide/workflows/plotting.md#create-a-plot</code><b>open source ↗</b></a><span>line 23 · <a href="#uman~ring5.plots.create-multiple.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/controllers/plot/creation_controller.py#L73"><code>src/web/controllers/plot/creation_controller.py::PlotCreationController.render_create_section</code><b>open source ↗</b></a><span>line 73 · <a href="#impl~ring5.plots.create-multiple-1549666097~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/controllers/plot/creation_controller.py#L95"><code>src/web/controllers/plot/creation_controller.py::PlotCreationController.render_selector</code><b>open source ↗</b></a><span>line 95 · <a href="#impl~ring5.plots.create-multiple-703150992~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_service.py#L27"><code>src/web/pages/ui/plotting/plot_service.py::PlotService.create_plot</code><b>open source ↗</b></a><span>line 27 · <a href="#impl~ring5.plots.create-multiple-2512839509~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_plot_lifecycle.py#L14"><code>tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_create_plot</code><b>open source ↗</b></a><span>line 14 · <a href="#test~ring5.plots.create-multiple-3573467459~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_e2e_manage_plots.py#L68"><code>tests/ui/test_e2e_manage_plots.py::TestPlotCreation.test_create_multiple_plots_unique_ids</code><b>open source ↗</b></a><span>line 68 · <a href="#test~ring5.plots.create-multiple-3364719726~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_selector_identity.py#L78"><code>tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection</code><b>open source ↗</b></a><span>line 78 · <a href="#test~ring5.plots.create-multiple-3175233013~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_selector_identity.py#L136"><code>tests/ui/test_plot_selector_identity.py::test_user_selection_retires_only_old_key_before_workspace_activation</code><b>open source ↗</b></a><span>line 136 · <a href="#test~ring5.plots.create-multiple-4196431940~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_selector_identity.py#L176"><code>tests/ui/test_plot_selector_identity.py::test_duplicate_labels_and_renaming_preserve_integer_identity</code><b>open source ↗</b></a><span>line 176 · <a href="#test~ring5.plots.create-multiple-3262128339~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">lifecycle</span><span class="human-tag">plots</span><span class="human-tag">web</span></div></div>
     <a href="#req~ring5.plots.create-multiple~1">View canonical OFT trace ↓</a>
@@ -2667,9 +2667,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </div>
   </div>
   <p>Users shall rename an existing plot without changing its configuration, pipeline, or data.</p>
-  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Test</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
+  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Test</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 3 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L38"><code>docs/user-guide/workflows/plotting.md#create-a-plot</code><b>open source ↗</b></a><span>line 38 · <a href="#uman~ring5.plots.rename.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/controllers/plot/creation_controller.py#L151"><code>src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls</code><b>open source ↗</b></a><span>line 151 · <a href="#impl~ring5.plots.rename-2805096147~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/ui_logic/test_creation_controller.py#L235"><code>tests/ui_logic/test_creation_controller.py::TestRenderControls.test_rename_updates_plot_name</code><b>open source ↗</b></a><span>line 235 · <a href="#test~ring5.plots.rename-2748047054~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L38"><code>docs/user-guide/workflows/plotting.md#create-a-plot</code><b>open source ↗</b></a><span>line 38 · <a href="#uman~ring5.plots.rename.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/controllers/plot/creation_controller.py#L144"><code>src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls</code><b>open source ↗</b></a><span>line 144 · <a href="#impl~ring5.plots.rename-70743515~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/ui_logic/test_creation_controller.py#L246"><code>tests/ui_logic/test_creation_controller.py::TestRenderControls.test_rename_updates_plot_name</code><b>open source ↗</b></a><span>line 246 · <a href="#test~ring5.plots.rename-2202629552~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_selector_identity.py#L79"><code>tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection</code><b>open source ↗</b></a><span>line 79 · <a href="#test~ring5.plots.rename-462655804~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_selector_identity.py#L177"><code>tests/ui/test_plot_selector_identity.py::test_duplicate_labels_and_renaming_preserve_integer_identity</code><b>open source ↗</b></a><span>line 177 · <a href="#test~ring5.plots.rename-1047935269~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">lifecycle</span><span class="human-tag">plots</span></div></div>
     <a href="#req~ring5.plots.rename~1">View canonical OFT trace ↓</a>
@@ -2687,9 +2687,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </div>
   </div>
   <p>Users shall duplicate a plot into independent copied configuration, pipeline, and processed data state.</p>
-  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>4 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
+  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L33"><code>docs/user-guide/workflows/plotting.md#create-a-plot</code><b>open source ↗</b></a><span>line 33 · <a href="#uman~ring5.plots.duplicate.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_service.py#L51"><code>src/web/pages/ui/plotting/plot_service.py::PlotService.duplicate_plot</code><b>open source ↗</b></a><span>line 51 · <a href="#impl~ring5.plots.duplicate-2987246100~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/controllers/plot/creation_controller.py#L150"><code>src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls</code><b>open source ↗</b></a><span>line 150 · <a href="#impl~ring5.plots.duplicate-2745080619~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/ui/test_duplicate_plot_style_identity.py#L45"><code>tests/ui/test_duplicate_plot_style_identity.py::test_duplicate_colors_use_the_new_strategy_instance_id_and_preserve_source_custom_state</code><b>open source ↗</b></a><span>line 45 · <a href="#test~ring5.plots.duplicate-635175548~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_native_artifact_lifecycle.py#L238"><code>tests/integration/test_native_artifact_lifecycle.py::test_duplicate_detaches_native_state_before_copy_and_preserves_private_domain_values</code><b>open source ↗</b></a><span>line 238 · <a href="#test~ring5.plots.duplicate-4222040804~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_plot_lifecycle.py#L28"><code>tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_duplicate_plot</code><b>open source ↗</b></a><span>line 28 · <a href="#test~ring5.plots.duplicate-2133927174~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_controller_presenter.py#L346"><code>tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy</code><b>open source ↗</b></a><span>line 346 · <a href="#test~ring5.plots.duplicate-1318526453~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 8 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L33"><code>docs/user-guide/workflows/plotting.md#create-a-plot</code><b>open source ↗</b></a><span>line 33 · <a href="#uman~ring5.plots.duplicate.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_service.py#L51"><code>src/web/pages/ui/plotting/plot_service.py::PlotService.duplicate_plot</code><b>open source ↗</b></a><span>line 51 · <a href="#impl~ring5.plots.duplicate-2987246100~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/controllers/plot/creation_controller.py#L143"><code>src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls</code><b>open source ↗</b></a><span>line 143 · <a href="#impl~ring5.plots.duplicate-989205327~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/ui/test_duplicate_plot_style_identity.py#L45"><code>tests/ui/test_duplicate_plot_style_identity.py::test_duplicate_colors_use_the_new_strategy_instance_id_and_preserve_source_custom_state</code><b>open source ↗</b></a><span>line 45 · <a href="#test~ring5.plots.duplicate-635175548~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_native_artifact_lifecycle.py#L238"><code>tests/integration/test_native_artifact_lifecycle.py::test_duplicate_detaches_native_state_before_copy_and_preserves_private_domain_values</code><b>open source ↗</b></a><span>line 238 · <a href="#test~ring5.plots.duplicate-4222040804~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_plot_lifecycle.py#L28"><code>tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_duplicate_plot</code><b>open source ↗</b></a><span>line 28 · <a href="#test~ring5.plots.duplicate-2133927174~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_controller_presenter.py#L346"><code>tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy</code><b>open source ↗</b></a><span>line 346 · <a href="#test~ring5.plots.duplicate-1318526453~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_selector_identity.py#L80"><code>tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection</code><b>open source ↗</b></a><span>line 80 · <a href="#test~ring5.plots.duplicate-3474663022~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">copy</span><span class="human-tag">lifecycle</span><span class="human-tag">plots</span></div></div>
     <a href="#req~ring5.plots.duplicate~1">View canonical OFT trace ↓</a>
@@ -2707,9 +2707,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </div>
   </div>
   <p>Users shall remove a plot and its derived state without corrupting the remaining workspace plots.</p>
-  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>4 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
+  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>4 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>6 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 10 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L28"><code>docs/user-guide/workflows/plotting.md#create-a-plot</code><b>open source ↗</b></a><span>line 28 · <a href="#uman~ring5.plots.delete.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L115"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.invalidate_figure</code><b>open source ↗</b></a><span>line 115 · <a href="#impl~ring5.plots.delete-1122497660~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/state/repositories/plot_repository.py#L72"><code>src/core/state/repositories/plot_repository.py::PlotRepository.removed_bindings</code><b>open source ↗</b></a><span>line 72 · <a href="#impl~ring5.plots.delete-226239747~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_service.py#L39"><code>src/web/pages/ui/plotting/plot_service.py::PlotService.delete_plot</code><b>open source ↗</b></a><span>line 39 · <a href="#impl~ring5.plots.delete-250980568~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/controllers/plot/creation_controller.py#L149"><code>src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls</code><b>open source ↗</b></a><span>line 149 · <a href="#impl~ring5.plots.delete-3004845916~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_native_artifact_lifecycle.py#L157"><code>tests/integration/test_native_artifact_lifecycle.py::test_plot_retirement_is_identity_scoped_and_borrowed_figures_stay_exportable</code><b>open source ↗</b></a><span>line 157 · <a href="#test~ring5.plots.delete-2178221857~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_plot_retirement_transactions.py#L51"><code>tests/unit/test_plot_retirement_transactions.py::test_retirement_callbacks_can_wait_for_foreign_source_and_slot_publication</code><b>open source ↗</b></a><span>line 51 · <a href="#test~ring5.plots.delete-4169783984~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_native_artifact_lifecycle.py#L410"><code>tests/integration/test_native_artifact_lifecycle.py::test_real_native_retirement_cannot_clear_a_new_publication_or_readmitted_plot</code><b>open source ↗</b></a><span>line 410 · <a href="#test~ring5.plots.delete-1060445739~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_plot_lifecycle.py#L59"><code>tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_delete_plot</code><b>open source ↗</b></a><span>line 59 · <a href="#test~ring5.plots.delete-2962741233~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui_logic/test_creation_controller.py#L266"><code>tests/ui_logic/test_creation_controller.py::TestRenderControls.test_delete_calls_lifecycle_and_cleanup</code><b>open source ↗</b></a><span>line 266 · <a href="#test~ring5.plots.delete-1910268992~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 11 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L28"><code>docs/user-guide/workflows/plotting.md#create-a-plot</code><b>open source ↗</b></a><span>line 28 · <a href="#uman~ring5.plots.delete.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L115"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.invalidate_figure</code><b>open source ↗</b></a><span>line 115 · <a href="#impl~ring5.plots.delete-1122497660~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/state/repositories/plot_repository.py#L72"><code>src/core/state/repositories/plot_repository.py::PlotRepository.removed_bindings</code><b>open source ↗</b></a><span>line 72 · <a href="#impl~ring5.plots.delete-226239747~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_service.py#L39"><code>src/web/pages/ui/plotting/plot_service.py::PlotService.delete_plot</code><b>open source ↗</b></a><span>line 39 · <a href="#impl~ring5.plots.delete-250980568~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/controllers/plot/creation_controller.py#L142"><code>src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls</code><b>open source ↗</b></a><span>line 142 · <a href="#impl~ring5.plots.delete-342134552~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_native_artifact_lifecycle.py#L157"><code>tests/integration/test_native_artifact_lifecycle.py::test_plot_retirement_is_identity_scoped_and_borrowed_figures_stay_exportable</code><b>open source ↗</b></a><span>line 157 · <a href="#test~ring5.plots.delete-2178221857~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_plot_retirement_transactions.py#L51"><code>tests/unit/test_plot_retirement_transactions.py::test_retirement_callbacks_can_wait_for_foreign_source_and_slot_publication</code><b>open source ↗</b></a><span>line 51 · <a href="#test~ring5.plots.delete-4169783984~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_native_artifact_lifecycle.py#L410"><code>tests/integration/test_native_artifact_lifecycle.py::test_real_native_retirement_cannot_clear_a_new_publication_or_readmitted_plot</code><b>open source ↗</b></a><span>line 410 · <a href="#test~ring5.plots.delete-1060445739~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_plot_lifecycle.py#L59"><code>tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_delete_plot</code><b>open source ↗</b></a><span>line 59 · <a href="#test~ring5.plots.delete-2962741233~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui_logic/test_creation_controller.py#L279"><code>tests/ui_logic/test_creation_controller.py::TestRenderControls.test_delete_calls_lifecycle_and_cleanup</code><b>open source ↗</b></a><span>line 279 · <a href="#test~ring5.plots.delete-2461673883~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_selector_identity.py#L81"><code>tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection</code><b>open source ↗</b></a><span>line 81 · <a href="#test~ring5.plots.delete-1902119934~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">delete</span><span class="human-tag">lifecycle</span><span class="human-tag">plots</span></div></div>
     <a href="#req~ring5.plots.delete~1">View canonical OFT trace ↓</a>
@@ -3545,7 +3545,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Applicable plots shall expose right-axis mappings, range, title, dot or bar mode, marker and line styling, per-group lines, and unified or separate legends.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>6 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>8 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 <details class="human-history"><summary>Show 1 history records</summary><ol><li><div><span class="human-history-type evidence">Evidence only</span><code>Revision 1</code></div><p>Bind active settings-pill controls and real widget-to-renderer regressions.</p></li></ol></details>
-  <details class="human-evidence"><summary>Show 15 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L99"><code>docs/user-guide/reference/plot-types.md#dual-axis-controls</code><b>open source ↗</b></a><span>line 99 · <a href="#uman~ring5.figure.dual-axis-controls.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/settings/legend_settings.py#L94"><code>src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent.render</code><b>open source ↗</b></a><span>line 94 · <a href="#impl~ring5.figure.dual-axis-controls-1930235119~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/plotting/config/dual_axis_settings.py#L23"><code>src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings</code><b>open source ↗</b></a><span>line 23 · <a href="#impl~ring5.figure.dual-axis-controls-2761452492~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/plotting/config/dual_axis_config.py#L27"><code>src/web/components/plotting/config/dual_axis_config.py::_sync_auto_labels</code><b>open source ↗</b></a><span>line 27 · <a href="#impl~ring5.figure.dual-axis-controls-881200021~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/config_builder.py#L177"><code>src/web/rendering/config_builder.py::ConfigSpecBuilder.from_config</code><b>open source ↗</b></a><span>line 177 · <a href="#impl~ring5.figure.dual-axis-controls-3890839216~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py#L65"><code>src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces</code><b>open source ↗</b></a><span>line 65 · <a href="#impl~ring5.figure.dual-axis-controls-3767471982~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py#L304"><code>src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces</code><b>open source ↗</b></a><span>line 304 · <a href="#impl~ring5.figure.dual-axis-controls-4278575551~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_prepared_native_rendering.py#L82"><code>tests/integration/test_prepared_native_rendering.py::test_native_routes_prepare_once_and_preserve_axis_roles</code><b>open source ↗</b></a><span>line 82 · <a href="#test~ring5.figure.dual-axis-controls-2092321454~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_dual_axis_bar_dot_plot.py#L88"><code>tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure</code><b>open source ↗</b></a><span>line 88 · <a href="#test~ring5.figure.dual-axis-controls-1596416244~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_dual_axis_bar_dot_plot.py#L332"><code>tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization</code><b>open source ↗</b></a><span>line 332 · <a href="#test~ring5.figure.dual-axis-controls-4132480972~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_grouped_dual_config.py#L42"><code>tests/unit/test_grouped_dual_config.py::TestDualAxisRenderConfigUI.test_generated_labels_follow_explicit_axis_changes</code><b>open source ↗</b></a><span>line 42 · <a href="#test~ring5.figure.dual-axis-controls-4053630891~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/core/visualization/test_config_spec_builder.py#L115"><code>tests/unit/core/visualization/test_config_spec_builder.py::TestConfigSpecAxes.test_dual_axis_maps_right_label_range_and_grid</code><b>open source ↗</b></a><span>line 115 · <a href="#test~ring5.figure.dual-axis-controls-1262543290~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_grouped_stacked_dual_axis.py#L43"><code>tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure</code><b>open source ↗</b></a><span>line 43 · <a href="#test~ring5.figure.dual-axis-controls-138724461~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_dual_axis.py#L56"><code>tests/e2e/test_dual_axis.py::TestDualAxisRendering</code><b>open source ↗</b></a><span>line 56 · <a href="#test~ring5.figure.dual-axis-controls-2507464430~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_settings_contracts.py#L250"><code>tests/ui/test_plot_settings_contracts.py::test_right_axis_fonts_trace_controls_and_legend_tiers_use_active_pills</code><b>open source ↗</b></a><span>line 250 · <a href="#test~ring5.figure.dual-axis-controls-2212256183~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 15 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L99"><code>docs/user-guide/reference/plot-types.md#dual-axis-controls</code><b>open source ↗</b></a><span>line 99 · <a href="#uman~ring5.figure.dual-axis-controls.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/settings/legend_settings.py#L94"><code>src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent.render</code><b>open source ↗</b></a><span>line 94 · <a href="#impl~ring5.figure.dual-axis-controls-1930235119~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/plotting/config/dual_axis_settings.py#L23"><code>src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings</code><b>open source ↗</b></a><span>line 23 · <a href="#impl~ring5.figure.dual-axis-controls-2761452492~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/plotting/config/dual_axis_config.py#L27"><code>src/web/components/plotting/config/dual_axis_config.py::_sync_auto_labels</code><b>open source ↗</b></a><span>line 27 · <a href="#impl~ring5.figure.dual-axis-controls-881200021~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/config_builder.py#L177"><code>src/web/rendering/config_builder.py::ConfigSpecBuilder.from_config</code><b>open source ↗</b></a><span>line 177 · <a href="#impl~ring5.figure.dual-axis-controls-3890839216~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py#L65"><code>src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces</code><b>open source ↗</b></a><span>line 65 · <a href="#impl~ring5.figure.dual-axis-controls-3767471982~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py#L304"><code>src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces</code><b>open source ↗</b></a><span>line 304 · <a href="#impl~ring5.figure.dual-axis-controls-4278575551~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_prepared_native_rendering.py#L82"><code>tests/integration/test_prepared_native_rendering.py::test_native_routes_prepare_once_and_preserve_axis_roles</code><b>open source ↗</b></a><span>line 82 · <a href="#test~ring5.figure.dual-axis-controls-2092321454~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_dual_axis_bar_dot_plot.py#L88"><code>tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure</code><b>open source ↗</b></a><span>line 88 · <a href="#test~ring5.figure.dual-axis-controls-1596416244~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_dual_axis_bar_dot_plot.py#L332"><code>tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization</code><b>open source ↗</b></a><span>line 332 · <a href="#test~ring5.figure.dual-axis-controls-4132480972~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_grouped_dual_config.py#L42"><code>tests/unit/test_grouped_dual_config.py::TestDualAxisRenderConfigUI.test_generated_labels_follow_explicit_axis_changes</code><b>open source ↗</b></a><span>line 42 · <a href="#test~ring5.figure.dual-axis-controls-4053630891~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/core/visualization/test_config_spec_builder.py#L115"><code>tests/unit/core/visualization/test_config_spec_builder.py::TestConfigSpecAxes.test_dual_axis_maps_right_label_range_and_grid</code><b>open source ↗</b></a><span>line 115 · <a href="#test~ring5.figure.dual-axis-controls-1262543290~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_grouped_stacked_dual_axis.py#L43"><code>tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure</code><b>open source ↗</b></a><span>line 43 · <a href="#test~ring5.figure.dual-axis-controls-138724461~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_dual_axis.py#L55"><code>tests/e2e/test_dual_axis.py::TestDualAxisRendering</code><b>open source ↗</b></a><span>line 55 · <a href="#test~ring5.figure.dual-axis-controls-1190117909~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui/test_plot_settings_contracts.py#L250"><code>tests/ui/test_plot_settings_contracts.py::test_right_axis_fonts_trace_controls_and_legend_tiers_use_active_pills</code><b>open source ↗</b></a><span>line 250 · <a href="#test~ring5.figure.dual-axis-controls-2212256183~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">dual_axis</span><span class="human-tag">settings</span><span class="human-tag">styling</span></div></div>
     <a href="#req~ring5.figure.dual-axis-controls~1">View canonical OFT trace ↓</a>
@@ -3565,7 +3565,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Grouped bar-and-dot plots shall optionally align each right-axis dot with its corresponding bar and shall connect dots either across categories by series or only within each category group.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L107"><code>docs/user-guide/reference/plot-types.md#dual-axis-controls</code><b>open source ↗</b></a><span>line 107 · <a href="#uman~ring5.figure.dual-axis-dot-layout.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/config/dual_axis_config.py#L56"><code>src/web/components/plotting/config/dual_axis_config.py::render</code><b>open source ↗</b></a><span>line 56 · <a href="#impl~ring5.figure.dual-axis-dot-layout-4155941123~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py#L66"><code>src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces</code><b>open source ↗</b></a><span>line 66 · <a href="#impl~ring5.figure.dual-axis-dot-layout-3716365422~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_dual_axis_bar_dot_plot.py#L235"><code>tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotAlignedLayout</code><b>open source ↗</b></a><span>line 235 · <a href="#test~ring5.figure.dual-axis-dot-layout-3356518397~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_dual_axis.py#L57"><code>tests/e2e/test_dual_axis.py::TestDualAxisRendering</code><b>open source ↗</b></a><span>line 57 · <a href="#test~ring5.figure.dual-axis-dot-layout-478811295~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L107"><code>docs/user-guide/reference/plot-types.md#dual-axis-controls</code><b>open source ↗</b></a><span>line 107 · <a href="#uman~ring5.figure.dual-axis-dot-layout.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/config/dual_axis_config.py#L56"><code>src/web/components/plotting/config/dual_axis_config.py::render</code><b>open source ↗</b></a><span>line 56 · <a href="#impl~ring5.figure.dual-axis-dot-layout-4155941123~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py#L66"><code>src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces</code><b>open source ↗</b></a><span>line 66 · <a href="#impl~ring5.figure.dual-axis-dot-layout-3716365422~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_dual_axis_bar_dot_plot.py#L235"><code>tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotAlignedLayout</code><b>open source ↗</b></a><span>line 235 · <a href="#test~ring5.figure.dual-axis-dot-layout-3356518397~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_dual_axis.py#L56"><code>tests/e2e/test_dual_axis.py::TestDualAxisRendering</code><b>open source ↗</b></a><span>line 56 · <a href="#test~ring5.figure.dual-axis-dot-layout-4103963710~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">dual_axis</span><span class="human-tag">grouping</span><span class="human-tag">layout</span></div></div>
     <a href="#req~ring5.figure.dual-axis-dot-layout~1">View canonical OFT trace ↓</a>
@@ -4133,7 +4133,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Plotly&#x27;s mode-bar image control shall support one-, two-, or three-times export scale and receive the selected scale together with the configured preview dimensions.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>4 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/rendering-export.md#L74"><code>docs/user-guide/reference/rendering-export.md#plotly-raster-scale</code><b>open source ↗</b></a><span>line 74 · <a href="#uman~ring5.export.plotly-scale.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/settings/advanced_settings.py#L91"><code>src/web/components/plotting/settings/advanced_settings.py::AdvancedSettingsComponent.render</code><b>open source ↗</b></a><span>line 91 · <a href="#impl~ring5.export.plotly-scale-634253147~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/common/chart_display.py#L101"><code>src/web/components/common/chart_display.py::ChartDisplayComponent.render_plotly_chart</code><b>open source ↗</b></a><span>line 101 · <a href="#impl~ring5.export.plotly-scale-2866211131~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_plot_presenters.py#L513"><code>tests/unit/test_plot_presenters.py::test_modebar_uses_actual_multi_panel_native_dimensions_with_the_published_export_scale</code><b>open source ↗</b></a><span>line 513 · <a href="#test~ring5.export.plotly-scale-1562343181~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_download_section_ui.py#L293"><code>tests/unit/test_download_section_ui.py::test_deferred_download_uses_the_same_published_figure_source_rows_and_scale</code><b>open source ↗</b></a><span>line 293 · <a href="#test~ring5.export.plotly-scale-161117232~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui_unit/test_advanced_settings.py#L113"><code>tests/ui_unit/test_advanced_settings.py::TestAdvancedSettingsComponent.test_export_scale_caption</code><b>open source ↗</b></a><span>line 113 · <a href="#test~ring5.export.plotly-scale-1359723475~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_plot_presenters.py#L272"><code>tests/unit/test_plot_presenters.py::TestChartDisplayComponent.test_plotly_modebar_uses_configured_export_scale</code><b>open source ↗</b></a><span>line 272 · <a href="#test~ring5.export.plotly-scale-3014225137~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/rendering-export.md#L74"><code>docs/user-guide/reference/rendering-export.md#plotly-raster-scale</code><b>open source ↗</b></a><span>line 74 · <a href="#uman~ring5.export.plotly-scale.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/settings/advanced_settings.py#L91"><code>src/web/components/plotting/settings/advanced_settings.py::AdvancedSettingsComponent.render</code><b>open source ↗</b></a><span>line 91 · <a href="#impl~ring5.export.plotly-scale-634253147~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/common/chart_display.py#L101"><code>src/web/components/common/chart_display.py::ChartDisplayComponent.render_plotly_chart</code><b>open source ↗</b></a><span>line 101 · <a href="#impl~ring5.export.plotly-scale-2866211131~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_plot_presenters.py#L512"><code>tests/unit/test_plot_presenters.py::test_modebar_uses_actual_multi_panel_native_dimensions_with_the_published_export_scale</code><b>open source ↗</b></a><span>line 512 · <a href="#test~ring5.export.plotly-scale-1810753534~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_download_section_ui.py#L293"><code>tests/unit/test_download_section_ui.py::test_deferred_download_uses_the_same_published_figure_source_rows_and_scale</code><b>open source ↗</b></a><span>line 293 · <a href="#test~ring5.export.plotly-scale-161117232~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui_unit/test_advanced_settings.py#L113"><code>tests/ui_unit/test_advanced_settings.py::TestAdvancedSettingsComponent.test_export_scale_caption</code><b>open source ↗</b></a><span>line 113 · <a href="#test~ring5.export.plotly-scale-1359723475~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_plot_presenters.py#L271"><code>tests/unit/test_plot_presenters.py::TestChartDisplayComponent.test_plotly_modebar_uses_configured_export_scale</code><b>open source ↗</b></a><span>line 271 · <a href="#test~ring5.export.plotly-scale-3904822756~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">export</span><span class="human-tag">plotly</span><span class="human-tag">scale</span></div></div>
     <a href="#req~ring5.export.plotly-scale~1">View canonical OFT trace ↓</a>
@@ -12681,11 +12681,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.plots.create-multiple-2721711497~0">
+      <section class="sitem" id="impl~ring5.plots.create-multiple-703150992~0">
         <details>
-          <summary title="impl~ring5.plots.create-multiple-2721711497~0"><span class="green">&check;</span> <b>ring5.plots.create-multiple-2721711497</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.plots.create-multiple-2721711497~0</p>
-          <p class="origin">src/web/controllers/plot/creation_controller.py:96</p>
+          <summary title="impl~ring5.plots.create-multiple-703150992~0"><span class="green">&check;</span> <b>ring5.plots.create-multiple-703150992</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.plots.create-multiple-703150992~0</p>
+          <p class="origin">src/web/controllers/plot/creation_controller.py:95</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -12733,11 +12733,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.plots.delete-3004845916~0">
+      <section class="sitem" id="impl~ring5.plots.delete-342134552~0">
         <details>
-          <summary title="impl~ring5.plots.delete-3004845916~0"><span class="green">&check;</span> <b>ring5.plots.delete-3004845916</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.plots.delete-3004845916~0</p>
-          <p class="origin">src/web/controllers/plot/creation_controller.py:149</p>
+          <summary title="impl~ring5.plots.delete-342134552~0"><span class="green">&check;</span> <b>ring5.plots.delete-342134552</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.plots.delete-342134552~0</p>
+          <p class="origin">src/web/controllers/plot/creation_controller.py:142</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -12902,11 +12902,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.plots.duplicate-2745080619~0">
+      <section class="sitem" id="impl~ring5.plots.duplicate-2987246100~0">
         <details>
-          <summary title="impl~ring5.plots.duplicate-2745080619~0"><span class="green">&check;</span> <b>ring5.plots.duplicate-2745080619</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.plots.duplicate-2745080619~0</p>
-          <p class="origin">src/web/controllers/plot/creation_controller.py:150</p>
+          <summary title="impl~ring5.plots.duplicate-2987246100~0"><span class="green">&check;</span> <b>ring5.plots.duplicate-2987246100</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.plots.duplicate-2987246100~0</p>
+          <p class="origin">src/web/pages/ui/plotting/plot_service.py:51</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -12915,11 +12915,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.plots.duplicate-2987246100~0">
+      <section class="sitem" id="impl~ring5.plots.duplicate-989205327~0">
         <details>
-          <summary title="impl~ring5.plots.duplicate-2987246100~0"><span class="green">&check;</span> <b>ring5.plots.duplicate-2987246100</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.plots.duplicate-2987246100~0</p>
-          <p class="origin">src/web/pages/ui/plotting/plot_service.py:51</p>
+          <summary title="impl~ring5.plots.duplicate-989205327~0"><span class="green">&check;</span> <b>ring5.plots.duplicate-989205327</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.plots.duplicate-989205327~0</p>
+          <p class="origin">src/web/controllers/plot/creation_controller.py:143</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -13188,11 +13188,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.plots.rename-2805096147~0">
+      <section class="sitem" id="impl~ring5.plots.rename-70743515~0">
         <details>
-          <summary title="impl~ring5.plots.rename-2805096147~0"><span class="green">&check;</span> <b>ring5.plots.rename-2805096147</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.plots.rename-2805096147~0</p>
-          <p class="origin">src/web/controllers/plot/creation_controller.py:151</p>
+          <summary title="impl~ring5.plots.rename-70743515~0"><span class="green">&check;</span> <b>ring5.plots.rename-70743515</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.plots.rename-70743515~0</p>
+          <p class="origin">src/web/controllers/plot/creation_controller.py:144</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -17555,12 +17555,13 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:71</p>
           <div class="in">
-            <h6>In: 5</h6>
+            <h6>In: 6</h6>
             <ul>
               <li><a href="#impl~ring5.workspace.reset-1749461767~0">impl~ring5.workspace.reset-1749461767~0</a> <span class="origin">src/core/state/repository_state_manager.py:252</span></li>
               <li><a href="#impl~ring5.workspace.reset-2646460485~0">impl~ring5.workspace.reset-2646460485~0</a> <span class="origin">app.py:145</span></li>
               <li><a href="#test~ring5.workspace.reset-3496616399~0">test~ring5.workspace.reset-3496616399~0</a> <span class="origin">tests/ui/test_e2e_data_loaded.py:173</span></li>
               <li><a href="#test~ring5.workspace.reset-4158742637~0">test~ring5.workspace.reset-4158742637~0</a> <span class="origin">tests/ui/test_plot_widget_ownership.py:360</span></li>
+              <li><a href="#test~ring5.workspace.reset-963283400~0">test~ring5.workspace.reset-963283400~0</a> <span class="origin">tests/ui/test_plot_selector_identity.py:213</span></li>
               <li><a href="#uman~ring5.workspace.reset.documentation~1">uman~ring5.workspace.reset.documentation~1</a> <span class="origin">docs/user-guide/getting-started/concepts.md:13</span></li>
             </ul>
           </div>
@@ -17876,13 +17877,16 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:1299</p>
           <div class="in">
-            <h6>In: 6</h6>
+            <h6>In: 9</h6>
             <ul>
               <li><a href="#impl~ring5.plots.create-multiple-1549666097~0">impl~ring5.plots.create-multiple-1549666097~0</a> <span class="origin">src/web/controllers/plot/creation_controller.py:73</span></li>
               <li><a href="#impl~ring5.plots.create-multiple-2512839509~0">impl~ring5.plots.create-multiple-2512839509~0</a> <span class="origin">src/web/pages/ui/plotting/plot_service.py:27</span></li>
-              <li><a href="#impl~ring5.plots.create-multiple-2721711497~0">impl~ring5.plots.create-multiple-2721711497~0</a> <span class="origin">src/web/controllers/plot/creation_controller.py:96</span></li>
+              <li><a href="#impl~ring5.plots.create-multiple-703150992~0">impl~ring5.plots.create-multiple-703150992~0</a> <span class="origin">src/web/controllers/plot/creation_controller.py:95</span></li>
+              <li><a href="#test~ring5.plots.create-multiple-3175233013~0">test~ring5.plots.create-multiple-3175233013~0</a> <span class="origin">tests/ui/test_plot_selector_identity.py:78</span></li>
+              <li><a href="#test~ring5.plots.create-multiple-3262128339~0">test~ring5.plots.create-multiple-3262128339~0</a> <span class="origin">tests/ui/test_plot_selector_identity.py:176</span></li>
               <li><a href="#test~ring5.plots.create-multiple-3364719726~0">test~ring5.plots.create-multiple-3364719726~0</a> <span class="origin">tests/ui/test_e2e_manage_plots.py:68</span></li>
               <li><a href="#test~ring5.plots.create-multiple-3573467459~0">test~ring5.plots.create-multiple-3573467459~0</a> <span class="origin">tests/integration/test_plot_lifecycle.py:14</span></li>
+              <li><a href="#test~ring5.plots.create-multiple-4196431940~0">test~ring5.plots.create-multiple-4196431940~0</a> <span class="origin">tests/ui/test_plot_selector_identity.py:136</span></li>
               <li><a href="#uman~ring5.plots.create-multiple.documentation~1">uman~ring5.plots.create-multiple.documentation~1</a> <span class="origin">docs/user-guide/workflows/plotting.md:23</span></li>
             </ul>
           </div>
@@ -18162,15 +18166,16 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:1341</p>
           <div class="in">
-            <h6>In: 10</h6>
+            <h6>In: 11</h6>
             <ul>
               <li><a href="#impl~ring5.plots.delete-1122497660~0">impl~ring5.plots.delete-1122497660~0</a> <span class="origin">src/web/pages/ui/plotting/base_plot.py:115</span></li>
               <li><a href="#impl~ring5.plots.delete-226239747~0">impl~ring5.plots.delete-226239747~0</a> <span class="origin">src/core/state/repositories/plot_repository.py:72</span></li>
               <li><a href="#impl~ring5.plots.delete-250980568~0">impl~ring5.plots.delete-250980568~0</a> <span class="origin">src/web/pages/ui/plotting/plot_service.py:39</span></li>
-              <li><a href="#impl~ring5.plots.delete-3004845916~0">impl~ring5.plots.delete-3004845916~0</a> <span class="origin">src/web/controllers/plot/creation_controller.py:149</span></li>
+              <li><a href="#impl~ring5.plots.delete-342134552~0">impl~ring5.plots.delete-342134552~0</a> <span class="origin">src/web/controllers/plot/creation_controller.py:142</span></li>
               <li><a href="#test~ring5.plots.delete-1060445739~0">test~ring5.plots.delete-1060445739~0</a> <span class="origin">tests/integration/test_native_artifact_lifecycle.py:410</span></li>
-              <li><a href="#test~ring5.plots.delete-1910268992~0">test~ring5.plots.delete-1910268992~0</a> <span class="origin">tests/ui_logic/test_creation_controller.py:266</span></li>
+              <li><a href="#test~ring5.plots.delete-1902119934~0">test~ring5.plots.delete-1902119934~0</a> <span class="origin">tests/ui/test_plot_selector_identity.py:81</span></li>
               <li><a href="#test~ring5.plots.delete-2178221857~0">test~ring5.plots.delete-2178221857~0</a> <span class="origin">tests/integration/test_native_artifact_lifecycle.py:157</span></li>
+              <li><a href="#test~ring5.plots.delete-2461673883~0">test~ring5.plots.delete-2461673883~0</a> <span class="origin">tests/ui_logic/test_creation_controller.py:279</span></li>
               <li><a href="#test~ring5.plots.delete-2962741233~0">test~ring5.plots.delete-2962741233~0</a> <span class="origin">tests/integration/test_plot_lifecycle.py:59</span></li>
               <li><a href="#test~ring5.plots.delete-4169783984~0">test~ring5.plots.delete-4169783984~0</a> <span class="origin">tests/unit/test_plot_retirement_transactions.py:51</span></li>
               <li><a href="#uman~ring5.plots.delete.documentation~1">uman~ring5.plots.delete.documentation~1</a> <span class="origin">docs/user-guide/workflows/plotting.md:28</span></li>
@@ -18338,12 +18343,12 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.figure.dual-axis-controls-3890839216~0">impl~ring5.figure.dual-axis-controls-3890839216~0</a> <span class="origin">src/web/rendering/config_builder.py:177</span></li>
               <li><a href="#impl~ring5.figure.dual-axis-controls-4278575551~0">impl~ring5.figure.dual-axis-controls-4278575551~0</a> <span class="origin">src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py:304</span></li>
               <li><a href="#impl~ring5.figure.dual-axis-controls-881200021~0">impl~ring5.figure.dual-axis-controls-881200021~0</a> <span class="origin">src/web/components/plotting/config/dual_axis_config.py:27</span></li>
+              <li><a href="#test~ring5.figure.dual-axis-controls-1190117909~0">test~ring5.figure.dual-axis-controls-1190117909~0</a> <span class="origin">tests/e2e/test_dual_axis.py:55</span></li>
               <li><a href="#test~ring5.figure.dual-axis-controls-1262543290~0">test~ring5.figure.dual-axis-controls-1262543290~0</a> <span class="origin">tests/unit/core/visualization/test_config_spec_builder.py:115</span></li>
               <li><a href="#test~ring5.figure.dual-axis-controls-138724461~0">test~ring5.figure.dual-axis-controls-138724461~0</a> <span class="origin">tests/unit/test_grouped_stacked_dual_axis.py:43</span></li>
               <li><a href="#test~ring5.figure.dual-axis-controls-1596416244~0">test~ring5.figure.dual-axis-controls-1596416244~0</a> <span class="origin">tests/unit/test_dual_axis_bar_dot_plot.py:88</span></li>
               <li><a href="#test~ring5.figure.dual-axis-controls-2092321454~0">test~ring5.figure.dual-axis-controls-2092321454~0</a> <span class="origin">tests/integration/test_prepared_native_rendering.py:82</span></li>
               <li><a href="#test~ring5.figure.dual-axis-controls-2212256183~0">test~ring5.figure.dual-axis-controls-2212256183~0</a> <span class="origin">tests/ui/test_plot_settings_contracts.py:250</span></li>
-              <li><a href="#test~ring5.figure.dual-axis-controls-2507464430~0">test~ring5.figure.dual-axis-controls-2507464430~0</a> <span class="origin">tests/e2e/test_dual_axis.py:56</span></li>
               <li><a href="#test~ring5.figure.dual-axis-controls-4053630891~0">test~ring5.figure.dual-axis-controls-4053630891~0</a> <span class="origin">tests/unit/test_grouped_dual_config.py:42</span></li>
               <li><a href="#test~ring5.figure.dual-axis-controls-4132480972~0">test~ring5.figure.dual-axis-controls-4132480972~0</a> <span class="origin">tests/unit/test_dual_axis_bar_dot_plot.py:332</span></li>
               <li><a href="#uman~ring5.figure.dual-axis-controls.documentation~1">uman~ring5.figure.dual-axis-controls.documentation~1</a> <span class="origin">docs/user-guide/reference/plot-types.md:99</span></li>
@@ -18370,7 +18375,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.figure.dual-axis-dot-layout-3716365422~0">impl~ring5.figure.dual-axis-dot-layout-3716365422~0</a> <span class="origin">src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py:66</span></li>
               <li><a href="#impl~ring5.figure.dual-axis-dot-layout-4155941123~0">impl~ring5.figure.dual-axis-dot-layout-4155941123~0</a> <span class="origin">src/web/components/plotting/config/dual_axis_config.py:56</span></li>
               <li><a href="#test~ring5.figure.dual-axis-dot-layout-3356518397~0">test~ring5.figure.dual-axis-dot-layout-3356518397~0</a> <span class="origin">tests/unit/test_dual_axis_bar_dot_plot.py:235</span></li>
-              <li><a href="#test~ring5.figure.dual-axis-dot-layout-478811295~0">test~ring5.figure.dual-axis-dot-layout-478811295~0</a> <span class="origin">tests/e2e/test_dual_axis.py:57</span></li>
+              <li><a href="#test~ring5.figure.dual-axis-dot-layout-4103963710~0">test~ring5.figure.dual-axis-dot-layout-4103963710~0</a> <span class="origin">tests/e2e/test_dual_axis.py:56</span></li>
               <li><a href="#uman~ring5.figure.dual-axis-dot-layout.documentation~1">uman~ring5.figure.dual-axis-dot-layout.documentation~1</a> <span class="origin">docs/user-guide/reference/plot-types.md:107</span></li>
             </ul>
           </div>
@@ -18390,12 +18395,13 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:1327</p>
           <div class="in">
-            <h6>In: 7</h6>
+            <h6>In: 8</h6>
             <ul>
-              <li><a href="#impl~ring5.plots.duplicate-2745080619~0">impl~ring5.plots.duplicate-2745080619~0</a> <span class="origin">src/web/controllers/plot/creation_controller.py:150</span></li>
               <li><a href="#impl~ring5.plots.duplicate-2987246100~0">impl~ring5.plots.duplicate-2987246100~0</a> <span class="origin">src/web/pages/ui/plotting/plot_service.py:51</span></li>
+              <li><a href="#impl~ring5.plots.duplicate-989205327~0">impl~ring5.plots.duplicate-989205327~0</a> <span class="origin">src/web/controllers/plot/creation_controller.py:143</span></li>
               <li><a href="#test~ring5.plots.duplicate-1318526453~0">test~ring5.plots.duplicate-1318526453~0</a> <span class="origin">tests/integration/test_controller_presenter.py:346</span></li>
               <li><a href="#test~ring5.plots.duplicate-2133927174~0">test~ring5.plots.duplicate-2133927174~0</a> <span class="origin">tests/integration/test_plot_lifecycle.py:28</span></li>
+              <li><a href="#test~ring5.plots.duplicate-3474663022~0">test~ring5.plots.duplicate-3474663022~0</a> <span class="origin">tests/ui/test_plot_selector_identity.py:80</span></li>
               <li><a href="#test~ring5.plots.duplicate-4222040804~0">test~ring5.plots.duplicate-4222040804~0</a> <span class="origin">tests/integration/test_native_artifact_lifecycle.py:238</span></li>
               <li><a href="#test~ring5.plots.duplicate-635175548~0">test~ring5.plots.duplicate-635175548~0</a> <span class="origin">tests/ui/test_duplicate_plot_style_identity.py:45</span></li>
               <li><a href="#uman~ring5.plots.duplicate.documentation~1">uman~ring5.plots.duplicate.documentation~1</a> <span class="origin">docs/user-guide/workflows/plotting.md:33</span></li>
@@ -20606,9 +20612,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.export.plotly-scale-2866211131~0">impl~ring5.export.plotly-scale-2866211131~0</a> <span class="origin">src/web/components/common/chart_display.py:101</span></li>
               <li><a href="#impl~ring5.export.plotly-scale-634253147~0">impl~ring5.export.plotly-scale-634253147~0</a> <span class="origin">src/web/components/plotting/settings/advanced_settings.py:91</span></li>
               <li><a href="#test~ring5.export.plotly-scale-1359723475~0">test~ring5.export.plotly-scale-1359723475~0</a> <span class="origin">tests/ui_unit/test_advanced_settings.py:113</span></li>
-              <li><a href="#test~ring5.export.plotly-scale-1562343181~0">test~ring5.export.plotly-scale-1562343181~0</a> <span class="origin">tests/unit/test_plot_presenters.py:513</span></li>
               <li><a href="#test~ring5.export.plotly-scale-161117232~0">test~ring5.export.plotly-scale-161117232~0</a> <span class="origin">tests/unit/test_download_section_ui.py:293</span></li>
-              <li><a href="#test~ring5.export.plotly-scale-3014225137~0">test~ring5.export.plotly-scale-3014225137~0</a> <span class="origin">tests/unit/test_plot_presenters.py:272</span></li>
+              <li><a href="#test~ring5.export.plotly-scale-1810753534~0">test~ring5.export.plotly-scale-1810753534~0</a> <span class="origin">tests/unit/test_plot_presenters.py:512</span></li>
+              <li><a href="#test~ring5.export.plotly-scale-3904822756~0">test~ring5.export.plotly-scale-3904822756~0</a> <span class="origin">tests/unit/test_plot_presenters.py:271</span></li>
               <li><a href="#uman~ring5.export.plotly-scale.documentation~1">uman~ring5.export.plotly-scale.documentation~1</a> <span class="origin">docs/user-guide/reference/rendering-export.md:74</span></li>
             </ul>
           </div>
@@ -21217,10 +21223,12 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:1313</p>
           <div class="in">
-            <h6>In: 3</h6>
+            <h6>In: 5</h6>
             <ul>
-              <li><a href="#impl~ring5.plots.rename-2805096147~0">impl~ring5.plots.rename-2805096147~0</a> <span class="origin">src/web/controllers/plot/creation_controller.py:151</span></li>
-              <li><a href="#test~ring5.plots.rename-2748047054~0">test~ring5.plots.rename-2748047054~0</a> <span class="origin">tests/ui_logic/test_creation_controller.py:235</span></li>
+              <li><a href="#impl~ring5.plots.rename-70743515~0">impl~ring5.plots.rename-70743515~0</a> <span class="origin">src/web/controllers/plot/creation_controller.py:144</span></li>
+              <li><a href="#test~ring5.plots.rename-1047935269~0">test~ring5.plots.rename-1047935269~0</a> <span class="origin">tests/ui/test_plot_selector_identity.py:177</span></li>
+              <li><a href="#test~ring5.plots.rename-2202629552~0">test~ring5.plots.rename-2202629552~0</a> <span class="origin">tests/ui_logic/test_creation_controller.py:246</span></li>
+              <li><a href="#test~ring5.plots.rename-462655804~0">test~ring5.plots.rename-462655804~0</a> <span class="origin">tests/ui/test_plot_selector_identity.py:79</span></li>
               <li><a href="#uman~ring5.plots.rename.documentation~1">uman~ring5.plots.rename.documentation~1</a> <span class="origin">docs/user-guide/workflows/plotting.md:38</span></li>
             </ul>
           </div>
@@ -25246,19 +25254,6 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.export.plotly-scale-1562343181~0">
-        <details>
-          <summary title="test~ring5.export.plotly-scale-1562343181~0"><span class="green">&check;</span> <b>ring5.export.plotly-scale-1562343181</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.export.plotly-scale-1562343181~0</p>
-          <p class="origin">tests/unit/test_plot_presenters.py:513</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.export.plotly-scale~1">req~ring5.export.plotly-scale~1</a> <span class="origin">spec/oft/generated/requirements.md:2345</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
       <section class="sitem" id="test~ring5.export.plotly-scale-161117232~0">
         <details>
           <summary title="test~ring5.export.plotly-scale-161117232~0"><span class="green">&check;</span> <b>ring5.export.plotly-scale-161117232</b><small>, rev. 0, test</small></summary>
@@ -25272,11 +25267,24 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.export.plotly-scale-3014225137~0">
+      <section class="sitem" id="test~ring5.export.plotly-scale-1810753534~0">
         <details>
-          <summary title="test~ring5.export.plotly-scale-3014225137~0"><span class="green">&check;</span> <b>ring5.export.plotly-scale-3014225137</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.export.plotly-scale-3014225137~0</p>
-          <p class="origin">tests/unit/test_plot_presenters.py:272</p>
+          <summary title="test~ring5.export.plotly-scale-1810753534~0"><span class="green">&check;</span> <b>ring5.export.plotly-scale-1810753534</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.export.plotly-scale-1810753534~0</p>
+          <p class="origin">tests/unit/test_plot_presenters.py:512</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.export.plotly-scale~1">req~ring5.export.plotly-scale~1</a> <span class="origin">spec/oft/generated/requirements.md:2345</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.export.plotly-scale-3904822756~0">
+        <details>
+          <summary title="test~ring5.export.plotly-scale-3904822756~0"><span class="green">&check;</span> <b>ring5.export.plotly-scale-3904822756</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.export.plotly-scale-3904822756~0</p>
+          <p class="origin">tests/unit/test_plot_presenters.py:271</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -26104,6 +26112,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="test~ring5.figure.dual-axis-controls-1190117909~0">
+        <details>
+          <summary title="test~ring5.figure.dual-axis-controls-1190117909~0"><span class="green">&check;</span> <b>ring5.figure.dual-axis-controls-1190117909</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.figure.dual-axis-controls-1190117909~0</p>
+          <p class="origin">tests/e2e/test_dual_axis.py:55</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.figure.dual-axis-controls~1">req~ring5.figure.dual-axis-controls~1</a> <span class="origin">spec/oft/generated/requirements.md:1925</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="test~ring5.figure.dual-axis-controls-1262543290~0">
         <details>
           <summary title="test~ring5.figure.dual-axis-controls-1262543290~0"><span class="green">&check;</span> <b>ring5.figure.dual-axis-controls-1262543290</b><small>, rev. 0, test</small></summary>
@@ -26169,19 +26190,6 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.figure.dual-axis-controls-2507464430~0">
-        <details>
-          <summary title="test~ring5.figure.dual-axis-controls-2507464430~0"><span class="green">&check;</span> <b>ring5.figure.dual-axis-controls-2507464430</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.figure.dual-axis-controls-2507464430~0</p>
-          <p class="origin">tests/e2e/test_dual_axis.py:56</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.figure.dual-axis-controls~1">req~ring5.figure.dual-axis-controls~1</a> <span class="origin">spec/oft/generated/requirements.md:1925</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
       <section class="sitem" id="test~ring5.figure.dual-axis-controls-4053630891~0">
         <details>
           <summary title="test~ring5.figure.dual-axis-controls-4053630891~0"><span class="green">&check;</span> <b>ring5.figure.dual-axis-controls-4053630891</b><small>, rev. 0, test</small></summary>
@@ -26221,11 +26229,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.figure.dual-axis-dot-layout-478811295~0">
+      <section class="sitem" id="test~ring5.figure.dual-axis-dot-layout-4103963710~0">
         <details>
-          <summary title="test~ring5.figure.dual-axis-dot-layout-478811295~0"><span class="green">&check;</span> <b>ring5.figure.dual-axis-dot-layout-478811295</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.figure.dual-axis-dot-layout-478811295~0</p>
-          <p class="origin">tests/e2e/test_dual_axis.py:57</p>
+          <summary title="test~ring5.figure.dual-axis-dot-layout-4103963710~0"><span class="green">&check;</span> <b>ring5.figure.dual-axis-dot-layout-4103963710</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.figure.dual-axis-dot-layout-4103963710~0</p>
+          <p class="origin">tests/e2e/test_dual_axis.py:56</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -30329,6 +30337,32 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="test~ring5.plots.create-multiple-3175233013~0">
+        <details>
+          <summary title="test~ring5.plots.create-multiple-3175233013~0"><span class="green">&check;</span> <b>ring5.plots.create-multiple-3175233013</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plots.create-multiple-3175233013~0</p>
+          <p class="origin">tests/ui/test_plot_selector_identity.py:78</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.plots.create-multiple~1">req~ring5.plots.create-multiple~1</a> <span class="origin">spec/oft/generated/requirements.md:1299</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.plots.create-multiple-3262128339~0">
+        <details>
+          <summary title="test~ring5.plots.create-multiple-3262128339~0"><span class="green">&check;</span> <b>ring5.plots.create-multiple-3262128339</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plots.create-multiple-3262128339~0</p>
+          <p class="origin">tests/ui/test_plot_selector_identity.py:176</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.plots.create-multiple~1">req~ring5.plots.create-multiple~1</a> <span class="origin">spec/oft/generated/requirements.md:1299</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="test~ring5.plots.create-multiple-3364719726~0">
         <details>
           <summary title="test~ring5.plots.create-multiple-3364719726~0"><span class="green">&check;</span> <b>ring5.plots.create-multiple-3364719726</b><small>, rev. 0, test</small></summary>
@@ -30355,6 +30389,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="test~ring5.plots.create-multiple-4196431940~0">
+        <details>
+          <summary title="test~ring5.plots.create-multiple-4196431940~0"><span class="green">&check;</span> <b>ring5.plots.create-multiple-4196431940</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plots.create-multiple-4196431940~0</p>
+          <p class="origin">tests/ui/test_plot_selector_identity.py:136</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.plots.create-multiple~1">req~ring5.plots.create-multiple~1</a> <span class="origin">spec/oft/generated/requirements.md:1299</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="test~ring5.plots.delete-1060445739~0">
         <details>
           <summary title="test~ring5.plots.delete-1060445739~0"><span class="green">&check;</span> <b>ring5.plots.delete-1060445739</b><small>, rev. 0, test</small></summary>
@@ -30368,11 +30415,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.plots.delete-1910268992~0">
+      <section class="sitem" id="test~ring5.plots.delete-1902119934~0">
         <details>
-          <summary title="test~ring5.plots.delete-1910268992~0"><span class="green">&check;</span> <b>ring5.plots.delete-1910268992</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.plots.delete-1910268992~0</p>
-          <p class="origin">tests/ui_logic/test_creation_controller.py:266</p>
+          <summary title="test~ring5.plots.delete-1902119934~0"><span class="green">&check;</span> <b>ring5.plots.delete-1902119934</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plots.delete-1902119934~0</p>
+          <p class="origin">tests/ui/test_plot_selector_identity.py:81</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -30386,6 +30433,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="test~ring5.plots.delete-2178221857~0"><span class="green">&check;</span> <b>ring5.plots.delete-2178221857</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.plots.delete-2178221857~0</p>
           <p class="origin">tests/integration/test_native_artifact_lifecycle.py:157</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.plots.delete~1">req~ring5.plots.delete~1</a> <span class="origin">spec/oft/generated/requirements.md:1341</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.plots.delete-2461673883~0">
+        <details>
+          <summary title="test~ring5.plots.delete-2461673883~0"><span class="green">&check;</span> <b>ring5.plots.delete-2461673883</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plots.delete-2461673883~0</p>
+          <p class="origin">tests/ui_logic/test_creation_controller.py:279</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -30516,6 +30576,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="test~ring5.plots.duplicate-2133927174~0"><span class="green">&check;</span> <b>ring5.plots.duplicate-2133927174</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.plots.duplicate-2133927174~0</p>
           <p class="origin">tests/integration/test_plot_lifecycle.py:28</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.plots.duplicate~1">req~ring5.plots.duplicate~1</a> <span class="origin">spec/oft/generated/requirements.md:1327</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.plots.duplicate-3474663022~0">
+        <details>
+          <summary title="test~ring5.plots.duplicate-3474663022~0"><span class="green">&check;</span> <b>ring5.plots.duplicate-3474663022</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plots.duplicate-3474663022~0</p>
+          <p class="origin">tests/ui/test_plot_selector_identity.py:80</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -30771,11 +30844,37 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.plots.rename-2748047054~0">
+      <section class="sitem" id="test~ring5.plots.rename-1047935269~0">
         <details>
-          <summary title="test~ring5.plots.rename-2748047054~0"><span class="green">&check;</span> <b>ring5.plots.rename-2748047054</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.plots.rename-2748047054~0</p>
-          <p class="origin">tests/ui_logic/test_creation_controller.py:235</p>
+          <summary title="test~ring5.plots.rename-1047935269~0"><span class="green">&check;</span> <b>ring5.plots.rename-1047935269</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plots.rename-1047935269~0</p>
+          <p class="origin">tests/ui/test_plot_selector_identity.py:177</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.plots.rename~1">req~ring5.plots.rename~1</a> <span class="origin">spec/oft/generated/requirements.md:1313</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.plots.rename-2202629552~0">
+        <details>
+          <summary title="test~ring5.plots.rename-2202629552~0"><span class="green">&check;</span> <b>ring5.plots.rename-2202629552</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plots.rename-2202629552~0</p>
+          <p class="origin">tests/ui_logic/test_creation_controller.py:246</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.plots.rename~1">req~ring5.plots.rename~1</a> <span class="origin">spec/oft/generated/requirements.md:1313</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.plots.rename-462655804~0">
+        <details>
+          <summary title="test~ring5.plots.rename-462655804~0"><span class="green">&check;</span> <b>ring5.plots.rename-462655804</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plots.rename-462655804~0</p>
+          <p class="origin">tests/ui/test_plot_selector_identity.py:79</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -33852,6 +33951,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="test~ring5.workspace.reset-963283400~0">
+        <details>
+          <summary title="test~ring5.workspace.reset-963283400~0"><span class="green">&check;</span> <b>ring5.workspace.reset-963283400</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.workspace.reset-963283400~0</p>
+          <p class="origin">tests/ui/test_plot_selector_identity.py:213</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.reset~1">req~ring5.workspace.reset~1</a> <span class="origin">spec/oft/generated/requirements.md:71</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="test~ring5.workspace.session-isolation-3554749424~0">
         <details>
           <summary title="test~ring5.workspace.session-isolation-3554749424~0"><span class="green">&check;</span> <b>ring5.workspace.session-isolation-3554749424</b><small>, rev. 0, test</small></summary>
@@ -36757,7 +36869,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </section>
   </main>
   <nav>
-    <span class="green">&check;</span> 2133 total <meter value="2133" max="2133">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
+    <span class="green">&check;</span> 2141 total <meter value="2141" max="2141">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
 
 <script>
 (() => {

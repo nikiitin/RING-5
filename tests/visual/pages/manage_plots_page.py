@@ -110,7 +110,7 @@ class ManagePlotsPage(BasePage):
 
     @property
     def plot_selector_pills(self) -> Locator:
-        """The st.pills widget for selecting plots (key=plot_selector)."""
+        """The required st.pills widget for selecting plots by their display labels."""
         return self.page.get_by_role("radiogroup", name="Select Plot")
 
     @property
@@ -639,8 +639,9 @@ class ManagePlotsPage(BasePage):
             self.select_plot_type(plot_type)
         self.create_plot_button.click()
         self.wait_for_streamlit(expect_rerun=True)
-        expect(self.get_plot_pill(name).first).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.select_plot(name)
+        pill = self.get_plot_pill(name)
+        expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     def select_plot_type(self, plot_type: str) -> None:
         """Select a plot type in the create-plot form selectbox, verifying it took.

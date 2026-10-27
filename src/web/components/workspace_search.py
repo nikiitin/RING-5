@@ -105,7 +105,6 @@ class WorkspaceSearchComponent:
             if not any(plot.plot_id == plot_id for plot in api.state_manager.get_plots()):
                 raise KeyError(f"Plot {plot_id} is no longer available.")
             api.state_manager.set_current_plot_id(plot_id)
-            st.session_state.pop("plot_selector", None)
         elif result.kind == "variable":
             st.session_state["var_search_box__search"] = result.identifier
 

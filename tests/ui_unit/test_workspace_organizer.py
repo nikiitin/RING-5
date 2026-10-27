@@ -63,7 +63,7 @@ def test_activate_opens_each_artifact_kind_and_rejects_stale_plots(
 ) -> None:
     from src.web.components.workspace_organizer import WorkspaceOrganizerComponent
 
-    mock_st.session_state = {"plot_selector": "old"}
+    mock_st.session_state = {}
     mock_ui_st.session_state = mock_st.session_state
     api = MagicMock()
     api.state_manager.get_plots.return_value = [MagicMock(plot_id=7)]
@@ -76,7 +76,7 @@ def test_activate_opens_each_artifact_kind_and_rejects_stale_plots(
     api.select_dataset.assert_called_once_with("nightly")
     WorkspaceOrganizerComponent.activate(api, WorkspaceArtifact("pipeline", "7:11", "Sort"))
     api.state_manager.set_current_plot_id.assert_called_once_with(7)
-    assert "plot_selector" not in mock_st.session_state
+    assert mock_st.session_state["nav.current_page"] == "Manage Plots"
     WorkspaceOrganizerComponent.activate(api, WorkspaceArtifact("portfolio", "paper", "Paper"))
     assert mock_st.session_state["nav.current_page"] == "Save/Load Portfolio"
 

@@ -114,6 +114,17 @@ class _PlotUIState:
         scopes[scope] = generation
         st.session_state[state_key] = _WidgetGenerations(generation, tuple(sorted(scopes.items())))
 
+    def prepare_selector(self, plot_id: int) -> str:
+        """Seed a missing plot selector so its current value reaches the browser."""
+        key = WidgetKeyBuilder.plot_key(plot_id, "selector")
+        if key not in st.session_state:
+            st.session_state[key] = plot_id
+        return key
+
+    def forget_selector(self, plot_id: int) -> None:
+        """Retire only the previous selector after a user changes the active plot."""
+        st.session_state.pop(WidgetKeyBuilder.plot_key(plot_id, "selector"), None)
+
     def cleanup(self, plot_id: int) -> None:
         """Remove this plot's transient state without touching another plot."""
         _clear_keys((f"plot.{plot_id}.",))

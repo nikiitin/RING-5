@@ -37,10 +37,12 @@ engine selectors use radio roles; inspect checked state before clicking an activ
 - For actions that trigger a rerun, use `wait_for_streamlit(expect_rerun=True)`. It observes the
   running indicator before waiting for idle and accommodates fast cycles. Verify the resulting
   widget/chart state with Playwright expectations before the next dependent action.
-- Create, rename, delete and duplicate clear `plot_selector` and rerun in
-  `src/web/controllers/plot/creation_controller.py`. Creation selects the new plot through the
-  lifecycle service. `ManagePlotsPage.create_plot` also calls the idempotent `select_plot(name)`;
-  rename waits for its rerun and does not need navigation away and back.
+- Plot pills use immutable plot IDs with unique display labels and require an active selection.
+  The controller prepares `plot.<current_id>.selector` through `UIStateManager`; a changed user
+  selection retires only its previous selector and reruns before rendering controls. Creation and
+  duplication select their new plot through the lifecycle owner. `ManagePlotsPage.create_plot`
+  verifies automatic selection; `select_plot(name)` is reserved for a requested user selection.
+  Rename preserves plot identity and waits for its rerun without navigation away and back.
 - `select_plot_type` accepts exact factory identifiers such as `bar` or `dual_axis_bar_dot`.
   Plot selection uses visible names, disambiguated by the controller when names repeat.
 - Expanders are `<details><summary>` elements. Click the summary and verify body visibility;
