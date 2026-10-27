@@ -32,6 +32,8 @@ def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[Applicatio
     pool = tmp_path / "recent"
     pool.mkdir()
     monkeypatch.setattr(CsvPoolService, "_pool_dir", pool)
+    # Instance spies must not shadow methods on the shared application backend.
+    monkeypatch.setattr(SimulatorRegistry, "_instances", {})
     facade = ApplicationAPI()
     try:
         yield facade
