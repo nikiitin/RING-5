@@ -101,6 +101,7 @@ This file is informative; normative items are in the other generated files.
 | `figure.dual-axis-controls` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.histogram-controls` | 1 | Semantic | Native layouts require distinct truthful controls and zero-mass normalized views must fail visibly. |
 | `api.doctor` | 1 | Semantic | Describe the shared authoritative browser selection and selected compiler preflight contract. |
+| `cli.install-chrome` | 1 | Semantic | Restricts native installation to Linux and rejects archive and installed-tree links. |
 | `ingestion.distribution-range-scan` | 1 | Semantic | Observed labels do not establish hidden native grid bounds or uniquely identify a physical producer class. |
 | `figure.stack-totals` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.histogram-cumulative` | 1 | Semantic | Normalized cumulative views cannot fabricate probabilities from zero or unrepresentable selected totals. |

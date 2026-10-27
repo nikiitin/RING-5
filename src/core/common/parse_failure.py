@@ -117,9 +117,9 @@ def classify_parse_failure(
                 return None
         if error.strerror is not None and type(error.strerror) is not str:
             return None
-        for code in (error.errno, getattr(error, "winerror", None)):
-            if code is not None and (type(code) is not int or code.bit_length() > 32):
-                return None
+        code = error.errno
+        if code is not None and (type(code) is not int or code.bit_length() > 32):
+            return None
         return "io"
     if any(error_type is known for known in _CONFIGURATION_ERRORS):
         return "configuration"
@@ -180,14 +180,12 @@ def detach_parse_failure(error: BaseException, source_path: str) -> BaseExceptio
         fresh = error_type(message)
     else:
         assert isinstance(error, OSError)
-        # Builtin IO constructors preserve errno and both filenames. Windows
-        # accepts winerror in the fourth position; other platforms ignore None.
+        # The fifth constructor position preserves the second filename.
         filename = error.filename
         filename2 = error.filename2
         strerror = bounded_parse_text(error.strerror) if type(error.strerror) is str else message
         if type(error.errno) is int:
-            winerror = getattr(error, "winerror", None)
-            fresh = error_type(error.errno, strerror, filename, winerror, filename2)
+            fresh = error_type(error.errno, strerror, filename, None, filename2)
         else:
             fresh = error_type(message)
 

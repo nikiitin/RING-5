@@ -13,7 +13,7 @@ The CI workflow separates quality and package validation, non-browser tests, ser
 LaTeX exports, and Streamlit browser tests. The test matrix covers every Python version declared in
 `pyproject.toml` (3.12–3.15); one job produces the coverage report. Python jobs install the
 checked-in `uv.lock` with uv 0.13.5. An installed-wheel smoke job exercises a headless CSV-to-SVG
-workflow and real process-lock exclusion on Linux, macOS, and Windows outside the source checkout.
+workflow and real Linux process-lock exclusion outside the source checkout.
 
 Run the corresponding local targets before pushing:
 
@@ -48,7 +48,7 @@ For an eligible Dependabot pull request with verified signed commits targeting `
 requests `copilot-pull-request-reviewer[bot]` through GitHub's review API. It waits for a formal
 `APPROVED` review on the current head, no unresolved review threads or active change requests, and
 successful current-head runs of
-all 16 CI jobs plus CodeQL's `Python analysis`. Missing, skipped, cancelled, stale or failed jobs do
+all 14 CI jobs plus CodeQL's `Python analysis`. Missing, skipped, cancelled, stale or failed jobs do
 not satisfy the gate. The branch must contain current `main`; GitHub's native protections must also
 allow the merge. A required merge queue is unsupported and keeps the controller blocked. Labels and
 an approving sentence in a review comment do not authorize a merge.

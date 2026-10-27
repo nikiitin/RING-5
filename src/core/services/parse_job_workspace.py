@@ -112,8 +112,7 @@ class ParseJobRuntimeWorkspace:
             except OSError:
                 logger.warning("Unable to inspect parse-job runtime %s", candidate)
                 continue
-            # The startup lock excludes competing orphan collectors while the
-            # descriptor is closed, which also permits directory removal on Windows.
+            # The startup lock excludes competing orphan collectors during removal.
             orphan_lock.release()
             try:
                 shutil.rmtree(candidate)

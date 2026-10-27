@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+import tomllib
 
 import pytest
 
@@ -30,6 +31,8 @@ def artifact(name: str, version: str, *, host: str = "files.pythonhosted.org") -
 def lock(version: str = "1.2.3", transitive: str = "2.3.4") -> str:
     return (
         'version = 1\nrevision = 5\nrequires-python = ">=3.12"\n'
+        "resolution-markers = [\"sys_platform == 'linux'\"]\n"
+        "supported-markers = [\"sys_platform == 'linux'\"]\n"
         '[[package]]\nname = "demo"\nversion = "' + version + '"\n'
         'source = { registry = "https://pypi.org/simple" }\n'
         "sdist = " + artifact("demo", version) + "\n"
@@ -46,6 +49,7 @@ def project(version: str = "1.2.3") -> str:
         'dependencies = ["demo==' + version + '"]\n'
         '[build-system]\nrequires = ["setuptools==84.2.1"]\n'
         'build-backend = "setuptools.build_meta"\n'
+        "[tool.uv]\nenvironments = [\"sys_platform == 'linux'\"]\n"
     )
 
 
@@ -172,6 +176,7 @@ def test_genuine_visible_release_changes_remain_native_reviewable() -> None:
         ),
         lambda text: text.replace("demo==", "demo>="),
         lambda text: text.replace("demo==", "other=="),
+        lambda text: text.replace("sys_platform == 'linux'", "sys_platform == 'win32'"),
         lambda text: text + '\n[tool.uv.sources]\ndemo = { git = "https://evil.test/repo" }\n',
     ],
 )
@@ -221,6 +226,59 @@ def test_lock_source_artifact_and_schema_substitutions_are_rejected(
     mutation: Callable[[str], str],
 ) -> None:
     assert_invalid_lock(assess_changes({"uv.lock": (lock(), mutation(lock("1.2.4")))}))
+
+
+@pytest.mark.parametrize("side", ["before", "after"])
+@pytest.mark.parametrize(
+    "markers",
+    [
+        None,
+        "[]",
+        "42",
+        "true",
+        "[\"sys_platform == 'win32'\"]",
+        "[\"sys_platform == 'darwin'\"]",
+        "[\"sys_platform != 'win32'\"]",
+        "[\"sys_platform == 'linux'\", \"sys_platform == 'win32'\"]",
+        "[\"sys_platform == 'linux'\", \"sys_platform == 'linux'\"]",
+        "[\"sys_platform == 'linux' and platform_machine == 'x86_64'\"]",
+        "[42]",
+        "{ linux = true }",
+        "\"sys_platform == 'linux'\"",
+    ],
+)
+def test_lock_requires_the_current_linux_supported_markers(side: str, markers: str | None) -> None:
+    """Both fetched revisions must retain the one architecture-neutral Linux contract."""
+    before, after = lock(), lock("1.2.4")
+    original = "supported-markers = [\"sys_platform == 'linux'\"]\n"
+    replacement = "" if markers is None else f"supported-markers = {markers}\n"
+    if side == "before":
+        before = before.replace(original, replacement)
+    else:
+        after = after.replace(original, replacement)
+    decision = assess_changes({"uv.lock": (before, after)})
+    assert_invalid_lock(decision)
+    assert any("supported-markers must declare Linux only" in reason for reason in decision.reasons)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda text: text.replace('requires-python = ">=3.12"', 'requires-python = ">=3.13"'),
+        lambda text: text.replace(
+            "resolution-markers = [\"sys_platform == 'linux'\"]",
+            "resolution-markers = [\"python_full_version >= '3.13' and sys_platform == 'linux'\"]",
+        ),
+    ],
+)
+def test_lock_runtime_and_resolution_settings_remain_immutable(
+    mutation: Callable[[str], str],
+) -> None:
+    decision = assess_changes({"uv.lock": (lock(), mutation(lock("1.2.4")))})
+    assert_invalid_lock(decision)
+    assert any(
+        "runtime, resolution or lock settings changed" in reason for reason in decision.reasons
+    )
 
 
 def test_same_version_artifact_replacement_never_becomes_release_update() -> None:
@@ -366,6 +424,10 @@ def test_empty_malformed_and_no_op_inputs_fail_closed(changes: dict[str, tuple[s
 def test_current_real_python_manifest_and_lock_roundtrip() -> None:
     before_project = (ROOT / "pyproject.toml").read_text()
     before_lock = (ROOT / "uv.lock").read_text()
+    assert tomllib.loads(before_project)["tool"]["uv"]["environments"] == [
+        "sys_platform == 'linux'"
+    ]
+    assert tomllib.loads(before_lock)["supported-markers"] == ["sys_platform == 'linux'"]
     assert "black==26.10.1" in before_project
     changes = {
         "pyproject.toml": (before_project, before_project.replace("26.10.1", "26.10.2")),

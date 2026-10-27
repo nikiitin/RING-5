@@ -17,8 +17,6 @@ downloads:
       - version: 3.14.9
         os:
           linux: unknown-linux-gnu
-          macos: apple-darwin
-          windows: pc-windows-msvc
         cpu:
           x86_64: x86_64
           arm_64: aarch64

@@ -1,17 +1,15 @@
-"""Process lock ownership and the Windows standard-library adapter contract."""
+"""Linux process lock ownership, resource cleanup and path confinement."""
 
 from __future__ import annotations
 
 import errno
 import gc
-import os
 import subprocess
 import sys
 import weakref
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from threading import Event
-from types import SimpleNamespace
+from threading import Event, RLock
 from unittest.mock import Mock
 
 import pytest
@@ -67,10 +65,10 @@ def test_idle_lock_registry_reclaims_paths_without_splitting_waiters(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     waiter_ready, acquired, release_waiter = Event(), Event(), Event()
-    identities = []
+    identities: list[int] = []
 
-    class ObservedRegistry(weakref.WeakValueDictionary):
-        def setdefault(self, key, default):
+    class ObservedRegistry(weakref.WeakValueDictionary[str, RLock]):
+        def setdefault(self, key: str, default: RLock) -> RLock:
             value = super().setdefault(key, default)
             identities.append(id(value))
             if len(identities) == 2:
@@ -81,14 +79,14 @@ def test_idle_lock_registry_reclaims_paths_without_splitting_waiters(
     monkeypatch.setattr(module, "_locks", registry)
     path = tmp_path / "transaction.lock"
 
-    def wait_for_lock():
+    def wait_for_lock() -> None:
         with file_lock(path):
             acquired.set()
             assert release_waiter.wait(5)
 
     with ThreadPoolExecutor(max_workers=1) as executor:
         with file_lock(path):
-            lock_ref = weakref.ref(registry[os.path.normcase(str(path.resolve()))])
+            lock_ref = weakref.ref(registry[str(path.resolve())])
             future = executor.submit(wait_for_lock)
             assert waiter_ready.wait(5)
             assert not acquired.is_set()
@@ -107,30 +105,50 @@ def test_idle_lock_registry_reclaims_paths_without_splitting_waiters(
     assert len(registry) == 0
 
 
-def test_windows_adapter_locks_one_initialized_byte_and_releases(
+@pytest.mark.parametrize(
+    "error", [BlockingIOError(errno.EAGAIN, "busy"), OSError(errno.EIO, "device")]
+)
+def test_failed_kernel_acquisition_closes_descriptor_and_preserves_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, error: OSError
+) -> None:
+    path = tmp_path / "failed.lock"
+    lock = AdvisoryFileLock(path)
+    with path.open("a+b") as handle:
+        descriptor = handle.fileno()
+        monkeypatch.setattr(Path, "open", Mock(return_value=handle))
+        flock = Mock(side_effect=error)
+        monkeypatch.setattr(module.fcntl, "flock", flock)
+        with pytest.raises(type(error)) as caught:
+            lock.acquire(blocking=False)
+        assert caught.value is error
+        assert lock._handle is None
+        assert handle.closed
+        flock.assert_called_once_with(descriptor, module.fcntl.LOCK_EX | module.fcntl.LOCK_NB)
+
+
+def test_failed_kernel_unlock_closes_descriptor_and_releases_ownership(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    adapter = SimpleNamespace(LK_LOCK=1, LK_NBLCK=2, LK_UNLCK=3, locking=Mock())
-    monkeypatch.setattr(module, "_WINDOWS", True)
-    monkeypatch.setitem(sys.modules, "msvcrt", adapter)
-    path = tmp_path / "windows.lock"
+    path = tmp_path / "release.lock"
     lock = AdvisoryFileLock(path)
-    lock.acquire(blocking=False)
+    lock.acquire()
     handle = lock._handle
-    assert path.read_bytes() == b"\0"
-    assert adapter.locking.call_args.args[1:] == (2, 1)
-    lock.release()
-    assert handle.closed
-    assert adapter.locking.call_args.args[1:] == (3, 1)
-    adapter.locking.side_effect = OSError(errno.EACCES, "busy")
-    with pytest.raises(BlockingIOError):
-        lock.acquire(blocking=False)
-    assert lock._handle is None
-    adapter.locking.side_effect = OSError(errno.EIO, "device")
-    with pytest.raises(OSError) as caught:
-        lock.acquire(blocking=False)
-    assert caught.value.errno == errno.EIO
-    assert lock._handle is None
+    assert handle is not None
+    error = OSError(errno.EIO, "unlock")
+    try:
+        with monkeypatch.context() as patch:
+            patch.setattr(module.fcntl, "flock", Mock(side_effect=error))
+            with pytest.raises(OSError) as caught:
+                lock.release()
+            assert caught.value is error
+            assert lock._handle is None
+            assert handle.closed
+            lock.release()
+        contender = AdvisoryFileLock(path)
+        contender.acquire(blocking=False)
+        contender.release()
+    finally:
+        lock.release()
 
 
 def test_path_confinement_resolves_symlinks(tmp_path: Path) -> None:

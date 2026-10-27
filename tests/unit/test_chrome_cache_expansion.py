@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+import pwd
 import subprocess
 import sys
 from pathlib import Path
@@ -19,10 +19,6 @@ _MISSING_USER = "ring5_missing_user_7d3c58b46f0a"
 
 @pytest.fixture
 def unknown_user_cache() -> str:
-    if os.name != "posix":
-        pytest.skip("The native account-absence check uses the POSIX password database.")
-    import pwd
-
     with pytest.raises(KeyError):
         pwd.getpwnam(_MISSING_USER)
     return f"~{_MISSING_USER}/cache"
@@ -32,7 +28,7 @@ def test_actual_unknown_user_console_is_typed_before_cache_creation(
     unknown_user_cache: str,
     tmp_path: Path,
 ) -> None:
-    # [test->req~ring5.cli.install-chrome~1]
+    # [test->req~ring5.cli.install-chrome~2]
     result = subprocess.run(
         [sys.executable, "-m", "ring5.cli", "install-chrome", "--cache-dir", unknown_user_cache],
         cwd=tmp_path,
@@ -89,7 +85,6 @@ def test_valid_current_home_expansion_uses_only_a_task_local_simulated_home(
     home = tmp_path / "simulated-home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
-    monkeypatch.setenv("USERPROFILE", str(home))
     assert Path("~").expanduser() == home == Path.home()
     executable = chrome.install_chrome(cache_directory="~/browser-cache")
     assert executable.is_relative_to(home / "browser-cache")

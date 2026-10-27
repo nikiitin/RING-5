@@ -12,7 +12,7 @@ import subprocess
 import sys
 import threading
 import zipfile
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -29,9 +29,9 @@ pytestmark = pytest.mark.public_api
 def test_raw_parent_target_cannot_hide_native_escape_through_an_alias(
     tmp_path: Path,
 ) -> None:
-    name = "mac-arm64"
+    name = "linux64"
     artifact = chrome._load_manifest()[name]
-    root = "chrome-mac-arm64"
+    root = "chrome-linux64"
     entries = [
         (artifact.executable, b"inert executable", 0o100755),
         (f"{root}/dir/", b"", 0o40755),
@@ -45,19 +45,33 @@ def test_raw_parent_target_cannot_hide_native_escape_through_an_alias(
     archive.write_bytes(_zip(entries))
     output = tmp_path / "installation"
     output.mkdir()
-    with pytest.raises(ValueError, match="link target"):
+    with pytest.raises(ValueError, match="member type"):
         chrome._extract(archive, output, artifact)
     assert list(output.iterdir()) == []
     assert sentinel.read_bytes() == b"foreign sentinel"
 
 
 @pytest.mark.parametrize("target", ["../dir", "alias/../file", "alias/../../../outside"])
-def test_parent_components_are_rejected_before_normalization(target: str) -> None:
-    with pytest.raises(ValueError, match="link target"):
-        chrome._link_target(PurePosixPath("chrome-mac-arm64/deep/link"), target, "chrome-mac-arm64")
+def test_parent_link_targets_are_rejected_before_any_extraction(
+    target: str, tmp_path: Path
+) -> None:
+    artifact = chrome._load_manifest()["linux64"]
+    archive = tmp_path / "parent-link.zip"
+    archive.write_bytes(
+        _zip(
+            [
+                (artifact.executable, b"inert", 0o100755),
+                ("chrome-linux64/deep/link", target.encode(), 0o120755),
+            ]
+        )
+    )
+    output = tmp_path / "installation"
+    output.mkdir()
+    with pytest.raises(ValueError, match="member type"):
+        chrome._extract(archive, output, artifact)
+    assert list(output.iterdir()) == []
 
 
-@pytest.mark.skipif(sys.platform != "linux", reason="Exercises the actual Linux exclusive syscall.")
 @pytest.mark.parametrize(
     "kind", ["empty-directory", "nonempty-directory", "file", "symlink", "broken-symlink"]
 )
@@ -102,7 +116,6 @@ def test_native_noreplace_preserves_every_existing_destination(
         assert destination.is_symlink() and not destination.exists()
 
 
-@pytest.mark.skipif(sys.platform != "linux", reason="Exercises the actual Linux exclusive syscall.")
 def test_native_noreplace_publishes_supported_inert_directory(tmp_path: Path) -> None:
     source = tmp_path / "source"
     source.mkdir()
@@ -115,14 +128,11 @@ def test_native_noreplace_publishes_supported_inert_directory(tmp_path: Path) ->
     assert not source.exists()
 
 
-@pytest.mark.skipif(
-    sys.platform != "linux", reason="Gates the actual Linux syscall at publication."
-)
 def test_empty_foreign_directory_created_at_native_boundary_survives_install(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # [test->req~ring5.cli.install-chrome~1]
+    # [test->req~ring5.cli.install-chrome~2]
     artifact, _ = _install_fixture(monkeypatch, _zip(_inert_layout("linux64")))
     destination = tmp_path / f"{artifact.version}-{artifact.platform}-{artifact.sha256}"
     native = ctypes.CDLL(None, use_errno=True).renameat2
@@ -174,66 +184,33 @@ def test_empty_foreign_directory_created_at_native_boundary_survives_install(
     assert call.call_count == 1
 
 
-@pytest.mark.parametrize(
-    "system,symbol,flags", [("Linux", "renameat2", 1), ("Darwin", "renamex_np", 4)]
-)
 def test_native_publication_abi_and_filesystem_encoding(
-    system: str,
-    symbol: str,
-    flags: int,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     source = tmp_path / os.fsdecode(b"source-\xff")
     destination = tmp_path / "Zoë destination"
     function = MagicMock(return_value=0)
-    loader = MagicMock(return_value=SimpleNamespace(**{symbol: function}))
-    monkeypatch.setattr(chrome.platform, "system", lambda: system)
+    loader = MagicMock(return_value=SimpleNamespace(renameat2=function))
+    monkeypatch.setattr(chrome.platform, "system", lambda: "Linux")
     monkeypatch.setattr(chrome.ctypes, "CDLL", loader)
     chrome._publish_noreplace(source, destination)
     loader.assert_called_once_with(None, use_errno=True)
     assert function.restype is ctypes.c_int
-    if system == "Linux":
-        assert function.argtypes == [
-            ctypes.c_int,
-            ctypes.c_char_p,
-            ctypes.c_int,
-            ctypes.c_char_p,
-            ctypes.c_uint,
-        ]
-        function.assert_called_once_with(
-            -100, os.fsencode(source), -100, os.fsencode(destination), flags
-        )
-    else:
-        assert function.argtypes == [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
-        function.assert_called_once_with(os.fsencode(source), os.fsencode(destination), flags)
+    assert function.argtypes == [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    ]
+    function.assert_called_once_with(-100, os.fsencode(source), -100, os.fsencode(destination), 1)
 
 
-def test_windows_uses_its_exclusive_unicode_rename_without_loading_posix_symbols(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    source, destination = tmp_path / "Zoë source", tmp_path / "工具 destination"
-    rename = MagicMock()
-    loader = MagicMock(side_effect=AssertionError("Windows must not load POSIX symbols"))
-    monkeypatch.setattr(chrome.platform, "system", lambda: "Windows")
-    monkeypatch.setattr(chrome.os, "rename", rename)
-    monkeypatch.setattr(chrome.ctypes, "CDLL", loader)
-    chrome._publish_noreplace(source, destination)
-    rename.assert_called_once_with(source, destination)
-    loader.assert_not_called()
-    rename.side_effect = FileExistsError(errno.EEXIST, "foreign destination")
-    with pytest.raises(FileExistsError):
-        chrome._publish_noreplace(source, destination)
-
-
-@pytest.mark.parametrize("system,symbol", [("Linux", "renameat2"), ("Darwin", "renamex_np")])
 @pytest.mark.parametrize(
     "failure", [errno.ENOSYS, errno.EOPNOTSUPP, errno.EINVAL, errno.EACCES, 0, "missing"]
 )
 def test_unavailable_native_primitive_or_filesystem_has_no_fallback(
-    system: str,
-    symbol: str,
     failure: int | str,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -243,8 +220,8 @@ def test_unavailable_native_primitive_or_filesystem_has_no_fallback(
         return -1
 
     function = MagicMock(side_effect=fail)
-    library = SimpleNamespace() if failure == "missing" else SimpleNamespace(**{symbol: function})
-    monkeypatch.setattr(chrome.platform, "system", lambda: system)
+    library = SimpleNamespace() if failure == "missing" else SimpleNamespace(renameat2=function)
+    monkeypatch.setattr(chrome.platform, "system", lambda: "Linux")
     monkeypatch.setattr(chrome.ctypes, "CDLL", MagicMock(return_value=library))
     fallback = MagicMock(side_effect=AssertionError("ordinary POSIX rename is forbidden"))
     monkeypatch.setattr(chrome.os, "rename", fallback)
@@ -256,14 +233,19 @@ def test_unavailable_native_primitive_or_filesystem_has_no_fallback(
     fallback.assert_not_called()
 
 
+@pytest.mark.parametrize("system", ["Darwin", "Windows", "FreeBSD"])
 def test_unknown_publication_platform_is_explicitly_unsupported(
+    system: str,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(chrome.platform, "system", lambda: "FreeBSD")
+    monkeypatch.setattr(chrome.platform, "system", lambda: system)
+    loader = MagicMock(side_effect=AssertionError("unsupported hosts must not load native symbols"))
+    monkeypatch.setattr(chrome.ctypes, "CDLL", loader)
     with pytest.raises(OSError) as error:
         chrome._publish_noreplace(tmp_path / "source", tmp_path / "destination")
     assert error.value.errno == errno.ENOSYS
+    loader.assert_not_called()
 
 
 @pytest.mark.parametrize("bit", [5, 6])
@@ -343,26 +325,23 @@ def test_unrelated_runtime_errors_remain_visible(
         chrome.install_chrome(cache_directory=str(tmp_path))
 
 
-def test_windows_documented_loop_context_is_normalized_only_at_resolve(
+def test_linux_documented_loop_context_is_normalized_only_at_resolve(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _install_fixture(monkeypatch, _zip(_inert_layout("linux64")))
 
-    def windows_loop(*args: object, **kwargs: object) -> None:
+    def linux_loop(*args: object, **kwargs: object) -> None:
         try:
-            failure = OSError(errno.EINVAL, "native Windows loop")
-            setattr(failure, "winerror", 1921)
-            raise failure
+            raise OSError(errno.ELOOP, "native Linux loop")
         except OSError:
             raise RuntimeError("known Path.resolve loop wrapper")
 
-    monkeypatch.setattr(chrome.Path, "resolve", windows_loop)
+    monkeypatch.setattr(chrome.Path, "resolve", linux_loop)
     with pytest.raises(Ring5Error, match="symlink loop"):
         chrome.install_chrome(cache_directory=str(tmp_path))
 
 
-@pytest.mark.skipif(os.name == "nt", reason="The negative control uses ordinary POSIX rename.")
 def test_wheel_publication_control_detects_a_replacing_primitive(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

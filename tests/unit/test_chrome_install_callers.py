@@ -25,7 +25,6 @@ def test_make_uses_the_packaged_cli_and_supports_interpreter_override() -> None:
     assert command == "\t$(PYTHON) -m ring5.cli install-chrome"
 
 
-@pytest.mark.skipif(os.name == "nt", reason="The Linux export job uses a POSIX shell.")
 def test_ci_captures_literal_installer_output_for_later_exports(tmp_path: Path) -> None:
     workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
     steps = workflow["jobs"]["exports"]["steps"]

@@ -37,7 +37,7 @@ rule defined in AGENTS.md.
    don't adapt). Search tracked source, tests, docs, scripts and configuration with `rg` before
    deleting. Verify callers through string references and dynamic registration too. (Verify the alias is real first —
    a `from X import Canonical as OldName` inside a test file is a local binding, not a production shim.)
-   Current simulator variants, platform support, output-column naming and revision history remain
+   Current simulator variants, Linux architectures, output-column naming and revision history remain
    supported features; their presence alone does not establish a legacy execution path.
 
 ## Canon-only docs (enforce while you're in there)

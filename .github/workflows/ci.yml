@@ -215,19 +215,9 @@ jobs:
         run: make test-latex
 
   wheel-smoke:
-    name: Installed wheel (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Installed wheel (Linux)
+    runs-on: ubuntu-latest
     needs: quality
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            interpreter: bin/python
-          - os: macos-latest
-            interpreter: bin/python
-          - os: windows-latest
-            interpreter: Scripts/python.exe
     defaults:
       run:
         shell: bash
@@ -246,18 +236,18 @@ jobs:
         run: |
           uv build --wheel
           uv venv --python 3.12 "$RUNNER_TEMP/ring5-wheel"
-          uv pip install --python "$RUNNER_TEMP/ring5-wheel/${{ matrix.interpreter }}" dist/*.whl "pytest==9.1.1"
+          uv pip install --python "$RUNNER_TEMP/ring5-wheel/bin/python" dist/*.whl "pytest==9.1.1"
       - name: Exercise installed public API outside the checkout
         run: |
           cd "$RUNNER_TEMP"
-          "$RUNNER_TEMP/ring5-wheel/${{ matrix.interpreter }}" "$GITHUB_WORKSPACE/scripts/verify_installation.py"
+          "$RUNNER_TEMP/ring5-wheel/bin/python" "$GITHUB_WORKSPACE/scripts/verify_installation.py"
       - name: Verify native process lock exclusion
         run: |
           cd "$RUNNER_TEMP"
           touch pytest-wheel.ini
-          "$RUNNER_TEMP/ring5-wheel/${{ matrix.interpreter }}" -m pytest \
+          "$RUNNER_TEMP/ring5-wheel/bin/python" -m pytest \
             --noconftest --import-mode=importlib -c pytest-wheel.ini \
-            "$GITHUB_WORKSPACE/tests/unit/test_file_lock_portability.py" \
+            "$GITHUB_WORKSPACE/tests/unit/test_file_lock.py" \
             -k "lock_excludes_other_process or lock_failed_acquisition" -q
 
   e2e:

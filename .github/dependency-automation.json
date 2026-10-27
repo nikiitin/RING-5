@@ -19,9 +19,7 @@
         "Figure exports (Python 3.14)",
         "Figure exports (Python 3.15)",
         "LaTeX figure exports",
-        "Installed wheel (ubuntu-latest)",
-        "Installed wheel (macos-latest)",
-        "Installed wheel (windows-latest)",
+        "Installed wheel (Linux)",
         "Streamlit E2E"
       ]
     },

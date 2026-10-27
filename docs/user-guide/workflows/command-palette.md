@@ -20,8 +20,7 @@ Covers:
 The command palette gives you one searchable list of safe workspace actions. It is useful when you
 know what you want to do but do not want to hunt through the sidebar.
 
-Open **Command palette** in the sidebar, or press <kbd>Ctrl</kbd>+<kbd>K</kbd> on Windows and Linux
-or <kbd>⌘</kbd>+<kbd>K</kbd> on macOS. Type a page, object, or task such as `plot`, `dataset`,
+Open **Command palette** in the sidebar, or press <kbd>Ctrl</kbd>+<kbd>K</kbd>. Type a page, object, or task such as `plot`, `dataset`,
 `upload`, or `help`. Choose a result to run it. Press <kbd>Esc</kbd> to close the palette.
 
 ## Available shortcuts
