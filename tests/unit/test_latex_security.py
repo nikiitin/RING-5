@@ -49,6 +49,7 @@ def test_figure_usetex_is_disabled_temporarily() -> None:
 @pytest.mark.parametrize("fail", [False, True])
 def test_literal_text_and_math_settings_are_restored(parse_math: bool, fail: bool) -> None:
     """Literal labels and per-artist math settings survive successful and failed exports."""
+    # [test->req~ring5.quality.safe-output-formatting~1]
     fig, ax = plt.subplots()
     original = r"Measurement_1 & 50% $value$ \input{untrusted}"
     ax.set_title(original)
