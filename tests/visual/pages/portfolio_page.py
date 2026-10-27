@@ -12,7 +12,6 @@ from __future__ import annotations
 from playwright.sync_api import (
     Locator,
     Page,
-    TimeoutError as PlaywrightTimeoutError,
     expect,
 )
 
@@ -273,20 +272,4 @@ class PortfolioPage(BasePage):
 
     def select_portfolio(self, name: str) -> None:
         """Select *name* through the labeled portfolio control."""
-        combobox = self.page.get_by_role("combobox", name="Select Portfolio", exact=True)
-        expect(combobox).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        if (combobox.text_content() or "").strip() == name:
-            return
-        option = self.page.get_by_role("option", name=name, exact=True)
-        for attempt in range(3):
-            combobox.click()
-            try:
-                option.wait_for(state="visible", timeout=5_000)
-                option.click(timeout=5_000)
-            except PlaywrightTimeoutError:
-                self.page.keyboard.press("Escape")
-                if attempt == 2:
-                    raise
-                continue
-            self.wait_for_streamlit()
-            return
+        self._open_and_select(self.load_selector, name)

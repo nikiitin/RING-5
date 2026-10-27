@@ -305,6 +305,10 @@ class DataManagersPage(BasePage):
         expect(metrics.filter(has_text="Min").first).to_be_visible(timeout=self.RENDER_TIMEOUT)
         expect(metrics.filter(has_text="Q3").first).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
+    def select_outlier_column(self, column: str) -> None:
+        """Select the exact numeric column for outlier detection."""
+        self._open_and_select(self.outlier_column_selectbox, column)
+
     def apply_outlier_remover(self) -> None:
         """Click 'Apply Outlier Remover' and wait."""
         self.outlier_apply_button.click()
@@ -397,6 +401,10 @@ class DataManagersPage(BasePage):
     def mixer_new_name_input(self) -> Locator:
         """New column name text input in Mixer."""
         return self._by_label("stTextInput", "New Column Name").locator("input")
+
+    def add_mixer_column(self, column: str) -> None:
+        """Add the exact source column and verify its selected chip."""
+        self._open_and_select(self.mixer_columns_multiselect, column, multiple=True)
 
     def apply_mixer_preview(self) -> None:
         """Click 'Preview Merge' and wait."""

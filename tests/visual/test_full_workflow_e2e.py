@@ -143,12 +143,7 @@ class TestFullWorkflow:
         dm.select_tab("Outlier Remover")
 
         # Select simTicks column
-        dm.outlier_column_selectbox.click()
-        shared_page.wait_for_timeout(300)
-        shared_page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
-            "simTicks", exact=True
-        ).click()
-        dm.wait_for_streamlit()
+        dm.select_outlier_column("simTicks")
 
         # Apply to see preview
         dm.apply_outlier_remover()
@@ -207,10 +202,7 @@ class TestFullWorkflow:
         mixer_multi = dm.mixer_columns_multiselect
         # Require each intended column; a missing option must fail this workflow.
         for col_name in ["simTicks", "simInsts", "simOps"]:
-            mixer_multi.get_by_role("combobox").fill(col_name)
-            option = shared_page.get_by_role("option", name=col_name, exact=True)
-            expect(option).to_be_visible(timeout=_E2E_TIMEOUT)
-            option.click()
+            dm.add_mixer_column(col_name)
             expect(mixer_multi.locator("[data-tag]", has_text=col_name)).to_have_count(1)
         shared_page.keyboard.press("Escape")
 
@@ -365,10 +357,7 @@ class TestFullWorkflow:
         expect(y_multi).to_be_visible(timeout=_E2E_TIMEOUT)
         # Require the two statistics this workflow promises to plot.
         for col in ["simTicks", "system.cpu0.ipc"]:
-            y_multi.get_by_role("combobox").fill(col)
-            option = shared_page.get_by_role("option", name=col, exact=True)
-            expect(option).to_be_visible(timeout=_E2E_TIMEOUT)
-            option.click()
+            mp.add_stacked_statistic(col)
             expect(y_multi.locator("[data-tag]", has_text=col)).to_have_count(1)
         expect(y_multi.locator("[data-tag]")).to_have_count(2)
         shared_page.keyboard.press("Escape")
@@ -579,14 +568,7 @@ class TestFullWorkflow:
         pf.navigate()
 
         # Select portfolio from dropdown
-        pf.load_selector.click()
-        shared_page.wait_for_timeout(300)
-        option = shared_page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
-            "E2E_MICRO26_Portfolio", exact=True
-        )
-        expect(option).to_be_visible(timeout=_E2E_TIMEOUT)
-        option.click()
-        pf.wait_for_streamlit()
+        pf.select_portfolio("E2E_MICRO26_Portfolio")
 
         # Load — scope to main content to avoid duplicates during rerun
         load_btn = shared_page.locator("[data-testid='stMainBlockContainer']").get_by_role(

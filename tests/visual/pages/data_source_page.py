@@ -1003,18 +1003,9 @@ class DataSourcePage(BasePage):
             "combobox", name="Search by name...", exact=True
         )
         self.dialog_search_selectbox.get_by_role("button", name="Open", exact=True).click()
-        expect(control).to_have_attribute(
-            "aria-controls", re.compile(r"\S+"), timeout=self.RENDER_TIMEOUT
-        )
-        popup_id = control.get_attribute("aria-controls")
-        assert popup_id is not None, "The scanned-variable control must own its open listbox"
-        # Bind the popup to this control's ARIA identity, independently of its label.
-        escaped_popup_id = popup_id.replace("\\", "\\\\").replace('"', '\\"')
-        listbox = self.page.get_by_role("listbox").and_(
-            self.page.locator(f'[id="{escaped_popup_id}"]')
-        )
+        _popup_id, listbox = self._owned_listbox(control)
+        expect(listbox).to_have_count(1, timeout=self.RENDER_TIMEOUT)
         expect(listbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        expect(listbox).to_have_attribute("id", popup_id, timeout=self.RENDER_TIMEOUT)
         # Match one logical name and its display suffix; never select the empty choice.
         option = listbox.get_by_role(
             "option",

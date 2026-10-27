@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
+from playwright.sync_api import Locator, Page, expect
 
 from tests.visual.pages.base_page import BasePage
 
@@ -642,58 +642,15 @@ class ManagePlotsPage(BasePage):
         expect(self.get_plot_pill(name).first).to_be_visible(timeout=self.RENDER_TIMEOUT)
         self.select_plot(name)
 
-    def _open_and_select(self, selectbox: Locator, value: str) -> None:
-        """Open a selectbox and choose *value*, retrying interrupted clicks."""
-        expect(selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        combobox = selectbox.get_by_role("combobox")
-        if combobox.input_value() == value:
-            return
-        option = self.page.get_by_role("option", name=value, exact=True).first
-        for _ in range(3):
-            combobox.click()
-            try:
-                option.wait_for(state="visible", timeout=5_000)
-                option.click(timeout=5_000)
-            except PlaywrightTimeoutError:
-                self.page.keyboard.press("Escape")
-                self.page.wait_for_timeout(250)
-                continue
-            self.wait_for_streamlit(expect_rerun=True)
-            expect(combobox).to_have_value(value, timeout=self.RENDER_TIMEOUT)
-            return
-        raise AssertionError(f"Could not select {value!r} after three attempts")
-
     def select_plot_type(self, plot_type: str) -> None:
         """Select a plot type in the create-plot form selectbox, verifying it took.
 
         Args:
             plot_type: Exact factory key (e.g. "bar", "dual_axis_bar_dot").
         """
-        combobox = self.plot_type_selectbox.get_by_role("combobox")
-        expect(combobox).to_be_visible(timeout=self.RENDER_TIMEOUT)
         if plot_type not in PLOT_TYPES:
             raise ValueError(f"Unsupported plot type: {plot_type}")
-        option = self.page.get_by_role("option", name=plot_type, exact=True).first
-        for _ in range(3):
-            combobox.click()
-            combobox.fill(plot_type)
-            try:
-                option.wait_for(state="visible", timeout=5_000)
-            except PlaywrightTimeoutError:
-                # A Streamlit rerender can close the virtualized menu after the
-                # input accepted its search text. Reopening retains the query.
-                combobox.click()
-            try:
-                option.wait_for(state="visible", timeout=5_000)
-                option.click(timeout=5_000)
-            except PlaywrightTimeoutError:
-                self.page.keyboard.press("Escape")
-                self.page.wait_for_timeout(250)
-                continue
-            self.wait_for_streamlit(expect_rerun=True)
-            expect(combobox).to_have_value(plot_type, timeout=self.RENDER_TIMEOUT)
-            return
-        raise AssertionError(f"Could not select plot type {plot_type!r} after three attempts")
+        self._open_and_select(self.plot_type_selectbox, plot_type)
 
     #  ACTIONS — Plot Selector
 
@@ -844,6 +801,10 @@ class ManagePlotsPage(BasePage):
     def select_y_axis(self, column: str) -> None:
         """Select a column for the Y-axis."""
         self._open_and_select(self.viz_y_axis_selectbox, column)
+
+    def add_stacked_statistic(self, column: str) -> None:
+        """Add one exact statistic to the grouped stacked plot."""
+        self._open_and_select(self.stacked_statistics_multiselect, column, multiple=True)
 
     def select_sankey_value(self, column: str) -> None:
         """Select the positive numeric flow value for a Sankey diagram."""
