@@ -370,8 +370,17 @@ class DataSourcePage(BasePage):
 
     @property
     def dialog_manual_type_selectbox(self) -> Locator:
-        """'Type' selectbox in Manual Entry mode."""
-        return self.dialog_overlay.locator("[data-testid='stSelectbox']")
+        """The exact output 'Type' field in Manual Entry mode."""
+        return self.dialog_overlay.locator("[data-testid='stSelectbox']").filter(
+            has=self.page.get_by_text("Type", exact=True)
+        )
+
+    @property
+    def dialog_raw_source_type_selectbox(self) -> Locator:
+        """The explicit raw source contract, independent of output representation."""
+        return self.dialog_overlay.locator("[data-testid='stSelectbox']").filter(
+            has=self.page.get_by_text("Raw source type", exact=True)
+        )
 
     @property
     def dialog_search_info(self) -> Locator:
@@ -907,15 +916,31 @@ class DataSourcePage(BasePage):
     def scan_and_wait(self, *, timeout: int = 30_000) -> None:
         """Click Quick Scan and wait for the scan to complete.
 
-        After the scan finishes the source code calls ``st.rerun()``,
-        which rebuilds the page.  The success message ("Scanner found N
-        variables") appears only **after** that rerun.  So we wait for
-        that message instead of trying to track the status widget.
+        Require this attempt's completion toast before its persistent success
+        card. Old discovery results survive path and pattern edits, so the card
+        alone cannot distinguish a new scan from retained results.
         """
+        completion = self.page.get_by_test_id("stToast").filter(
+            has_text=re.compile(
+                r"Scan complete! Found \d+ variables\."
+                r"|Scan finished with \d+ file error\(s\); found \d+ variables\."
+            )
+        )
+        # A prior scan's persistent success card does not establish completion.
+        # Dismiss only prior scan-completion toasts before starting this attempt.
+        for _ in range(completion.count()):
+            try:
+                completion.first.get_by_role("button", name="Close", exact=True).click(
+                    timeout=1_000
+                )
+            except PlaywrightTimeoutError:
+                # The product's timed toast can expire before the close click.
+                expect(completion).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+                break
+        expect(completion).to_have_count(0, timeout=self.RENDER_TIMEOUT)
         self.click_quick_scan()
-        # The scan triggers a status widget, then st.rerun().
-        # After rerun the success alert is rendered.
-        # Wait for the success message to appear (post-rerun).
+        # Start polling immediately: even a fast scan emits its completion toast.
+        expect(completion.first).to_be_visible(timeout=timeout)
         expect(self.scan_result_message).to_be_visible(timeout=timeout)
 
     def assert_scan_success(self) -> None:
@@ -970,19 +995,25 @@ class DataSourcePage(BasePage):
 
         Args:
             name: Variable name (e.g. ``system.cpu.ipc``).
-            var_type: One of scalar, vector, distribution, configuration.
+            var_type: Explicit source and matching output type for the variable.
         """
         self.open_add_variable_dialog()
         self.switch_dialog_to_manual()
         self.fill_dialog_manual_name(name)
 
-        # Change type if not scalar (default)
-        if var_type != "scalar":
-            selectbox = self.dialog_manual_type_selectbox
-            selectbox.get_by_role("button", name="Open").click()
-            option = self.page.get_by_role("option", name=var_type, exact=True)
-            option.click()
-            self.wait_for_streamlit()
+        # Manual drafts require a declared raw contract as well as an output type.
+        for selectbox in (
+            self.dialog_manual_type_selectbox,
+            self.dialog_raw_source_type_selectbox,
+        ):
+            control = selectbox.get_by_role("combobox")
+            if control.input_value() != var_type:
+                selectbox.get_by_role("button", name="Open", exact=True).click()
+                option = self.page.get_by_role("option", name=var_type, exact=True)
+                expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
+                option.click()
+                self.wait_for_streamlit(expect_rerun=True)
+            expect(control).to_have_value(var_type, timeout=self.RENDER_TIMEOUT)
 
         # Click "Add to Configuration"
         expect(self.dialog_add_button).to_be_visible(timeout=self.RENDER_TIMEOUT)

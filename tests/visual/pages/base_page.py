@@ -182,3 +182,4 @@ class BasePage:
         """
         btn = self.sidebar.get_by_role("button", name=page_name)
         expect(btn).to_be_visible()
+        expect(btn).to_have_attribute("data-testid", "stBaseButton-primary")

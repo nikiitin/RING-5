@@ -350,6 +350,14 @@ class TestFullWorkflow:
             has_text="Major Grouping"
         )
         expect(major_group).to_be_visible(timeout=_E2E_TIMEOUT)
+        mp.select_major_group("benchmark_name")
+        mp.select_minor_group("config_description")
+        expect(mp.viz_major_group_selectbox.get_by_role("combobox")).to_have_value(
+            "benchmark_name", timeout=_E2E_TIMEOUT
+        )
+        expect(mp.viz_minor_group_selectbox.get_by_role("combobox")).to_have_value(
+            "config_description", timeout=_E2E_TIMEOUT
+        )
 
         # Select Y-axis columns (multiselect)
         y_multi = shared_page.locator("[data-testid='stMultiSelect']").filter(
@@ -554,6 +562,20 @@ class TestFullWorkflow:
         - Load restores session state
         - Plots are available after load
         """
+        mp = ManagePlotsPage(shared_page)
+        mp.reset_all()
+        mp.navigate()
+        mp.assert_no_plots_warning()
+        expected_plots = [
+            "E2E Bar",
+            "E2E Grouped Bar",
+            "E2E Grouped Stacked Bar",
+            "E2E Dual Axis",
+            "E2E Scatter",
+        ]
+        for name in expected_plots:
+            mp.assert_plot_pill_not_visible(name)
+
         pf = PortfolioPage(shared_page)
         pf.navigate()
 
@@ -580,8 +602,11 @@ class TestFullWorkflow:
         mp.navigate()
         mp.assert_page_header_visible()
 
-        # Verify at least one of our created plots is visible
+        # Every saved plot must be restored into the verified empty session.
         mp.assert_plot_pill_visible("E2E Bar")
+        for name in expected_plots:
+            mp.assert_plot_pill_visible(name)
+        expect(mp.plot_selector_pills.get_by_role("radio")).to_have_count(len(expected_plots))
 
     # Test 15: Widget verification on loaded bar plot
 
@@ -610,6 +635,13 @@ class TestFullWorkflow:
 
         # Verify visualization section is present
         expect(mp.viz_x_axis_selectbox).to_be_visible(timeout=_E2E_TIMEOUT)
+        expect(mp.viz_x_axis_selectbox.get_by_role("combobox")).to_have_value(
+            "benchmark_name", timeout=_E2E_TIMEOUT
+        )
+        expect(mp.viz_y_axis_selectbox.get_by_role("combobox")).to_have_value(
+            "system.cpu0.ipc", timeout=_E2E_TIMEOUT
+        )
+        mp.assert_chart_visible(timeout=_CHART_TIMEOUT)
 
     # Test 16: Screenshots of final state
 

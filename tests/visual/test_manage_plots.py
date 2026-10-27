@@ -220,14 +220,22 @@ class TestManagePlotsWorkflow:
         mp.assert_plot_pill_visible("Renamed Plot")
 
         # Duplicate
+        plot_count = mp.plot_selector_pills.get_by_role("radio").count()
         mp.duplicate_plot()
         mp.page.wait_for_timeout(1000)
         mp.wait_for_streamlit()
+        mp.assert_plot_pill_visible("Renamed Plot")
+        mp.assert_plot_pill_visible("Renamed Plot (copy)")
+        expect(mp.get_plot_pill("Renamed Plot (copy)")).to_be_checked()
+        expect(mp.plot_selector_pills.get_by_role("radio")).to_have_count(plot_count + 1)
 
         # Delete the duplicate (last created is auto-selected)
         mp.delete_plot()
         mp.page.wait_for_timeout(1000)
         mp.wait_for_streamlit()
+        mp.assert_plot_pill_not_visible("Renamed Plot (copy)")
+        mp.assert_plot_pill_visible("Renamed Plot")
+        expect(mp.plot_selector_pills.get_by_role("radio")).to_have_count(plot_count)
 
     # -- Test: Multiple Plot Types ----------------------------------
 

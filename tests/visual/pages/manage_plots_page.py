@@ -329,6 +329,16 @@ class ManagePlotsPage(BasePage):
         return self._by_label("stSelectbox", "X-axis")
 
     @property
+    def viz_major_group_selectbox(self) -> Locator:
+        """Major grouping column for a grouped stacked bar plot."""
+        return self._by_label("stSelectbox", "Major Grouping (Outer)")
+
+    @property
+    def viz_minor_group_selectbox(self) -> Locator:
+        """Minor grouping column for a grouped stacked bar plot."""
+        return self._by_label("stSelectbox", "X-Axis / Minor Grouping (Inner)")
+
+    @property
     def viz_y_axis_selectbox(self) -> Locator:
         """'Y-axis' selectbox."""
         return self._by_label("stSelectbox", "Y-axis")
@@ -651,7 +661,7 @@ class ManagePlotsPage(BasePage):
             self.wait_for_streamlit(expect_rerun=True)
             expect(combobox).to_have_value(value, timeout=self.RENDER_TIMEOUT)
             return
-        expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        raise AssertionError(f"Could not select {value!r} after three attempts")
 
     def select_plot_type(self, plot_type: str) -> None:
         """Select a plot type in the create-plot form selectbox, verifying it took.
@@ -683,7 +693,7 @@ class ManagePlotsPage(BasePage):
             self.wait_for_streamlit(expect_rerun=True)
             expect(combobox).to_have_value(plot_type, timeout=self.RENDER_TIMEOUT)
             return
-        expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        raise AssertionError(f"Could not select plot type {plot_type!r} after three attempts")
 
     #  ACTIONS — Plot Selector
 
@@ -822,6 +832,14 @@ class ManagePlotsPage(BasePage):
     def select_x_axis(self, column: str) -> None:
         """Select a column for the X-axis."""
         self._open_and_select(self.viz_x_axis_selectbox, column)
+
+    def select_major_group(self, column: str) -> None:
+        """Select the outer grouping for a grouped stacked bar plot."""
+        self._open_and_select(self.viz_major_group_selectbox, column)
+
+    def select_minor_group(self, column: str) -> None:
+        """Select the inner grouping for a grouped stacked bar plot."""
+        self._open_and_select(self.viz_minor_group_selectbox, column)
 
     def select_y_axis(self, column: str) -> None:
         """Select a column for the Y-axis."""
