@@ -470,3 +470,154 @@ def test_simulator_declaration_wrong_type_rejects_before_job_creation(
         )
     service.assert_not_called()
     assert api._parse_jobs is None
+
+
+@pytest.mark.parametrize("incremental", [False, True])
+def test_background_projection_reuses_exact_selected_evidence_not_unrelated_discovery(
+    api: ApplicationAPI,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    incremental: bool,
+) -> None:
+    from concurrent.futures import as_completed
+    from copy import deepcopy
+    import json
+    from src.core.common.source_context_codec import SourceContextCodec
+    from src.core.models.parsing_models import ScannedVariable, SourceInstance
+    from src.core.models.source_evidence import ResolvedSourceKind
+    from src.core.services.parse_job_store import MAX_REQUEST_JSON_BYTES
+
+    inputs = tmp_path / "inputs"
+    _stats(inputs)
+    scan = api.finalize_scan(
+        [future.result() for future in as_completed(api.submit_scan_async(str(inputs), limit=1))]
+    )
+    assert scan.complete and scan.scanned_files == 1
+    actual = [value.to_dict() for value in scan.variables]
+    unrelated = ScannedVariable(
+        "unused",
+        "vector",
+        entries=[f"entry{index:05d}_" + "x" * 250 for index in range(5000)],
+        source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+        instances=(SourceInstance("unused", ()),),
+    ).to_dict()
+    catalog = [*actual, unrelated]
+    original = deepcopy(catalog)
+    assert len(json.dumps(catalog).encode("utf-8")) > MAX_REQUEST_JSON_BYTES
+    method = "submit_incremental_parse_async" if incremental else "submit_parse_async"
+    submit = MagicMock(wraps=getattr(api._parser, method))
+    monkeypatch.setattr(api._parser, method, submit)
+    first = api.submit_parse_job(
+        str(inputs), "stats.txt", _variables("001"), scanned_vars=catalog, incremental=incremental
+    )
+    terminal = _settled(api, first.job_id)
+    assert terminal.status == ParseJobStatus.SUCCEEDED, terminal.errors
+    receipt = api.consume_parse_job(first.job_id)
+    assert SourceContextCodec.scanned_payloads(receipt.source_context) == actual
+    assert ParsedOutputIO.to_frame(receipt.output).to_dict("list") == {
+        "value": [1.25, 0.0],
+        "label": ["001", "001"],
+    }
+    assert catalog == original
+    unrelated["entries"].append("later editor-only discovery")
+    cached = api.submit_parse_job(
+        str(inputs), "stats.txt", _variables("001"), scanned_vars=catalog, incremental=incremental
+    )
+    assert cached.status == ParseJobStatus.SUCCEEDED and cached.cache_hit
+    assert cached.fingerprint == first.fingerprint and cached.job_id != first.job_id
+    assert submit.call_count == 1
+    reopened = ParseJobStore(api._get_parse_job_service().session_dir / "jobs.sqlite3")
+    assert reopened.get_request(cached.job_id).source_context == receipt.source_context
+    repeated = api.consume_parse_job(cached.job_id)
+    assert repeated.source_context == receipt.source_context
+    assert repeated.output == receipt.output
+
+
+def test_selected_oversize_background_evidence_fails_before_fingerprints_or_worker(
+    api: ApplicationAPI,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from typing import NoReturn
+    from src.core.models.parsing_models import ScannedVariable, SourceInstance
+    from src.core.models.source_evidence import ResolvedSourceKind
+    from src.core.services import parse_job_service
+
+    inputs = tmp_path / "inputs"
+    _stats(inputs)
+    record = ScannedVariable(
+        "large",
+        "vector",
+        entries=[f"entry{index:05d}_" + "x" * 250 for index in range(5000)],
+        source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+        instances=(SourceInstance("large", ()),),
+    ).to_dict()
+    config = StatConfig(
+        "large", "vector", params={"source_type": "vector", "entries": [record["entries"][0]]}
+    )
+
+    def forbidden(*args: object, **kwargs: object) -> NoReturn:
+        pytest.fail("Over-budget selected evidence reached fingerprinting or file work")
+
+    monkeypatch.setattr(parse_job_service, "find_stats_files", forbidden)
+    monkeypatch.setattr(api._parser, "submit_parse_async", forbidden)
+    with pytest.raises(ValueError, match="budget"):
+        api.submit_parse_job(str(inputs), "stats.txt", [config], scanned_vars=[record])
+    assert api.get_active_parse_job() is None
+
+
+@pytest.mark.parametrize("selection", ["no-match", "invalid-selected"])
+def test_projected_numeric_request_keeps_backend_admission_before_file_work(
+    api: ApplicationAPI,
+    tmp_path: Path,
+    selection: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from typing import NoReturn
+    from src.core.common.source_context_codec import SourceContextCodec
+    from src.core.models.parsing_models import ScannedVariable, SourceInstance
+    from src.core.models.source_evidence import ResolvedSourceKind
+    from src.parsing.framework.work_pool import WorkPool
+
+    inputs = tmp_path / "inputs"
+    _stats(inputs)
+    record = ScannedVariable(
+        r"cpu\d+.ipc",
+        "vector",
+        source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+        instances=(SourceInstance("cpu0.ipc", ("0",)),),
+    ).to_dict()
+    config = StatConfig(
+        "chosen",
+        "scalar",
+        source_name=(r"missing\d+.ipc" if selection == "no-match" else r"cpu\d+.ipc"),
+        is_regex=True,
+        params={"source_type": "scalar", "selected_sources": ["cpu9.ipc"]},
+    )
+    context = SourceContextCodec.parser(
+        stats_path=str(inputs),
+        stats_pattern="stats.txt",
+        strategy_type="simple",
+        variables=[config],
+        scanned_variables=[record],
+        simulator="gem5",
+        scan_limit=1,
+        strict=False,
+    )
+    assert SourceContextCodec.variables(context)[0].params["selected_sources"] == ["cpu9.ipc"]
+    assert SourceContextCodec.scanned_payloads(context) == (
+        [] if selection == "no-match" else [record]
+    )
+
+    def forbidden(*args: object, **kwargs: object) -> NoReturn:
+        pytest.fail("Invalid numeric selection reached file worker allocation")
+
+    monkeypatch.setattr(WorkPool, "get_instance", forbidden)
+    with pytest.raises(ValueError, match="explicit current scan|not a scanned pattern instance"):
+        api.submit_parse_async(
+            str(inputs),
+            "stats.txt",
+            SourceContextCodec.variables(context),
+            str(tmp_path / "out"),
+            scanned_vars=SourceContextCodec.scanned_variables(context),
+        )

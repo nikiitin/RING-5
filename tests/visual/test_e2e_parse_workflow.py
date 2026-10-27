@@ -164,9 +164,11 @@ class TestVariableAndParse:
         ds.scan_and_wait(timeout=_E2E_TIMEOUT)
         ds.assert_scan_success()
 
-        # Add from scan results
-        ds.add_variable_from_scan(index=0)
+        # Add a discovered configuration variable outside the current defaults.
+        configured_before = ds.get_variable_count()
+        ds.add_variable_from_scan("random_seed")
         ds.assert_dialog_hidden()
+        expect(ds.variable_name_inputs).to_have_count(configured_before + 1, timeout=_E2E_TIMEOUT)
 
         # Add manual scalar
         ds.add_manual_variable("system.cpu.ipc", "scalar")

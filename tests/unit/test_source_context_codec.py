@@ -438,3 +438,115 @@ def test_scanner_payload_owner_rejects_unknown_and_invalid_retained_fields(
             scan_limit=None,
             strict=False,
         )
+
+
+def _large_discovery_record() -> ScannedVariableDict:
+    from src.core.models.parsing_models import ScannedVariable, SourceInstance
+
+    return ScannedVariable(
+        "unrelated",
+        "vector",
+        entries=[f"entry{index:05d}_" + "x" * 250 for index in range(5000)],
+        source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+        instances=(SourceInstance("unrelated", ()),),
+    ).to_dict()
+
+
+def _execution_context(
+    catalog: list[ScannedVariableDict], configs: list[StatConfig], *, limit: int = 1_000_000
+) -> ParserSourceContext:
+    return SourceContextCodec.parser(
+        stats_path="inputs",
+        stats_pattern="stats.txt",
+        strategy_type="simple",
+        variables=configs,
+        scanned_variables=catalog,
+        simulator="gem5",
+        scan_limit=10,
+        strict=False,
+        metadata_byte_limit=limit,
+    )
+
+
+def test_execution_projects_before_request_encoding_but_replay_keeps_exact_saved_records() -> None:
+    from copy import deepcopy
+    from src.core.models.parsing_models import ScannedVariable, SourceInstance
+
+    needed = ScannedVariable(
+        "simTicks",
+        "scalar",
+        source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+        instances=(SourceInstance("simTicks", ()),),
+    ).to_dict()
+    catalog = [needed, _large_discovery_record()]
+    before = deepcopy(catalog)
+    assert len(json.dumps(catalog).encode("utf-8")) > 1_000_000
+    configs = [
+        StatConfig("alias", "scalar", source_name="simTicks", params={"source_type": "scalar"})
+    ]
+    source = _execution_context(catalog, configs)
+    assert SourceContextCodec.scanned_payloads(source) == [needed]
+    assert SourceContextCodec.variables(source) == configs
+    assert catalog == before
+    assert SourceContextCodec.from_payload(SourceContextCodec.to_payload(source)) == source
+    assert SourceContextCodec.decode(SourceContextCodec.encode(source)) == source
+    saved = SourceContextCodec.to_payload(source)
+    # A saved execution snapshot is exact, even if it includes additional current records.
+    saved["scanned_variables"] = [needed, catalog[1]]
+    replay = SourceContextCodec.from_payload(saved)
+    assert isinstance(replay, ParserSourceContext)
+    assert SourceContextCodec.scanned_payloads(replay) == catalog
+    assert SourceContextCodec.to_payload(replay) == saved
+    assert SourceContextCodec.decode(SourceContextCodec.encode(replay)) == replay
+    assert catalog == before
+
+
+def test_selected_large_record_still_exceeds_the_unchanged_request_budget() -> None:
+    record = _large_discovery_record()
+    config = StatConfig(
+        "chosen",
+        "vector",
+        source_name="unrelated",
+        params={"source_type": "vector", "entries": [record["entries"][0]]},
+    )
+    with pytest.raises(ValueError, match="budget"):
+        _execution_context([record], [config])
+
+
+def test_full_discovery_primitive_budget_is_checked_before_record_copy_or_filtering(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core.common import source_context_codec
+
+    def forbidden(*args: object, **kwargs: object) -> NoReturn:
+        pytest.fail("Oversized discovery reached typed copying or filtering")
+
+    monkeypatch.setattr(source_context_codec, "MAX_PARSE_RESULT_BYTES", 128)
+    monkeypatch.setattr(source_context_codec, "request_scanned_variables", forbidden)
+    with pytest.raises(ValueError, match="budget"):
+        _execution_context([_large_discovery_record()], [], limit=128)
+
+
+def test_unselected_but_pattern_matching_whole_record_still_obeys_request_budget() -> None:
+    from src.core.models.parsing_models import ScannedVariable, SourceInstance
+
+    selected = ScannedVariable(
+        "cpu0.ipc",
+        "vector",
+        entries=["value"],
+        source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+        instances=(SourceInstance("cpu0.ipc", ()),),
+    ).to_dict()
+    unselected = _large_discovery_record()
+    unselected["name"] = "cpu9.ipc"
+    unselected["instances"] = [{"source_name": "cpu9.ipc", "indices": []}]
+    config = StatConfig(
+        "chosen",
+        "vector",
+        source_name=r"cpu\d+.ipc",
+        is_regex=True,
+        params={"source_type": "vector", "entries": ["value"], "selected_sources": ["cpu0.ipc"]},
+    )
+    with pytest.raises(ValueError, match="budget"):
+        _execution_context([selected, unselected], [config])
+    assert config.params["selected_sources"] == ["cpu0.ipc"]

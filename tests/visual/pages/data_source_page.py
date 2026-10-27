@@ -484,7 +484,7 @@ class DataSourcePage(BasePage):
         """Read the single consumed job identity from its keyed notice container."""
         expect(self.parse_completion_notice).to_have_count(1)
         classes = self.parse_completion_notice.get_attribute("class") or ""
-        identities = re.findall(r"\bst-key-parse_completion_([0-9a-f]{32})\b", classes)
+        identities: list[str] = re.findall(r"\bst-key-parse_completion_([0-9a-f]{32})\b", classes)
         assert len(identities) == 1, "Expected one job-bound parse completion notice."
         return identities[0]
 
@@ -988,14 +988,14 @@ class DataSourcePage(BasePage):
 
     # E2E: Add variable from scanned results (dialog Search mode)
 
-    def add_variable_from_scan(self, index: int = 0) -> None:
-        """Add one real scanned variable, excluding the empty selectbox choice.
+    def add_variable_from_scan(self, name: str) -> None:
+        """Add the named scanned variable through its owned selectbox popup.
 
         After selecting a variable and clicking "Add to Configuration",
         Streamlit calls ``st.rerun()`` which auto-closes the dialog.
 
         Args:
-            index: Zero-based index among the nonempty scanned variable choices.
+            name: Exact scanned-variable name, excluding its displayed type suffix.
         """
         self.open_add_variable_dialog()
         expect(self.dialog_search_selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
@@ -1003,19 +1003,35 @@ class DataSourcePage(BasePage):
             "combobox", name="Search by name...", exact=True
         )
         self.dialog_search_selectbox.get_by_role("button", name="Open", exact=True).click()
-        listbox = self.page.get_by_role("listbox", name="Search by name...", exact=True)
-        expect(listbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(control).to_have_attribute(
+            "aria-controls", re.compile(r"\S+"), timeout=self.RENDER_TIMEOUT
+        )
         popup_id = control.get_attribute("aria-controls")
         assert popup_id is not None, "The scanned-variable control must own its open listbox"
+        # Bind the popup to this control's ARIA identity, independently of its label.
+        escaped_popup_id = popup_id.replace("\\", "\\\\").replace('"', '\\"')
+        listbox = self.page.get_by_role("listbox").and_(
+            self.page.locator(f'[id="{escaped_popup_id}"]')
+        )
+        expect(listbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
         expect(listbox).to_have_attribute("id", popup_id, timeout=self.RENDER_TIMEOUT)
-        # The current selectbox exposes an empty option before its real choices.
-        option = listbox.get_by_role("option").filter(has_text=re.compile(r"\S")).nth(index)
+        # Match one logical name and its display suffix; never select the empty choice.
+        option = listbox.get_by_role(
+            "option",
+            name=re.compile(
+                rf"^{re.escape(name)} \([^()]+\)(?: \[\d+ items\])?" r"(?: \(Grouped \d+x\))?$"
+            ),
+        )
+        expect(option).to_have_count(1, timeout=self.RENDER_TIMEOUT)
         expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
         selected_label = option.inner_text().strip()
         assert selected_label, "A scanned-variable choice must have a nonempty label"
         option.click()
         self.wait_for_streamlit(expect_rerun=True)
         expect(control).to_have_value(selected_label, timeout=self.RENDER_TIMEOUT)
+        expect(self.dialog_overlay.get_by_role("textbox", name="Name", exact=True)).to_have_value(
+            name, timeout=self.RENDER_TIMEOUT
+        )
         expect(self.dialog_add_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
         self.dialog_add_button.click()
         expect(self.dialog_overlay).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
