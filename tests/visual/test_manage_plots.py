@@ -122,8 +122,9 @@ class TestManagePlotsWorkflow:
     """
 
     @pytest.fixture(autouse=True, scope="class")
+    @classmethod
     def _load_data(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
         _reset_app_state: None,
@@ -262,8 +263,9 @@ class TestPipelineManipulation:
     """
 
     @pytest.fixture(autouse=True, scope="class")
+    @classmethod
     def _load_data(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
         _reset_app_state: None,
@@ -301,8 +303,9 @@ class TestAdvancedSettings:
     """
 
     @pytest.fixture(autouse=True, scope="class")
+    @classmethod
     def _load_data_and_render(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
         _reset_app_state: None,
@@ -344,8 +347,9 @@ class TestManagePlotsScreenshots:
     """
 
     @pytest.fixture(autouse=True, scope="class")
+    @classmethod
     def _load_data_and_render(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
         _reset_app_state: None,

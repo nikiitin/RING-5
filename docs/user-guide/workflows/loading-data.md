@@ -512,6 +512,12 @@ bounded error details while the rest of the application remains usable. Identica
 requests share active work and can reuse a successfully published Recent CSV during
 the same session.
 
+After a result loads, a persistent **Last parse** notice identifies whether the CSV was
+loaded or reused from Recent. It remains visible across reruns and navigation until
+another parse is submitted or retried, or the workspace is cleared or restored. The
+notice describes that parse, including after a later CSV upload; it does not label the
+currently selected dataset. Explicitly loaded partial output remains marked as partial.
+
 Cancellation affects only the selected session job. Pending files are cancelled, while
 already-running parser calls finish safely before their results are discarded. Partial
 results require an explicit **Load Partial**, **Retry**, or **Dismiss** choice; failed and

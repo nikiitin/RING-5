@@ -58,6 +58,10 @@ engine selectors use radio roles; inspect checked state before clicking an activ
   explanation and cannot render a native histogram. Follow each family's actual labels and widgets.
 - Forms batch changes until submission. Dialogs can close on rerun. For fragment interactions,
   synchronize the observable result with the existing action helper before asserting or navigating.
+- Parse completion uses the persistent `Last parse` container keyed by the consumed receipt's job
+  ID. Capture the existing identity before clicking Parse and require a different notice afterward,
+  plus positive loaded rows and no active/recovery/error UI. Session cache reuse can retain the CSV
+  filename. An unarmed wait or an old notice/retained rows cannot prove another attempt completed.
 - `app.py` owns a browser-session-scoped `ApplicationAPI` and closes it via `on_release`.
   Browser classes reuse `shared_page`; their class-scoped `_reset_app_state` fixtures reset that
   context. Preserve session-isolation tests and avoid cross-class state assumptions.

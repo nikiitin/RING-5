@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
+from src.web.state.ui_state_manager import ParseCompletionNotice, UIStateManager, WidgetKeyBuilder
 
 
 @pytest.fixture
@@ -157,11 +157,58 @@ def test_workspace_reset_preserves_browser_owner_api_and_engine_preferences(
             "plot.1.widgets.title": "old",
             "manager.mixer.col": "ipc",
             "nav.current_page": "Manage Plots",
+            "parse.active_job_id": "running",
+            "parse.completion": ParseCompletionNotice("old", "Loaded parsed CSV from Recent"),
         }
     )
     ui_state.cleanup_all()
     assert mock_state == retained
     assert mock_state["api"] is api
+
+
+def test_parse_completion_is_shared_but_not_consumed_by_another_accessor(
+    ui_state: UIStateManager,
+) -> None:
+    # [test->req~ring5.ingestion.session-background-parse~1]
+    notice = ParseCompletionNotice("job-1", "Loaded parsed CSV from Recent")
+    ui_state.parse.remember_job("job-1")
+    ui_state.parse.complete_job(notice)
+
+    assert ui_state.parse.get_job_id() is None
+    assert ui_state.parse.get_completion() is notice
+    ui_state.nav.set_current_page("Data Managers")
+    assert UIStateManager().parse.get_completion() is notice
+    assert UIStateManager().parse.get_completion() is notice
+
+
+def test_new_parse_attempt_clears_only_the_prior_completion_notice(
+    ui_state: UIStateManager, mock_state: dict[Any, Any]
+) -> None:
+    notice = ParseCompletionNotice("job-1", "Loaded parsed CSV from Recent")
+    ui_state.parse.complete_job(notice)
+    mock_state["ring5_engine_mode"] = "matplotlib"
+    ui_state.parse.remember_job("job-2")
+
+    assert ui_state.parse.get_job_id() == "job-2"
+    assert ui_state.parse.get_completion() is None
+    assert mock_state["ring5_engine_mode"] == "matplotlib"
+    ui_state.parse.forget_job("job-1")
+    assert ui_state.parse.get_job_id() == "job-2"
+    ui_state.parse.forget_job("job-2")
+    assert ui_state.parse.get_job_id() is None
+
+
+def test_workspace_restore_discards_a_previous_parse_notice(
+    ui_state: UIStateManager, mock_state: dict[Any, Any]
+) -> None:
+    # [test->req~ring5.ingestion.session-background-parse~1]
+    ui_state.parse.complete_job(ParseCompletionNotice("job-1", "Loaded parsed CSV from Recent"))
+    mock_state["api"] = object()
+    ui_state.cleanup_all()
+
+    assert ui_state.parse.get_completion() is None
+    assert ui_state.parse.get_job_id() is None
+    assert set(mock_state) == {"api"}
 
 
 def test_widget_identities_are_stable_until_their_owned_scope_resets(

@@ -14,6 +14,21 @@ class _WidgetGenerations:
     scopes: tuple[tuple[str, int], ...] = ()
 
 
+@dataclass(frozen=True, slots=True)
+class ParseCompletionNotice:
+    """Remember one consumed parse result within its browser session.
+
+    Attributes:
+        job_id: Identity of the successfully consumed attempt.
+        message: Human-readable description of the loaded or reused result.
+        partial: Whether the user explicitly loaded incomplete output.
+    """
+
+    job_id: str
+    message: str
+    partial: bool = False
+
+
 class WidgetKeyBuilder:
     """Build consistent, namespaced session_state keys.
 
@@ -136,15 +151,45 @@ class _NavUIState:
         st.session_state["nav.current_page"] = page
 
 
+class _ParseUIState:
+    """Own the active parse identity and last consumed notice under ``parse.*``."""
+
+    def get_job_id(self) -> str | None:
+        """Return the attempt exposed for progress or acknowledgement."""
+        value = st.session_state.get("parse.active_job_id")
+        return value if isinstance(value, str) else None
+
+    def remember_job(self, job_id: str) -> None:
+        """Expose accepted work and clear the previous completion notice."""
+        st.session_state["parse.active_job_id"] = job_id
+        st.session_state.pop("parse.completion", None)
+
+    def forget_job(self, job_id: str) -> None:
+        """Forget only the matching attempt, preserving independently exposed work."""
+        if self.get_job_id() == job_id:
+            st.session_state.pop("parse.active_job_id", None)
+
+    def get_completion(self) -> ParseCompletionNotice | None:
+        """Return the last consumed notice without consuming it on rerender."""
+        value = st.session_state.get("parse.completion")
+        return value if isinstance(value, ParseCompletionNotice) else None
+
+    def complete_job(self, notice: ParseCompletionNotice) -> None:
+        """Retain a consumed result and retire its matching progress identity."""
+        self.forget_job(notice.job_id)
+        st.session_state["parse.completion"] = notice
+
+
 class UIStateManager:
-    """Own transient plot, manager and navigation state for this browser session."""
+    """Own transient plot, manager, navigation and parse state for this session."""
 
     def __init__(self) -> None:
         """Initialize sub-managers."""
         self.plot: _PlotUIState = _PlotUIState()
         self.manager: _ManagerUIState = _ManagerUIState()
         self.nav: _NavUIState = _NavUIState()
+        self.parse: _ParseUIState = _ParseUIState()
 
     def cleanup_all(self) -> None:
         """Clear workspace widget state, retaining global preferences and browser identity."""
-        _clear_keys(("plot.", "manager.", "nav."))
+        _clear_keys(("plot.", "manager.", "nav.", "parse."))

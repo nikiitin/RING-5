@@ -101,8 +101,9 @@ class TestSettingsReorganization:
     """Tick marks and title position belong to Axes; font controls use Typography."""
 
     @pytest.fixture(autouse=True, scope="class")
+    @classmethod
     def _setup_plot(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
         _reset_app_state: None,
@@ -167,8 +168,9 @@ class TestLegendSettings:
     """Legend settings expose current positioning and column-layout controls."""
 
     @pytest.fixture(autouse=True, scope="class")
+    @classmethod
     def _setup_plot(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
         _reset_app_state: None,

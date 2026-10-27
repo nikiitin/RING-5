@@ -61,7 +61,7 @@ class PortfolioPage(BasePage):
     @property
     def load_button(self) -> Locator:
         """'Load Portfolio' button."""
-        return self.page.get_by_role("button", name="Load Portfolio")
+        return self.page.get_by_role("button", name="Load Portfolio", exact=True)
 
     @property
     def environment_expander(self) -> Locator:

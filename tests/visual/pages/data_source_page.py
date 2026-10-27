@@ -40,7 +40,8 @@ class DataSourcePage(BasePage):
 
     def __init__(self, page: Page) -> None:
         super().__init__(page)
-        self._parse_started_without_data = False
+        self._parse_attempt_pending = False
+        self._previous_parse_completion_id: str | None = None
 
     # Navigation
 
@@ -223,10 +224,9 @@ class DataSourcePage(BasePage):
 
     @property
     def parser_error_message(self) -> Locator:
-        """Error alert shown when parsing fails or path is empty."""
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] "
-            ":is([data-testid='stAlertContentError'], [data-testid='stException'])"
+        """Error content for an invalid path or a parsing exception."""
+        return self.page.get_by_test_id("stMainBlockContainer").get_by_test_id(
+            "stAlertContentError"
         )
 
     # SECTION 4: CSV mode
@@ -361,7 +361,9 @@ class DataSourcePage(BasePage):
     @property
     def dialog_search_selectbox(self) -> Locator:
         """The search selectbox in the dialog."""
-        return self.dialog_overlay.locator("[data-testid='stSelectbox']")
+        return self.dialog_overlay.locator("[data-testid='stSelectbox']").filter(
+            has=self.page.get_by_role("combobox", name="Search by name...", exact=True)
+        )
 
     @property
     def dialog_manual_name_input(self) -> Locator:
@@ -457,14 +459,9 @@ class DataSourcePage(BasePage):
         )
 
     @property
-    def parse_completion_message(self) -> Locator:
-        """One-shot toast emitted after a successful result is loaded."""
-        return (
-            self.page.get_by_text("Loaded parsed CSV from Recent", exact=True)
-            .or_(self.page.get_by_text("Reused parsed CSV from Recent", exact=True))
-            .or_(self.page.get_by_text("Loaded partial CSV:", exact=False))
-            .first
-        )
+    def parse_completion_notice(self) -> Locator:
+        """Persistent keyed notice for the session's last consumed parse result."""
+        return self.page.locator("[class*='st-key-parse_completion_']")
 
     # Actions
 
@@ -474,11 +471,22 @@ class DataSourcePage(BasePage):
         return self.page.get_by_test_id("stMetric").filter(has_text="Rows").first
 
     @property
-    def parse_completion_signal(self) -> Locator:
-        """Return completion evidence allowed by this submission's baseline."""
-        if self._parse_started_without_data:
-            return self.parse_completion_message.or_(self.data_rows_metric).first
-        return self.parse_completion_message
+    def pending_parse_completion(self) -> Locator:
+        """Return only a different notice after this page object submits work."""
+        assert self._parse_attempt_pending, "No parse submission is pending."
+        selector = "[class*='st-key-parse_completion_']"
+        if self._previous_parse_completion_id is not None:
+            previous = f"st-key-parse_completion_{self._previous_parse_completion_id}"
+            selector += f":not([class~='{previous}'])"
+        return self.page.locator(selector)
+
+    def get_parse_completion_id(self) -> str:
+        """Read the single consumed job identity from its keyed notice container."""
+        expect(self.parse_completion_notice).to_have_count(1)
+        classes = self.parse_completion_notice.get_attribute("class") or ""
+        identities = re.findall(r"\bst-key-parse_completion_([0-9a-f]{32})\b", classes)
+        assert len(identities) == 1, "Expected one job-bound parse completion notice."
+        return identities[0]
 
     def _is_mode_active(self, option: Locator) -> bool:
         """Return whether a segmented-control radio option is selected."""
@@ -628,13 +636,15 @@ class DataSourcePage(BasePage):
         self.wait_for_streamlit()
 
     def click_parse(self) -> None:
-        """Submit after prior work clears and capture this attempt's data baseline."""
-        self._parse_started_without_data = False
-        expect(self.parse_completion_message).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
+        """Capture the prior completion identity before submitting another attempt."""
+        self._parse_attempt_pending = False
         expect(self.parse_button).to_be_enabled(timeout=self.RENDER_TIMEOUT)
         expect(self.parse_job_heading).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self._parse_started_without_data = not self.data_rows_metric.is_visible()
+        self._previous_parse_completion_id = (
+            self.get_parse_completion_id() if self.parse_completion_notice.count() else None
+        )
         self.parse_button.click()
+        self._parse_attempt_pending = True
         self.wait_for_streamlit()
 
     def open_add_variable_dialog(self) -> None:
@@ -914,34 +924,51 @@ class DataSourcePage(BasePage):
     # E2E: Scan workflow
 
     def scan_and_wait(self, *, timeout: int = 30_000) -> None:
-        """Click Quick Scan and wait for the scan to complete.
+        """Require a fresh terminal scan job and its published discovery results.
 
-        Require this attempt's completion toast before its persistent success
-        card. Old discovery results survive path and pattern edits, so the card
-        alone cannot distinguish a new scan from retained results.
+        Retained results and old completed jobs cannot establish this attempt.
+        Job identities also remain meaningful when the bounded registry evicts
+        an older record while admitting the new scan.
         """
-        completion = self.page.get_by_test_id("stToast").filter(
-            has_text=re.compile(
-                r"Scan complete! Found \d+ variables\."
-                r"|Scan finished with \d+ file error\(s\); found \d+ variables\."
-            )
+        self.open_background_jobs()
+        control_selector = (
+            "[data-testid='stElementContainer']" "[class*='st-key-background_job_cancel_']"
         )
-        # A prior scan's persistent success card does not establish completion.
-        # Dismiss only prior scan-completion toasts before starting this attempt.
-        for _ in range(completion.count()):
-            try:
-                completion.first.get_by_role("button", name="Close", exact=True).click(
-                    timeout=1_000
-                )
-            except PlaywrightTimeoutError:
-                # The product's timed toast can expire before the close click.
-                expect(completion).to_have_count(0, timeout=self.RENDER_TIMEOUT)
-                break
-        expect(completion).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+        previous_ids: set[str] = set()
+        for control in self.background_jobs_content.locator(control_selector).all():
+            classes = control.get_attribute("class") or ""
+            match = re.search(r"\bst-key-background_job_cancel_([0-9a-f]{32})(?=\s|$)", classes)
+            assert match is not None, "A background job control must expose its UUID key"
+            previous_ids.add(match.group(1))
+
         self.click_quick_scan()
-        # Start polling immediately: even a fast scan emits its completion toast.
-        expect(completion.first).to_be_visible(timeout=timeout)
+        self.wait_for_streamlit(timeout=timeout, expect_rerun=True)
+        self.open_background_jobs()
+
+        # Exclude prior identities rather than relying on a growing card count.
+        new_controls = control_selector + "".join(
+            f":not(.st-key-background_job_cancel_{job_id})" for job_id in sorted(previous_ids)
+        )
+        terminal_scan = (
+            self.background_jobs_content.locator(new_controls)
+            .locator(
+                "xpath=ancestor::div[@data-testid='stVerticalBlock']"
+                "[.//*[@data-testid='stProgress']][1]"
+            )
+            .get_by_test_id("stProgress")
+            .filter(has_text=re.compile(r"^Scan · (?:Completed|Failed) · \d+/\d+ · attempt \d+$"))
+        )
+        expect(terminal_scan).to_have_count(1, timeout=timeout)
+        expect(terminal_scan).to_be_visible(timeout=timeout)
+        # Per-file diagnostics can mark a usable partial scan Failed. Require
+        # actual nonempty publication as well; future/aggregation failures do not qualify.
         expect(self.scan_result_message).to_be_visible(timeout=timeout)
+        expect(self.scan_result_message).to_contain_text(
+            re.compile(r"Scanner found [1-9]\d* variables\."), timeout=timeout
+        )
+        expect(
+            self.page.get_by_test_id("stMainBlockContainer").get_by_test_id("stException")
+        ).not_to_be_visible(timeout=timeout)
 
     def assert_scan_success(self) -> None:
         """Assert that the scan completed and the success message is shown."""
@@ -962,28 +989,35 @@ class DataSourcePage(BasePage):
     # E2E: Add variable from scanned results (dialog Search mode)
 
     def add_variable_from_scan(self, index: int = 0) -> None:
-        """Open dialog, select a scanned variable by index, and add it.
+        """Add one real scanned variable, excluding the empty selectbox choice.
 
         After selecting a variable and clicking "Add to Configuration",
         Streamlit calls ``st.rerun()`` which auto-closes the dialog.
 
         Args:
-            index: Zero-based index in the scanned variable list.
+            index: Zero-based index among the nonempty scanned variable choices.
         """
         self.open_add_variable_dialog()
-        # Wait for the selectbox to appear (scan data available)
         expect(self.dialog_search_selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        # Click the selectbox to open its dropdown
-        self.dialog_search_selectbox.get_by_role("button", name="Open").click()
-        # Select the option by index
-        options = self.page.get_by_role("option")
-        expect(options.first).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        options.nth(index).click()
-        self.wait_for_streamlit()
-        # Now the config form appears; click Add
+        control = self.dialog_search_selectbox.get_by_role(
+            "combobox", name="Search by name...", exact=True
+        )
+        self.dialog_search_selectbox.get_by_role("button", name="Open", exact=True).click()
+        listbox = self.page.get_by_role("listbox", name="Search by name...", exact=True)
+        expect(listbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        popup_id = control.get_attribute("aria-controls")
+        assert popup_id is not None, "The scanned-variable control must own its open listbox"
+        expect(listbox).to_have_attribute("id", popup_id, timeout=self.RENDER_TIMEOUT)
+        # The current selectbox exposes an empty option before its real choices.
+        option = listbox.get_by_role("option").filter(has_text=re.compile(r"\S")).nth(index)
+        expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        selected_label = option.inner_text().strip()
+        assert selected_label, "A scanned-variable choice must have a nonempty label"
+        option.click()
+        self.wait_for_streamlit(expect_rerun=True)
+        expect(control).to_have_value(selected_label, timeout=self.RENDER_TIMEOUT)
         expect(self.dialog_add_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
         self.dialog_add_button.click()
-        # Dialog auto-closes via st.rerun() — wait for it to disappear
         expect(self.dialog_overlay).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
         self.wait_for_streamlit()
 
@@ -1068,14 +1102,16 @@ class DataSourcePage(BasePage):
     # E2E: Parse workflow
 
     def wait_for_parse_completion(self, *, timeout: int = 60_000) -> None:
-        """Verify consumed output without depending on a one-shot toast.
+        """Require a different consumed job notice and the loaded workspace checks."""
+        completion = self.pending_parse_completion
+        try:
+            expect(completion).to_be_visible(timeout=timeout)
+            self._assert_consumed_parse_data(timeout=timeout)
+        finally:
+            self._parse_attempt_pending = False
 
-        A fresh no-data baseline permits an empty-to-loaded transition. Existing
-        data requires a new completion message so retained rows cannot pass.
-        """
-        completion = self.parse_completion_signal
-        self._parse_started_without_data = False
-        expect(completion).to_be_visible(timeout=timeout)
+    def _assert_consumed_parse_data(self, *, timeout: int) -> None:
+        """Verify the result is loaded without active parsing or recovery errors."""
         expect(self.data_rows_metric.get_by_test_id("stMetricValue")).to_have_text(
             re.compile(r"^[1-9][\d,]*$"), timeout=timeout
         )
@@ -1090,7 +1126,12 @@ class DataSourcePage(BasePage):
         self.wait_for_parse_completion(timeout=timeout)
 
     def wait_for_parse_terminal_outcome(self, *, timeout: int = 60_000) -> None:
-        """Wait until a parse loads successfully or exposes manual recovery."""
-        self._parse_started_without_data = False
-        outcome = self.parse_completion_message.or_(self.parse_job_retry_button).first
-        expect(outcome).to_be_visible(timeout=timeout)
+        """Require this submission's consumed notice or explicit manual recovery."""
+        completion = self.pending_parse_completion
+        try:
+            outcome = completion.or_(self.parse_job_retry_button).first
+            expect(outcome).to_be_visible(timeout=timeout)
+            if completion.is_visible():
+                self._assert_consumed_parse_data(timeout=timeout)
+        finally:
+            self._parse_attempt_pending = False

@@ -120,8 +120,9 @@ class TestPlotFeatures:
     """
 
     @pytest.fixture(autouse=True, scope="class")
+    @classmethod
     def _parse_and_create_plot(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
         _reset_app_state: None,

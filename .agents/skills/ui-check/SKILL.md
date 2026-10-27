@@ -18,6 +18,9 @@ conventions and runs the right test layers. For *writing* UI tests, use the
   data managers use `manager.<name>.*`, and navigation uses `nav.current_page`.
   Construct plot/manager keys through `WidgetKeyBuilder`. Use `plot.reset_widgets` before rendering
   reset controls, `plot.cleanup` for deletion, and `cleanup_all` for workspace reset/restore.
+- Parse progress identity and the persistent last-consumed notice use the typed `parse.*` owner.
+  Accepted submission/retry clears the old notice; `cleanup_all` clears it on workspace reset or
+  restore. Completion is recorded only after facade consumption succeeds, using the receipt job ID.
 - **Per-plot widget keys are unique**: preserve semantic series, group and shaper identities within
   the owning plot's namespace. Shared keys or suffix-based cleanup cause cross-talk.
 - **Dual engine**: rendering goes through `FigureConfig` → connectors; the engine is switched by the

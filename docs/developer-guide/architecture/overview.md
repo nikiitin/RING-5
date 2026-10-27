@@ -60,6 +60,10 @@ previews, plots, visualization state, and history. Web-only transient state rema
 `UIStateManager`. Core and parsing code never access `st.session_state`.
 Plot widget state uses exact `plot.<id>.widgets.*` ownership. Scoped widget resets, plot deletion,
 and workspace restoration clear their corresponding namespaces through the same web state owner.
+Parse progress identity and the last consumed result notice use `parse.*`. Completion is recorded
+only after the facade consumes and loads the result; its receipt job ID gives the persistent
+notice its container identity. Reusing a session CSV retains its path but consumes a new job.
+Accepted submission or retry removes the prior notice, and workspace cleanup removes the namespace.
 
 Plot artifacts use the native-free `PlotRenderState` owner. A repository replacement records each
 removed identity and its exact binding generation. The outermost state transaction preserves

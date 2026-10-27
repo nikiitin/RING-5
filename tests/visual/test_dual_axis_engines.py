@@ -32,8 +32,9 @@ class TestDualAxisEngines:
     """Render the dual-axis bar+dot plot and screenshot each engine (ordered)."""
 
     @pytest.fixture(scope="class", autouse=True)
+    @classmethod
     def _setup_dual_axis_plot(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
         _reset_app_state: None,

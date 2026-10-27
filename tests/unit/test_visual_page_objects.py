@@ -1,6 +1,8 @@
 """Regression tests for shared Playwright page-object synchronization."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, call, patch
+
+import pytest
 
 from tests.visual.pages.base_page import BasePage
 from tests.visual.pages.data_source_page import DataSourcePage
@@ -53,3 +55,82 @@ def test_segmented_control_selection_skips_detach_prone_actionability_waits() ->
     mock_expect.return_value.to_be_checked.assert_called_once_with(
         timeout=DataSourcePage.RENDER_TIMEOUT
     )
+
+
+def test_parse_wait_without_submission_rejects_retained_data_and_notices() -> None:
+    """Restored or previously parsed rows never arm a fresh completion wait."""
+    # [test->req~ring5.ingestion.session-background-parse~1]
+    page = MagicMock()
+    data_source = DataSourcePage(page)
+
+    with pytest.raises(AssertionError, match="No parse submission is pending"):
+        data_source.wait_for_parse_completion(timeout=500)
+    with pytest.raises(AssertionError, match="No parse submission is pending"):
+        data_source.wait_for_parse_terminal_outcome(timeout=500)
+
+    page.locator.assert_not_called()
+    page.get_by_test_id.assert_not_called()
+
+
+def test_parse_submission_excludes_the_existing_notice_before_clicking() -> None:
+    """The fresh-notice query excludes the actual captured job, even for cached rows."""
+    page = MagicMock()
+    notice = MagicMock()
+    notice.count.return_value = 1
+    notice.get_attribute.return_value = "stVerticalBlock st-key-parse_completion_" + "a" * 32
+    button = MagicMock()
+    ordered = MagicMock()
+    ordered.attach_mock(notice, "notice")
+    ordered.attach_mock(button, "button")
+    data_source = DataSourcePage(page)
+
+    with (
+        patch.object(
+            DataSourcePage,
+            "parse_completion_notice",
+            new_callable=PropertyMock,
+            return_value=notice,
+        ),
+        patch.object(
+            DataSourcePage, "parse_button", new_callable=PropertyMock, return_value=button
+        ),
+        patch.object(DataSourcePage, "parse_job_heading", new_callable=PropertyMock),
+        patch.object(data_source, "wait_for_streamlit"),
+        patch("tests.visual.pages.data_source_page.expect"),
+    ):
+        data_source.click_parse()
+
+    assert ordered.mock_calls.index(call.notice.get_attribute("class")) < ordered.mock_calls.index(
+        call.button.click()
+    )
+    _ = data_source.pending_parse_completion
+    page.locator.assert_called_once_with(
+        "[class*='st-key-parse_completion_']:not([class~='st-key-parse_completion_"
+        + "a" * 32
+        + "'])"
+    )
+
+
+def test_a_failed_completion_wait_cannot_reuse_its_pending_attempt() -> None:
+    """A timeout leaves neither retained data nor the prior notice armed for reuse."""
+    page = MagicMock()
+    notice = MagicMock()
+    notice.count.return_value = 0
+    data_source = DataSourcePage(page)
+
+    with (
+        patch.object(
+            DataSourcePage,
+            "parse_completion_notice",
+            new_callable=PropertyMock,
+            return_value=notice,
+        ),
+        patch.object(data_source, "wait_for_streamlit"),
+        patch("tests.visual.pages.data_source_page.expect") as expect,
+    ):
+        data_source.click_parse()
+        expect.return_value.to_be_visible.side_effect = AssertionError("no new notice")
+        with pytest.raises(AssertionError, match="no new notice"):
+            data_source.wait_for_parse_completion(timeout=500)
+        with pytest.raises(AssertionError, match="No parse submission is pending"):
+            data_source.wait_for_parse_completion(timeout=500)

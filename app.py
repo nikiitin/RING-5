@@ -74,10 +74,10 @@ def run_app() -> None:
 
     from src.web.components.data_source.parse_job_status import (
         render_sidebar_parse_job,
-        show_parse_job_flash,
+        render_parse_completion,
     )
 
-    show_parse_job_flash()
+    render_parse_completion()
 
     # Sidebar - Navigation
     with st.sidebar:

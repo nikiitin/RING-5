@@ -69,8 +69,9 @@ class TestFullWorkflow:
     # -- Step 0: Parse real data ------------------------------------
 
     @pytest.fixture(autouse=True, scope="class")
+    @classmethod
     def _parse_real_data(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
         _reset_app_state: None,

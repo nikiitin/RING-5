@@ -518,13 +518,32 @@
       "description": "Web parsing shall submit immediately, retain bounded progress across reruns and navigation within one browser session, coalesce identical requests, support cooperative job-specific cancellation and explicit retry, publish successful CSVs atomically, and clean transient job data on consumption, acknowledgement, reset, release, shutdown, or orphan recovery.",
       "tags": ["async", "parsing", "sessions"],
       "evidence": {
-        "implementation": ["src/core/services/parse_job_service.py::ParseJobService"],
+        "implementation": [
+          "src/core/services/parse_job_service.py::ParseJobService",
+          "src/web/components/data_source/parse_job_status.py::render_parse_completion",
+          "src/web/components/data_source/parse_job_status.py::_complete_job"
+        ],
         "tests": [
           "tests/unit/test_parse_jobs.py::TestParseJobFlow",
-          "tests/e2e/test_background_jobs.py::TestBackgroundParseJob.test_parse_loads_without_a_blocking_dialog"
+          "tests/e2e/test_background_jobs.py::TestBackgroundParseJob.test_parse_loads_without_a_blocking_dialog",
+          "tests/ui_unit/test_parse_job_status.py::test_completion_notice_survives_rerenders_and_labels_the_last_parse",
+          "tests/ui_unit/test_parse_job_status.py::test_reused_csv_is_announced_under_its_new_consumed_job_identity",
+          "tests/ui_unit/test_parse_job_status.py::test_retry_clears_a_previous_completion_notice",
+          "tests/unit/test_ui_state_manager.py::test_parse_completion_is_shared_but_not_consumed_by_another_accessor",
+          "tests/unit/test_ui_state_manager.py::test_workspace_restore_discards_a_previous_parse_notice",
+          "tests/unit/test_visual_page_objects.py::test_parse_wait_without_submission_rejects_retained_data_and_notices",
+          "tests/integration/test_typed_parse_jobs.py::test_real_background_full_incremental_consume_and_cache_preserve_literal_cells",
+          "tests/visual/test_e2e_parse_workflow.py::TestVariableAndParse.test_parse_success_and_data_managers"
         ],
         "documentation": ["docs/user-guide/workflows/loading-data.md#session-background-parsing"]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "evidence",
+          "reason": "Bind consumed-result notices, fresh cache receipt identities, retry/reset ownership and repeated UI parsing workflows."
+        }
+      ]
     },
     {
       "id": "ingestion.parse-integrity",
