@@ -17,7 +17,6 @@ Usage::
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
 import shutil
 from collections.abc import Generator
@@ -27,11 +26,14 @@ from typing import Any, cast
 import pytest
 from playwright.sync_api import (
     Browser,
-    BrowserContext,
     Page,
-    TimeoutError as PlaywrightTimeoutError,
 )
 
+from tests.helpers.browser_capture import (
+    capture_failure_artifacts,
+    save_setup_failure,
+    shared_page_capture,
+)
 from tests.helpers.streamlit_server import artifact_stem, free_loopback_port, running_streamlit
 from tests.visual.pages.base_page import BasePage
 
@@ -41,44 +43,6 @@ _ROOT_DIR: Path = Path(__file__).parents[2]
 _APP_PY: Path = _ROOT_DIR / "app.py"
 _SCREENSHOTS_DIR: Path = Path(__file__).parent / "screenshots"
 _ARTIFACTS_DIR: Path = Path(__file__).parent / "artifacts"
-
-
-@dataclass
-class _SharedPageCapture:
-    """Own the class page's trace chunk before function fixtures can run."""
-
-    page: Page
-    tracing: bool = False
-    chunk_active: bool = False
-    setup_failure_saved: bool = False
-
-
-_SHARED_PAGE_CAPTURE = pytest.StashKey[_SharedPageCapture]()
-
-
-def _shared_capture_for_node(node: pytest.Node) -> _SharedPageCapture | None:
-    """Find only the shared-page fixture's explicit ancestor-owned capture."""
-    for owner in reversed(node.listchain()):
-        capture = owner.stash.get(_SHARED_PAGE_CAPTURE, None)
-        if capture is not None:
-            return capture
-    return None
-
-
-def _save_failure_screenshot(page: Page, nodeid: str) -> str:
-    """Capture the existing page and return its artifact filename stem."""
-    _ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-    name = artifact_stem(nodeid, os.environ.get("PYTEST_XDIST_WORKER", "main"))
-    if not page.is_closed():
-        try:
-            page.screenshot(
-                path=str(_ARTIFACTS_DIR / f"{name}_failure.png"),
-                full_page=True,
-                timeout=10_000,
-            )
-        except PlaywrightTimeoutError:
-            pass
-    return name
 
 
 # Session-scoped: server lifecycle
@@ -158,24 +122,9 @@ def shared_page(
     This avoids recreating a browser context and navigating for every test
     in an ordered visual suite.
     """
-    # Use cast to satisfy Pyright regarding BrowserContext options
     context = browser.new_context(**cast(Any, browser_context_args))
-    page = context.new_page()
-    capture = _SharedPageCapture(page)
-    request.node.stash[_SHARED_PAGE_CAPTURE] = capture
-    try:
-        if os.environ.get("TRACING", "").lower() in ("1", "true", "yes"):
-            context.tracing.start(screenshots=True, snapshots=True, sources=True)
-            capture.tracing = True
-            capture.chunk_active = True
+    with shared_page_capture(context, request.node) as page:
         yield page
-    finally:
-        try:
-            if capture.tracing:
-                context.tracing.stop()
-        finally:
-            del request.node.stash[_SHARED_PAGE_CAPTURE]
-            context.close()
 
 
 @pytest.fixture(scope="class", autouse=True)
@@ -221,81 +170,21 @@ def shared_screenshot_dir(request: pytest.FixtureRequest) -> Path:
 
 
 @pytest.fixture(autouse=True)
-def _capture_failure_artifacts(
-    request: pytest.FixtureRequest,
-) -> Generator[None]:
-    """Auto-capture screenshot + trace on test failure.
-
-    Automatically detects whether the test uses `shared_page` (class-scoped)
-    or `page` (function-scoped) and captures failure artifacts from whichever
-    is active.  This avoids creating an extra browser context when the test
-    only uses `shared_page`.
-    """
-    tracing = os.environ.get("TRACING", "").lower() in ("1", "true", "yes")
-
-    # Resolve the active page without creating an unused fixture
-    if "shared_page" in request.fixturenames:
-        active_page: Page = request.getfixturevalue("shared_page")
-    elif "page" in request.fixturenames:
-        active_page = request.getfixturevalue("page")
-    else:
+def _capture_failure_artifacts(request: pytest.FixtureRequest) -> Generator[None]:
+    """Capture failure artifacts through the suite's single page/trace owner."""
+    with capture_failure_artifacts(request, _ARTIFACTS_DIR):
         yield
-        return
-
-    context: BrowserContext = active_page.context
-    shared_capture = _shared_capture_for_node(request.node)
-
-    if tracing:
-        if shared_capture is not None:
-            # Successful class setup no longer needs its initial diagnostic chunk.
-            if shared_capture.chunk_active:
-                context.tracing.stop_chunk()
-            context.tracing.start_chunk()
-            shared_capture.chunk_active = True
-        else:
-            context.tracing.start(screenshots=True, snapshots=True, sources=True)
-
-    yield
-
-    reports = [getattr(request.node, name, None) for name in ("rep_setup", "rep_call")]
-    failed = any(report is not None and report.failed for report in reports)
-    trace_path = None
-    if failed:
-        name = _save_failure_screenshot(active_page, request.node.nodeid)
-        trace_path = _ARTIFACTS_DIR / f"{name}_trace.zip"
-    if tracing:
-        if shared_capture is not None:
-            context.tracing.stop_chunk(path=trace_path)
-            shared_capture.chunk_active = False
-        else:
-            context.tracing.stop(path=trace_path)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item) -> Generator[None]:
-    """Store test result on the node for ``_capture_failure_artifacts``."""
+    """Store reports and retain class setup failures before function capture."""
     import pluggy
 
     outcome: pluggy.Result = yield  # type: ignore[assignment]
     rep = outcome.get_result()
     setattr(item, f"rep_{rep.when}", rep)
-
-    if rep.when == "setup" and rep.failed:
-        # Class setup can fail before the function capture fixture is reached.
-        capture = _shared_capture_for_node(item)
-        if (
-            capture is not None
-            and "_capture_failure_artifacts" not in item.funcargs
-            and not capture.setup_failure_saved
-        ):
-            name = _save_failure_screenshot(capture.page, item.nodeid)
-            sections = "\n\n".join(f"{title}\n{text}" for title, text in rep.sections)
-            (_ARTIFACTS_DIR / f"{name}_setup.txt").write_text(sections, encoding="utf-8")
-            if capture.tracing and capture.chunk_active:
-                capture.page.context.tracing.stop_chunk(path=_ARTIFACTS_DIR / f"{name}_trace.zip")
-                capture.chunk_active = False
-            # Later items repeat the cached class-setup error without new work.
-            capture.setup_failure_saved = True
+    save_setup_failure(item, rep, _ARTIFACTS_DIR)
 
 
 # Headed mode

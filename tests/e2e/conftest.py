@@ -25,14 +25,17 @@ from typing import Any, cast
 import pytest
 from playwright.sync_api import (
     Browser,
-    BrowserContext,
     Page,
-    TimeoutError as PlaywrightTimeoutError,
     expect,
 )
 
 # Page objects — reuse from visual tests
-from tests.helpers.streamlit_server import artifact_stem, free_loopback_port, running_streamlit
+from tests.helpers.browser_capture import (
+    capture_failure_artifacts,
+    save_setup_failure,
+    shared_page_capture,
+)
+from tests.helpers.streamlit_server import free_loopback_port, running_streamlit
 from tests.visual.pages.base_page import BasePage
 from tests.visual.pages.data_managers_page import DataManagersPage
 from tests.visual.pages.data_source_page import DataSourcePage
@@ -148,12 +151,12 @@ def browser_type_launch_args(
 def shared_page(
     browser: Browser,
     browser_context_args: dict[str, object],
+    request: pytest.FixtureRequest,
 ) -> Generator[Page]:
     """Class-scoped page — one browser tab shared across all tests in a class."""
     context = browser.new_context(**cast(Any, browser_context_args))
-    page = context.new_page()
-    yield page
-    context.close()
+    with shared_page_capture(context, request.node) as page:
+        yield page
 
 
 # State isolation — clean slate per test class
@@ -188,53 +191,20 @@ def _reset_app_state(shared_page: Page, live_server_url: str) -> Generator[None]
 
 @pytest.fixture(autouse=True)
 def _capture_failure_artifacts(request: pytest.FixtureRequest) -> Generator[None]:
-    """Auto-capture screenshot on test failure."""
-    tracing = os.environ.get("TRACING", "").lower() in ("1", "true", "yes")
-
-    if "shared_page" in request.fixturenames:
-        active_page: Page = request.getfixturevalue("shared_page")
-    elif "page" in request.fixturenames:
-        active_page = request.getfixturevalue("page")
-    else:
+    """Capture failure artifacts through the suite's single page/trace owner."""
+    with capture_failure_artifacts(request, _ARTIFACTS_DIR):
         yield
-        return
-
-    context: BrowserContext = active_page.context
-    if tracing:
-        context.tracing.start(screenshots=True, snapshots=True, sources=True)
-
-    yield
-
-    rep_call = getattr(request.node, "rep_call", None)
-    if rep_call is not None and rep_call.failed:
-        _ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-        test_name = artifact_stem(
-            request.node.nodeid, os.environ.get("PYTEST_XDIST_WORKER", "main")
-        )
-        if not active_page.is_closed():
-            try:
-                active_page.screenshot(
-                    path=str(_ARTIFACTS_DIR / f"{test_name}_failure.png"),
-                    full_page=True,
-                    timeout=10_000,
-                )
-            except PlaywrightTimeoutError:
-                # Failure diagnostics must never hold the E2E job open.
-                pass
-        if tracing:
-            context.tracing.stop(path=str(_ARTIFACTS_DIR / f"{test_name}_trace.zip"))
-    elif tracing:
-        context.tracing.stop()
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item) -> Generator[None]:
-    """Store test result on node for ``_capture_failure_artifacts``."""
+    """Store reports and retain class setup failures before function capture."""
     import pluggy
 
     outcome: pluggy.Result = yield  # type: ignore[assignment]
     rep = outcome.get_result()
     setattr(item, f"rep_{rep.when}", rep)
+    save_setup_failure(item, rep, _ARTIFACTS_DIR)
 
 
 # Fixture path
