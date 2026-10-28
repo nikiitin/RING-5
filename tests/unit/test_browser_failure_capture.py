@@ -1,6 +1,7 @@
 """Failure artifacts retain the original page and one explicit trace owner."""
 
 from pathlib import Path
+from typing import Literal
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -49,7 +50,9 @@ def _request(item: MagicMock, page: MagicMock, *, shared: bool) -> MagicMock:
     return request
 
 
-def _failure(item: MagicMock, when: str = "setup") -> pytest.TestReport:
+def _failure(
+    item: MagicMock, when: Literal["setup", "call", "teardown"] = "setup"
+) -> pytest.TestReport:
     """Preserve real pytest failure text and captured report sections."""
     return pytest.TestReport(
         nodeid=item.nodeid,
@@ -132,7 +135,7 @@ def test_shared_test_chunks_handoff_without_restarting_the_class_trace(
 def test_function_page_failure_owns_its_trace(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    when: str,
+    when: Literal["setup", "call"],
 ) -> None:
     """Function pages retain setup/call failures without another context."""
     monkeypatch.setenv("TRACING", "yes")

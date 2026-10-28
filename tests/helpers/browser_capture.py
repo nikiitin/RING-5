@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 import pytest
 from playwright.sync_api import BrowserContext, Page, TimeoutError as PlaywrightTimeoutError
@@ -140,7 +141,7 @@ def save_setup_failure(item: pytest.Item, report: pytest.TestReport, artifacts_d
     capture = _shared_capture_for_node(item)
     if (
         capture is None
-        or "_capture_failure_artifacts" in item.funcargs
+        or "_capture_failure_artifacts" in cast(pytest.Function, item).funcargs
         or capture.setup_failure_saved
     ):
         return
