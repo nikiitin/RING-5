@@ -189,7 +189,8 @@ class ManagePlotsPage(BasePage):
         structural contract excludes unrelated and nested expanders without
         maintaining a list of their presentation labels.
         """
-        delete_action = self.page.get_by_role("button", name="Del", exact=True)
+        # Open selectors hide sibling controls from the accessibility tree.
+        delete_action = self.page.get_by_role("button", name="Del", exact=True, include_hidden=True)
         return self.page.locator("[data-testid='stExpander']").filter(has=delete_action)
 
     @property

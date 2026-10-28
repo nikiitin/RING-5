@@ -9,12 +9,6 @@ permalink: /user-guide/workflows/portfolios/
 
 # Manage portfolios
 
-Current portfolios use schema 13 (`version: "13.0"`); analysis recipes use schema 8. Typed workspace
-and plot tables preserve native Distribution geometry, omission policy and explicit column roles.
-Restoring those tables needs no reparse. Parser recipe replay uses the captured full declaration and
-regenerates the same native layout once, without inferring geometry from labels. Unsupported current
-document versions and malformed layouts fail before restoration.
-
 <!--
 `uman~ring5.workspace.application-data-directory.documentation~1`
 
@@ -26,6 +20,52 @@ A portfolio stores exact typed tables together with plot definitions, shaper pip
 parser configuration, and operation history. Use it to reopen or batch-render a RING-5 workspace.
 Keep original simulator output and analysis code separately; a portfolio is not a substitute for
 research data storage.
+
+| Your task | Go to |
+| --- | --- |
+| Try an example without data files | [Load the bundled examples](#load-the-bundled-examples) |
+| Retain the current browser workspace | [Save and restore in the web application](#save-and-restore-in-the-web-application) |
+| Save figures from a script | [Save and restore in Python](#save-and-restore-in-python), then [render every saved plot](#render-every-saved-plot) |
+| Replay an analysis on new input | [Save a reusable analysis recipe](#save-a-reusable-analysis-recipe) |
+| Transfer a reviewed analysis | [Share a portable analysis bundle](#share-a-portable-analysis-bundle) |
+
+## Load the bundled examples
+
+<!--
+`uman~ring5.portfolio.example-catalog.documentation~1`
+
+Covers:
+- req~ring5.portfolio.example-catalog~1
+
+-->
+
+On an empty **Data Source** page, select **Load example portfolio**. The application opens
+**Manage Plots** with synthetic examples of every built-in chart type. The bundled current-format
+portfolio works offline and creates no saved portfolio or revision files. Use **Save Portfolio**
+under your own name to retain a copy after editing it. Follow the
+[example tour]({{site.baseurl}}/user-guide/getting-started/showcase/) for questions, expected values,
+and changes to try.
+
+Scripts use the same built-in resource:
+
+```python
+import ring5
+
+with ring5.Session() as session:
+    report = session.load_example_portfolio()
+    if not report.complete:
+        raise RuntimeError(report)
+    figure = session.render(session.plots[0], engine="matplotlib")
+    session.export(figure, "example-ipc.pdf", deterministic=True)
+```
+
+## Document and table contracts
+
+Current portfolios use schema 13 (`version: "13.0"`); analysis recipes use schema 8. Typed workspace
+and plot tables preserve native Distribution geometry, omission policy and explicit column roles.
+Restoring those tables needs no reparse. Parser recipe replay uses the captured full declaration and
+regenerates the same native layout once, without inferring geometry from labels. Unsupported current
+document versions and malformed layouts fail before restoration.
 
 ## Save and restore in the web application
 
@@ -76,9 +116,11 @@ never substitutes current versions for missing historical provenance.
 
 The environment record intentionally excludes hostnames, usernames, executable paths, and
 environment-variable values. Python callers can make the same comparison without restoring the
-portfolio:
+portfolio. For a saved portfolio named `paper-a`:
 
 ```python
+import ring5
+
 with ring5.Session() as session:
     current = session.environment_metadata()
     comparison = session.compare_portfolio_environment("paper-a")
@@ -87,9 +129,17 @@ with ring5.Session() as session:
             print(difference.component, difference.recorded, difference.current)
 ```
 
-Portfolios are JSON files under the RING-5 application data directory. It defaults to
-`.ring5/portfolios/` in the checkout. Set `RING5_DATA_DIR` before starting RING-5 to use an isolated
-or backed-up location.
+Portfolios are JSON files in the application's `portfolios/` directory:
+
+- A source checkout stores application data under `<checkout>/.ring5/`.
+- An installed package uses the Linux user-data directory, normally `$XDG_DATA_HOME/ring5/` or
+  `~/.local/share/ring5/` when `XDG_DATA_HOME` is unset.
+- `RING5_DATA_DIR` overrides the application data root in either case; portfolios then live under
+  `$RING5_DATA_DIR/portfolios/`.
+
+Set the override before starting the application or Python process when you need isolated or
+backed-up storage. The read-only bundled example is packaged with RING-5 and is independent of this
+saved-portfolio directory.
 
 ## Check integrity and authenticate a portfolio
 
@@ -176,9 +226,13 @@ manifest before enabling restoration. A signed portfolio requires its shared sec
 changes only the workspace; included snapshot and result files are not silently written to server
 storage.
 
-Python can attach generated result bytes and can read every artifact without restoring it:
+Python can attach generated result bytes and read every artifact without restoring it. This
+example assumes `paper-a`, the `exact-input` dataset snapshot, `figures/ipc.svg`, and `report.html`
+already exist:
 
 ```python
+from pathlib import Path
+
 import ring5
 
 with ring5.Session() as session:
@@ -186,8 +240,8 @@ with ring5.Session() as session:
         "paper-a",
         snapshot_name="exact-input",
         results={
-            "figures/ipc.svg": open("figures/ipc.svg", "rb").read(),
-            "report.html": open("report.html", "rb").read(),
+            "figures/ipc.svg": Path("figures/ipc.svg").read_bytes(),
+            "report.html": Path("report.html").read_bytes(),
         },
         signing_key="shared transfer secret",
         signing_key_id="lab-transfer-2026",
@@ -235,9 +289,11 @@ retained versions.
 
 Python callers receive immutable `PortfolioRevisionInfo`, `PortfolioDiff`, and
 `PortfolioDiffEntry` records. A retained version can be restored for inspection without making it
-the current saved version:
+the current saved version. After saving `paper-a` at least twice:
 
 ```python
+import ring5
+
 with ring5.Session() as session:
     versions = session.list_portfolio_revisions("paper-a")
     changes = session.compare_portfolio_revisions(
@@ -324,8 +380,10 @@ source = ring5.RecipeSource(
 ```
 
 Python can construct recipes with shared transformations and arbitrary typed parameters as well as
-run recipes captured by the web application:
+run recipes captured by the web application. For this example, `results/candidate.csv` must contain
+`benchmark` and numeric `ipc` columns:
 
+{% raw %}
 ```python
 import ring5
 
@@ -361,13 +419,15 @@ with ring5.Session() as session:
     )
     print(result.exported_paths)
 ```
+{% endraw %}
 
 Parameter types are `string`, `integer`, `number`, `boolean`, and `path`. A placeholder occupying a
 whole value preserves its declared type; a placeholder embedded in text is formatted as text.
 Execution validates all parameters, shapers, and plot mappings before replacing the session's
 plots. Parser recipes use the normal owned scan and parse lifecycle. Failures use `RecipeError` or
 the narrower scan, parse, pipeline, plot-validation, and export errors. Local recipes are stored
-under `.ring5/analysis_recipes/`, or under the configured `RING5_DATA_DIR`.
+under `analysis_recipes/` in the application data directory described above; `RING5_DATA_DIR`
+overrides that root.
 
 ## Take a recipe into Python or Jupyter
 
@@ -394,13 +454,23 @@ cells. Replace every parameter value marked `REQUIRED`, edit defaults when neede
 from top to bottom. No `nbformat` package is needed to create the download; the file uses the
 standard Jupyter notebook v4 JSON format.
 
-Python callers can generate the same byte-stable artifacts without the browser:
+To generate the same byte-stable artifacts from Python, first save the portable recipe JSON as
+`downloaded.ring5-recipe.json` using **Download recipe JSON** in **Analysis recipes → Saved**.
+The script below reads that validated document and writes runnable Python and notebook files:
 
 ```python
+from pathlib import Path
+
+import ring5
+
+recipe_path = Path("downloaded.ring5-recipe.json")
 with ring5.Session() as session:
-    recipe = session.decode_analysis_recipe(recipe_json)
+    recipe = session.decode_analysis_recipe(recipe_path.read_bytes())
     script = session.export_analysis_recipe_script(recipe)
     notebook = session.export_analysis_recipe_notebook(recipe)
+
+Path("reproduce.py").write_bytes(script)
+Path("reproduce.ipynb").write_bytes(notebook)
 ```
 
 `decode_analysis_recipe` only validates and returns the immutable recipe. It does not execute or
@@ -422,8 +492,16 @@ Covers:
 import ring5
 
 with ring5.Session() as session:
+    # results.csv has benchmark and numeric ipc columns.
     data = session.load("results.csv")
-    # Create plots before saving.
+    session.create_plot(
+        "bar",
+        data=data,
+        config=ring5.FigureSpec(
+            x="benchmark", y_columns=["ipc"], title="IPC by benchmark"
+        ),
+        name="IPC by benchmark",
+    )
     session.save_portfolio("paper-a")
 
 with ring5.Session() as session:
@@ -450,6 +528,8 @@ Covers:
 -->
 
 ```python
+import ring5
+
 written = ring5.render_portfolio(
     "paper-a",
     "figures/",
@@ -467,20 +547,3 @@ ring5 render paper-a --out-dir figures/ \
 
 Rendering defaults to deterministic output, Matplotlib PDF, or Plotly HTML. The command stops with a
 typed error when a plot cannot be restored, rendered, or exported.
-
-## Generate the example portfolio
-
-<!--
-`uman~ring5.portfolio.example-catalog.documentation~1`
-
-Covers:
-- req~ring5.portfolio.example-catalog~1
-
--->
-
-Run `make example-portfolio` from the repository root to create a validated portfolio
-containing representative data and one configured example of every registered plot type.
-The command writes `RING5_Example_Cases.json` to the normal portfolio directory. You can instead
-run `python_venv/bin/python -m scripts.generate_example_portfolio --output-dir DIR` to keep both
-the portfolio and its revision data in an isolated destination. Load the result from **Save/Load
-Portfolio** and use it as a compact gallery of supported plot configurations.

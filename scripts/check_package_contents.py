@@ -13,6 +13,7 @@ DIST_DIR = ROOT / "dist"
 RUNTIME_FILES = frozenset(
     {
         "ring5/resources/chrome-for-testing.json",
+        "src/core/resources/example-portfolio.json.gz",
         "src/parsing/gem5/perl/fileParserServer.pl",
         "src/parsing/gem5/perl/statsScanner.pl",
         "src/parsing/gem5/perl/libs/TypesFormatRegex.pm",

@@ -13,7 +13,7 @@ VENV_BIN := $(VENV_NAME)/bin
 PYTHON := $(VENV_BIN)/python
 PYTEST := $(VENV_BIN)/pytest
 
-PYTHON_SOURCES := app.py ring5 src scripts tests
+PYTHON_SOURCES := app.py ring5 src scripts tests examples/python
 PRODUCTION_SOURCES := ring5 src
 TEST_DATA_DIR := tests/data/results-micro26-sens
 TEST_DATA_URL := https://github.com/nikiitin/RING-5/releases/download/test-data-v1/test_data.tar.gz
@@ -46,7 +46,7 @@ help:
 	@echo "  lock                Refresh the dependency lock after editing pyproject.toml"
 	@echo "  chrome-install      Install the Chrome used by Kaleido static exports"
 	@echo "  run                 Start the Streamlit application"
-	@echo "  example-portfolio   Generate the example plot portfolio"
+	@echo "  example-portfolio   Rebuild the bundled tutorial portfolio"
 	@echo "  test-unit           Run fast unit tests"
 	@echo "  test                Run non-browser tests, including serial exports"
 	@echo "  test-latex          Run tests that require a local XeLaTeX installation"
@@ -85,7 +85,7 @@ run:
 	$(VENV_BIN)/streamlit run app.py
 
 example-portfolio:
-	$(PYTHON) -m scripts.generate_example_portfolio
+	$(PYTHON) -m scripts.generate_example_portfolio --output src/core/resources/example-portfolio.json.gz --force
 
 playwright-install: venv
 	$(VENV_BIN)/playwright install chromium

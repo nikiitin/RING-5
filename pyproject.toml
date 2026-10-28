@@ -90,6 +90,7 @@ where = ["."]
 include = ["src*", "ring5*"]
 
 [tool.setuptools.package-data]
+"src.core" = ["resources/example-portfolio.json.gz"]
 "ring5" = ["resources/chrome-for-testing.json"]
 "src.parsing.gem5" = [
   "perl/*.pl",

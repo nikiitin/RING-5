@@ -86,10 +86,19 @@ Covers:
 | Relationship between numeric measures | `scatter` | Numeric X and Y |
 | Frequency distributions | `histogram` | A declared native layout, or explicit interval columns such as `<variable>..<start>-<end>` |
 | Matrix of values | `heatmap` | Row, column, and numeric value mappings |
+| Additive components over an ordered axis | [`area`]({{site.baseurl}}/user-guide/workflows/area-charts/) | Ordered X, numeric Y, and optional component/group column |
+| Spread and unusual observations | [`box`]({{site.baseurl}}/user-guide/workflows/box-plots/) | Category, repeated numeric observations, and optional subgroup |
+| Distribution shape and summary | [`violin`]({{site.baseurl}}/user-guide/workflows/violin-plots/) | Repeated numeric observations with enough samples to interpret density |
+| Fraction below a measured threshold | [`ecdf`]({{site.baseurl}}/user-guide/workflows/ecdf-plots/) | Numeric observations and optional group |
+| Profiles on one shared radial scale | [`radar`]({{site.baseurl}}/user-guide/workflows/radar-charts/) | Ordered categories, a numeric metric, and optional profile group |
+| Contributions to a starting and ending total | [`waterfall`]({{site.baseurl}}/user-guide/workflows/waterfall-charts/) | Ordered steps, signed contributions, and explicit absolute/subtotal meanings |
+| Weighted flows between named stages | [`sankey`]({{site.baseurl}}/user-guide/workflows/sankey-diagrams/) | Source, target, and finite nonnegative link weights |
+| Several dimensions of each observation | [`parallel_coordinates`]({{site.baseurl}}/user-guide/workflows/parallel-coordinates/) | Ordered numeric or categorical dimensions and optional numeric color |
 | Bars with a distinct right-axis measure | `dual_axis_bar_dot` | Bar mapping and right-axis dot mapping |
 
-These are task descriptions, not a frozen registry inventory. Extensions can register additional
-identifiers.
+The bundled [example portfolio]({{site.baseurl}}/user-guide/getting-started/showcase/) provides a
+configured example for each built-in type, including its source data and pipeline. These rows
+describe analytical tasks; the runtime registry also includes any registered extensions.
 
 Repeated bar positions do not trigger a reduction. In grouped mode, repeated observations
 within one series overlap from zero; distinct series appear side by side. Stacked mode places

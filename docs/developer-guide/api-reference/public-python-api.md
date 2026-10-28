@@ -12,6 +12,80 @@ permalink: /developer-guide/api-reference/public-python-api/
 `ring5` is the supported headless surface. Public names are exported from `ring5/__init__.py`. The
 tests marked `public_api` enforce exact line and branch coverage for the package (`make test-api`).
 
+For a complete runnable analysis with bundled inputs, start with
+[Automate with Python and the CLI]({{site.baseurl}}/user-guide/workflows/scripting/).
+This page describes contracts and edge cases. All examples use `import ring5`; data operations
+accept and return `ring5.Table` rather than requiring pandas.
+
+## Choose a public operation
+
+These are the common call forms. Keyword-only arguments follow `*`; optional signing and advanced
+parser controls are detailed in the operation's docstring and the sections below.
+
+| Task | Call and result | Operational errors |
+| --- | --- | --- |
+| Inspect built-in plots offline | `session.load_example_portfolio() -> RestoreReport` | `PortfolioError` |
+| Load a CSV or finalized parser result | `session.load(source) -> Table` | `DataLoadError` |
+| Discover statistics | `session.scan(stats_path, *, pattern="stats.txt", limit=10, strict=True) -> ScanResult` | `ScanError` |
+| Parse named statistics | `session.parse(stats_path, variables, *, scan_limit=10, strict=True) -> ParseResult` | `ScanError`, `ParseError`, `MissingStatError` |
+| Transform a table | `session.shape(data, pipeline) -> Table` | `PipelineError` |
+| Aggregate repeated observations | `session.reduce_seeds(data, categorical_cols, statistic_cols) -> Table` | `ColumnNotFoundError`, `DataValidationError` |
+| Register a plot | `session.create_plot(plot_type, *, data, config, name=None) -> plot` | `DataValidationError`, `ColumnNotFoundError` |
+| Render a registered plot | `session.render(plot, *, engine="plotly") -> native figure` | `RenderError` |
+| Register and render together | `session.plot(plot_type, *, data, config, engine="plotly", name=None) -> native figure` | Plot validation errors, `RenderError` |
+| Write a figure | `session.export(fig, path, *, fmt=None, deterministic=False) -> str` | `ExportError`, `DependencyMissingError` |
+| Save or restore a snapshot | `session.save_portfolio(name, *, overwrite=False)` / `session.load_portfolio(name) -> RestoreReport` | `PortfolioError`, `PortfolioVersionError` |
+| Regenerate saved figures | `ring5.render_portfolio(name, out_dir, *, engine="matplotlib", fmt=None, deterministic=True) -> list[str]` | `PortfolioError`, `PortfolioVersionError` |
+| Run reusable instructions | `session.run_analysis_recipe(recipe, values=None) -> AnalysisRecipeRunResult` | `RecipeError` and narrower execution errors |
+| Build a shareable report | `session.create_report(title, figures, *, tables=None, narrative=None) -> AnalysisReport` | `DataValidationError` |
+| Write a report | `session.export_report(report, path, *, fmt=None, html_mode="document") -> str` | `ExportError` |
+
+`create_plot` registers the plot for later rendering, portfolio persistence, and reports.
+`render` returns a Matplotlib or Plotly figure; `export` infers its engine from that figure.
+Pass the exact registry identifier returned by `available_plot_types()`. `FigureSpec` supplies
+common figure settings; flat mappings express supported plot-specific controls. For example,
+scatter groups use `color`, while grouped-bar categories use `group`.
+
+The built-in showcase requires no input files and changes only the current Session:
+
+```python
+import ring5
+
+with ring5.Session() as session:
+    restored = session.load_example_portfolio()
+    if not restored.complete:
+        raise ring5.PortfolioError("The example portfolio did not restore completely")
+    figure = session.render(session.plots[0], engine="matplotlib")
+    session.export(figure, "example-output/first-example.pdf", deterministic=True)
+```
+
+Loading a portfolio replaces that Session's workspace. `load_example_portfolio` does not save a
+portfolio or download data. Use `save_portfolio("My examples")` explicitly to retain an edited
+copy. [The tour]({{site.baseurl}}/user-guide/getting-started/showcase/) explains its synthetic
+inputs and examples.
+
+### Table operations without pandas
+
+| Call | Result |
+| --- | --- |
+| `Table.from_rows(list_of_records)` | Owned table from Python records. |
+| `table.columns()` / `table.rows()` | Column names / independently owned records. |
+| `len(table)` / `table.is_empty` | Row count / empty-table check. |
+| `table.filter_eq("configuration", "baseline")` | New table containing matching rows. |
+| `table.sort(["benchmark", "seed"])` | New table in stable sort order. |
+| `table.with_scalar_op("energy_mj", "energy_j", "*", 1000.0)` | New table with an explicitly derived column. |
+| `table.to_csv("measurements.csv")` | Written path; semantics metadata gets a companion file when present. |
+| `table.frame` / `Table(frame)` | Explicit defensive pandas copy / entry point. |
+
+`session.load` returns the primary loaded `Table` and makes it the active workspace, retaining
+replay provenance. `session.get_dataset(name)` retrieves an independently owned table previously
+retained with `add_dataset`; omitting the name requires a selected named dataset. It does not
+retrieve arbitrary loaded or restored workspace data. Portfolio loaders return a `RestoreReport`,
+not a table; restored plot handles remain available through `session.plots`.
+
+`ring5.read_table` reads a standalone table; `Table.from_rows` constructs data without an external
+source. Such arbitrary tables do not supply an inferred reusable recipe origin.
+
 ## Workspace
 
 <!--

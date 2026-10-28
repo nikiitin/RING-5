@@ -7,6 +7,7 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.web.components.data_source.data_source_components import DataSourceComponents
+from src.web.components.example_portfolio import render_example_portfolio
 
 
 class DataSourcePage:
@@ -20,6 +21,7 @@ class DataSourcePage:
         """Render the data source page."""
         # [impl->req~ring5.ingestion.source-modes~1]
         st.markdown("## Step 1: Choose Data Source")
+        render_example_portfolio(self.api)
 
         # Determine selected simulator for dynamic labels
         simulators = ApplicationAPI.available_simulators()
