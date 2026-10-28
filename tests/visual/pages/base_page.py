@@ -134,16 +134,19 @@ class BasePage:
                 self.page.wait_for_timeout(min(250, remaining()))
 
         def verify() -> None:
-            expect(control).to_have_attribute("aria-expanded", "false", timeout=remaining())
             if multiple:
+                expect(control).to_have_attribute("aria-expanded", "false", timeout=remaining())
                 expect(chip).to_have_count(1, timeout=remaining())
             else:
-                expect(control).to_have_value(value, timeout=remaining())
+                expect(widget.get_by_role("combobox", expanded=False)).to_have_value(
+                    value, timeout=remaining()
+                )
 
-        for _ in range(3):
+        for attempt in range(3):
             expect(control).to_have_count(1, timeout=remaining())
             expect(control).to_be_visible(timeout=remaining())
-            if selected():
+            # Typed search text can survive a popup interruption without an option commit.
+            if (multiple or attempt == 0) and selected():
                 if (
                     multiple
                     and control.get_attribute("aria-expanded", timeout=remaining()) == "true"

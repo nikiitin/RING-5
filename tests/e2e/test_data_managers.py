@@ -57,22 +57,6 @@ def _select_second_dropdown_option(page: Page, selectbox: Locator) -> None:
     expect(option).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
-def _add_multiselect_option(page: Page, multiselect: Locator, text: str) -> None:
-    """Add *text* to a Streamlit multiselect via type-to-filter + click.
-
-    Robust across repeated calls: a prior selection can leave the dropdown open,
-    so a blind re-click would toggle it shut and the option click would time out.
-    Instead we focus the box, type to filter the options to the wanted one, and
-    wait for that option before clicking.
-    """
-    multiselect.click()
-    multiselect.locator("input").fill(text)
-    option = page.get_by_role("option", name=text, exact=True)
-    expect(option.first).to_be_visible(timeout=_E2E_TIMEOUT)
-    option.first.click()
-    page.wait_for_timeout(200)
-
-
 # Page structure
 
 
@@ -212,8 +196,8 @@ class TestMixer:
     @pytest.mark.order(3)
     def test_03_preview_merge(self, tier1_page: Page) -> None:
         dm = DataManagersPage(tier1_page)
-        _add_multiselect_option(tier1_page, dm.mixer_columns_multiselect, "system.cpu.ipc")
-        _add_multiselect_option(tier1_page, dm.mixer_columns_multiselect, "simTicks")
+        dm.add_mixer_column("system.cpu.ipc")
+        dm.add_mixer_column("simTicks")
         tier1_page.keyboard.press("Escape")
         dm.wait_for_streamlit()
         dm.mixer_new_name_input.fill("mixed_metric")
@@ -292,11 +276,11 @@ class TestRegressionComparison:
             "config_description",
         )
         dm.wait_for_streamlit()
-        _add_multiselect_option(tier1_page, dm.comparison_metrics_multiselect, "system.cpu.ipc")
+        dm.add_comparison_metric("system.cpu.ipc")
         dm.wait_for_streamlit()
-        _add_multiselect_option(tier1_page, dm.comparison_keys_multiselect, "benchmark_name")
+        dm.add_comparison_key("benchmark_name")
         dm.wait_for_streamlit()
-        _add_multiselect_option(tier1_page, dm.comparison_keys_multiselect, "seed")
+        dm.add_comparison_key("seed")
         tier1_page.keyboard.press("Escape")
         dm.wait_for_streamlit()
         dm.apply_comparison()
@@ -327,9 +311,9 @@ class TestStatisticalComparison:
             "Statistics",
         )
         dm.wait_for_streamlit()
-        _add_multiselect_option(tier1_page, dm.comparison_metrics_multiselect, "system.cpu.ipc")
+        dm.add_comparison_metric("system.cpu.ipc")
         dm.wait_for_streamlit()
-        _add_multiselect_option(tier1_page, dm.comparison_keys_multiselect, "benchmark_name")
+        dm.add_comparison_key("benchmark_name")
         tier1_page.keyboard.press("Escape")
         dm.wait_for_streamlit()
         dm.apply_comparison()
@@ -411,7 +395,7 @@ class TestNamedDatasetWorkspace:
         _select_dropdown_option(tier1_page, dm.workspace_join_right, "join_right")
         dm.wait_for_streamlit()
         dm.workspace_join_output_input.fill("validated_join_output")
-        _add_multiselect_option(tier1_page, dm.workspace_join_keys, "benchmark_name")
+        dm.add_workspace_join_key("benchmark_name")
         tier1_page.keyboard.press("Escape")
         dm.wait_for_streamlit()
         expect(dm.workspace_cardinality_metric).to_contain_text(

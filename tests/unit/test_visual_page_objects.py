@@ -134,3 +134,108 @@ def test_a_failed_completion_wait_cannot_reuse_its_pending_attempt() -> None:
             data_source.wait_for_parse_completion(timeout=500)
         with pytest.raises(AssertionError, match="No parse submission is pending"):
             data_source.wait_for_parse_completion(timeout=500)
+
+
+def test_interrupted_single_select_requires_an_option_commit() -> None:
+    """Typed search text after a popup interruption is not the committed choice."""
+    page = MagicMock()
+    widget = MagicMock()
+    control = MagicMock()
+    closed_control = MagicMock()
+    popup = MagicMock()
+    option = MagicMock()
+    control_expectation = MagicMock()
+    closed_expectation = MagicMock()
+    popup_expectation = MagicMock()
+    option_expectation = MagicMock()
+    search = "area"
+    committed = "area"
+    popup_open = False
+    popup_id: str | None = None
+    openings = 0
+    chosen_options: list[str] = []
+
+    def open_popup(*, timeout: int) -> None:
+        nonlocal popup_open, popup_id, openings
+        openings += 1
+        popup_open = True
+        popup_id = f"owned-{openings}"
+
+    def fill_search(text: str, *, timeout: int) -> None:
+        nonlocal search
+        search = text
+
+    def attribute(name: str, *, timeout: int) -> str | None:
+        if name == "aria-expanded":
+            return "true" if popup_open else "false"
+        assert name == "aria-controls"
+        return popup_id
+
+    def current_input(*, timeout: int) -> str:
+        return search
+
+    def require_popup(count: int, *, timeout: int) -> None:
+        nonlocal popup_open, popup_id
+        assert count == 1
+        if openings == 1:
+            popup_open = False
+            popup_id = None
+            raise AssertionError("Rerun removed the first owned popup")
+        assert popup_open and popup_id == "owned-2"
+
+    def choose_bar(*, timeout: int) -> None:
+        nonlocal committed, popup_open, popup_id
+        assert popup_open and popup_id == "owned-2"
+        committed = "bar"
+        chosen_options.append(committed)
+        search_value("bar", timeout=timeout)
+        popup_open = False
+        popup_id = None
+
+    def owned_option(role: str, *, name: str, exact: bool) -> MagicMock:
+        assert role == "option" and name == "bar" and exact
+        return option
+
+    def combobox(role: str, *, expanded: bool | None = None) -> MagicMock:
+        assert role == "combobox"
+        return closed_control if expanded is False else control
+
+    def search_value(expected: str, *, timeout: int) -> None:
+        assert search == expected
+
+    def closed_value(expected: str, *, timeout: int) -> None:
+        assert not popup_open
+        search_value(expected, timeout=timeout)
+
+    def expectation(locator: object) -> MagicMock:
+        if locator is control:
+            return control_expectation
+        if locator is closed_control:
+            return closed_expectation
+        if locator is popup:
+            return popup_expectation
+        assert locator is option
+        return option_expectation
+
+    control.count.return_value = 1
+    control.click.side_effect = open_popup
+    control.fill.side_effect = fill_search
+    control.get_attribute.side_effect = attribute
+    control.input_value.side_effect = current_input
+    widget.get_by_role.side_effect = combobox
+    page.get_by_role.return_value.and_.return_value = popup
+    popup.get_by_role.side_effect = owned_option
+    popup_expectation.to_have_count.side_effect = require_popup
+    control_expectation.to_have_value.side_effect = search_value
+    closed_expectation.to_have_value.side_effect = closed_value
+    option.click.side_effect = choose_bar
+
+    with (
+        patch("tests.visual.pages.base_page.expect", side_effect=expectation),
+        patch("tests.visual.pages.base_page.time") as clock,
+    ):
+        clock.monotonic.return_value = 100.0
+        BasePage(page)._open_and_select(widget, "bar")
+
+    assert committed == search == "bar"
+    assert chosen_options == ["bar"]

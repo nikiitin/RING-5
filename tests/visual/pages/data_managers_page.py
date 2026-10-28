@@ -438,6 +438,14 @@ class DataManagersPage(BasePage):
         """Columns used to align baseline and candidate rows."""
         return self._by_label("stMultiSelect", "Alignment keys")
 
+    def add_comparison_metric(self, column: str) -> None:
+        """Add the exact metric and verify its selected chip."""
+        self._open_and_select(self.comparison_metrics_multiselect, column, multiple=True)
+
+    def add_comparison_key(self, column: str) -> None:
+        """Add the exact alignment column and verify its selected chip."""
+        self._open_and_select(self.comparison_keys_multiselect, column, multiple=True)
+
     @property
     def comparison_apply_button(self) -> Locator:
         """Button that calculates the comparison preview."""
@@ -559,6 +567,10 @@ class DataManagersPage(BasePage):
     def workspace_join_keys(self) -> Locator:
         """Shared key-column selector for retained-dataset joins."""
         return self._by_label("stMultiSelect", "Join keys")
+
+    def add_workspace_join_key(self, column: str) -> None:
+        """Add the exact join column and verify its selected chip."""
+        self._open_and_select(self.workspace_join_keys, column, multiple=True)
 
     @property
     def workspace_join_cardinality(self) -> Locator:
