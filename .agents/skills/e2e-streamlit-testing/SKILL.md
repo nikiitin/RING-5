@@ -37,10 +37,12 @@ engine selectors use radio roles; inspect checked state before clicking an activ
 - For actions that trigger a rerun, use `wait_for_streamlit(expect_rerun=True)`. It observes the
   running indicator before waiting for idle and accommodates fast cycles. Verify the resulting
   widget/chart state with Playwright expectations before the next dependent action.
-- Create, rename, delete and duplicate clear `plot_selector` and rerun in
-  `src/web/controllers/plot/creation_controller.py`. Creation selects the new plot through the
-  lifecycle service. `ManagePlotsPage.create_plot` also calls the idempotent `select_plot(name)`;
-  rename waits for its rerun and does not need navigation away and back.
+- Plot pills use immutable plot IDs with unique display labels and require an active selection.
+  The controller prepares `plot.<current_id>.selector` through `UIStateManager`; a changed user
+  selection retires only its previous selector and reruns before rendering controls. Creation and
+  duplication select their new plot through the lifecycle owner. `ManagePlotsPage.create_plot`
+  verifies automatic selection; `select_plot(name)` is reserved for a requested user selection.
+  Rename preserves plot identity and waits for its rerun without navigation away and back.
 - `select_plot_type` accepts exact factory identifiers such as `bar` or `dual_axis_bar_dot`.
   Plot selection uses visible names, disambiguated by the controller when names repeat.
 - Expanders are `<details><summary>` elements. Click the summary and verify body visibility;
@@ -58,6 +60,10 @@ engine selectors use radio roles; inspect checked state before clicking an activ
   explanation and cannot render a native histogram. Follow each family's actual labels and widgets.
 - Forms batch changes until submission. Dialogs can close on rerun. For fragment interactions,
   synchronize the observable result with the existing action helper before asserting or navigating.
+- Parse completion uses the persistent `Last parse` container keyed by the consumed receipt's job
+  ID. Capture the existing identity before clicking Parse and require a different notice afterward,
+  plus positive loaded rows and no active/recovery/error UI. Session cache reuse can retain the CSV
+  filename. An unarmed wait or an old notice/retained rows cannot prove another attempt completed.
 - `app.py` owns a browser-session-scoped `ApplicationAPI` and closes it via `on_release`.
   Browser classes reuse `shared_page`; their class-scoped `_reset_app_state` fixtures reset that
   context. Preserve session-isolation tests and avoid cross-class state assumptions.
@@ -65,15 +71,18 @@ engine selectors use radio roles; inspect checked state before clicking an activ
 ## Browser execution and resource use
 
 `make test-e2e` uses `E2E_WORKERS=2` with loadgroup scheduling for non-serial cases, then a separate
-`-n 0` invocation for cases marked `serial`. `make test-visual` runs serially. The Make targets own
-these defaults; inspect them before changing parallelism.
+`-n 0` invocation for cases marked `serial`. `make test-visual` runs serially. All three browser
+invocations use `--order-scope=class`: numbered steps run together within their owning class, so
+class-scoped pages and tier fixtures retain state throughout the flow. Each class starts from its
+own reset boundary; order numbers do not coordinate different classes. The Make targets own these
+defaults; inspect them before changing parallelism.
 
 For a memory-constrained session or an isolated diagnosis, use:
 
 ```bash
 make test-e2e E2E_WORKERS=0
 ./python_venv/bin/pytest tests/e2e/test_plot_types.py -m requires_browser -n 0 \
-  --timeout=240 --timeout-method=thread --no-cov
+  --order-scope=class --timeout=240 --timeout-method=thread --no-cov
 ```
 
 Each browser worker can own a Streamlit server and Chromium processes. Check available memory,

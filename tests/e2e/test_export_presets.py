@@ -59,37 +59,16 @@ class TestExportDownload:
         return mp
 
     @staticmethod
-    def _open_download_expander(mp: ManagePlotsPage) -> None:
-        """Click the download expander to reveal its contents.
-
-        Streamlit renders the expander as ``<details><summary>…`` — the
-        ``summary`` element is the clickable header (there is no
-        ``stExpanderToggleDetails`` testid). Clicking it opens the body so the
-        format pills and download button become visible. Opening a ``<details>``
-        is a client-side toggle (no Streamlit rerun), so we verify-then-act by
-        waiting for the format pills to become visible.
-        """
-        if not mp.download_format_pills.is_visible():
-            mp.download_expander.locator("summary").first.click()
-            expect(mp.download_format_pills).to_be_visible(timeout=E2E_TIMEOUT)
-
-    @staticmethod
     def _select_format_pill(mp: ManagePlotsPage, format_name: str) -> None:
         """Click a format pill inside the download expander by name.
 
-        Selecting a format reruns the script to register a deferred download
-        for that format. The rerun can also re-collapse the ``<details>``
-        expander, which would hide the download button, so this helper reopens
-        it when needed.
+        Selecting a Plotly format reruns the script to register its deferred
+        download. Reopen the current Download section if its owner is replaced.
         """
         pill = mp.download_format_pills.get_by_role("radio", name=format_name)
         pill.click()
         mp.wait_for_streamlit(timeout=EXPORT_TIMEOUT, expect_rerun=True)
-        # Re-open the expander if the rerun collapsed it, so the download button
-        # (rendered inside it) is reachable.
-        if not mp.download_format_pills.is_visible():
-            mp.download_expander.locator("summary").first.click()
-            expect(mp.download_format_pills).to_be_visible(timeout=E2E_TIMEOUT)
+        mp.open_download_expander("plotly", timeout=E2E_TIMEOUT)
 
     # -- tests -------------------------------------------------------------
 
@@ -118,7 +97,7 @@ class TestExportDownload:
         mp.select_plot("E2E Bar")
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
-        self._open_download_expander(mp)
+        mp.open_download_expander("plotly", timeout=E2E_TIMEOUT)
         expect(mp.download_format_pills).to_be_visible(timeout=E2E_TIMEOUT)
 
     @pytest.mark.order(3)
@@ -131,7 +110,7 @@ class TestExportDownload:
         mp.select_plot("E2E Bar")
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
-        self._open_download_expander(mp)
+        mp.open_download_expander("plotly", timeout=E2E_TIMEOUT)
 
         # Select PDF format
         pdf_pill = mp.download_format_pills.get_by_role("radio", name="pdf")
@@ -151,7 +130,7 @@ class TestExportDownload:
         mp.select_plot("E2E Bar")
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
-        self._open_download_expander(mp)
+        mp.open_download_expander("plotly", timeout=E2E_TIMEOUT)
 
         # Select SVG format
         svg_pill = mp.download_format_pills.get_by_role("radio", name="svg")
@@ -171,7 +150,7 @@ class TestExportDownload:
         mp.select_plot("E2E Bar")
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
-        self._open_download_expander(mp)
+        mp.open_download_expander("plotly", timeout=E2E_TIMEOUT)
 
         # Select PNG format
         png_pill = mp.download_format_pills.get_by_role("radio", name="png")
@@ -198,7 +177,7 @@ class TestExportDownload:
         mp.assert_matplotlib_chart_visible()
 
         # Open download expander
-        self._open_download_expander(mp)
+        mp.open_download_expander("matplotlib", timeout=E2E_TIMEOUT)
         expect(mp.download_format_pills).to_be_visible(timeout=E2E_TIMEOUT)
 
         # PGF pill should be present under Matplotlib
@@ -221,7 +200,7 @@ class TestExportDownload:
         mp.select_engine("plotly")
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
-        self._open_download_expander(mp)
+        mp.open_download_expander("plotly", timeout=E2E_TIMEOUT)
 
         # Select a kaleido-free format so the button appears deterministically.
         self._select_format_pill(mp, "html")

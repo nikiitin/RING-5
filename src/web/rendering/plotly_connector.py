@@ -250,8 +250,7 @@ class FigureSpecToPlotly:
 
         update["tickfont"] = dict(size=typo.font_size_yticks)
 
-        if y_axis.tick_angle != 0:
-            update["tickangle"] = y_axis.tick_angle
+        update["tickangle"] = y_axis.tick_angle
 
         if y_axis.range is not None:
             update["range"] = y_axis.range
@@ -306,6 +305,7 @@ class FigureSpecToPlotly:
         update["tickfont"] = dict(
             size=typo.font_size_y2ticks, color=y2.tick_font_color or y2.axis_color
         )
+        update["tickangle"] = y2.tick_angle
 
         if y2.range is not None:
             update["range"] = y2.range
@@ -385,6 +385,9 @@ class FigureSpecToPlotly:
             },
             "nticks": cbar.nticks,
             "tickformat": tick_format,
+            "x": None,
+            "y": None,
+            "orientation": "h" if primary.orientation == "horizontal" else "v",
         }
 
         if cbar.tick_angle != 0.0:
@@ -397,8 +400,6 @@ class FigureSpecToPlotly:
             colorbar_dict["x"] = primary.position_x
         if primary.custom_position and primary.position_y >= 0:
             colorbar_dict["y"] = primary.position_y
-        if primary.orientation == "horizontal":
-            colorbar_dict["orientation"] = "h"
 
         for index, (trace, (lower, upper)) in enumerate(zip(heatmap_traces, limits, strict=True)):
             trace.update(
@@ -422,6 +423,11 @@ class FigureSpecToPlotly:
             "font": font_dict,
             "orientation": "h" if legend.orientation == "horizontal" else "v",
             "itemsizing": legend.itemsizing,
+            # None clears a prior explicit value when automatic placement returns.
+            "x": None,
+            "y": None,
+            "xanchor": None,
+            "yanchor": None,
         }
 
         if legend.itemwidth > 0:

@@ -133,11 +133,18 @@ def test_pending_reset_runs_before_destination_widgets_are_created(
     }
     mock_ui_st.session_state = mock_st.session_state
 
+    previous_title_key = "plot.2.widgets.title"
     PlotTransferPanel.apply_pending_widget_reset(2)
 
+    from src.web.state.ui_state_manager import WidgetKeyBuilder
+
+    current_title_key = WidgetKeyBuilder.plot_key(2, "widgets.title")
+    assert current_title_key != previous_title_key
+    assert previous_title_key not in mock_st.session_state
     assert mock_st.session_state == {
         "plot.1.widgets.title": "Other plot",
         "plot.1.widgets.pipeline.filter_col_2": "Source shaper",
         "plot.2.mpl_fig": native,
         "plot.2.transfer_notice": "Copied settings",
+        "plot.2.widget_generations": mock_st.session_state["plot.2.widget_generations"],
     }

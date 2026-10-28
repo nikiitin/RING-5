@@ -27,10 +27,6 @@ OFT_SHA256 := f094cd314f0fc4236f513f66fb39260a16f72e2320beb6b4fdeb7940b9b8cf87
 OFT_CACHE_DIR := .cache/openfasttrace
 OFT_JAR := $(OFT_CACHE_DIR)/openfasttrace-$(OFT_VERSION).jar
 OFT_URL := https://repo1.maven.org/maven2/org/itsallcode/openfasttrace/openfasttrace/$(OFT_VERSION)/openfasttrace-$(OFT_VERSION).jar
-OFT_SPEC_SOURCES := spec/oft/generated/features.md spec/oft/generated/requirements.md
-OFT_CODE_SOURCES := app.py ring5 src scripts tests
-OFT_DOCUMENTATION_SOURCES := docs spec/oft/README.md spec/oft/discovery-audit.md
-OFT_SOURCES := $(OFT_SPEC_SOURCES) $(OFT_CODE_SOURCES) $(OFT_DOCUMENTATION_SOURCES)
 OFT_NATIVE_REPORT := $(OFT_CACHE_DIR)/ring5-openfasttrace.html
 OFT_REPORT := spec/oft/generated/report.html
 OFT_EXECUTION_RESULTS_ARG = $(if $(EXECUTION_RESULTS),--execution-results "$(EXECUTION_RESULTS)",)
@@ -141,7 +137,8 @@ test-nonbrowser:
 		--timeout=60 --no-cov
 
 test-export:
-	$(PYTEST) tests/unit/test_plotly_download.py -m "serial" -n 0 --timeout=120 --no-cov
+	$(PYTEST) tests/unit/test_plotly_download.py tests/unit/test_duplicate_bar_geometry.py \
+		-m "serial" -n 0 --timeout=120 --no-cov
 
 test-api: test-data mock-data
 	$(PYTEST) -m "public_api" -n 0 --cov=ring5 --cov-branch \
@@ -162,13 +159,13 @@ test-ci: test-data mock-data test-api
 
 test-e2e:
 	$(PYTEST) tests/e2e -m "requires_browser and not serial" \
-		-n $(E2E_WORKERS) --dist loadgroup \
+		-n $(E2E_WORKERS) --dist loadgroup --order-scope=class \
 		--timeout=240 --timeout-method=thread --no-cov
-	$(PYTEST) tests/e2e -m "requires_browser and serial" -n 0 \
+	$(PYTEST) tests/e2e -m "requires_browser and serial" -n 0 --order-scope=class \
 		--timeout=240 --timeout-method=thread --no-cov
 
 test-visual:
-	$(PYTEST) tests/visual -n 0 --timeout=120 --no-cov
+	$(PYTEST) tests/visual -n 0 --order-scope=class --timeout=120 --no-cov
 
 format:
 	$(VENV_BIN)/black --workers $(RING5_NATIVE_THREADS) $(PYTHON_SOURCES)
@@ -240,15 +237,15 @@ oft-download:
 	fi
 
 oft-trace: oft-check oft-download
-	java -jar "$(OFT_JAR)" trace -w approved --v summary $(OFT_SOURCES)
+	$(PYTHON) -m scripts.trace_oft_inventory --jar "$(OFT_JAR)" --mode approved
 
 oft-trace-all: oft-check oft-download
-	java -jar "$(OFT_JAR)" trace --v summary $(OFT_SOURCES)
+	$(PYTHON) -m scripts.trace_oft_inventory --jar "$(OFT_JAR)" --mode all
 
 oft-report: oft-generate oft-download
 	$(RM) "$(OFT_NATIVE_REPORT)"
-	-java -jar "$(OFT_JAR)" trace --output-format html --report-verbosity all \
-		--details-section-display collapse --output-file "$(OFT_NATIVE_REPORT)" $(OFT_SOURCES)
+	-$(PYTHON) -m scripts.trace_oft_inventory --jar "$(OFT_JAR)" --mode html \
+		--output-file "$(OFT_NATIVE_REPORT)"
 	@test -s "$(OFT_NATIVE_REPORT)"
 	$(PYTHON) -m scripts.generate_oft_html_report \
 		--oft-html "$(OFT_NATIVE_REPORT)" --output "$(OFT_REPORT)" $(OFT_EXECUTION_RESULTS_ARG)

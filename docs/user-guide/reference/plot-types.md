@@ -91,6 +91,13 @@ Covers:
 These are task descriptions, not a frozen registry inventory. Extensions can register additional
 identifiers.
 
+Repeated bar positions do not trigger a reduction. In grouped mode, repeated observations
+within one series overlap from zero; distinct series appear side by side. Stacked mode places
+each observation after the preceding observations at the same position and on the same Y axis.
+Relative mode stacks negative and nonnegative values separately. Use a
+[reduction shaper]({{site.baseurl}}/user-guide/reference/shapers/) when repeated runs should produce one summarized value before
+plotting.
+
 ## Plot-specific controls
 
 ### Dual-axis controls

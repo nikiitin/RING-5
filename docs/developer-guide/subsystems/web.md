@@ -34,11 +34,13 @@ controls stay in `widgets.theme.*`, so applying a theme resets appearance withou
 controls handling that action. Nested pipeline editors retain their shaper and group identities
 within the owning plot's namespace.
 
-`UIStateManager.plot.reset_widgets` clears one plot's widgets or a named widget section. Copying
-configuration schedules this reset before the destination's next controls render; the updated plot
-configuration supplies their defaults. Shape edits retain one typed UI draft against the published
-shape list, so adding, deleting or resizing a shape survives manual-refresh mode and settings
-navigation. Deletion resets shifted row controls before their next render. Plot deletion uses
+`UIStateManager.plot.reset_widgets` clears one plot's widgets or a named widget section and
+advances that scope's widget identity generation. Unchanged controls keep stable keys; reset
+controls receive new browser identities so stale frontend values cannot replace updated defaults.
+Copying configuration schedules this reset before the destination's next controls render; the
+updated plot configuration supplies their defaults. Shape edits retain one typed UI draft against
+the published shape list, so adding, deleting or resizing a shape survives manual-refresh mode and
+settings navigation. Deletion resets shifted row controls before their next render. Plot deletion uses
 `plot.cleanup`, while workspace reset and restoration use `cleanup_all`.
 These operations preserve other plots and global preferences within their defined scope. Native
 figure disposal belongs to the render owner. Navigation uses `nav.current_page` through the typed

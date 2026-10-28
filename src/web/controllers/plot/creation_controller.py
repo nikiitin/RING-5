@@ -83,7 +83,6 @@ class PlotCreationController:
             self._lifecycle.create_plot(
                 result["name"], result["plot_type"], self._api.state_manager
             )
-            st.session_state.pop("plot_selector", None)
             st.rerun()
 
     def render_selector(self) -> RenderablePlot | None:
@@ -115,25 +114,19 @@ class PlotCreationController:
                         break
             used.add(label)
             labels.append(label)
-        label_to_plot = {labels[i]: plots[i] for i in range(len(plots))}
-
-        current_id: int | None = self._api.state_manager.get_current_plot_id()
-        default_index: int = 0
-
-        if current_id is not None:
-            for i, p in enumerate(plots):
-                if p.plot_id == current_id:
-                    default_index = i
-                    break
-
-        selected_name: str = PlotSelectorComponent.render(labels, default_index=default_index)
-
-        # BasePlot satisfies RenderablePlot
-        selected_plot: RenderablePlot = cast(
-            RenderablePlot, label_to_plot.get(selected_name, plots[0])
+        plots_by_id = {plot.plot_id: plot for plot in plots}
+        plot_labels = {plot.plot_id: labels[index] for index, plot in enumerate(plots)}
+        current_id = self._api.state_manager.get_current_plot_id()
+        resolved_id = (
+            current_id if current_id is not None and current_id in plots_by_id else plots[0].plot_id
         )
-        if selected_plot.plot_id != current_id:
-            self._api.state_manager.set_current_plot_id(selected_plot.plot_id)
+        selector_key = self._ui.plot.prepare_selector(resolved_id)
+        selected_id = PlotSelectorComponent.render(plot_labels, key=selector_key)
+        selected_plot = cast(RenderablePlot, plots_by_id[selected_id])
+        if selected_id != current_id:
+            self._api.state_manager.set_current_plot_id(selected_id)
+            self._ui.plot.forget_selector(resolved_id)
+            st.rerun()
 
         return selected_plot
 
@@ -157,7 +150,6 @@ class PlotCreationController:
         # Rename
         if actions["new_name"] != plot.name:
             plot.name = actions["new_name"]
-            st.session_state.pop("plot_selector", None)
             st.rerun()
             return
 
@@ -165,12 +157,10 @@ class PlotCreationController:
         if actions["delete_clicked"]:
             self._ui.plot.cleanup(plot.plot_id)
             self._lifecycle.delete_plot(plot.plot_id, self._api.state_manager)
-            st.session_state.pop("plot_selector", None)
             st.rerun()
 
         # Duplicate
         if actions["duplicate_clicked"]:
             duplicate = self._lifecycle.duplicate_plot(plot, self._api.state_manager)
             self._api.state_manager.set_current_plot_id(duplicate.plot_id)
-            st.session_state.pop("plot_selector", None)
             st.rerun()

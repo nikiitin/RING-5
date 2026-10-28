@@ -26,11 +26,14 @@ from typing import Any, cast
 import pytest
 from playwright.sync_api import (
     Browser,
-    BrowserContext,
     Page,
-    TimeoutError as PlaywrightTimeoutError,
 )
 
+from tests.helpers.browser_capture import (
+    capture_failure_artifacts,
+    save_setup_failure,
+    shared_page_capture,
+)
 from tests.helpers.streamlit_server import artifact_stem, free_loopback_port, running_streamlit
 from tests.visual.pages.base_page import BasePage
 
@@ -112,17 +115,16 @@ def browser_context_args(browser_context_args: dict[str, object]) -> dict[str, o
 def shared_page(
     browser: Browser,
     browser_context_args: dict[str, object],
+    request: pytest.FixtureRequest,
 ) -> Generator[Page]:
     """Class-scoped page — one browser tab shared across all tests in a class.
 
     This avoids recreating a browser context and navigating for every test
     in an ordered visual suite.
     """
-    # Use cast to satisfy Pyright regarding BrowserContext options
     context = browser.new_context(**cast(Any, browser_context_args))
-    page = context.new_page()
-    yield page
-    context.close()
+    with shared_page_capture(context, request.node) as page:
+        yield page
 
 
 @pytest.fixture(scope="class", autouse=True)
@@ -168,64 +170,21 @@ def shared_screenshot_dir(request: pytest.FixtureRequest) -> Path:
 
 
 @pytest.fixture(autouse=True)
-def _capture_failure_artifacts(
-    request: pytest.FixtureRequest,
-) -> Generator[None]:
-    """Auto-capture screenshot + trace on test failure.
-
-    Automatically detects whether the test uses `shared_page` (class-scoped)
-    or `page` (function-scoped) and captures failure artifacts from whichever
-    is active.  This avoids creating an extra browser context when the test
-    only uses `shared_page`.
-    """
-    tracing = os.environ.get("TRACING", "").lower() in ("1", "true", "yes")
-
-    # Resolve the active page without creating an unused fixture
-    if "shared_page" in request.fixturenames:
-        active_page: Page = request.getfixturevalue("shared_page")
-    elif "page" in request.fixturenames:
-        active_page = request.getfixturevalue("page")
-    else:
+def _capture_failure_artifacts(request: pytest.FixtureRequest) -> Generator[None]:
+    """Capture failure artifacts through the suite's single page/trace owner."""
+    with capture_failure_artifacts(request, _ARTIFACTS_DIR):
         yield
-        return
-
-    context: BrowserContext = active_page.context
-
-    if tracing:
-        context.tracing.start(screenshots=True, snapshots=True, sources=True)
-
-    yield
-
-    # Post-test: capture artifacts on failure
-    rep_call = getattr(request.node, "rep_call", None)
-    if rep_call is not None and rep_call.failed:
-        _ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-        test_name = artifact_stem(
-            request.node.nodeid, os.environ.get("PYTEST_XDIST_WORKER", "main")
-        )
-        if not active_page.is_closed():
-            try:
-                active_page.screenshot(
-                    path=str(_ARTIFACTS_DIR / f"{test_name}_failure.png"),
-                    full_page=True,
-                    timeout=10_000,
-                )
-            except PlaywrightTimeoutError:
-                pass
-        if tracing:
-            context.tracing.stop(path=str(_ARTIFACTS_DIR / f"{test_name}_trace.zip"))
-    elif tracing:
-        context.tracing.stop()
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item) -> Generator[None]:
-    """Store test result on the node for ``_capture_failure_artifacts``."""
+    """Store reports and retain class setup failures before function capture."""
     import pluggy
 
     outcome: pluggy.Result = yield  # type: ignore[assignment]
     rep = outcome.get_result()
     setattr(item, f"rep_{rep.when}", rep)
+    save_setup_failure(item, rep, _ARTIFACTS_DIR)
 
 
 # Headed mode

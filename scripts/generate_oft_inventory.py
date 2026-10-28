@@ -32,6 +32,7 @@ from scripts.oft_html_report import (
     evidence_fingerprint,
     extract_oft_coverage,
     inventory_fingerprint,
+    validate_native_evidence,
 )
 from scripts.oft_status import requirement_status_tag, requirement_status_views
 
@@ -884,9 +885,9 @@ def check_html_report(inventory: Mapping[str, Any], output_dir: Path) -> None:
         raise InventoryError(
             f"OFT HTML report {_display_path(path)} is stale; run `make oft-report`."
         )
+    markers = collect_evidence_markers(ROOT)
     source_expected = (
-        '<meta name="ring5-evidence-sha256" '
-        f'content="{evidence_fingerprint(collect_evidence_markers(ROOT))}">'
+        '<meta name="ring5-evidence-sha256" ' f'content="{evidence_fingerprint(markers)}">'
     )
     if source_expected not in report:
         raise InventoryError(
@@ -897,6 +898,7 @@ def check_html_report(inventory: Mapping[str, Any], output_dir: Path) -> None:
         raise InventoryError(f"OFT HTML report {_display_path(path)} lacks the native OFT trace.")
     try:
         native_coverage = extract_oft_coverage(report, inventory)
+        validate_native_evidence(report, inventory, markers)
     except OftHtmlReportError as exc:
         raise InventoryError(f"OFT HTML report {_display_path(path)} is invalid: {exc}") from exc
     validate_approved_native_coverage(inventory, native_coverage)

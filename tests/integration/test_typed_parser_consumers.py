@@ -447,3 +447,47 @@ def test_unobserved_dynamic_entry_variable_loads_one_row_without_invented_bucket
         assert len(table) == 1
         assert table.columns() == []
         assert table.rows() == [{}]
+
+
+def test_public_parse_projects_real_large_discovery_and_replays_complete_selected_records(
+    tmp_path: Path,
+) -> None:
+    from src.core.common.source_context_codec import SourceContextCodec
+    from src.core.services.parse_job_store import MAX_REQUEST_JSON_BYTES
+
+    inputs = _stats(tmp_path / "inputs")
+    stats = inputs / "stats.txt"
+    original = (
+        "simTicks 1.25\n"
+        + "".join(f"unused::entry{index:05d}_" + "x" * 250 + " 1\n" for index in range(5000))
+    ).encode("utf-8")
+    stats.write_bytes(original)
+    with ring5.Session() as session:
+        discovery = session.scan(str(inputs), limit=0)
+        catalog = [value.to_dict() for value in discovery.variables]
+        assert discovery.complete and discovery.scanned_files == 1
+        assert len(json.dumps(catalog).encode("utf-8")) > MAX_REQUEST_JSON_BYTES
+        expected = [record for record in catalog if record["name"] == "simTicks"]
+        assert len(expected) == 1
+        result = session.parse(str(inputs), _variables("001"), scan_limit=0)
+        assert SourceContextCodec.scanned_payloads(result.source_context) == expected
+        table = session.load(result)
+        assert table.rows() == [{"value": 1.25, "label": "001"}]
+        captured = session.capture_analysis_recipe("selected")
+        assert list(captured.source.scanned_variables) == expected
+        assert (
+            SourceContextCodec.from_payload(SourceContextCodec.to_payload(result.source_context))
+            == result.source_context
+        )
+        with patch(
+            "src.parsing.gem5.impl.gem5_parser.Gem5Parser.submit_scan_async",
+            side_effect=AssertionError("Exact saved execution snapshot rescanned"),
+        ):
+            session.run_analysis_recipe(captured)
+        assert _active(session).rows() == table.rows()
+        assert session.capture_analysis_recipe("replayed").source == captured.source
+        session.save_portfolio("selected")
+        session.load_portfolio("selected")
+        assert _active(session).rows() == table.rows()
+        assert session.capture_analysis_recipe("restored").source == captured.source
+    assert stats.read_bytes() == original

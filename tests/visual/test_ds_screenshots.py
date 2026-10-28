@@ -35,6 +35,8 @@ class TestDataSourceScreenshots:
         ds = DataSourcePage(shared_page)
         ds.goto_and_wait(live_server_url)
         ds.assert_step_header_visible()
+        ds.ensure_parse_mode()
+        ds.ensure_simple_strategy()
 
         # Initial state
         ds.screenshot(shared_screenshot_dir / "data_source_initial.png")
@@ -105,6 +107,7 @@ class TestDataSourceScreenshots:
         ds = DataSourcePage(shared_page)
         ds.goto_and_wait(live_server_url)
         ds.assert_step_header_visible()
+        ds.ensure_parse_mode()
 
         # Search mode dialog
         ds.open_add_variable_dialog()

@@ -120,10 +120,11 @@ installer neither launches Chrome nor changes browser selection. Installation fa
 exit code 2 and preserves existing installations. A corrupt or unowned destination is rejected;
 inspect the reported path before explicitly removing it and retrying.
 
-The manifest contains native Linux x64 and ARM64 artifacts. Other hosts and architectures are
-rejected without choosing an emulated build. Archive installation does not establish native static-export support: Chrome's
-system libraries and a compatible host are still required. Playwright installs a separate browser
-for application tests and does not select RING-5's export browser.
+The manifest lists native Linux x64 and ARM64 artifacts. ARM64 is untested and may be unavailable.
+Other hosts and architectures are rejected without choosing an emulated build. Archive installation
+does not establish native static-export support: Chrome's system libraries and a compatible host are
+still required. Playwright installs a separate browser for application tests and does not select
+RING-5's export browser.
 
 The reviewed SHA-256 values are computed from official HTTPS downloads checked against Google's
 object size, MD5, and generation. They are project integrity pins, not a Google signature. See the

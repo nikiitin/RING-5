@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 import re
+import time
 
 from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
@@ -82,6 +83,104 @@ class BasePage:
         # Reset reruns to clear state; wait for it to start (and finish) so a
         # too-fast follow-up navigation cannot abort ``reset_session()``.
         self.wait_for_streamlit(expect_rerun=True)
+
+    def _owned_listbox(
+        self, control: Locator, *, timeout: int | None = None
+    ) -> tuple[str, Locator]:
+        """Capture a popup identity and locator before polling its rendered state."""
+        effective_timeout = timeout or self.RENDER_TIMEOUT
+        expect(control).to_have_attribute(
+            "aria-controls", re.compile(r"\S+"), timeout=effective_timeout
+        )
+        popup_id = control.get_attribute("aria-controls", timeout=effective_timeout)
+        assert popup_id is not None, "The combobox must own its open listbox"
+        escaped_id = popup_id.replace("\\", "\\\\").replace('"', '\\"')
+        listbox = self.page.get_by_role("listbox").and_(self.page.locator(f'[id="{escaped_id}"]'))
+        return popup_id, listbox
+
+    def _open_and_select(self, widget: Locator, value: str, *, multiple: bool = False) -> None:
+        """Select an exact owned option, retrying only an interrupted popup.
+
+        Retry a closed or replaced popup within the existing render budget.
+        An option missing from an intact popup fails without trying another one.
+        """
+        control = widget.get_by_role("combobox")
+        chip = widget.locator("[data-tag]").filter(has=self.page.get_by_text(value, exact=True))
+        deadline = time.monotonic() + self.RENDER_TIMEOUT / 1000
+
+        def remaining() -> int:
+            milliseconds = int((deadline - time.monotonic()) * 1000)
+            assert milliseconds > 0, f"Selection of {value!r} exceeded the render budget"
+            return milliseconds
+
+        def selected() -> bool:
+            if multiple:
+                return chip.count() == 1
+            return (
+                control.count() == 1
+                and control.get_attribute("aria-expanded", timeout=remaining()) != "true"
+                and control.input_value(timeout=remaining()) == value
+            )
+
+        def settle(*, expect_rerun: bool) -> None:
+            running = self.page.locator("[data-testid='stStatusWidget']")
+            if expect_rerun:
+                try:
+                    running.wait_for(state="visible", timeout=min(6000, remaining()))
+                except PlaywrightTimeoutError:
+                    pass
+            running.wait_for(state="hidden", timeout=remaining())
+            if expect_rerun:
+                self.page.wait_for_timeout(min(250, remaining()))
+
+        def verify() -> None:
+            if multiple:
+                expect(control).to_have_attribute("aria-expanded", "false", timeout=remaining())
+                expect(chip).to_have_count(1, timeout=remaining())
+            else:
+                expect(widget.get_by_role("combobox", expanded=False)).to_have_value(
+                    value, timeout=remaining()
+                )
+
+        for attempt in range(3):
+            expect(control).to_have_count(1, timeout=remaining())
+            expect(control).to_be_visible(timeout=remaining())
+            # Typed search text can survive a popup interruption without an option commit.
+            if (multiple or attempt == 0) and selected():
+                if (
+                    multiple
+                    and control.get_attribute("aria-expanded", timeout=remaining()) == "true"
+                ):
+                    control.press("Escape", timeout=remaining())
+                settle(expect_rerun=False)
+                verify()
+                return
+            popup_id: str | None = None
+            try:
+                control.click(timeout=remaining())
+                control.fill(value, timeout=remaining())
+                popup_id, listbox = self._owned_listbox(control, timeout=min(1000, remaining()))
+                expect(listbox).to_have_count(1, timeout=min(1000, remaining()))
+                expect(listbox).to_be_visible(timeout=min(1000, remaining()))
+                option = listbox.get_by_role("option", name=value, exact=True)
+                expect(option).to_have_count(1, timeout=min(5000, remaining()))
+                option.click(timeout=min(5000, remaining()))
+            except (AssertionError, PlaywrightTimeoutError):
+                interrupted = control.count() == 0
+                if not interrupted:
+                    current_popup = control.get_attribute("aria-controls", timeout=remaining())
+                    interrupted = control.get_attribute(
+                        "aria-expanded", timeout=remaining()
+                    ) != "true" or (popup_id is not None and current_popup != popup_id)
+                if not interrupted:
+                    raise
+                settle(expect_rerun=False)
+                continue
+            control.press("Escape", timeout=remaining())
+            settle(expect_rerun=True)
+            verify()
+            return
+        raise AssertionError(f"Could not select {value!r} after interrupted rerenders")
 
     # Streamlit sync helpers
 
@@ -174,11 +273,7 @@ class BasePage:
         expect(self.main_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def assert_on_page(self, page_name: str) -> None:
-        """Assert that a specific sidebar nav button is active (primary type).
-
-        Streamlit renders the active nav button with ``type="primary"``,
-        which maps to ``data-testid="stBaseButton-primary"`` or the primary
-        CSS class.
-        """
+        """Assert the requested navigation button has Streamlit's active marker."""
         btn = self.sidebar.get_by_role("button", name=page_name)
         expect(btn).to_be_visible()
+        expect(btn).to_have_attribute("data-testid", "stBaseButton-primary")

@@ -94,6 +94,7 @@ This file is informative; normative items are in the other generated files.
 | `ingestion.csv-contract` | 1 | Semantic | Define explicit typed parser schema, physical ownership, exact row encoding and schema-bound content integrity; genuine CSV ingestion retains its separate inference contract. |
 | `ingestion.variable-scan` | 1 | Semantic | Replace priority-based physical-kind guesses and inferred extrema with shared decoder evidence and explicit request geometry. |
 | `ingestion.distribution` | 1 | Semantic | Full native frequency parsing now requires explicit geometry and omission guarantees; summaries remain grid-free. |
+| `ingestion.session-background-parse` | 1 | Evidence only | Bind consumed-result notices, fresh cache receipt identities, retry/reset ownership and repeated UI parsing workflows. |
 | `data.error-propagation` | 1 | Semantic | Define canonical SD propagation for missing contributors, weighted repeated sources, mean scaling, and undefined estimates. |
 | `plot.histogram` | 1 | Semantic | Native storage cells have discrete mass semantics and explicit bindings rather than inferred continuous interval widths. |
 | `figure.ordering-renaming` | 1 | Semantic | Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes. |

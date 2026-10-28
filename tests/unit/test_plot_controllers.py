@@ -152,7 +152,7 @@ class TestPlotCreationController:
         mock_lifecycle: MagicMock,
         mock_registry: MagicMock,
     ) -> None:
-        """Returns the plot matching the selected name."""
+        """Return the plot matching the selected ID and retire its previous selector."""
         from src.web.controllers.plot.creation_controller import PlotCreationController
 
         plot1: MagicMock = MagicMock()
@@ -164,14 +164,20 @@ class TestPlotCreationController:
 
         mock_api.state_manager.get_plots.return_value = [plot1, plot2]
         mock_api.state_manager.get_current_plot_id.return_value = 1
-        mock_presenter.render.return_value = "Plot B"
+        mock_ui_state.plot.prepare_selector.return_value = "plot.1.selector"
+        mock_presenter.render.return_value = 2
 
         controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
         result = controller.render_selector()
 
         assert result is plot2
-        # Also updated current ID
+        mock_ui_state.plot.prepare_selector.assert_called_once_with(1)
+        mock_presenter.render.assert_called_once_with(
+            {1: "Plot A", 2: "Plot B"}, key="plot.1.selector"
+        )
         mock_api.state_manager.set_current_plot_id.assert_called_once_with(2)
+        mock_ui_state.plot.forget_selector.assert_called_once_with(1)
+        mock_st.rerun.assert_called_once()
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.PlotControlsComponent")

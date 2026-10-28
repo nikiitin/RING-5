@@ -1,10 +1,10 @@
-"""Plot selector component — renders plot selection pills."""
+"""Plot selector component — renders plot identities with their display labels."""
 
 import streamlit as st
 
 
 class PlotSelectorComponent:
-    """Renders plot selection pills and no-plots warning."""
+    """Render the active-plot selector and its empty state."""
 
     @staticmethod
     def render_no_plots_warning() -> None:
@@ -12,24 +12,26 @@ class PlotSelectorComponent:
         st.warning("No plots yet. Create a plot to get started!")
 
     @staticmethod
-    def render(
-        plot_names: list[str],
-        default_index: int = 0,
-    ) -> str:
-        """Render a horizontal pills selector for available plots.
+    def render(plot_labels: dict[int, str], *, key: str) -> int:
+        """Return the selected plot ID from a prepared, required selector.
 
         Args:
-            plot_names: List of plot display names.
-            default_index: Index of the pre-selected plot.
+            plot_labels: Unique display labels indexed by immutable plot IDs.
+            key: Namespaced widget key prepared by the UI state owner.
 
         Returns:
-            Name of the selected plot.
+            The selected plot ID.
+
+        Raises:
+            RuntimeError: The required selector has no active plot.
         """
-        default_name = plot_names[default_index] if plot_names else None
         selected = st.pills(
             "Select Plot",
-            plot_names,
-            default=default_name,
-            key="plot_selector",
+            list(plot_labels),
+            format_func=plot_labels.__getitem__,
+            required=True,
+            key=key,
         )
-        return selected if selected is not None else (plot_names[0] if plot_names else "")
+        if selected is None:
+            raise RuntimeError("The plot selector requires an active plot.")
+        return selected

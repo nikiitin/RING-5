@@ -13,6 +13,8 @@ Covers:
 """
 
 from collections.abc import Iterator
+from dataclasses import replace
+from typing import Literal
 
 import matplotlib
 from matplotlib.axes import Axes  # noqa: E402
@@ -435,3 +437,180 @@ class TestMatplotlibCreateFigure:
         assert h == pytest.approx(6)
         assert fig.dpi == 150
         plt.close(fig)
+
+
+class TestMatplotlibAxisTickRotation:
+    """Project clockwise configuration angles to native counterclockwise labels."""
+
+    @pytest.mark.parametrize("axis_name", ["x", "y"])
+    @pytest.mark.parametrize("tick_kind", ["categorical", "numeric"])
+    @pytest.mark.parametrize("fixed_ticks", [False, True], ids=["automatic", "fixed"])
+    def test_signed_tick_rotation_and_zero_reset(
+        self,
+        ax: Axes,
+        axis_name: Literal["x", "y"],
+        tick_kind: Literal["categorical", "numeric"],
+        fixed_ticks: bool,
+    ) -> None:
+        """Both angle signs and zero reach real automatic and fixed tick labels."""
+        # [test->req~ring5.figure.axes~1]
+        if axis_name == "x":
+            bars = (
+                ax.bar(["mcf", "omnetpp", "xalancbmk"], [1.0, 3.0, 2.0])
+                if tick_kind == "categorical"
+                else ax.bar([1.0, 2.0, 4.0], [1.0, 3.0, 2.0])
+            )
+        else:
+            bars = (
+                ax.barh(["mcf", "omnetpp", "xalancbmk"], [1.0, 3.0, 2.0])
+                if tick_kind == "categorical"
+                else ax.barh([1.0, 2.0, 4.0], [1.0, 3.0, 2.0])
+            )
+        native_axis = ax.xaxis if axis_name == "x" else ax.yaxis
+        panel = _bar_panel(ax, ("observations", bars))
+        panel.validate()
+        figure = ax.get_figure()
+        assert isinstance(figure, Figure)
+        figure.canvas.draw()
+        locator_before = native_axis.get_major_locator()
+        geometry_before = [
+            (bar.get_x(), bar.get_y(), bar.get_width(), bar.get_height()) for bar in bars
+        ]
+        positions: list[float] = [0.0, 1.0, 2.0] if tick_kind == "categorical" else [1.0, 2.0, 4.0]
+        for angle in (37.5, -45.0, 0.0):
+            axis_config = AxisConfig(tick_angle=angle)
+            if fixed_ticks:
+                axis_config = replace(
+                    axis_config, tick_values=positions, tick_text=["first", "second", "third"]
+                )
+            spec = FigureConfig(
+                axes=AxesConfig(
+                    x=axis_config if axis_name == "x" else AxisConfig(),
+                    y=axis_config if axis_name == "y" else AxisConfig(),
+                )
+            )
+            config_before = spec.to_dict()
+            FigureSpecToMatplotlib._apply_axis_ticks(spec, panel)
+            figure.canvas.draw()
+            labels = native_axis.get_ticklabels()
+            assert labels
+            assert [label.get_rotation() for label in labels] == pytest.approx(
+                [(-angle) % 360.0] * len(labels)
+            )
+            if fixed_ticks:
+                assert [label.get_text() for label in labels] == ["first", "second", "third"]
+                assert list(native_axis.get_majorticklocs()) == pytest.approx(positions)
+            else:
+                assert native_axis.get_major_locator() is locator_before
+            assert spec.to_dict() == config_before
+            assert [
+                (bar.get_x(), bar.get_y(), bar.get_width(), bar.get_height()) for bar in bars
+            ] == geometry_before
+
+    def test_full_apply_rotates_and_clears_automatic_labels(self, ax: Axes) -> None:
+        """The complete styling route projects the bar default and a later zero reset."""
+        # [test->req~ring5.figure.axes~1]
+        from src.core.services.visualization.config_resolver import resolve_config
+
+        bars = ax.bar(["mcf", "omnetpp", "xalancbmk"], [0.0, 1.0, 1.0])
+        figure = ax.get_figure()
+        assert isinstance(figure, Figure)
+        rendered = MatplotlibFigureResult(figure, (_bar_panel(ax, ("seed", bars)),))
+        spec = FigureConfig(
+            axes=AxesConfig(x=AxisConfig(tick_angle=-45.0), y=AxisConfig(tick_angle=30.0))
+        )
+        config_before = spec.to_dict()
+        geometry_before = [
+            (bar.get_x(), bar.get_y(), bar.get_width(), bar.get_height()) for bar in bars
+        ]
+        FigureSpecToMatplotlib.apply(resolve_config(spec), rendered)
+        figure.canvas.draw()
+        x_labels, y_labels = ax.get_xticklabels(), ax.get_yticklabels()
+        assert x_labels and y_labels
+        assert [label.get_rotation() for label in x_labels] == pytest.approx([45.0] * len(x_labels))
+        assert [label.get_rotation() for label in y_labels] == pytest.approx(
+            [330.0] * len(y_labels)
+        )
+
+        zero_spec = replace(spec, axes=AxesConfig())
+        FigureSpecToMatplotlib.apply(resolve_config(zero_spec), rendered)
+        figure.canvas.draw()
+        x_labels, y_labels = ax.get_xticklabels(), ax.get_yticklabels()
+        assert x_labels and y_labels
+        assert [label.get_rotation() for label in x_labels] == pytest.approx([0.0] * len(x_labels))
+        assert [label.get_rotation() for label in y_labels] == pytest.approx([0.0] * len(y_labels))
+        assert spec.to_dict() == config_before
+        assert [
+            (bar.get_x(), bar.get_y(), bar.get_width(), bar.get_height()) for bar in bars
+        ] == geometry_before
+
+    @pytest.mark.parametrize("fixed_ticks", [False, True], ids=["automatic", "fixed"])
+    def test_secondary_signed_rotation_and_zero_reset(self, ax: Axes, fixed_ticks: bool) -> None:
+        """An owned secondary line receives the same signed angle and zero contract."""
+        # [test->req~ring5.figure.axes~1]
+        from matplotlib.ticker import AutoLocator
+
+        from src.core.services.visualization.config_resolver import resolve_config
+
+        bars = ax.bar([0.0, 1.0, 2.0], [1.0, 3.0, 2.0])
+        twin = ax.twinx()
+        line = twin.plot([0.0, 1.0, 2.0], [2.0, 4.0, 3.0])[0]
+        primary = _bar_panel(ax, ("bars", bars))
+        secondary = MatplotlibTraceBinding(
+            1,
+            "line",
+            twin,
+            "secondary",
+            "",
+            True,
+            "line",
+            (line,),
+            (line,),
+            line,
+            appearance=seed_matplotlib_appearance(
+                (line,),
+                opacity=1.0,
+                series_channels=tuple(
+                    (line, kind) for kind in ("line", "marker_face", "marker_edge")
+                ),
+            ),
+        )
+        panel = replace(primary, secondary_axes=twin, bindings=(*primary.bindings, secondary))
+        figure = ax.get_figure()
+        assert isinstance(figure, Figure)
+        rendered = MatplotlibFigureResult(figure, (panel,))
+        geometry_before = [
+            (bar.get_x(), bar.get_y(), bar.get_width(), bar.get_height()) for bar in bars
+        ]
+        line_before = (tuple(line.get_xdata()), tuple(line.get_ydata()))
+        figure.canvas.draw()
+        automatic_ticks: tuple[list[float], list[str]] | None = None
+        for angle in (37.5, -45.0, 0.0):
+            y2 = AxisConfig(tick_angle=angle)
+            if fixed_ticks:
+                y2 = replace(y2, tick_values=[2.0, 3.0, 4.0], tick_text=["low", "mid", "high"])
+            spec = FigureConfig(axes=AxesConfig(y2=y2))
+            config_before = spec.to_dict()
+            FigureSpecToMatplotlib.apply(resolve_config(spec), rendered)
+            figure.canvas.draw()
+            labels = twin.get_yticklabels()
+            assert labels
+            assert [label.get_rotation() for label in labels] == pytest.approx(
+                [(-angle) % 360.0] * len(labels)
+            )
+            if fixed_ticks:
+                assert [label.get_text() for label in labels] == ["low", "mid", "high"]
+                assert list(twin.get_yticks()) == pytest.approx([2.0, 3.0, 4.0])
+            else:
+                assert type(twin.yaxis.get_major_locator()) is AutoLocator
+                positions = [float(value) for value in twin.get_yticks()]
+                texts = [label.get_text() for label in labels]
+                if automatic_ticks is None:
+                    automatic_ticks = (positions, texts)
+                assert positions == pytest.approx(automatic_ticks[0])
+                assert texts == automatic_ticks[1]
+            assert spec.to_dict() == config_before
+            assert [
+                (bar.get_x(), bar.get_y(), bar.get_width(), bar.get_height()) for bar in bars
+            ] == geometry_before
+            assert (tuple(line.get_xdata()), tuple(line.get_ydata())) == line_before

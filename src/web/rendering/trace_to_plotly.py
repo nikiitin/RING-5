@@ -119,6 +119,9 @@ def traces_to_plotly(
     bindings: list[PlotlyTraceBinding] = []
     for index, trace in enumerate(traces_list, start=1):
         plotly_trace = _convert_trace(trace)
+        if isinstance(trace, BarTraceConfig) and result.barmode == "group":
+            # Keep raw duplicate observations overlapped instead of natively stacked.
+            plotly_trace.update(base=0)
         if (
             result.secondary_y
             and trace.legend_role == "primary"

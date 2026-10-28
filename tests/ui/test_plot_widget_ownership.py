@@ -9,7 +9,7 @@ from streamlit.testing.v1 import AppTest
 
 from src.web.pages.ui.plotting.plot_service import PlotService
 from src.web.rendering.engine_manager import EngineManager
-from tests.ui.helpers import create_app_with_data, get_api, navigate_to
+from tests.ui.helpers import create_app_with_data, get_api, navigate_to, plot_widget_key
 
 
 def _app(body: str) -> AppTest:
@@ -139,16 +139,23 @@ def test_shape_rows_edit_and_delete_without_an_unreachable_edit_mode() -> None:
     """)
     assert not app.exception
     assert len(app.text_input) == 12
-    app.text_input(key="plot.1.widgets.appearance.shape_rows.edit_x0_0").set_value("12.5").run()
+    app.text_input(
+        key=plot_widget_key(app, 1, "widgets.appearance.shape_rows.edit_x0_0")
+    ).set_value("12.5").run()
     assert app.session_state["immutable"]
     assert app.session_state["config"]["shapes"][0]["x0"] == 12.5
-    app.button(key="plot.1.widgets.appearance.shape_rows.del_shape_0").click().run()
+    app.button(
+        key=plot_widget_key(app, 1, "widgets.appearance.shape_rows.del_shape_0")
+    ).click().run()
     app.run()
     assert not app.exception
     assert app.session_state["immutable"]
     assert len(app.session_state["config"]["shapes"]) == 1
     assert app.session_state["config"]["shapes"][0]["x0"] == 30.0
-    assert app.text_input(key="plot.1.widgets.appearance.shape_rows.edit_x0_0").value == "30.0"
+    assert (
+        app.text_input(key=plot_widget_key(app, 1, "widgets.appearance.shape_rows.edit_x0_0")).value
+        == "30.0"
+    )
 
 
 @pytest.mark.parametrize("action", ["delete", "add", "coordinate"])
@@ -183,20 +190,31 @@ def test_shape_draft_survives_manual_refresh_and_settings_navigation(action: str
     }
     before = deepcopy(plot.config["shapes"])
     navigate_to(app, "Manage Plots")
-    prefix = f"plot.{plot.plot_id}.widgets."
-    app.toggle(key=prefix + "show_advanced").set_value(True).run()
+    app.toggle(key=plot_widget_key(app, plot.plot_id, "widgets.show_advanced")).set_value(
+        True
+    ).run()
     app.pills(key="settings_nav").set_value("advanced").run()
-    app.toggle(key=prefix + "auto_refresh").set_value(False).run()
+    app.toggle(key=plot_widget_key(app, plot.plot_id, "widgets.auto_refresh")).set_value(
+        False
+    ).run()
     if action == "delete":
-        app.button(key=prefix + "appearance.shape_rows.del_shape_0").click().run()
+        app.button(
+            key=plot_widget_key(app, plot.plot_id, "widgets.appearance.shape_rows.del_shape_0")
+        ).click().run()
         expected_count, expected_x0 = 1, 30.0
     elif action == "add":
         for field, value in zip(("x0", "y0", "x1", "y1"), ("70", "80", "90", "100")):
-            app.text_input(key=prefix + f"appearance.s_{field}").set_value(value).run()
-        app.button(key=prefix + "appearance.add_shape").click().run()
+            app.text_input(
+                key=plot_widget_key(app, plot.plot_id, f"widgets.appearance.s_{field}")
+            ).set_value(value).run()
+        app.button(
+            key=plot_widget_key(app, plot.plot_id, "widgets.appearance.add_shape")
+        ).click().run()
         expected_count, expected_x0 = 3, 1.0
     else:
-        app.text_input(key=prefix + "appearance.shape_rows.edit_x0_0").set_value("12.5").run()
+        app.text_input(
+            key=plot_widget_key(app, plot.plot_id, "widgets.appearance.shape_rows.edit_x0_0")
+        ).set_value("12.5").run()
         expected_count, expected_x0 = 2, 12.5
     assert not app.exception
     assert plot.config["shapes"] == before
@@ -204,7 +222,7 @@ def test_shape_draft_survives_manual_refresh_and_settings_navigation(action: str
     app.pills(key="settings_nav").set_value("advanced").run()
     assert not app.exception
     assert plot.config["shapes"] == before
-    app.button(key=prefix + "refresh").click().run()
+    app.button(key=plot_widget_key(app, plot.plot_id, "widgets.refresh")).click().run()
     app.run()
     assert not app.exception
     assert len(plot.config["shapes"]) == expected_count
@@ -232,13 +250,13 @@ def test_auto_refresh_reads_one_widget_and_manual_refresh_is_explicit() -> None:
             st.session_state[f"result_{plot_id}"] = result
     """)
     assert not app.exception
-    app.toggle(key="plot.1.widgets.auto_refresh").set_value(False).run()
+    app.toggle(key=plot_widget_key(app, 1, "widgets.auto_refresh")).set_value(False).run()
     app.run()
     assert not app.exception
     assert app.session_state["result_1"]["auto_refresh"] is False
     assert app.session_state["result_1"]["should_generate"] is False
     assert app.session_state["result_2"]["auto_refresh"] is True
-    app.button(key="plot.1.widgets.refresh").click().run()
+    app.button(key=plot_widget_key(app, 1, "widgets.refresh")).click().run()
     assert not app.exception
     assert app.session_state["result_1"]["manual_refresh"] is True
     assert app.session_state["result_1"]["should_generate"] is True
@@ -252,9 +270,13 @@ def test_type_change_resets_old_controls_and_preserves_measured_data() -> None:
     old = PlotService.create_plot("Measured", "bar", api.state_manager)
     old.replace_processed_data(frame)
     navigate_to(app, "Manage Plots")
-    app.toggle(key=f"plot.{old.plot_id}.widgets.auto_refresh").set_value(False).run()
-    app.text_input(key=f"plot.{old.plot_id}.widgets.title").set_value("Pending title").run()
-    app.selectbox(key=f"plot.{old.plot_id}.widgets.plot_type_sel").select("line").run()
+    app.toggle(key=plot_widget_key(app, old.plot_id, "widgets.auto_refresh")).set_value(False).run()
+    app.text_input(key=plot_widget_key(app, old.plot_id, "widgets.title")).set_value(
+        "Pending title"
+    ).run()
+    app.selectbox(key=plot_widget_key(app, old.plot_id, "widgets.plot_type_sel")).select(
+        "line"
+    ).run()
     assert not app.exception
     current = api.state_manager.get_plots()[0]
     assert current is not old
@@ -262,8 +284,11 @@ def test_type_change_resets_old_controls_and_preserves_measured_data() -> None:
     assert current.plot_id == old.plot_id
     assert current.name == "Measured"
     pd.testing.assert_frame_equal(current.processed_data, frame)
-    assert app.text_input(key=f"plot.{old.plot_id}.widgets.title").value != "Pending title"
-    assert app.toggle(key=f"plot.{old.plot_id}.widgets.auto_refresh").value is True
+    assert (
+        app.text_input(key=plot_widget_key(app, old.plot_id, "widgets.title")).value
+        != "Pending title"
+    )
+    assert app.toggle(key=plot_widget_key(app, old.plot_id, "widgets.auto_refresh")).value is True
 
 
 @pytest.mark.parametrize("bundle", [False, True])
@@ -309,13 +334,18 @@ def test_browser_portfolio_restore_discards_widgets_for_reused_plot_ids(bundle: 
     api = app.session_state["api"]
     try:
         assert not app.exception
-        assert app.text_input(key="plot.1.widgets.rename").value == "Old plot name"
+        assert (
+            app.text_input(key=plot_widget_key(app, 1, "widgets.rename")).value == "Old plot name"
+        )
         button = next(button for button in app.button if "Restore" in button.label)
         button.click().run()
         assert not app.exception
         restored = api.state_manager.get_plots()[0]
         assert restored.name == "Imported plot name"
-        assert app.text_input(key="plot.1.widgets.rename").value == "Imported plot name"
+        assert (
+            app.text_input(key=plot_widget_key(app, 1, "widgets.rename")).value
+            == "Imported plot name"
+        )
         pd.testing.assert_frame_equal(
             restored.processed_data, pd.DataFrame({"x": ["a"], "y": [3.0]})
         )
@@ -334,7 +364,10 @@ def test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners(
     old = PlotService.create_plot("Old plot name", "bar", api.state_manager)
     old.replace_processed_data(api.state_manager.get_data())
     navigate_to(app, "Manage Plots")
-    assert app.text_input(key=f"plot.{old.plot_id}.widgets.rename").value == "Old plot name"
+    assert (
+        app.text_input(key=plot_widget_key(app, old.plot_id, "widgets.rename")).value
+        == "Old plot name"
+    )
     app.session_state[EngineManager.STATE_KEY] = "matplotlib"
     next(button for button in app.sidebar.button if button.label == action).click().run()
     assert not app.exception
@@ -348,5 +381,8 @@ def test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners(
     fresh = PlotService.create_plot("New plot", "bar", api.state_manager)
     assert fresh.plot_id == old.plot_id
     navigate_to(app, "Manage Plots")
-    assert app.text_input(key=f"plot.{fresh.plot_id}.widgets.rename").value == "New plot"
+    assert (
+        app.text_input(key=plot_widget_key(app, fresh.plot_id, "widgets.rename")).value
+        == "New plot"
+    )
     assert fresh.name == "New plot"

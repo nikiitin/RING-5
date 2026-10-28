@@ -305,6 +305,10 @@ class DataManagersPage(BasePage):
         expect(metrics.filter(has_text="Min").first).to_be_visible(timeout=self.RENDER_TIMEOUT)
         expect(metrics.filter(has_text="Q3").first).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
+    def select_outlier_column(self, column: str) -> None:
+        """Select the exact numeric column for outlier detection."""
+        self._open_and_select(self.outlier_column_selectbox, column)
+
     def apply_outlier_remover(self) -> None:
         """Click 'Apply Outlier Remover' and wait."""
         self.outlier_apply_button.click()
@@ -398,6 +402,10 @@ class DataManagersPage(BasePage):
         """New column name text input in Mixer."""
         return self._by_label("stTextInput", "New Column Name").locator("input")
 
+    def add_mixer_column(self, column: str) -> None:
+        """Add the exact source column and verify its selected chip."""
+        self._open_and_select(self.mixer_columns_multiselect, column, multiple=True)
+
     def apply_mixer_preview(self) -> None:
         """Click 'Preview Merge' and wait."""
         self.mixer_preview_button.click()
@@ -429,6 +437,14 @@ class DataManagersPage(BasePage):
     def comparison_keys_multiselect(self) -> Locator:
         """Columns used to align baseline and candidate rows."""
         return self._by_label("stMultiSelect", "Alignment keys")
+
+    def add_comparison_metric(self, column: str) -> None:
+        """Add the exact metric and verify its selected chip."""
+        self._open_and_select(self.comparison_metrics_multiselect, column, multiple=True)
+
+    def add_comparison_key(self, column: str) -> None:
+        """Add the exact alignment column and verify its selected chip."""
+        self._open_and_select(self.comparison_keys_multiselect, column, multiple=True)
 
     @property
     def comparison_apply_button(self) -> Locator:
@@ -551,6 +567,10 @@ class DataManagersPage(BasePage):
     def workspace_join_keys(self) -> Locator:
         """Shared key-column selector for retained-dataset joins."""
         return self._by_label("stMultiSelect", "Join keys")
+
+    def add_workspace_join_key(self, column: str) -> None:
+        """Add the exact join column and verify its selected chip."""
+        self._open_and_select(self.workspace_join_keys, column, multiple=True)
 
     @property
     def workspace_join_cardinality(self) -> Locator:
@@ -691,14 +711,11 @@ class DataManagersPage(BasePage):
         return self._by_label("stTextInput", "Search term").locator("input")
 
     def assert_dataframe_visible(self) -> None:
-        """Assert a dataframe is rendered and visible.
-
-        The Data Visualization tab renders a ``### Data Table (…)``
-        heading immediately before ``st.dataframe()``.  Checking for
-        this heading confirms the tab fragment has finished rendering.
-        """
+        """Assert the visualization tab's heading and data table are visible."""
         heading = self.page.locator("h3").filter(has_text="Data Table")
         expect(heading).to_be_visible(timeout=30_000)
+        panel = self.page.get_by_role("tabpanel", name="Data Visualization", exact=True)
+        expect(panel.get_by_test_id("stDataFrame")).to_be_visible(timeout=30_000)
 
     # E2E: Operations History tab
 

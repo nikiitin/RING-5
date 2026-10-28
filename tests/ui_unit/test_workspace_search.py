@@ -75,7 +75,7 @@ def test_activate_selects_entities_and_rejects_stale_targets(
     # [test->req~ring5.workspace.global-search~1]
     from src.web.components.workspace_search import WorkspaceSearchComponent
 
-    mock_st.session_state = {"plot_selector": "old"}
+    mock_st.session_state = {}
     mock_ui_st.session_state = mock_st.session_state
     api = MagicMock()
     plot = MagicMock(plot_id=7)
@@ -92,7 +92,7 @@ def test_activate_selects_entities_and_rejects_stale_targets(
         _result("pipeline", "Sort", "Manage Plots", "7"),
     )
     api.state_manager.set_current_plot_id.assert_called_once_with(7)
-    assert "plot_selector" not in mock_st.session_state
+    assert mock_st.session_state["nav.current_page"] == "Manage Plots"
 
     WorkspaceSearchComponent.activate(
         api,

@@ -403,7 +403,7 @@ class FigureSpecToMatplotlib:
 
     @staticmethod
     def _apply_axis_ticks(spec: FigureConfig, rendered: MatplotlibRenderResult) -> None:
-        """Configure tick labels, rotation, padding."""
+        """Project clockwise tick angles and configure labels and padding."""
         # [impl->req~ring5.figure.axes~1]
         import matplotlib.transforms as transforms
 
@@ -447,6 +447,7 @@ class FigureSpecToMatplotlib:
             axis="x",
             labelsize=typo.font_size_ticks,
             pad=x_axis.tick_pad,
+            labelrotation=-x_axis.tick_angle,
             bottom=x_axis.show_ticks and not x_on_top,
             top=x_axis.show_ticks and x_on_top,
             labelbottom=x_axis.show_tick_labels and not x_on_top,
@@ -463,7 +464,6 @@ class FigureSpecToMatplotlib:
             ax.set_xticks(x_tick_positions)
             ax.set_xticklabels(
                 [str(t) for t in x_axis.tick_text],
-                rotation=x_axis.tick_angle,
                 ha=x_axis.tick_ha,
                 fontsize=typo.font_size_ticks,
                 fontweight=weight,
@@ -494,6 +494,7 @@ class FigureSpecToMatplotlib:
             axis="y",
             labelsize=typo.font_size_yticks,
             pad=y_axis.tick_pad,
+            labelrotation=-y_axis.tick_angle,
             left=y_axis.show_ticks and not y_on_right,
             right=y_axis.show_ticks and y_on_right,
             labelleft=y_axis.show_tick_labels and not y_on_right,
@@ -510,13 +511,7 @@ class FigureSpecToMatplotlib:
             ax.set_yticklabels(
                 [str(t) for t in y_axis.tick_text],
                 fontsize=typo.font_size_yticks,
-                rotation=y_axis.tick_angle,
             )
-
-        # Y-axis tick rotation for auto-ticks (no explicit tick_values)
-        if y_axis.tick_angle != 0 and y_axis.tick_values is None:
-            for label in ax.get_yticklabels():
-                label.set_rotation(y_axis.tick_angle)
 
     @staticmethod
     def _apply_axis_ranges(spec: FigureConfig, ax: Axes) -> None:
@@ -623,7 +618,7 @@ class FigureSpecToMatplotlib:
             labelleft=on_left and y2.show_tick_labels,
             labelright=not on_left and y2.show_tick_labels,
             pad=y2.tick_pad,
-            labelrotation=y2.tick_angle,
+            labelrotation=-y2.tick_angle,
             labelsize=spec.typography.font_size_y2ticks,
             colors=y2.tick_font_color or y2.axis_color,
         )
@@ -679,15 +674,20 @@ class FigureSpecToMatplotlib:
         if legend.orientation == "horizontal" and kwargs["ncol"] <= 1:
             kwargs["ncol"] = 999  # matplotlib clamps to actual item count
 
-        if legend.custom_position and legend.position_x >= 0:
+        has_position = legend.custom_position and (legend.position_x >= 0 or legend.position_y >= 0)
+        if has_position or legend.anchor_x != "auto" or legend.anchor_y != "auto":
             kwargs["loc"] = FigureSpecToMatplotlib._anchor_to_mpl_loc(
                 legend.anchor_x,
                 legend.anchor_y,
             )
-            kwargs["bbox_to_anchor"] = (
-                legend.position_x,
-                legend.position_y if legend.position_y >= 0 else 1.0,
-            )
+            if has_position:
+                kwargs["bbox_to_anchor"] = (
+                    legend.position_x if legend.position_x >= 0 else 0.0,
+                    legend.position_y if legend.position_y >= 0 else 1.0,
+                )
+        else:
+            # Automatic placement belongs inside the fixed figure canvas.
+            kwargs["loc"] = "best"
 
         if legend.bgcolor:
             kwargs["facecolor"] = css_color_to_matplotlib(legend.bgcolor)

@@ -28,22 +28,25 @@ def escape_latex_text(text: str) -> str:
 
 @contextmanager
 def escaped_figure_text(fig: Any) -> Iterator[None]:
-    """Temporarily escape every Matplotlib Text artist in a figure."""
+    """Escape literal figure text without Matplotlib math preprocessing."""
     # [impl->req~ring5.quality.safe-output-formatting~1]
     from matplotlib.text import Text
 
-    originals: list[tuple[Text, str]] = []
-    for artist in fig.findobj(match=Text):
-        original = artist.get_text()
-        escaped = escape_latex_text(original)
-        if escaped != original:
-            originals.append((artist, original))
-            artist.set_text(escaped)
+    originals: list[tuple[Text, str, bool]] = []
     try:
+        for artist in fig.findobj(match=Text):
+            original = artist.get_text()
+            originals.append((artist, original, artist.get_parse_math()))
+            # Matplotlib otherwise removes the dollar escape before PGF sees it.
+            artist.set_parse_math(False)
+            escaped = escape_latex_text(original)
+            if escaped != original:
+                artist.set_text(escaped)
         yield
     finally:
-        for artist, original in originals:
+        for artist, original, parse_math in originals:
             artist.set_text(original)
+            artist.set_parse_math(parse_math)
 
 
 @contextmanager

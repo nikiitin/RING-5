@@ -145,6 +145,7 @@ Covers:
 
 Configure axis titles, explicit ranges, tick steps and angles, tick marks, grids, axis lines, and
 axis-title placement. Applicable dual-axis plots expose the same controls for the right axis.
+Tick-label angles are clockwise in both engines; set the angle to 0 to restore horizontal labels.
 Grouped-stacked bars offer **Numbers**, **Number legend**, and **Labels** as independent X-axis
 modes. Clear the selection to use ordinary axis labels. Selecting only **Number legend** hides the
 tick text and retains the mapping box. Right-axis dots and connecting lines are configured under

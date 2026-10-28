@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
+from src.web.state.ui_state_manager import ParseCompletionNotice, UIStateManager, WidgetKeyBuilder
 
 
 @pytest.fixture
@@ -86,8 +86,11 @@ def test_widget_reset_preserves_artifacts_markers_other_plots_and_preferences(
     expected = {
         key: value for key, value in mock_state.items() if not key.startswith("plot.2.widgets.")
     }
+    previous_title_key = WidgetKeyBuilder.plot_key(2, "widgets.title")
     ui_state.plot.reset_widgets(2)
+    expected["plot.2.widget_generations"] = mock_state["plot.2.widget_generations"]
     assert mock_state == expected
+    assert WidgetKeyBuilder.plot_key(2, "widgets.title") != previous_title_key
     assert mock_state["plot.2.mpl_fig"] is native
     assert mock_state["plot.2.mpl_spec"] is spec
 
@@ -111,8 +114,13 @@ def test_appearance_reset_preserves_data_controls_and_theme_exchange_widgets(
         for key, value in mock_state.items()
         if not key.startswith("plot.1.widgets.appearance.")
     }
+    previous_color_key = WidgetKeyBuilder.plot_key(1, "widgets.appearance.theme_color_2_hash")
     ui_state.plot.reset_widgets(1, "appearance")
+    expected["plot.1.widget_generations"] = mock_state["plot.1.widget_generations"]
     assert mock_state == expected
+    assert (
+        WidgetKeyBuilder.plot_key(1, "widgets.appearance.theme_color_2_hash") != previous_color_key
+    )
 
 
 def test_manager_history_consumes_only_its_owned_entry(
@@ -143,13 +151,145 @@ def test_workspace_reset_preserves_browser_owner_api_and_engine_preferences(
         3: True,
     }
     mock_state.update(retained)
+    ui_state.plot.reset_widgets(1)
     mock_state.update(
         {
             "plot.1.widgets.title": "old",
             "manager.mixer.col": "ipc",
             "nav.current_page": "Manage Plots",
+            "parse.active_job_id": "running",
+            "parse.completion": ParseCompletionNotice("old", "Loaded parsed CSV from Recent"),
         }
     )
     ui_state.cleanup_all()
     assert mock_state == retained
     assert mock_state["api"] is api
+
+
+def test_parse_completion_is_shared_but_not_consumed_by_another_accessor(
+    ui_state: UIStateManager,
+) -> None:
+    # [test->req~ring5.ingestion.session-background-parse~1]
+    notice = ParseCompletionNotice("job-1", "Loaded parsed CSV from Recent")
+    ui_state.parse.remember_job("job-1")
+    ui_state.parse.complete_job(notice)
+
+    assert ui_state.parse.get_job_id() is None
+    assert ui_state.parse.get_completion() is notice
+    ui_state.nav.set_current_page("Data Managers")
+    assert UIStateManager().parse.get_completion() is notice
+    assert UIStateManager().parse.get_completion() is notice
+
+
+def test_new_parse_attempt_clears_only_the_prior_completion_notice(
+    ui_state: UIStateManager, mock_state: dict[Any, Any]
+) -> None:
+    notice = ParseCompletionNotice("job-1", "Loaded parsed CSV from Recent")
+    ui_state.parse.complete_job(notice)
+    mock_state["ring5_engine_mode"] = "matplotlib"
+    ui_state.parse.remember_job("job-2")
+
+    assert ui_state.parse.get_job_id() == "job-2"
+    assert ui_state.parse.get_completion() is None
+    assert mock_state["ring5_engine_mode"] == "matplotlib"
+    ui_state.parse.forget_job("job-1")
+    assert ui_state.parse.get_job_id() == "job-2"
+    ui_state.parse.forget_job("job-2")
+    assert ui_state.parse.get_job_id() is None
+
+
+def test_workspace_restore_discards_a_previous_parse_notice(
+    ui_state: UIStateManager, mock_state: dict[Any, Any]
+) -> None:
+    # [test->req~ring5.ingestion.session-background-parse~1]
+    ui_state.parse.complete_job(ParseCompletionNotice("job-1", "Loaded parsed CSV from Recent"))
+    mock_state["api"] = object()
+    ui_state.cleanup_all()
+
+    assert ui_state.parse.get_completion() is None
+    assert ui_state.parse.get_job_id() is None
+    assert set(mock_state) == {"api"}
+
+
+def test_widget_identities_are_stable_until_their_owned_scope_resets(
+    ui_state: UIStateManager, mock_state: dict[Any, Any]
+) -> None:
+    suffixes = (
+        "widgets.title",
+        "widgets.engine_selector",
+        "widgets.pipeline.filter_1",
+        "widgets.appearance.theme_color",
+    )
+    initial = {suffix: WidgetKeyBuilder.plot_key(1, suffix) for suffix in suffixes}
+    assert initial == {suffix: f"plot.1.{suffix}" for suffix in suffixes}
+    assert {suffix: WidgetKeyBuilder.plot_key(1, suffix) for suffix in suffixes} == initial
+    assert mock_state == {}
+
+    ui_state.plot.reset_widgets(1)
+    for suffix in suffixes:
+        current = WidgetKeyBuilder.plot_key(1, suffix)
+        assert current == initial[suffix] + ".__reset_1"
+        assert WidgetKeyBuilder.plot_key(1, suffix) == current
+        assert WidgetKeyBuilder.plot_key(2, suffix) == f"plot.2.{suffix}"
+    assert WidgetKeyBuilder.plot_key(1, "transfer_notice") == "plot.1.transfer_notice"
+    assert WidgetKeyBuilder.plot_key(1, "widgets") == "plot.1.widgets"
+    assert WidgetKeyBuilder.manager_key("mixer", "mode") == "manager.mixer.mode"
+
+
+def test_nested_and_sibling_widget_resets_use_the_latest_applicable_generation(
+    ui_state: UIStateManager, mock_state: dict[Any, Any]
+) -> None:
+    suffixes = {
+        "title": "widgets.title",
+        "theme": "widgets.theme.import_figure_theme",
+        "draft": "widgets.appearance.shape_editor",
+        "row": "widgets.appearance.shape_rows.edit_x0_0",
+        "series": "widgets.appearance.series",
+        "unrelated": "widgets.appearance_extra.control",
+    }
+    row_key = WidgetKeyBuilder.plot_key(1, suffixes["row"])
+    draft = object()
+    mock_state[row_key] = "old coordinate"
+    mock_state[WidgetKeyBuilder.plot_key(1, suffixes["draft"])] = draft
+
+    steps: tuple[tuple[tuple[str, ...], dict[str, int]], ...] = (
+        (("appearance", "shape_rows"), {"row": 1}),
+        (("appearance", "series"), {"row": 1, "series": 2}),
+        (("appearance", "shape_rows"), {"row": 3, "series": 2}),
+        (("appearance",), {"draft": 4, "row": 4, "series": 4}),
+        (("appearance", "shape_rows"), {"draft": 4, "row": 5, "series": 4}),
+        ((), dict.fromkeys(suffixes, 6)),
+        (("appearance", "series"), {**dict.fromkeys(suffixes, 6), "series": 7}),
+    )
+    for index, (sections, expected) in enumerate(steps):
+        ui_state.plot.reset_widgets(1, *sections)
+        for name, suffix in suffixes.items():
+            generation = expected.get(name, 0)
+            physical = f"plot.1.{suffix}"
+            if generation:
+                physical += f".__reset_{generation}"
+            assert WidgetKeyBuilder.plot_key(1, suffix) == physical
+            assert WidgetKeyBuilder.plot_key(2, suffix) == f"plot.2.{suffix}"
+        if index == 0:
+            assert row_key not in mock_state
+            assert mock_state[WidgetKeyBuilder.plot_key(1, suffixes["draft"])] is draft
+
+
+def test_widget_reset_cleans_all_generated_descendants_and_cleanup_discards_epochs(
+    ui_state: UIStateManager, mock_state: dict[Any, Any]
+) -> None:
+    ui_state.plot.reset_widgets(1, "appearance")
+    generated_prefix = WidgetKeyBuilder.plot_key(1, "widgets.appearance.series") + "."
+    mock_state[generated_prefix + "color_A"] = "red"
+    mock_state[WidgetKeyBuilder.plot_key(1, "widgets.title")] = "Retained title"
+    mock_state["plot.2.widgets.title"] = "Other plot"
+    ui_state.plot.reset_widgets(1, "appearance")
+    assert generated_prefix + "color_A" not in mock_state
+    assert mock_state[WidgetKeyBuilder.plot_key(1, "widgets.title")] == "Retained title"
+    assert mock_state["plot.2.widgets.title"] == "Other plot"
+
+    ui_state.plot.cleanup(1)
+    assert mock_state == {"plot.2.widgets.title": "Other plot"}
+    assert WidgetKeyBuilder.plot_key(1, "widgets.appearance.series") == (
+        "plot.1.widgets.appearance.series"
+    )

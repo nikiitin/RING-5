@@ -10,7 +10,7 @@ from streamlit.testing.v1 import AppTest
 
 from src.web.components.plotting.settings.shapes_settings import _decode_coordinate
 from src.web.pages.ui.plotting.plot_service import PlotService
-from tests.ui.helpers import create_app_with_data, get_api, navigate_to
+from tests.ui.helpers import create_app_with_data, get_api, navigate_to, plot_widget_key
 
 
 def _shape() -> dict[str, Any]:
@@ -37,17 +37,19 @@ def _app(shapes: list[dict[str, Any]]) -> tuple[AppTest, Any, Any]:
 
 
 def _advanced(app: AppTest, plot: Any) -> None:
-    app.toggle(key=f"plot.{plot.plot_id}.widgets.show_advanced").set_value(True).run()
+    app.toggle(key=plot_widget_key(app, plot.plot_id, "widgets.show_advanced")).set_value(
+        True
+    ).run()
     app.pills(key="settings_nav").set_value("advanced").run()
     assert not app.exception
 
 
-def _row(plot: Any, field: str, index: int = 0) -> str:
-    return f"plot.{plot.plot_id}.widgets.appearance.shape_rows.edit_{field}_{index}"
+def _row(app: AppTest, plot: Any, field: str, index: int = 0) -> str:
+    return plot_widget_key(app, plot.plot_id, f"widgets.appearance.shape_rows.edit_{field}_{index}")
 
 
-def _add(plot: Any, field: str) -> str:
-    return f"plot.{plot.plot_id}.widgets.appearance.s_{field}"
+def _add(app: AppTest, plot: Any, field: str) -> str:
+    return plot_widget_key(app, plot.plot_id, f"widgets.appearance.s_{field}")
 
 
 def _measurements(plot: Any) -> None:
@@ -65,13 +67,13 @@ def test_untouched_literal_coordinates_and_explicit_text_numeric_edits_reach_nat
         app.run()
         assert not app.exception
         assert plot.config["shapes"] == before
-        assert app.checkbox(key=_row(plot, "x0") + ".text_mode").value is True
-        assert app.checkbox(key=_row(plot, "y0") + ".text_mode").value is False
+        assert app.checkbox(key=_row(app, plot, "x0") + ".text_mode").value is True
+        assert app.checkbox(key=_row(app, plot, "y0") + ".text_mode").value is False
         assert plot.render_artifact.figure.layout.shapes[0].x0 == "001"
         assert plot.render_artifact.figure.layout.shapes[0].x1 == "002"
 
-        app.text_input(key=_row(plot, "x0")).set_value("003").run()
-        app.text_input(key=_row(plot, "y0")).set_value("12.5").run()
+        app.text_input(key=_row(app, plot, "x0")).set_value("003").run()
+        app.text_input(key=_row(app, plot, "y0")).set_value("12.5").run()
         assert not app.exception
         assert plot.config["shapes"][0]["x0"] == "003"
         assert type(plot.config["shapes"][0]["y0"]) is float
@@ -91,10 +93,12 @@ def test_add_numeric_looking_literal_coordinates_has_one_explicit_kind() -> None
     try:
         _advanced(app, plot)
         for field, text in (("x0", "001"), ("x1", "003")):
-            app.text_input(key=_add(plot, field)).set_value(text).run()
-            app.checkbox(key=_add(plot, field) + ".text_mode").check().run()
-        app.text_input(key=_add(plot, "y0")).set_value("2.5").run()
-        app.button(key=f"plot.{plot.plot_id}.widgets.appearance.add_shape").click().run()
+            app.text_input(key=_add(app, plot, field)).set_value(text).run()
+            app.checkbox(key=_add(app, plot, field) + ".text_mode").check().run()
+        app.text_input(key=_add(app, plot, "y0")).set_value("2.5").run()
+        app.button(
+            key=plot_widget_key(app, plot.plot_id, "widgets.appearance.add_shape")
+        ).click().run()
         assert not app.exception
         shape = plot.config["shapes"][0]
         assert (shape["x0"], shape["x1"], shape["y0"]) == ("001", "003", 2.5)
@@ -110,11 +114,13 @@ def test_unfinished_add_inputs_do_not_block_existing_rows_or_publish_invalid_sha
     app, api, plot = _app([_shape()])
     try:
         _advanced(app, plot)
-        app.text_input(key=_add(plot, "x0")).set_value("unfinished number").run()
-        app.text_input(key=_row(plot, "y0")).set_value("14.25").run()
+        app.text_input(key=_add(app, plot, "x0")).set_value("unfinished number").run()
+        app.text_input(key=_row(app, plot, "y0")).set_value("14.25").run()
         assert not app.exception
         assert plot.config["shapes"][0]["y0"] == 14.25
-        app.button(key=f"plot.{plot.plot_id}.widgets.appearance.add_shape").click().run()
+        app.button(
+            key=plot_widget_key(app, plot.plot_id, "widgets.appearance.add_shape")
+        ).click().run()
         assert not app.exception
         assert any("Cannot add shape" in error.value for error in app.error)
         assert len(plot.config["shapes"]) == 1
@@ -129,25 +135,27 @@ def test_manual_refresh_preserves_intentional_kind_changes_across_sections() -> 
     app, api, plot = _app([_shape()])
     try:
         _advanced(app, plot)
-        app.toggle(key=f"plot.{plot.plot_id}.widgets.auto_refresh").set_value(False).run()
-        app.checkbox(key=_row(plot, "x0") + ".text_mode").uncheck().run()
+        app.toggle(key=plot_widget_key(app, plot.plot_id, "widgets.auto_refresh")).set_value(
+            False
+        ).run()
+        app.checkbox(key=_row(app, plot, "x0") + ".text_mode").uncheck().run()
         app.pills(key="settings_nav").set_value("layout").run()
         app.pills(key="settings_nav").set_value("advanced").run()
         assert plot.config["shapes"][0]["x0"] == "001"
         assert plot.render_artifact.figure.layout.shapes[0].x0 == "001"
-        assert app.checkbox(key=_row(plot, "x0") + ".text_mode").value is False
-        app.button(key=f"plot.{plot.plot_id}.widgets.refresh").click().run()
+        assert app.checkbox(key=_row(app, plot, "x0") + ".text_mode").value is False
+        app.button(key=plot_widget_key(app, plot.plot_id, "widgets.refresh")).click().run()
         assert not app.exception
         assert type(plot.config["shapes"][0]["x0"]) is float
         assert plot.config["shapes"][0]["x0"] == 1.0
         assert plot.render_artifact.figure.layout.shapes[0].x0 == 1.0
 
-        app.checkbox(key=_row(plot, "x0") + ".text_mode").check().run()
-        app.text_input(key=_row(plot, "x0")).set_value("003").run()
+        app.checkbox(key=_row(app, plot, "x0") + ".text_mode").check().run()
+        app.text_input(key=_row(app, plot, "x0")).set_value("003").run()
         app.pills(key="settings_nav").set_value("layout").run()
         app.pills(key="settings_nav").set_value("advanced").run()
         assert plot.config["shapes"][0]["x0"] == 1.0
-        app.button(key=f"plot.{plot.plot_id}.widgets.refresh").click().run()
+        app.button(key=plot_widget_key(app, plot.plot_id, "widgets.refresh")).click().run()
         assert not app.exception
         refreshed = api.state_manager.get_plots()[0]
         assert refreshed.config["shapes"][0]["x0"] == "003"
@@ -162,14 +170,14 @@ def test_invalid_number_edit_is_visible_and_preserves_the_published_native_shape
     app, api, plot = _app([_shape()])
     try:
         _advanced(app, plot)
-        app.text_input(key=_row(plot, "y0")).set_value(text).run()
+        app.text_input(key=_row(app, plot, "y0")).set_value(text).run()
         assert app.exception
         assert any(
             "finite" in error.message or "too small" in error.message for error in app.exception
         )
         assert plot.config["shapes"][0]["y0"] == 2.0
         assert plot.render_artifact.figure.layout.shapes[0].y0 == 2.0
-        app.text_input(key=_row(plot, "y0")).set_value("3.5").run()
+        app.text_input(key=_row(app, plot, "y0")).set_value("3.5").run()
         assert not app.exception
         assert plot.config["shapes"][0]["y0"] == 3.5
         assert plot.render_artifact.figure.layout.shapes[0].y0 == 3.5
@@ -216,7 +224,7 @@ def test_native_partial_path_and_default_shapes_roundtrip_without_invented_field
         ] == native_before
         keys = {widget.key for widget in app.text_input}
         for field in ("x0", "y0", "x1", "y1"):
-            assert (_row(plot, field) in keys) is (field in shape and shape[field] is not None)
+            assert (_row(app, plot, field) in keys) is (field in shape and shape[field] is not None)
         assert shape == original
         _measurements(plot)
     finally:
@@ -231,16 +239,18 @@ def test_deleting_the_invalid_row_skips_its_decoder_and_retains_manual_refresh_c
     app, api, plot = _app([_shape()])
     try:
         _advanced(app, plot)
-        app.toggle(key=f"plot.{plot.plot_id}.widgets.auto_refresh").set_value(auto_refresh).run()
-        app.text_input(key=_row(plot, "y0")).set_value("nan").run()
+        app.toggle(key=plot_widget_key(app, plot.plot_id, "widgets.auto_refresh")).set_value(
+            auto_refresh
+        ).run()
+        app.text_input(key=_row(app, plot, "y0")).set_value("nan").run()
         assert app.exception
         app.button(
-            key=f"plot.{plot.plot_id}.widgets.appearance.shape_rows.del_shape_0"
+            key=plot_widget_key(app, plot.plot_id, "widgets.appearance.shape_rows.del_shape_0")
         ).click().run()
         assert not app.exception
         if not auto_refresh:
             assert len(plot.config["shapes"]) == 1
-            app.button(key=f"plot.{plot.plot_id}.widgets.refresh").click().run()
+            app.button(key=plot_widget_key(app, plot.plot_id, "widgets.refresh")).click().run()
         assert not app.exception
         assert plot.config["shapes"] == []
         assert not plot.render_artifact.figure.layout.shapes
@@ -254,15 +264,15 @@ def test_deleting_invalid_partial_row_preserves_retained_row_types_and_extra_fie
     app, api, plot = _app([{"type": "line", "x0": 0.0, "x1": 1.0}, retained])
     try:
         _advanced(app, plot)
-        app.text_input(key=_row(plot, "x0")).set_value("nan").run()
+        app.text_input(key=_row(app, plot, "x0")).set_value("nan").run()
         assert app.exception
         app.button(
-            key=f"plot.{plot.plot_id}.widgets.appearance.shape_rows.del_shape_0"
+            key=plot_widget_key(app, plot.plot_id, "widgets.appearance.shape_rows.del_shape_0")
         ).click().run()
         app.run()
         assert not app.exception
         assert plot.config["shapes"] == [retained]
-        assert app.checkbox(key=_row(plot, "x0") + ".text_mode").value is True
+        assert app.checkbox(key=_row(app, plot, "x0") + ".text_mode").value is True
         assert plot.render_artifact.figure.layout.shapes[0].x0 == "001"
         _measurements(plot)
     finally:
@@ -273,16 +283,16 @@ def test_delete_still_rejects_invalid_coordinates_in_a_retained_row() -> None:
     app, api, plot = _app([_shape(), _shape()])
     try:
         _advanced(app, plot)
-        app.text_input(key=_row(plot, "y0", 1)).set_value("nan").run()
+        app.text_input(key=_row(app, plot, "y0", 1)).set_value("nan").run()
         assert app.exception
         app.button(
-            key=f"plot.{plot.plot_id}.widgets.appearance.shape_rows.del_shape_0"
+            key=plot_widget_key(app, plot.plot_id, "widgets.appearance.shape_rows.del_shape_0")
         ).click().run()
         assert any("Shape 2 y0" in error.message for error in app.exception)
         assert len(plot.config["shapes"]) == 2
-        app.text_input(key=_row(plot, "y0", 1)).set_value("14.25").run()
+        app.text_input(key=_row(app, plot, "y0", 1)).set_value("14.25").run()
         app.button(
-            key=f"plot.{plot.plot_id}.widgets.appearance.shape_rows.del_shape_0"
+            key=plot_widget_key(app, plot.plot_id, "widgets.appearance.shape_rows.del_shape_0")
         ).click().run()
         assert not app.exception
         assert len(plot.config["shapes"]) == 1

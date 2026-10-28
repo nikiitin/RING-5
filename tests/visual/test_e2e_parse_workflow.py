@@ -97,6 +97,11 @@ class TestScanWorkflow:
         count = ds.get_scan_result_count()
         assert count > 0, f"Expected scanner to find variables, got {count}"
 
+        # Identical results must still come from a new completed scan attempt.
+        ds.scan_and_wait(timeout=_E2E_TIMEOUT)
+        ds.assert_scan_success()
+        assert ds.get_scan_result_count() == count
+
     def test_scan_histogram_stats(self, shared_page: Page, live_server_url: str) -> None:
         """Quick Scan on histogram/stats.txt discovers histogram variables."""
         ds = _setup_data_source(shared_page, live_server_url)
@@ -159,9 +164,11 @@ class TestVariableAndParse:
         ds.scan_and_wait(timeout=_E2E_TIMEOUT)
         ds.assert_scan_success()
 
-        # Add from scan results
-        ds.add_variable_from_scan(index=0)
+        # Add a discovered configuration variable outside the current defaults.
+        configured_before = ds.get_variable_count()
+        ds.add_variable_from_scan("random_seed")
         ds.assert_dialog_hidden()
+        expect(ds.variable_name_inputs).to_have_count(configured_before + 1, timeout=_E2E_TIMEOUT)
 
         # Add manual scalar
         ds.add_manual_variable("system.cpu.ipc", "scalar")
@@ -190,15 +197,28 @@ class TestVariableAndParse:
         - data_managers_visualization_tab_has_dataframe
         - data_managers_history_is_empty_initially
         """
+        # [test->req~ring5.ingestion.session-background-parse~1]
         ds = _setup_data_source(shared_page, live_server_url)
         _scan_add_parse(ds, _BENCHMARKS_STATS, ["system.cpu.ipc"])
         expect(ds.data_rows_metric.get_by_test_id("stMetricValue")).to_have_text("12")
         columns = shared_page.get_by_test_id("stMetric").filter(has_text="Columns").first
         expect(columns.get_by_test_id("stMetricValue")).to_have_text("4")
 
-        # Retained data is not evidence for another submission or wait.
-        expect(ds.parse_completion_message).not_to_be_visible()
-        with pytest.raises(AssertionError):
+        # A session cache hit reuses its CSV but consumes a new job identity.
+        previous_completion = ds.get_parse_completion_id()
+        source = shared_page.get_by_test_id("stMetric").filter(has_text="Source").first
+        previous_source = source.get_by_test_id("stMetricValue").inner_text()
+        ds.parse_and_wait(timeout=_E2E_TIMEOUT)
+        assert ds.get_parse_completion_id() != previous_completion
+        expect(ds.parse_completion_notice).to_contain_text(
+            "Last parse: Reused parsed CSV from Recent"
+        )
+        expect(source.get_by_test_id("stMetricValue")).to_have_text(previous_source)
+        expect(ds.data_rows_metric.get_by_test_id("stMetricValue")).to_have_text("12")
+
+        # Neither retained rows nor the persistent notice arms another wait.
+        expect(ds.parse_completion_notice).to_be_visible()
+        with pytest.raises(AssertionError, match="No parse submission is pending"):
             ds.wait_for_parse_completion(timeout=500)
 
         # Navigate to Data Managers
@@ -385,7 +405,7 @@ class TestE2EScreenshots:
 
         # Very small fixtures can finish before an intermediate progress frame.
         ds.click_parse()
-        parse_activity = ds.parse_job_heading.or_(ds.parse_completion_signal).first
+        parse_activity = ds.parse_job_heading.or_(ds.pending_parse_completion).first
         expect(parse_activity).to_be_visible(timeout=_E2E_TIMEOUT)
         ds.screenshot(shared_screenshot_dir / "e2e_parse_background.png")
         ds.wait_for_parse_completion(timeout=_E2E_TIMEOUT)

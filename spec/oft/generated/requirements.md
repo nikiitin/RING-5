@@ -503,6 +503,8 @@ Status: approved
 
 Web parsing shall submit immediately, retain bounded progress across reruns and navigation within one browser session, coalesce identical requests, support cooperative job-specific cancellation and explicit retry, publish successful CSVs atomically, and clean transient job data on consumption, acknowledgement, reset, release, shutdown, or orphan recovery.
 
+History records: 1
+
 Covers:
 - feat~ring5.ingestion~1
 

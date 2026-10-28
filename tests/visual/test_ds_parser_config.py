@@ -78,21 +78,15 @@ class TestParserConfig:
 
         # Simple is default
         ds.ensure_simple_strategy()
-        expect(ds.strategy_simple_option).to_have_attribute(
-            "data-testid", "stBaseButton-segmented_controlActive"
-        )
+        expect(ds.strategy_simple_option).to_be_checked()
 
         # Switch to Config-Aware
         ds.select_config_aware_strategy()
-        expect(ds.strategy_config_aware_option).to_have_attribute(
-            "data-testid", "stBaseButton-segmented_controlActive"
-        )
+        expect(ds.strategy_config_aware_option).to_be_checked()
 
         # Switch back to Simple
         ds.select_simple_strategy()
-        expect(ds.strategy_simple_option).to_have_attribute(
-            "data-testid", "stBaseButton-segmented_controlActive"
-        )
+        expect(ds.strategy_simple_option).to_be_checked()
 
     def test_variables_section(self, shared_page: Page, live_server_url: str) -> None:
         """Variables to Extract section renders all expected elements.

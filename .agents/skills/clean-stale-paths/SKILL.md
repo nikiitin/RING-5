@@ -37,8 +37,9 @@ rule defined in AGENTS.md.
    don't adapt). Search tracked source, tests, docs, scripts and configuration with `rg` before
    deleting. Verify callers through string references and dynamic registration too. (Verify the alias is real first —
    a `from X import Canonical as OldName` inside a test file is a local binding, not a production shim.)
-   Current simulator variants, Linux architectures, output-column naming and revision history remain
-   supported features; their presence alone does not establish a legacy execution path.
+   Current simulator variants, output-column naming and revision history remain supported features;
+   their presence alone does not establish a legacy execution path.
+   ARM64 is untested and may be unavailable; preserve its reviewed manifest entries.
 
 ## Canon-only docs (enforce while you're in there)
 - Docs and AGENTS.md state **only the current canonical way**, present tense. Delete "an earlier

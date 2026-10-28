@@ -169,8 +169,10 @@ accumulator identities as aliases. `keep_indices=True` creates separate concrete
 otherwise source instances reduce according to the selected output representation. A scalar-family
 vector derives entries only from its selected instances; callers must not supply a second entry list.
 
-Loaded parser origins and analysis recipes retain complete scanned metadata and runnable source
-contracts. Portfolio editor variables remain explicitly tagged drafts or runnable definitions.
+New parser execution snapshots retain complete relevant scanned records and runnable source
+contracts; unrelated discovery stays in the editor. Loaded origins and analysis recipes preserve
+the exact saved execution snapshot on replay. Portfolio editor variables remain explicitly tagged
+drafts or runnable definitions.
 Missing execution fields, numeric-only source selections and unsupported metadata shapes fail validation.
 
 Native Distribution frequency output requires explicit finite `minimum`, `maximum`, positive

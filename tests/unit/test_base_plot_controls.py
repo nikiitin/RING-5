@@ -7,6 +7,7 @@ import pytest
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.components.common.reorderable_list import render_reorderable_list
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 
 class ConcretePlot(BasePlot):
@@ -83,7 +84,7 @@ def test_advanced_section_shapes_edit_delete(mock_streamlit: Any) -> None:
 
     def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> bool:
 
-        if key == "plot.1.widgets.appearance.shape_rows.del_shape_0":
+        if key == WidgetKeyBuilder.plot_key(1, "widgets.appearance.shape_rows.del_shape_0"):
             return True
         return False
 

@@ -123,8 +123,46 @@ def test_html_report_fingerprint_detects_missing_stale_or_non_native_output(
 <section id="req"><section class="sitem" id="req~ring5.{feature['id']}~{feature['revision']}">
 <details><summary><span class="green">covered</span></summary></details></section></section>
 <section id="test"></section><section id="uman"></section></main>"""
+    current_markers = collect_evidence_markers(ROOT)
+    for category, artifact_type in (
+        ("implementation", "impl"),
+        ("tests", "test"),
+        ("documentation", "uman"),
+    ):
+        artifacts = []
+        for index, reference in enumerate(feature["evidence"][category]):
+            source = next(
+                item
+                for item in current_markers
+                if item.artifact_type == artifact_type
+                and item.requirement_id == feature["id"]
+                and item.revision == feature["revision"]
+                and item.reference == reference
+            )
+            artifacts.append(
+                f'<section class="sitem" id="{artifact_type}~ring5.{feature["id"]}-{index}~0">'
+                f'<p class="origin">{source.path}:{source.line}</p>'
+                f'<a href="#req~ring5.{feature["id"]}~{feature["revision"]}">covers</a>'
+                "</section>"
+            )
+        native = native.replace(
+            f'<section id="{artifact_type}"></section>',
+            f'<section id="{artifact_type}">' + "".join(artifacts) + "</section>",
+        )
     report.write_text(marker + source_marker + native, encoding="utf-8")
     check_html_report(inventory, tmp_path)
+
+    extra = (
+        f'<section class="sitem" id="test~ring5.{feature["id"]}-archive~0">'
+        '<p class="origin">tests/visual/artifacts/old.trace.zip!src/old.py:1</p>'
+        f'<a href="#req~ring5.{feature["id"]}~{feature["revision"]}">covers</a></section>'
+    )
+    # Fingerprints and green coverage are unchanged; the foreign origin must fail.
+    report.write_text(
+        marker + source_marker + native.replace("</main>", extra + "</main>"), encoding="utf-8"
+    )
+    with pytest.raises(InventoryError, match="unexpected evidence origins"):
+        check_html_report(inventory, tmp_path)
 
     report.write_text(marker + source_marker + native.replace("green", "red"), encoding="utf-8")
     with pytest.raises(InventoryError, match="native OFT reports uncovered"):

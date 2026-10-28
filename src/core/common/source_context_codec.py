@@ -19,6 +19,7 @@ from src.core.common.security_limits import (
     MAX_PIPELINE_CONFIG_STEPS,
 )
 from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.common.source_matching import request_scanned_variables
 from src.core.common.import_options_codec import ImportOptionsCodec
 from src.core.models.data_models import ScannedVariableDict
 from src.core.models.parsing_models import PARSER_RESULT_VERSION, ScannedVariable, StatConfig
@@ -33,8 +34,8 @@ from src.core.models.source_context_models import (
 )
 
 
-def encode_source_json(value: object, *, byte_limit: int = MAX_PARSE_RESULT_BYTES) -> str:
-    """Bound primitive source metadata before encoding or allocating escaped text."""
+def _validate_source_json(value: object, *, byte_limit: int) -> None:
+    """Admit bounded primitive metadata before ownership or escaped-text allocation."""
     active: set[int] = set()
     remaining = byte_limit
     remaining_items = 8 * MAX_PARSE_MATRIX_CELLS
@@ -78,6 +79,11 @@ def encode_source_json(value: object, *, byte_limit: int = MAX_PARSE_RESULT_BYTE
             raise TypeError("Source request contains an unsupported value.")
 
     check(value, 0)
+
+
+def encode_source_json(value: object, *, byte_limit: int = MAX_PARSE_RESULT_BYTES) -> str:
+    """Bound primitive source metadata before encoding or allocating escaped text."""
+    _validate_source_json(value, byte_limit=byte_limit)
     parts: list[str] = []
     size = 0
     encoder = json.JSONEncoder(
@@ -122,7 +128,11 @@ class SourceContextCodec:
         parser_contract_version: str = str(PARSER_RESULT_VERSION),
         metadata_byte_limit: int = MAX_PARSE_RESULT_BYTES,
     ) -> ParserSourceContext:
-        """Own the exact resolved parser arguments before asynchronous submission."""
+        """Own executable arguments and complete relevant discovery records.
+
+        Editor discovery remains independent. Only records needed by a literal
+        source or numeric pattern enter the immutable execution/replay snapshot.
+        """
         if (
             type(metadata_byte_limit) is not int
             or not 0 < metadata_byte_limit <= MAX_PARSE_RESULT_BYTES
@@ -131,6 +141,8 @@ class SourceContextCodec:
         configs = StatConfigCodec.validate_many(variables)
         if len(scanned_variables) > MAX_REGEX_CANDIDATES:
             raise ValueError("Source scanner metadata exceeds its variable budget.")
+        _validate_source_json(list(scanned_variables), byte_limit=MAX_PARSE_RESULT_BYTES)
+        retained = request_scanned_variables(configs, scanned_variables)
         source = ParserSourceContext(
             stats_path,
             stats_pattern,
@@ -140,7 +152,7 @@ class SourceContextCodec:
                 byte_limit=metadata_byte_limit,
             ),
             encode_source_json(
-                list(scanned_variables),
+                retained,
                 byte_limit=metadata_byte_limit,
             ),
             simulator,

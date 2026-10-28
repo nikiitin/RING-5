@@ -124,31 +124,30 @@ class TestPlotSelectorComponent:
     """Tests for PlotSelectorComponent."""
 
     @patch("src.web.components.common.plot_selector.st")
-    def test_render_returns_selected_name(self, mock_st: MagicMock) -> None:
-        """Returns the name selected by radio."""
+    def test_render_returns_selected_id(self, mock_st: MagicMock) -> None:
+        """Return the selected immutable ID independently of its label."""
         from src.web.components.common.plot_selector import PlotSelectorComponent
 
-        mock_st.pills.return_value = "Plot 2"
-
-        result: str = PlotSelectorComponent.render(["Plot 1", "Plot 2", "Plot 3"], default_index=1)
-
-        assert result == "Plot 2"
+        mock_st.pills.return_value = 2
+        result = PlotSelectorComponent.render(
+            {1: "Plot 1", 2: "Plot 2", 3: "Plot 3"}, key="plot.1.selector"
+        )
+        assert result == 2
 
     @patch("src.web.components.common.plot_selector.st")
     def test_pills_called_correctly(self, mock_st: MagicMock) -> None:
-        """Pills widget is rendered for plot selection."""
+        """Render a required ID selector with its caller-prepared key."""
         from src.web.components.common.plot_selector import PlotSelectorComponent
 
-        mock_st.pills.return_value = "Plot 1"
-
-        PlotSelectorComponent.render(["Plot 1"], default_index=0)
-
+        mock_st.pills.return_value = 0
+        PlotSelectorComponent.render({0: "Plot 1"}, key="plot.0.selector")
         mock_st.pills.assert_called_once()
-        call_kwargs = mock_st.pills.call_args
-        assert (
-            call_kwargs.kwargs.get("key") == "plot_selector"
-            or call_kwargs[1].get("key") == "plot_selector"
-        )
+        args, kwargs = mock_st.pills.call_args
+        assert args == ("Select Plot", [0])
+        assert kwargs["key"] == "plot.0.selector"
+        assert kwargs["required"] is True
+        assert "default" not in kwargs
+        assert kwargs["format_func"](0) == "Plot 1"
 
 
 # PipelineComponent Tests
