@@ -4790,6 +4790,7 @@
           "tests/integration/test_analysis_recipe_public_api.py::test_parameterized_recipe_round_trip_executes_plots_and_exports",
           "tests/integration/test_analysis_recipe_public_api.py::test_recipe_capture_and_errors_use_the_public_contract",
           "tests/integration/test_analysis_recipe_public_api.py::test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typed",
+          "tests/integration/test_analysis_recipe_public_api.py::test_saved_parser_recipe_replays_complete_catalog_without_rescanning",
           "tests/unit/test_analysis_recipe_component.py::test_capture_parameterizes_source_and_saves_without_overwrite",
           "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_04_save_and_download_analysis_recipe"
         ],

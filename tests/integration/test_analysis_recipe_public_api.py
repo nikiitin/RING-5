@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import subprocess
 import sys
@@ -342,3 +343,84 @@ def test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typ
         ):
             with pytest.raises(ring5.RecipeError, match="Could not load recipe source"):
                 session.run_analysis_recipe(csv_recipe)
+
+
+@pytest.mark.parametrize("numeric_pattern", [False, True], ids=["literal", "numeric-pattern"])
+def test_saved_parser_recipe_replays_complete_catalog_without_rescanning(
+    tmp_path: Path, numeric_pattern: bool
+) -> None:
+    """Replay saved scanner records exactly, including unused physical evidence."""
+    # [test->req~ring5.portfolio.analysis-recipes~1]
+    inputs = tmp_path / "simulations"
+    inputs.mkdir()
+    stats = inputs / "stats.txt"
+    raw_stats = b"system.cpu0.simTicks 123\n" b"system.cpu1.simTicks 456\n" b"system.cpu.ipc 1.25\n"
+    stats.write_bytes(raw_stats)
+    recipes_dir = tmp_path / "recipes"
+    recipes_dir.mkdir()
+
+    with patch.object(PathService, "get_analysis_recipes_dir", return_value=recipes_dir):
+        with ring5.Session() as session:
+            discovery = session.scan_submit(str(inputs), limit=0).finalize()
+            catalog = [variable.to_dict() for variable in discovery.variables]
+            observed = copy.deepcopy(catalog)
+            assert discovery.complete and discovery.scanned_files == 1
+            assert len(catalog) == 2
+            assert {
+                instance["source_name"] for record in catalog for instance in record["instances"]
+            } == {"system.cpu0.simTicks", "system.cpu1.simTicks", "system.cpu.ipc"}
+            variable = ring5.StatConfig(
+                name="ticks",
+                type="scalar",
+                source_name=(
+                    r"system.cpu\d+.simTicks" if numeric_pattern else "system.cpu0.simTicks"
+                ),
+                keep_indices=numeric_pattern,
+                params={"source_type": "scalar"},
+            )
+            recipe = ring5.AnalysisRecipe(
+                name="Full saved catalog",
+                source=ring5.RecipeSource(
+                    kind="parser",
+                    path=str(inputs),
+                    variables=(StatConfigCodec.to_payload(variable),),
+                    scanned_variables=tuple(catalog),
+                    scan_limit=0,
+                ),
+            )
+            saved_path = Path(session.save_analysis_recipe(recipe))
+            saved_bytes = saved_path.read_bytes()
+            loaded = session.load_analysis_recipe(recipe.name)
+            expected_source = copy.deepcopy(loaded.source)
+            assert loaded == recipe
+            assert list(loaded.source.scanned_variables) == observed
+            with patch(
+                "src.parsing.gem5.impl.gem5_parser.Gem5Parser.submit_scan_async",
+                side_effect=AssertionError("Saved recipe replay rescanned"),
+            ) as rescan:
+                result = session.run_analysis_recipe(loaded)
+            rescan.assert_not_called()
+            assert result.rows == 1
+            frame = session.api.state_manager.get_data()
+            assert frame is not None
+            expected_row = (
+                {"system.cpu0.simTicks": 123.0, "system.cpu1.simTicks": 456.0}
+                if numeric_pattern
+                else {"ticks": 123.0}
+            )
+            assert frame.to_dict("records") == [expected_row]
+            assert result.columns == tuple(expected_row)
+            assert catalog == observed
+            assert session.api.state_manager.get_scanned_variables() == observed
+            recaptured = session.capture_analysis_recipe("Recaptured full catalog")
+            assert recaptured.source == expected_source
+            assert session.load_analysis_recipe(recipe.name).source == expected_source
+
+            # Neither caller-owned declarations nor editor drafts own the loaded origin.
+            catalog[0]["entries"].append("caller mutation")
+            loaded.source.scanned_variables[0]["entries"].append("loaded recipe mutation")
+            recaptured.source.scanned_variables[0]["entries"].append("capture mutation")
+            session.api.state_manager.set_scanned_variables([])
+            assert session.capture_analysis_recipe("Owned origin").source == expected_source
+            assert saved_path.read_bytes() == saved_bytes
+    assert stats.read_bytes() == raw_stats

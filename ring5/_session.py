@@ -3802,16 +3802,22 @@ class Session:
                 source_path = source.path
             else:
                 require_current_parser_contract(source.parser_contract_version)
-                parser_context = SourceContextCodec.parser(
-                    stats_path=source.path,
-                    stats_pattern=source.pattern,
-                    strategy_type=source.strategy,
-                    variables=[StatConfigCodec.from_payload(v) for v in source.variables],
-                    scanned_variables=source.scanned_variables,
-                    simulator=source.simulator,
-                    scan_limit=source.scan_limit,
-                    strict=source.strict,
-                    parser_contract_version=source.parser_contract_version,
+                parser_context = cast(
+                    ParserSourceContext,
+                    SourceContextCodec.from_payload(
+                        {
+                            "kind": "parser",
+                            "stats_path": source.path,
+                            "stats_pattern": source.pattern,
+                            "strategy_type": source.strategy,
+                            "variables": list(source.variables),
+                            "scanned_variables": list(source.scanned_variables),
+                            "simulator": source.simulator,
+                            "parser_contract_version": source.parser_contract_version,
+                            "scan_limit": source.scan_limit,
+                            "strict": source.strict,
+                        }
+                    ),
                 )
                 parser = (
                     SimulatorRegistry.get_parser(source.simulator)
