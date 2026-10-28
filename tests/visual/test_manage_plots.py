@@ -66,11 +66,7 @@ def _create_and_finalize_bar(
     mp: ManagePlotsPage,
     name: str = "Test Bar",
 ) -> None:
-    """Create a bar plot, add Sort shaper (keeps all columns), finalize.
-
-    After finalize the page is fully reloaded so that the
-    visualization fragment sees ``processed_data``.
-    """
+    """Create a bar plot, retain all columns with Sort, and finalize."""
     mp.create_plot(name, "bar")
     mp.assert_plot_pill_visible(name)
 
@@ -78,11 +74,6 @@ def _create_and_finalize_bar(
     mp.add_shaper("Sort")
     mp.assert_pipeline_step_count(1)
     mp.finalize_pipeline()
-
-    # Navigate away and back to force a full page rerun
-    # so the render fragment sees processed_data.
-    mp.navigate_to("Data Source")
-    mp.navigate()
 
 
 # Tier 1 — No-Data State

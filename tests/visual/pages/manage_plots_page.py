@@ -961,9 +961,20 @@ class ManagePlotsPage(BasePage):
         Args:
             engine: ``"plotly"`` or ``"matplotlib"``.
         """
+
+        def wait_for_selected_chart() -> None:
+            """Require the selected connector to replace the previous chart."""
+            if engine == "plotly":
+                expect(self.matplotlib_chart).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+                self.assert_chart_visible()
+            else:
+                expect(self.plotly_chart).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+                self.assert_matplotlib_chart_visible()
+
         pill = self.viz_engine_pills.get_by_role("radio", name=engine)
         expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
         if pill.is_checked():
+            wait_for_selected_chart()
             return
         for _ in range(3):
             pill.click()
@@ -972,10 +983,11 @@ class ManagePlotsPage(BasePage):
             except AssertionError:
                 self.page.wait_for_timeout(250)
                 continue
-            self.wait_for_streamlit(timeout=60_000, expect_rerun=True)
+            wait_for_selected_chart()
             expect(pill).to_be_checked(timeout=60_000)
             return
         expect(pill).to_be_checked(timeout=60_000)
+        wait_for_selected_chart()
 
     def select_figure_theme(self, name: str) -> None:
         """Select a built-in figure theme by its human-readable name."""
