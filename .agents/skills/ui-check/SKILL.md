@@ -35,6 +35,9 @@ conventions and runs the right test layers. For *writing* UI tests, use the
   `ThemePresetsSettingsComponent`. Tick marks / tick pad / grid dash belong in Axes; font sizes and
   colors in Typography; Y-axis title standoff and vertical shift in Axes Y-Left.
 - Components are self-contained widgets — no business logic; that belongs in a service behind the facade.
+- Keep conditional feedback in stable containers before keyed chart components. Follow the
+  [browser acceptance guidance](../../../docs/developer-guide/development/testing.md#browser-acceptance)
+  to preserve iframe identity and diagnose native chart failures.
 
 ## Run the tests (no browser → browser)
 ```bash

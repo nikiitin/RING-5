@@ -89,6 +89,12 @@ recovery. A visible control, iframe, success message, or plot name is insufficie
 data correctness. Keep lower-layer unit and integration tests for numerical edge cases and
 cross-component contracts that have no browser interface.
 
+Keep conditional notices and controls in a stable container when a keyed chart follows them.
+[Moving an existing iframe can reset its document](https://developer.chrome.com/blog/movebefore-api)
+while Streamlit retains the parent component's listener. Stable sibling positions preserve that
+connection. Native Plotly timeouts include bounded graph, iframe and connection diagnostics;
+they retain the original failure and exclude source arrays and application session state.
+
 The workflow inventory below describes the assertions in the suite. It does not replace the
 complete acceptance run. Test paths are relative to `tests/e2e/` unless stated otherwise.
 

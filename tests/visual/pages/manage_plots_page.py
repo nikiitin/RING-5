@@ -1024,17 +1024,9 @@ class ManagePlotsPage(BasePage):
         if pill.is_checked():
             wait_for_selected_chart()
             return
-        for _ in range(3):
+        with self.expect_script_rerun():
             pill.click()
-            try:
-                expect(pill).to_be_checked(timeout=10_000)
-            except AssertionError:
-                self.page.wait_for_timeout(250)
-                continue
-            wait_for_selected_chart()
-            expect(pill).to_be_checked(timeout=60_000)
-            return
-        expect(pill).to_be_checked(timeout=60_000)
+        expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
         wait_for_selected_chart()
 
     def select_figure_theme(self, name: str) -> None:

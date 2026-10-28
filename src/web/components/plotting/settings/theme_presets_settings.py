@@ -23,8 +23,11 @@ class ThemePresetsSettingsComponent:
         # [impl->req~ring5.figure.theme-presets~1]
         st.markdown("#### Figure Theme")
         active_name = saved_config.get("figure_theme_name")
+        active_theme_slot = st.empty()
         if active_name:
-            st.info(f"Active theme: {active_name}. Further settings are customizations.")
+            active_theme_slot.info(
+                f"Active theme: {active_name}. Further settings are customizations."
+            )
         themes = FigureThemeService.available_themes()
         by_id = {theme.identifier: theme for theme in themes}
         options = list(by_id)
@@ -47,46 +50,49 @@ class ThemePresetsSettingsComponent:
         )
 
         applied: PlotConfig = {}
-        if st.button(
-            "Apply theme",
-            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.theme.apply_figure_theme"),
-            type="primary",
-        ):
-            UIStateManager().plot.reset_widgets(self.plot_id, "appearance")
-            applied = FigureThemeService.apply(saved_config, theme, self.plot_type)
-            applied["_ring5_request_refresh"] = True
-            st.success(f"Applied {theme.name}. Data mappings and filters were kept.")
+        # Conditional theme feedback must not move the downstream chart iframe.
+        with st.container():
+            if st.button(
+                "Apply theme",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.theme.apply_figure_theme"),
+                type="primary",
+            ):
+                UIStateManager().plot.reset_widgets(self.plot_id, "appearance")
+                applied = FigureThemeService.apply(saved_config, theme, self.plot_type)
+                applied["_ring5_request_refresh"] = True
+                st.success(f"Applied {theme.name}. Data mappings and filters were kept.")
 
         st.info(
             "Customize the applied theme in Layout, Typography, Legends, Axes, and Colors. "
             "Download below captures those appearance settings only."
         )
 
-        st.markdown("#### Import a theme")
-        uploaded = st.file_uploader(
-            "Theme JSON",
-            type=["json"],
-            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.theme.import_figure_theme"),
-            help="Imports one RING-5 figure-theme document up to 256 KiB.",
-        )
-        imported = None
-        if uploaded is not None:
-            try:
-                imported = FigureThemeService.loads(uploaded.getvalue())
-                st.success(f"Imported {imported.name}. Review it before applying.")
-                st.caption(imported.description)
-            except (TypeError, ValueError) as exc:
-                st.error(str(exc))
-        if imported is not None and st.button(
-            "Apply imported theme",
-            key=WidgetKeyBuilder.plot_key(
-                self.plot_id, "widgets.theme.apply_imported_figure_theme"
-            ),
-        ):
-            UIStateManager().plot.reset_widgets(self.plot_id, "appearance")
-            applied = FigureThemeService.apply(saved_config, imported, self.plot_type)
-            applied["_ring5_request_refresh"] = True
-            st.success(f"Applied imported theme {imported.name}.")
+        with st.container():
+            st.markdown("#### Import a theme")
+            uploaded = st.file_uploader(
+                "Theme JSON",
+                type=["json"],
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.theme.import_figure_theme"),
+                help="Imports one RING-5 figure-theme document up to 256 KiB.",
+            )
+            imported = None
+            if uploaded is not None:
+                try:
+                    imported = FigureThemeService.loads(uploaded.getvalue())
+                    st.success(f"Imported {imported.name}. Review it before applying.")
+                    st.caption(imported.description)
+                except (TypeError, ValueError) as exc:
+                    st.error(str(exc))
+            if imported is not None and st.button(
+                "Apply imported theme",
+                key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, "widgets.theme.apply_imported_figure_theme"
+                ),
+            ):
+                UIStateManager().plot.reset_widgets(self.plot_id, "appearance")
+                applied = FigureThemeService.apply(saved_config, imported, self.plot_type)
+                applied["_ring5_request_refresh"] = True
+                st.success(f"Applied imported theme {imported.name}.")
 
         st.markdown("#### Download the current customization")
         export_name = st.text_input(

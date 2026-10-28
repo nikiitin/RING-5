@@ -60,7 +60,11 @@ def test_point_drill_down_returns_exact_clicked_category_and_color(tier2_page: P
         if row["benchmark_name"] == category and row["config_description"] == configuration
     ]
     assert len(expected) == 2
-    point = max(index for index, value in enumerate(first_trace["x"]) if value == category)
+    point = max(
+        (index for index, value in enumerate(first_trace["x"]) if value == category),
+        key=lambda index: first_trace["y"][index],
+    )
+    assert first_trace["y"][point] > 0
     interactions.click_bar_point(trace=0, point=point)
     expect(manager.drill_down_panel).to_be_visible(timeout=E2E_TIMEOUT)
     metric = page.get_by_test_id("stMetric").filter(has_text="Matching rows")

@@ -23,7 +23,7 @@ from playwright.sync_api import (
     expect,
 )
 
-from tests.visual.pages.base_page import BasePage
+from tests.visual.pages.base_page import BasePage, _APP_IDLE
 
 
 class DataSourcePage(BasePage):
@@ -203,6 +203,29 @@ class DataSourcePage(BasePage):
     def config_json_view(self) -> Locator:
         """The JSON configuration preview block."""
         return self.page.locator("[data-testid='stJson']")
+
+    def config_preview_string(self, key: str) -> Locator:
+        """String values belonging to an exact key in the rendered configuration."""
+        key_cell = self.page.locator(".object-key").filter(
+            has_text=re.compile(rf'^"{re.escape(key)}"$')
+        )
+        return (
+            self.config_json_view.locator(".variable-row")
+            .filter(has=key_cell)
+            .locator(".string-value")
+        )
+
+    @staticmethod
+    def _preview_string_text(value: str) -> str:
+        """Match Streamlit's JSON-view string escaping, including literal embedded quotes."""
+        escaped = (
+            value.replace("\\", "\\\\")
+            .replace("\n", "\\n")
+            .replace("\t", "\\t")
+            .replace("\r", "\\r")
+            .replace("\f", "\\f")
+        )
+        return f'"{escaped}"'
 
     # 3e — Parse button (outside fragment)
 
@@ -595,41 +618,49 @@ class DataSourcePage(BasePage):
         """Click the 'Load from Recent' option."""
         self._select_top_level_mode(self.recent_option, self.recent_header)
 
+    def _fill_parser_source_input(self, field: Locator, key: str, value: str) -> None:
+        """Blur one text edit and require its exact backend configuration value."""
+        field.fill(value)
+        field.press("Tab")
+        expect(field).to_have_value(value, timeout=self.RENDER_TIMEOUT)
+        expect(self.config_preview_string(key)).to_have_text(
+            re.compile(rf"^{re.escape(self._preview_string_text(value))}$"),
+            timeout=self.RENDER_TIMEOUT,
+        )
+
     def fill_stats_path(self, path: str) -> None:
-        """Type a value into the stats directory path input."""
-        self.stats_path_input.fill(path)
-        self.stats_path_input.press("Tab")
-        self.wait_for_streamlit()
-        # Extra stabilisation after fragment rerender
-        self.page.wait_for_timeout(500)
+        """Commit the directory path through the parser fragment's own preview."""
+        self._fill_parser_source_input(self.stats_path_input, "statsPath", path)
 
     def fill_stats_pattern(self, pattern: str) -> None:
-        """Type a value into the file pattern input."""
-        self.stats_pattern_input.fill(pattern)
-        self.stats_pattern_input.press("Tab")
-        self.wait_for_streamlit()
-        # Extra stabilisation after fragment rerender
-        self.page.wait_for_timeout(500)
+        """Commit the filename pattern through the parser fragment's own preview."""
+        self._fill_parser_source_input(self.stats_pattern_input, "statsPattern", pattern)
+
+    def _select_parser_strategy(self, option: Locator, strategy: str) -> None:
+        """Commit a fragment strategy through its checked radio and exact preview value."""
+        if not option.is_checked():
+            option.press("Space", timeout=self.RENDER_TIMEOUT)
+        expect(option).to_be_checked(timeout=self.RENDER_TIMEOUT)
+        expect(self.config_preview_string("strategy")).to_have_text(
+            re.compile(rf"^{re.escape(self._preview_string_text(strategy))}$"),
+            timeout=self.RENDER_TIMEOUT,
+        )
 
     def select_simple_strategy(self) -> None:
-        """Select the 'Simple' parsing strategy."""
-        self._select_mode(self.strategy_simple_option)
+        """Select the Simple parsing strategy and await its backend preview."""
+        self._select_parser_strategy(self.strategy_simple_option, "simple")
 
     def ensure_simple_strategy(self) -> None:
-        """Ensure 'Simple' strategy is active without toggling it off.
-
-        Same pattern as ``ensure_parse_mode`` — only clicks if not
-        already active.
-        """
-        self._select_mode(self.strategy_simple_option)
+        """Require Simple without toggling an already selected radio."""
+        self._select_parser_strategy(self.strategy_simple_option, "simple")
 
     def select_config_aware_strategy(self) -> None:
-        """Select the 'Config-Aware' parsing strategy."""
-        self._select_mode(self.strategy_config_aware_option)
+        """Select Config-Aware and await its backend preview."""
+        self._select_parser_strategy(self.strategy_config_aware_option, "config_aware")
 
     def ensure_config_aware_strategy(self) -> None:
-        """Ensure 'Config-Aware' strategy is active without toggling it off."""
-        self._select_mode(self.strategy_config_aware_option)
+        """Require Config-Aware without toggling an already selected radio."""
+        self._select_parser_strategy(self.strategy_config_aware_option, "config_aware")
 
     def toggle_deep_scan(self) -> None:
         """Toggle the 'Deep Scan' checkbox."""
@@ -1037,6 +1068,7 @@ class DataSourcePage(BasePage):
         Args:
             name: Exact scanned-variable name, excluding its displayed type suffix.
         """
+        previous_names = [field.input_value() for field in self.variable_name_inputs.all()]
         self.open_add_variable_dialog()
         expect(self.dialog_search_selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
         control = self.dialog_search_selectbox.get_by_role(
@@ -1063,10 +1095,7 @@ class DataSourcePage(BasePage):
         expect(self.dialog_overlay.get_by_role("textbox", name="Name", exact=True)).to_have_value(
             name, timeout=self.RENDER_TIMEOUT
         )
-        expect(self.dialog_add_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.dialog_add_button.click()
-        expect(self.dialog_overlay).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.wait_for_streamlit()
+        self._publish_dialog_variable(name, previous_names)
 
     def add_manual_variable(self, name: str, var_type: str = "scalar") -> None:
         """Open dialog, enter a manual variable, and add it.
@@ -1078,43 +1107,48 @@ class DataSourcePage(BasePage):
             name: Variable name (e.g. ``system.cpu.ipc``).
             var_type: Explicit source and matching output type for the variable.
         """
+        previous_names = [field.input_value() for field in self.variable_name_inputs.all()]
         self.open_add_variable_dialog()
         self.switch_dialog_to_manual()
         self.fill_dialog_manual_name(name)
 
-        # Manual drafts require a declared raw contract as well as an output type.
         for selectbox in (
             self.dialog_manual_type_selectbox,
             self.dialog_raw_source_type_selectbox,
         ):
-            control = selectbox.get_by_role("combobox")
-            if control.input_value() != var_type:
-                selectbox.get_by_role("button", name="Open", exact=True).click()
-                option = self.page.get_by_role("option", name=var_type, exact=True)
-                expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
-                option.click()
-                self.wait_for_streamlit(expect_rerun=True)
-            expect(control).to_have_value(var_type, timeout=self.RENDER_TIMEOUT)
+            self._open_and_select(selectbox, var_type)
+        self._publish_dialog_variable(name, previous_names)
 
-        # Click "Add to Configuration"
+    def _publish_dialog_variable(self, name: str, previous_names: list[str]) -> None:
+        """Observe a new variable's app publication or the explicit duplicate warning."""
         expect(self.dialog_add_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.dialog_add_button.click()
-
-        # Dialog auto-closes via st.rerun() on success. If this helper is called
-        # twice in the same session, close the duplicate-variable warning.
-        try:
-            expect(self.dialog_overlay).not_to_be_visible(timeout=5_000)
-        except (AssertionError, Exception):
-            # Check if it's the "already exists" warning
-            warning = self.dialog_overlay.locator("[data-testid='stAlertContentWarning']")
-            if warning.count() > 0 and "already exists" in (warning.inner_text() or ""):
-                # Variable already exists in this session.
-                self.close_dialog()
-                expect(self.dialog_overlay).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
-            else:
-                # Unknown error — re-raise
-                raise
-        self.wait_for_streamlit()
+        duplicate = name in previous_names
+        if duplicate:
+            # Duplicate submissions stay in the dialog and do not request an app run.
+            self.dialog_add_button.click()
+            warning = self.dialog_overlay.get_by_test_id("stAlertContentWarning")
+            expect(warning).to_have_text(
+                f"Variable '{name}' already exists.", timeout=self.RENDER_TIMEOUT
+            )
+            self.close_dialog()
+        else:
+            with self.expect_script_rerun():
+                self.dialog_add_button.click()
+        expect(self.dialog_overlay).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(self.variable_name_inputs).to_have_count(
+            len(previous_names) + int(not duplicate), timeout=self.RENDER_TIMEOUT
+        )
+        index = previous_names.index(name) if duplicate else len(previous_names)
+        expect(self.variable_name_inputs.nth(index)).to_have_value(
+            name, timeout=self.RENDER_TIMEOUT
+        )
+        expect(
+            self.config_preview_string("name").filter(
+                has_text=re.compile(rf"^{re.escape(self._preview_string_text(name))}$")
+            )
+        ).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        if not duplicate:
+            self.page.wait_for_function(_APP_IDLE, timeout=self.RENDER_TIMEOUT)
 
     # E2E: Variable editor — verify added variables
 

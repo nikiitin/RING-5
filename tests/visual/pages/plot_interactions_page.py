@@ -59,8 +59,25 @@ class PlotInteractionsPage(BasePage):
         assert (
             bounds is not None and bounds["width"] > 0 and bounds["height"] > 0
         ), "The selected bar must have a visible, nonzero pointer target"
+        edge = bar.evaluate("""path => {
+            const target = path.getBoundingClientRect();
+            const x = target.left + target.width / 2;
+            const lowerEdges = [...path.closest('.barlayer').querySelectorAll('.point path')]
+                .filter(candidate => candidate !== path)
+                .map(candidate => candidate.getBoundingClientRect())
+                .filter(candidate => candidate.width > 0 && candidate.height > 0 &&
+                    candidate.left <= x && x <= candidate.right &&
+                    candidate.top > target.top && candidate.top < target.bottom)
+                .map(candidate => candidate.top - target.top);
+            const exclusiveDepth = Math.min(target.height, ...lowerEdges);
+            return {
+                inset: Math.min(8, target.height / 10, exclusiveDepth / 2),
+                exclusiveDepth,
+            };
+        }""")
         x = bounds["x"] + bounds["width"] / 2
-        y = bounds["y"] + min(8, bounds["height"] / 10)
+        # Repeated categories can leave only a few pixels above the next bar.
+        y = bounds["y"] + edge["inset"]
         # Plotly's transparent drag layer intentionally owns native mouse events.
         self.page.mouse.move(x, y)
         frame.locator("#myDiv").evaluate(
@@ -93,6 +110,7 @@ class PlotInteractionsPage(BasePage):
                             hoverCount: points?.length ?? 0,
                             hovered: Array.isArray(points) ? points.slice(0, 4).map(describe) : [],
                             pointer: {x: expected.x, y: expected.y},
+                            valueEdge: expected.edge,
                         };
                         return reject(new Error(
                             'Native bar hover did not identify the requested point: ' +
@@ -102,7 +120,14 @@ class PlotInteractionsPage(BasePage):
                 };
                 check();
             })""",
-            {"trace": trace, "point": point, "timeout": self.RENDER_TIMEOUT, "x": x, "y": y},
+            {
+                "trace": trace,
+                "point": point,
+                "timeout": self.RENDER_TIMEOUT,
+                "x": x,
+                "y": y,
+                "edge": edge,
+            },
         )
         self.page.mouse.click(x, y)
         self.wait_for_streamlit(expect_rerun=True)
