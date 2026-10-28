@@ -235,6 +235,7 @@ configuration performance.
 
 The recipe declares its source, parameters, transformations, plot, and export explicitly:
 
+{% raw %}
 ```python
 import ring5
 
@@ -278,6 +279,7 @@ with ring5.Session() as session:
 for case in batch.cases:
     print(case.case_id, case.successful, case.error)
 ```
+{% endraw %}
 
 A matrix is limited to 256 Cartesian cases and 8 concurrent workers. Each case runs in an isolated
 session, but the returned cases always follow expansion order. File exports are redirected beneath

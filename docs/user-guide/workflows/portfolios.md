@@ -383,6 +383,7 @@ Python can construct recipes with shared transformations and arbitrary typed par
 run recipes captured by the web application. For this example, `results/candidate.csv` must contain
 `benchmark` and numeric `ipc` columns:
 
+{% raw %}
 ```python
 import ring5
 
@@ -418,6 +419,7 @@ with ring5.Session() as session:
     )
     print(result.exported_paths)
 ```
+{% endraw %}
 
 Parameter types are `string`, `integer`, `number`, `boolean`, and `path`. A placeholder occupying a
 whole value preserves its declared type; a placeholder embedded in text is formatted as text.
