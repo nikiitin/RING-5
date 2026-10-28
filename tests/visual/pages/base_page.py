@@ -17,6 +17,12 @@ import time
 
 from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
+_APP_IDLE = """() => {
+    const app = document.querySelector('[data-testid="stApp"]');
+    return app?.getAttribute('data-test-script-state') === 'notRunning' &&
+        app.getAttribute('data-test-connection-state') === 'CONNECTED';
+}"""
+
 
 class BasePage:
     """Common functionality shared by all page objects."""
@@ -79,13 +85,54 @@ class BasePage:
         )
 
     def reset_all(self) -> None:
-        """Click the sidebar 'Reset All' button to clear all app state.
+        """Wait for the reset's replacement Data Source projection to finish rendering."""
+        deadline = time.monotonic() + self.RENDER_TIMEOUT / 1000
 
-        Drives ``api.reset_session()`` to clear the current browser session's
-        plots, data, and configuration.
-        """
-        with self.expect_script_rerun():
-            self.sidebar.get_by_role("button", name="Reset All").click()
+        def remaining() -> int:
+            milliseconds = int((deadline - time.monotonic()) * 1000)
+            assert milliseconds > 0, "Workspace reset exceeded the render budget"
+            return milliseconds
+
+        source_mode = self.page.get_by_role(
+            "radiogroup", name="Select your data source:", exact=True
+        )
+        projection = self.page.get_by_test_id("stElementContainer").filter(has=source_mode)
+        previous_identity = None
+        count = projection.count()
+        assert count in {0, 1}, "Expected at most one current Data Source projection"
+        if count:
+            classes = projection.get_attribute("class", timeout=remaining()) or ""
+            identities = [
+                token for token in classes.split() if token.startswith("st-key-data_source_choice")
+            ]
+            assert len(identities) == 1, "The source mode must expose its owned widget identity"
+            previous_identity = identities[0]
+
+        with self.expect_script_rerun(timeout=remaining()):
+            self.sidebar.get_by_role("button", name="Reset All", exact=True).click(
+                timeout=remaining()
+            )
+        # Reset retires the mode's widget key and requests a second app render.
+        expect(projection).to_have_count(1, timeout=remaining())
+        if previous_identity is not None:
+            expect(projection).not_to_have_class(
+                re.compile(rf"(?:^|\s){re.escape(previous_identity)}(?:\s|$)"),
+                timeout=remaining(),
+            )
+        expect(
+            self.sidebar.get_by_role("button", name="Data Source", exact=True)
+        ).to_have_attribute("data-testid", "stBaseButton-primary", timeout=remaining())
+        expect(
+            source_mode.get_by_role("radio", name="Parse gem5 Stats Files", exact=True)
+        ).to_be_checked(timeout=remaining())
+        expect(
+            self.page.get_by_role("textbox", name="Stats directory path", exact=True)
+        ).to_have_value("/path/to/stats", timeout=remaining())
+        rows = self.page.get_by_test_id("stMetric").filter(
+            has=self.page.get_by_text("Rows", exact=True)
+        )
+        expect(rows).to_have_count(0, timeout=remaining())
+        self.page.wait_for_function(_APP_IDLE, timeout=remaining())
 
     def _owned_listbox(
         self, control: Locator, *, timeout: int | None = None
@@ -204,14 +251,9 @@ class BasePage:
             assert milliseconds > 0, "Streamlit script completion exceeded the render budget"
             return milliseconds
 
-        idle = """() => {
-            const app = document.querySelector('[data-testid="stApp"]');
-            return app?.getAttribute('data-test-script-state') === 'notRunning' &&
-                app.getAttribute('data-test-connection-state') === 'CONNECTED';
-        }"""
         generation: int | None = None
         while generation is None:
-            self.page.wait_for_function(idle, timeout=remaining())
+            self.page.wait_for_function(_APP_IDLE, timeout=remaining())
             generation = self.page.evaluate("""async () => {
                 const key = '__ring5BrowserScriptCompletions';
                 if (!window[key]) {

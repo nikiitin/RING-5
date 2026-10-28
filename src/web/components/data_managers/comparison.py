@@ -306,6 +306,7 @@ class ComparisonManager(DataManager):
             file_name="ring5-comparison.csv",
             mime="text/csv",
             key=WidgetKeyBuilder.manager_key("comparison", "download"),
+            on_click="ignore",
         )
         if "outcome" in preview:
             # [impl->req~ring5.automation.machine-readable-regression~1]
@@ -317,6 +318,7 @@ class ComparisonManager(DataManager):
                     file_name="ring5-regression-results.json",
                     mime="application/json",
                     key=WidgetKeyBuilder.manager_key("comparison", "download_json"),
+                    on_click="ignore",
                 )
             with export_columns[1]:
                 st.download_button(
@@ -325,6 +327,7 @@ class ComparisonManager(DataManager):
                     file_name="ring5-regression-results.xml",
                     mime="application/xml",
                     key=WidgetKeyBuilder.manager_key("comparison", "download_junit"),
+                    on_click="ignore",
                 )
         if st.button(
             "Use Comparison Result",

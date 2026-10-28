@@ -285,9 +285,10 @@ class DataManagersPage(BasePage):
         self.wait_for_streamlit()
 
     def confirm_seeds_reducer(self) -> None:
-        """Click 'Confirm and Apply Seeds Reducer' and wait."""
-        self.seeds_confirm_button.click()
-        self.wait_for_streamlit()
+        """Publish the preview and await its consumed confirmation after app refresh."""
+        with self.expect_script_rerun():
+            self.seeds_confirm_button.click()
+        expect(self.seeds_confirm_button).to_have_count(0, timeout=self.RENDER_TIMEOUT)
 
     # E2E: Outlier Remover
 
@@ -327,9 +328,10 @@ class DataManagersPage(BasePage):
         self.wait_for_streamlit()
 
     def confirm_outlier_remover(self) -> None:
-        """Click 'Confirm and Apply Outlier Remover' and wait."""
-        self.outlier_confirm_button.click()
-        self.wait_for_streamlit()
+        """Publish the preview and await its consumed confirmation after app refresh."""
+        with self.expect_script_rerun():
+            self.outlier_confirm_button.click()
+        expect(self.outlier_confirm_button).to_have_count(0, timeout=self.RENDER_TIMEOUT)
 
     # E2E: Preprocessor
 
@@ -374,9 +376,10 @@ class DataManagersPage(BasePage):
         self.wait_for_streamlit(expect_rerun=True)
 
     def confirm_preprocessor(self) -> None:
-        """Click 'Confirm and Add Column to Dataset' and wait."""
-        self.preproc_confirm_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        """Publish the preview and await its consumed confirmation after app refresh."""
+        with self.expect_script_rerun():
+            self.preproc_confirm_button.click()
+        expect(self.preproc_confirm_button).to_have_count(0, timeout=self.RENDER_TIMEOUT)
 
     # E2E: Mixer
 
@@ -429,9 +432,10 @@ class DataManagersPage(BasePage):
         self.wait_for_streamlit()
 
     def confirm_mixer(self) -> None:
-        """Click 'Confirm and Merge' and wait."""
-        self.mixer_confirm_button.click()
-        self.wait_for_streamlit()
+        """Publish the preview and await its consumed confirmation after app refresh."""
+        with self.expect_script_rerun():
+            self.mixer_confirm_button.click()
+        expect(self.mixer_confirm_button).to_have_count(0, timeout=self.RENDER_TIMEOUT)
 
     # E2E: Baseline comparison
 

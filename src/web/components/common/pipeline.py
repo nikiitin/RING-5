@@ -86,6 +86,7 @@ class PipelineComponent:
                     file_name=PipelineComponent._download_name(export_name),
                     mime="application/json",
                     key=WidgetKeyBuilder.plot_key(plot_id, "widgets.pipeline_export"),
+                    on_click="ignore",
                 )
             except (TypeError, ValueError) as exc:
                 st.info(f"Complete the pipeline before exporting it: {exc}")

@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import plotly.graph_objects as go
+from matplotlib.figure import Figure
 
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.visualization.linked_selection_spec import LinkedSelectionSpec
@@ -68,6 +69,34 @@ def test_composer_builds_previews_and_exports_selected_panels(
     mock_render_dashboard.assert_called_once_with([first, second], spec, engine="plotly")
     mock_st.plotly_chart.assert_called_once()
     mock_st.download_button.assert_called_once()
+    assert mock_st.download_button.call_args.kwargs["on_click"] == "ignore"
+
+
+@patch(f"{_MODULE}.matplotlib_download_bytes", return_value=b"%PDF-dashboard")
+@patch(f"{_MODULE}.st")
+def test_matplotlib_dashboard_download_preserves_the_prepared_result(
+    mock_st: MagicMock, mock_export: MagicMock
+) -> None:
+    """Fetching an owned export does not rerun its composer or rebuild its figure."""
+    figure = Figure()
+    spec = DashboardSpec(
+        plot_ids=(1, 2), rows=1, columns=2, panel_titles=("First", "Second"), title="Two panels"
+    )
+    mock_st.pills.return_value = "pdf"
+
+    DashboardComposer._render_export(figure, spec)
+
+    mock_export.assert_called_once_with(figure, "pdf")
+    mock_st.download_button.assert_called_once_with(
+        "Download complete PDF",
+        data=b"%PDF-dashboard",
+        file_name="Two panels.pdf",
+        mime="application/pdf",
+        width="stretch",
+        key="dashboard.composer.matplotlib_download",
+        on_click="ignore",
+    )
+    mock_st.rerun.assert_not_called()
 
 
 @patch(f"{_MODULE}.plotly_download_bytes", return_value=b"<html></html>")

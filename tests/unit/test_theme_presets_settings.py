@@ -40,6 +40,7 @@ def test_apply_dark_theme_refreshes_and_clears_only_stale_appearance_widgets(
     assert mock_st.session_state["plot.8.widgets.appearance.theme_title_sz"] == 99
     assert mock_st.session_state["plot.7.widgets.x"] == "phase"
     mock_st.download_button.assert_called_once()
+    assert mock_st.download_button.call_args.kwargs["on_click"] == "ignore"
 
 
 @patch("src.web.state.ui_state_manager.st")

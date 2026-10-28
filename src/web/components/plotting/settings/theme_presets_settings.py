@@ -114,6 +114,7 @@ class ThemePresetsSettingsComponent:
                 file_name=f"{exported_theme.identifier}.ring5-theme.json",
                 mime="application/json",
                 key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.theme.export_figure_theme"),
+                on_click="ignore",
             )
         except (TypeError, ValueError) as exc:
             st.error(str(exc))

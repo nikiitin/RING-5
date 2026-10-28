@@ -100,6 +100,134 @@ def test_navigation_rejects_an_app_completion_without_the_target_route() -> None
     page.wait_for_timeout.assert_not_called()
 
 
+@pytest.mark.parametrize("source_was_visible", [False, True])
+def test_reset_waits_for_its_fresh_default_projection_before_returning(
+    source_was_visible: bool,
+) -> None:
+    """A first completed run cannot release actions against retiring mode widgets."""
+    _exercise_owned_reset_completion(source_was_visible=source_was_visible)
+
+
+@pytest.mark.parametrize("failure_at", ["generation", "mode", "idle"])
+def test_reset_completion_failure_propagates_without_repeating_reset(failure_at: str) -> None:
+    """Retained defaults or a completed first cycle cannot replace the owned result."""
+    _exercise_owned_reset_completion(source_was_visible=True, failure_at=failure_at)
+
+
+def _exercise_owned_reset_completion(
+    *, source_was_visible: bool, failure_at: str | None = None
+) -> None:
+    page = MagicMock()
+    base = BasePage(page)
+    sidebar = page.locator.return_value
+    reset_button = MagicMock()
+    source_button = MagicMock()
+    source_mode = MagicMock()
+    parse_radio = source_mode.get_by_role.return_value
+    projection = MagicMock()
+    path_input = MagicMock()
+    rows = MagicMock()
+    events: list[str] = []
+    cycle = MagicMock()
+    previous = "st-key-data_source_choice-__reset_4"
+    projection.count.return_value = int(source_was_visible)
+    projection.get_attribute.side_effect = lambda *_args, **_kwargs: (
+        events.append("captured old identity") or f"stElementContainer {previous} layout"
+    )
+    page.get_by_test_id.side_effect = lambda name: {
+        "stElementContainer": MagicMock(filter=MagicMock(return_value=projection)),
+        "stMetric": MagicMock(filter=MagicMock(return_value=rows)),
+    }[name]
+    page.get_by_role.side_effect = lambda role, **kwargs: {
+        ("radiogroup", "Select your data source:"): source_mode,
+        ("textbox", "Stats directory path"): path_input,
+    }[(role, kwargs["name"])]
+    sidebar.get_by_role.side_effect = lambda role, **kwargs: {
+        "Reset All": reset_button,
+        "Data Source": source_button,
+    }[kwargs["name"]]
+    cycle.__enter__.side_effect = lambda: events.append("armed")
+    cycle.__exit__.side_effect = lambda *_args: events.append("first cycle completed")
+    reset_button.click.side_effect = lambda **_kwargs: events.append("reset clicked")
+    failure = PlaywrightTimeoutError(f"Reset did not publish {failure_at}")
+
+    def complete(stage: str) -> None:
+        assert "first cycle completed" in events
+        if stage == failure_at:
+            raise failure
+        events.append(stage)
+
+    projection_expectation = MagicMock()
+    projection_expectation.to_have_count.side_effect = lambda *_args, **_kwargs: complete(
+        "fresh projection exists"
+    )
+
+    def retire_old_identity(pattern: re.Pattern[str], **_kwargs: object) -> None:
+        assert pattern.search(f"stElementContainer {previous} layout")
+        complete("generation")
+
+    projection_expectation.not_to_have_class.side_effect = retire_old_identity
+    source_expectation = MagicMock()
+    source_expectation.to_have_attribute.side_effect = lambda *_args, **_kwargs: complete("route")
+    mode_expectation = MagicMock()
+
+    def default_mode(**_kwargs: object) -> None:
+        assert "fresh projection exists" in events
+        assert not source_was_visible or "generation" in events
+        complete("mode")
+
+    mode_expectation.to_be_checked.side_effect = default_mode
+    path_expectation = MagicMock()
+    path_expectation.to_have_value.side_effect = lambda *_args, **_kwargs: complete("parser body")
+    rows_expectation = MagicMock()
+    rows_expectation.to_have_count.side_effect = lambda *_args, **_kwargs: complete("no rows")
+
+    def idle(expression: str, *, timeout: int) -> None:
+        assert events[-1] == "no rows"
+        assert "data-test-script-state" in expression and "CONNECTED" in expression
+        assert timeout == BasePage.RENDER_TIMEOUT
+        complete("idle")
+
+    page.wait_for_function.side_effect = idle
+    expectations = {
+        projection: projection_expectation,
+        source_button: source_expectation,
+        parse_radio: mode_expectation,
+        path_input: path_expectation,
+        rows: rows_expectation,
+    }
+    with (
+        patch.object(base, "expect_script_rerun", return_value=cycle) as observe,
+        patch("tests.visual.pages.base_page.time") as clock,
+        patch("tests.visual.pages.base_page.expect", side_effect=expectations.__getitem__),
+    ):
+        clock.monotonic.return_value = 100.0
+        if failure_at is None:
+            base.reset_all()
+        else:
+            with pytest.raises(PlaywrightTimeoutError) as caught:
+                base.reset_all()
+            assert caught.value is failure
+
+    expected = ["captured old identity"] if source_was_visible else []
+    expected += ["armed", "reset clicked", "first cycle completed", "fresh projection exists"]
+    if source_was_visible:
+        expected.append("generation")
+    expected += ["route", "mode", "parser body", "no rows", "idle"]
+    if failure_at is not None:
+        expected = expected[: expected.index(failure_at)]
+    assert events == expected
+    observe.assert_called_once_with(timeout=BasePage.RENDER_TIMEOUT)
+    reset_button.click.assert_called_once_with(timeout=BasePage.RENDER_TIMEOUT)
+    if not source_was_visible:
+        projection.get_attribute.assert_not_called()
+        projection_expectation.not_to_have_class.assert_not_called()
+    if failure_at != "idle":
+        assert page.wait_for_function.call_count == int(failure_at is None)
+    page.wait_for_timeout.assert_not_called()
+    source_button.click.assert_not_called()
+
+
 @pytest.mark.parametrize("in_dialog", [False, True])
 def test_segmented_control_selection_waits_for_its_own_lifecycle(in_dialog: bool) -> None:
     """Keyboard activation survives headers; dialog updates do not need an app cycle."""
