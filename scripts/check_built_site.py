@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit generated documentation routes and local HTML references."""
+"""Audit generated documentation routes, code parameters, and local references."""
 
 from __future__ import annotations
 
@@ -134,7 +134,7 @@ def _reference_candidates(page: Path, reference: str, site_root: Path) -> Iterat
 
 
 def collect_failures(site_root: Path = SITE_ROOT, docs_root: Path = DOCS_ROOT) -> list[str]:
-    """Return missing generated routes and broken local-reference failures."""
+    """Return missing routes, lost code parameters, and broken local references."""
     failures: list[str] = []
     html_files = generated_html(site_root)
     if not html_files:
@@ -143,12 +143,12 @@ def collect_failures(site_root: Path = SITE_ROOT, docs_root: Path = DOCS_ROOT) -
     pages, page_failures = load_pages(docs_root)
     failures.extend(page_failures)
     expected_placeholders: dict[Path, Counter[str]] = {}
-    for page in pages:
-        output = route_output(site_root, page.route)
+    for source_page in pages:
+        output = route_output(site_root, source_page.route)
         if not output.is_file():
-            failures.append(f"{page.path}: generated route {page.route!r} is missing")
+            failures.append(f"{source_page.path}: generated route {source_page.route!r} is missing")
         else:
-            source = (docs_root / page.path).read_text(encoding="utf-8")
+            source = (docs_root / source_page.path).read_text(encoding="utf-8")
             expected_placeholders[output] = _placeholder_counts(_fenced_code_blocks(source))
 
     for page in html_files:
