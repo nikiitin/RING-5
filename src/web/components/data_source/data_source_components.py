@@ -16,7 +16,7 @@ from typing import Any, cast
 import pandas as pd
 import streamlit as st
 
-from src.web.state.ui_state_manager import UIStateManager
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
 
 from src.core.application_api import ApplicationAPI
 from src.core.common.security_limits import (
@@ -66,7 +66,7 @@ class DataSourceComponents:
             "Source location",
             options=["This computer", "Remote source"],
             default="This computer",
-            key="data_source.upload_origin",
+            key=WidgetKeyBuilder.data_source_key("data_source.upload_origin"),
         )
         if origin == "Remote source":
             DataSourceComponents.render_remote_source(api)
@@ -84,17 +84,19 @@ class DataSourceComponents:
                 "Use an explicit choice when JSON could be records or a portfolio, "
                 "or when selecting a portable bundle."
             ),
-            key="data_source.browser_upload_interpretation",
+            key=WidgetKeyBuilder.data_source_key("data_source.browser_upload_interpretation"),
         )
         uploaded = st.file_uploader(
             "Choose CSV, JSON, Excel, RING-5 portfolio, or portable bundle",
-            type=["csv", "json", "xlsx", "ring5-bundle"],
+            # Browser extension filters reject the hyphenated bundle extension.
+            # The facade validates every filename, media type, and payload.
+            type=None,
             max_upload_size=MAX_BROWSER_UPLOAD_BYTES // (1024 * 1024),
             help=(
                 "CSV and tabular JSON/Excel files enter the normal import review. "
                 "Modern .xlsx workbooks use their first visible sheet."
             ),
-            key="data_source.browser_upload",
+            key=WidgetKeyBuilder.data_source_key("data_source.browser_upload"),
         )
         if uploaded is None:
             st.info(
@@ -133,11 +135,14 @@ class DataSourceComponents:
         adapter = st.selectbox(
             "Remote adapter",
             options=["HTTPS", "SSH", "S3-compatible"],
-            key="data_source.remote_adapter",
+            key=WidgetKeyBuilder.data_source_key("data_source.remote_adapter"),
         )
-        with st.form("data_source.remote_form", clear_on_submit=True):
+        with st.form(
+            WidgetKeyBuilder.data_source_key("data_source.remote_form"), clear_on_submit=True
+        ):
             file_name = st.text_input(
                 "Downloaded filename override (optional)",
+                key=WidgetKeyBuilder.data_source_key("data_source.remote.file_name"),
                 help=(
                     "Use when the remote URL or object key does not end in .csv, .json, "
                     ".xlsx, or .ring5-bundle."
@@ -145,20 +150,44 @@ class DataSourceComponents:
             )
             source: RemoteSource
             if adapter == "HTTPS":
-                url = st.text_input("HTTPS URL")
-                bearer_token = st.text_input("Bearer token (optional)", type="password")
+                url = st.text_input(
+                    "HTTPS URL",
+                    key=WidgetKeyBuilder.data_source_key("data_source.remote.https_url"),
+                )
+                bearer_token = st.text_input(
+                    "Bearer token (optional)",
+                    type="password",
+                    key=WidgetKeyBuilder.data_source_key("data_source.remote.bearer_token"),
+                )
                 source = HttpSource(
                     url=url,
                     file_name=file_name.strip() or None,
                     bearer_token=bearer_token or None,
                 )
             elif adapter == "SSH":
-                host = st.text_input("SSH host")
-                username = st.text_input("SSH username (optional)")
-                port = int(st.number_input("SSH port", min_value=1, max_value=65_535, value=22))
-                remote_path = st.text_input("Absolute remote file path")
+                host = st.text_input(
+                    "SSH host", key=WidgetKeyBuilder.data_source_key("data_source.remote.ssh_host")
+                )
+                username = st.text_input(
+                    "SSH username (optional)",
+                    key=WidgetKeyBuilder.data_source_key("data_source.remote.ssh_username"),
+                )
+                port = int(
+                    st.number_input(
+                        "SSH port",
+                        min_value=1,
+                        max_value=65_535,
+                        value=22,
+                        key=WidgetKeyBuilder.data_source_key("data_source.remote.ssh_port"),
+                    )
+                )
+                remote_path = st.text_input(
+                    "Absolute remote file path",
+                    key=WidgetKeyBuilder.data_source_key("data_source.remote.ssh_path"),
+                )
                 identity_file = st.text_input(
                     "Server-side identity file (optional)",
+                    key=WidgetKeyBuilder.data_source_key("data_source.remote.ssh_identity"),
                     help="Leave empty to use the server process's SSH agent and configuration.",
                 )
                 source = SshSource(
@@ -170,13 +199,36 @@ class DataSourceComponents:
                     file_name=file_name.strip() or None,
                 )
             else:
-                endpoint = st.text_input("S3-compatible HTTPS endpoint")
-                bucket = st.text_input("Bucket")
-                key = st.text_input("Object key")
-                region = st.text_input("Region", value="us-east-1")
-                access_key = st.text_input("Access key (optional)", type="password")
-                secret_key = st.text_input("Secret key (optional)", type="password")
-                session_token = st.text_input("Session token (optional)", type="password")
+                endpoint = st.text_input(
+                    "S3-compatible HTTPS endpoint",
+                    key=WidgetKeyBuilder.data_source_key("data_source.remote.s3_endpoint"),
+                )
+                bucket = st.text_input(
+                    "Bucket", key=WidgetKeyBuilder.data_source_key("data_source.remote.s3_bucket")
+                )
+                key = st.text_input(
+                    "Object key", key=WidgetKeyBuilder.data_source_key("data_source.remote.s3_key")
+                )
+                region = st.text_input(
+                    "Region",
+                    value="us-east-1",
+                    key=WidgetKeyBuilder.data_source_key("data_source.remote.s3_region"),
+                )
+                access_key = st.text_input(
+                    "Access key (optional)",
+                    type="password",
+                    key=WidgetKeyBuilder.data_source_key("data_source.remote.s3_access_key"),
+                )
+                secret_key = st.text_input(
+                    "Secret key (optional)",
+                    type="password",
+                    key=WidgetKeyBuilder.data_source_key("data_source.remote.s3_secret_key"),
+                )
+                session_token = st.text_input(
+                    "Session token (optional)",
+                    type="password",
+                    key=WidgetKeyBuilder.data_source_key("data_source.remote.s3_session_token"),
+                )
                 source = S3Source(
                     endpoint=endpoint,
                     bucket=bucket,
@@ -256,7 +308,9 @@ class DataSourceComponents:
                     st.text_input(
                         "Bundle portfolio signing secret",
                         type="password",
-                        key=f"data_source.bundle_secret.{inspection.source_sha256}",
+                        key=WidgetKeyBuilder.data_source_key(
+                            f"data_source.bundle_secret.{inspection.source_sha256}"
+                        ),
                         help="Used only for this restore; the secret is not stored.",
                     )
                     or None
@@ -270,7 +324,9 @@ class DataSourceComponents:
                 ":material/package_2: Restore portable bundle",
                 type="primary",
                 width="stretch",
-                key=f"data_source.restore_bundle.{inspection.source_sha256}",
+                key=WidgetKeyBuilder.data_source_key(
+                    f"data_source.restore_bundle.{inspection.source_sha256}"
+                ),
                 disabled=require_signature and bundle_signing_key is None,
             ):
                 try:
@@ -321,7 +377,9 @@ class DataSourceComponents:
                     st.text_input(
                         "Portfolio signing secret",
                         type="password",
-                        key=f"data_source.portfolio_secret.{inspection.source_sha256}",
+                        key=WidgetKeyBuilder.data_source_key(
+                            f"data_source.portfolio_secret.{inspection.source_sha256}"
+                        ),
                         help="Used only for this restore; the secret is not stored.",
                     )
                     or None
@@ -334,7 +392,9 @@ class DataSourceComponents:
                 ":material/settings_backup_restore: Restore uploaded portfolio",
                 type="primary",
                 width="stretch",
-                key=f"data_source.restore_upload.{inspection.source_sha256}",
+                key=WidgetKeyBuilder.data_source_key(
+                    f"data_source.restore_upload.{inspection.source_sha256}"
+                ),
                 disabled=require_signature and portfolio_signing_key is None,
             ):
                 try:
@@ -451,13 +511,13 @@ class DataSourceComponents:
             encoding_label = st.selectbox(
                 "Text encoding",
                 options=list(encoding_labels),
-                key="data_source.import_encoding",
+                key=WidgetKeyBuilder.data_source_key("data_source.import_encoding"),
             )
         with delimiter_col:
             delimiter_label = st.selectbox(
                 "Delimiter",
                 options=list(delimiter_labels),
-                key="data_source.import_delimiter",
+                key=WidgetKeyBuilder.data_source_key("data_source.import_delimiter"),
             )
         with header_col:
             header_row = int(
@@ -466,18 +526,18 @@ class DataSourceComponents:
                     min_value=1,
                     max_value=100,
                     value=1,
-                    key="data_source.import_header_row",
+                    key=WidgetKeyBuilder.data_source_key("data_source.import_header_row"),
                 )
             )
         trim_whitespace = st.checkbox(
             "Trim surrounding whitespace",
             value=True,
-            key="data_source.import_trim",
+            key=WidgetKeyBuilder.data_source_key("data_source.import_trim"),
         )
         missing_text = st.text_input(
             "Missing-value tokens (comma-separated)",
             value=",NA,N/A,null,None",
-            key="data_source.import_null_values",
+            key=WidgetKeyBuilder.data_source_key("data_source.import_null_values"),
         )
         preview_rows = int(
             st.number_input(
@@ -485,7 +545,7 @@ class DataSourceComponents:
                 min_value=1,
                 max_value=500,
                 value=50,
-                key="data_source.import_preview_rows",
+                key=WidgetKeyBuilder.data_source_key("data_source.import_preview_rows"),
             )
         )
         null_values = tuple(value.strip() for value in missing_text.split(","))
@@ -519,7 +579,9 @@ class DataSourceComponents:
                         required=True,
                     )
                 },
-                key=f"data_source.import_types.{base_preview.source_sha256}",
+                key=WidgetKeyBuilder.data_source_key(
+                    f"data_source.import_types.{base_preview.source_sha256}"
+                ),
             )
             corrections = tuple(
                 ImportColumnCorrection(
@@ -603,7 +665,7 @@ class DataSourceComponents:
                 type="primary",
                 disabled=preview.accepted_row_count == 0,
                 width="stretch",
-                key="data_source.import_load",
+                key=WidgetKeyBuilder.data_source_key("data_source.import_load"),
             ):
                 try:
                     data = api.load_import_preview(preview)
@@ -617,7 +679,7 @@ class DataSourceComponents:
             if st.button(
                 "Close review",
                 width="stretch",
-                key="data_source.import_close",
+                key=WidgetKeyBuilder.data_source_key("data_source.import_close"),
             ):
                 st.session_state.pop(_IMPORT_PREVIEW_PATH_KEY, None)
                 st.rerun()
@@ -646,7 +708,7 @@ class DataSourceComponents:
             format_func=lambda x: sim_display.get(x, str(x)),
             selection_mode="single",
             default=selected_sim if selected_sim in sim_names else sim_names[0],
-            key="simulator_selector",
+            key=WidgetKeyBuilder.data_source_key("simulator_selector"),
         )
         if chosen and chosen != selected_sim:
             api.state_manager.set_simulator(chosen)
@@ -664,7 +726,7 @@ class DataSourceComponents:
                 "rows whose source files were deleted. The cache stays in this browser session "
                 "and is invalidated when parser settings change."
             ),
-            key="parser_incremental_enabled",
+            key=WidgetKeyBuilder.data_source_key("parser_incremental_enabled"),
         )
 
         # The entire parser config section (file inputs, strategy radio,
@@ -686,7 +748,7 @@ class DataSourceComponents:
                         f"Directory containing {sim_label} stats files "
                         "(can include subdirectories)"
                     ),
-                    key="stats_path_input",
+                    key=WidgetKeyBuilder.data_source_key("stats_path_input"),
                 )
                 if stats_path != current_path:
                     api.state_manager.set_stats_path(stats_path)
@@ -697,7 +759,7 @@ class DataSourceComponents:
                     "File pattern",
                     value=current_pattern,
                     help="Filename pattern to search for (e.g., stats.txt, *.txt)",
-                    key="stats_pattern_input",
+                    key=WidgetKeyBuilder.data_source_key("stats_pattern_input"),
                 )
                 if stats_pattern != current_pattern:
                     api.state_manager.set_stats_pattern(stats_pattern)
@@ -719,7 +781,7 @@ class DataSourceComponents:
                 format_func=lambda x: strategy_options[x],
                 default=current_strategy,
                 help=strategy_help.get(current_strategy, ""),
-                key="parser_strategy_selector",
+                key=WidgetKeyBuilder.data_source_key("parser_strategy_selector"),
             )
 
             if selected_strategy and selected_strategy != current_strategy:
@@ -740,6 +802,7 @@ class DataSourceComponents:
             with col_scan1:
                 deep_scan = st.checkbox(
                     f"Deep Scan (up to {MAX_SCAN_FILES} files)",
+                    key=WidgetKeyBuilder.data_source_key("data_source.deep_scan"),
                     help="Scan a bounded sample of files for variables (slower)",
                 )
                 if st.button("🔍 Quick Scan", help="Scan files to auto-discover variables"):
@@ -857,7 +920,7 @@ class DataSourceComponents:
                 ":material/science: Test configuration",
                 help="Run the real parser on up to three matching files without loading data.",
                 width="stretch",
-                key="parser_test_configuration",
+                key=WidgetKeyBuilder.data_source_key("parser_test_configuration"),
                 disabled=visible_job is not None and visible_job.status.is_active,
             )
         with parse_col:
@@ -875,10 +938,12 @@ class DataSourceComponents:
 
         if test_configuration:
             _stats_path = st.session_state.get(
-                "stats_path_input", api.state_manager.get_stats_path()
+                WidgetKeyBuilder.data_source_key("stats_path_input"),
+                api.state_manager.get_stats_path(),
             )
             _stats_pattern = st.session_state.get(
-                "stats_pattern_input", api.state_manager.get_stats_pattern()
+                WidgetKeyBuilder.data_source_key("stats_pattern_input"),
+                api.state_manager.get_stats_pattern(),
             )
             if not _stats_path:
                 st.error("Please specify a stats directory path.")
@@ -905,17 +970,23 @@ class DataSourceComponents:
 
         if parse_configuration:
             _stats_path = st.session_state.get(
-                "stats_path_input", api.state_manager.get_stats_path()
+                WidgetKeyBuilder.data_source_key("stats_path_input"),
+                api.state_manager.get_stats_path(),
             )
             _stats_pattern = st.session_state.get(
-                "stats_pattern_input", api.state_manager.get_stats_pattern()
+                WidgetKeyBuilder.data_source_key("stats_pattern_input"),
+                api.state_manager.get_stats_pattern(),
             )
             if not _stats_path:
                 st.error("Please specify a stats directory path.")
             else:
                 try:
                     safe_stats_path = str(validate_web_stats_path(str(_stats_path)))
-                    incremental = bool(st.session_state.get("parser_incremental_enabled", True))
+                    incremental = bool(
+                        st.session_state.get(
+                            WidgetKeyBuilder.data_source_key("parser_incremental_enabled"), True
+                        )
+                    )
                     snapshot = api.submit_parse_job(
                         safe_stats_path,
                         str(_stats_pattern),
@@ -1017,6 +1088,7 @@ class DataSourceComponents:
             ["Search Scanned Variables", "Manual Entry"],
             default="Search Scanned Variables",
             label_visibility="collapsed",
+            key=WidgetKeyBuilder.data_source_key("data_source.variable_addition_method"),
         )
 
         name = ""
@@ -1044,7 +1116,7 @@ class DataSourceComponents:
                 selected_label = filtered_selectbox(
                     "Search by name...",
                     str_options,
-                    key="dialog_select_var_idx",
+                    key=WidgetKeyBuilder.data_source_key("dialog_select_var_idx"),
                     placeholder="Type to search...",
                 )
                 idx = str_options.index(selected_label) if selected_label else None
@@ -1056,11 +1128,15 @@ class DataSourceComponents:
 
         else:  # Manual Entry
             st.markdown("##### Variable Details")
-            manual_name = st.text_input("Variable Name", key="dialog_manual_name")
+            manual_name = st.text_input(
+                "Variable Name", key=WidgetKeyBuilder.data_source_key("dialog_manual_name")
+            )
             if manual_name:
                 name = manual_name
             type_options = ["scalar", "vector", "distribution", "histogram", "configuration"]
-            var_type = st.selectbox("Type", type_options, key="dialog_manual_type")
+            var_type = st.selectbox(
+                "Type", type_options, key=WidgetKeyBuilder.data_source_key("dialog_manual_type")
+            )
 
         # 3. Dynamic Configuration Form
         if method == "Search Scanned Variables" and idx is None:
@@ -1078,14 +1154,19 @@ class DataSourceComponents:
                 ).variable_types
                 var_type = (
                     st.selectbox(
-                        "Output representation", output_types, index=None, key="dialog_output_type"
+                        "Output representation",
+                        output_types,
+                        index=None,
+                        key=WidgetKeyBuilder.data_source_key("dialog_output_type"),
                     )
                     or ""
                 )
             st.markdown(f"**Configuration: {var_type.upper() or 'CHOOSE REPRESENTATION'}**")
 
             if method == "Search Scanned Variables":
-                name = st.text_input("Name", value=name, key="dialog_final_name")
+                name = st.text_input(
+                    "Name", value=name, key=WidgetKeyBuilder.data_source_key("dialog_final_name")
+                )
 
             config: ParseVariableConfig = {"name": name, "type": var_type, "params": {}, "_id": ""}
             temp_id = "dialog_new_var"
@@ -1106,7 +1187,7 @@ class DataSourceComponents:
                     choices,
                     index=choices.index(current_source) if current_source else None,
                     placeholder="Choose raw source type",
-                    key="dialog_raw_source_type",
+                    key=WidgetKeyBuilder.data_source_key("dialog_raw_source_type"),
                     help=(
                         "Declared compatible source contract, independent of the "
                         "output representation."
@@ -1131,7 +1212,7 @@ class DataSourceComponents:
                     min_value=1,
                     value=1,
                     help="If variable repeats in strict sequence (Perl parser specific)",
-                    key="adv_repeat",
+                    key=WidgetKeyBuilder.data_source_key("adv_repeat"),
                 )
                 repeat_int = int(repeat)
                 if repeat_int > 1:

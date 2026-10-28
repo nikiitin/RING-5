@@ -97,16 +97,19 @@ def capture_failure_artifacts(
     request: pytest.FixtureRequest, artifacts_dir: Path
 ) -> Iterator[None]:
     """Capture the active page's setup/call failure without creating another page."""
-    if "shared_page" in request.fixturenames:
-        page: Page = request.getfixturevalue("shared_page")
-    elif "page" in request.fixturenames:
-        page = request.getfixturevalue("page")
+    if "page" in request.fixturenames:
+        page: Page = request.getfixturevalue("page")
+    elif "shared_page" in request.fixturenames:
+        page = request.getfixturevalue("shared_page")
     else:
         yield
         return
 
     context = page.context
     shared_capture = _shared_capture_for_node(request.node)
+    if shared_capture is not None and shared_capture.page.context is not context:
+        # Autouse app setup may own another context than an explicit component page.
+        shared_capture = None
     tracing = _tracing_enabled()
     if tracing:
         if shared_capture is not None:

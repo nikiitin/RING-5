@@ -37,4 +37,8 @@ class ConditionSelector(Selector):
             mask = values.astype(str).str.contains(self.params["value"], na=False, regex=False)
         else:
             mask = _COMPARISONS[mode](values, self.params[PREDICATE_OPERANDS[mode]])
+        if self._source_tracker is not None:
+            self._source_tracker.select(
+                position for position, keep in enumerate(mask.fillna(False)) if keep
+            )
         return data_frame[mask].copy()

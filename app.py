@@ -144,21 +144,10 @@ def run_app() -> None:
 
         # [impl->req~ring5.workspace.reset~1]
         if st.button(
-            "Clear Data",
-            width="stretch",
-            type="tertiary",
-            help="Clear loaded CSV data and plots",
-        ):
-            api.reset_session()
-            ui_state.cleanup_all()
-            st.session_state.pop(GuidedAnalysisComponent.EXPORT_STATE_KEY, None)
-            st.rerun()
-
-        if st.button(
             "Reset All",
             width="stretch",
             type="secondary",
-            help="Reset entire application to defaults",
+            help="Reset data, plots, parser inputs and session state to defaults",
         ):
             api.reset_session()
             ui_state.cleanup_all()

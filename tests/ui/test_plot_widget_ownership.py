@@ -353,10 +353,7 @@ def test_browser_portfolio_restore_discards_widgets_for_reused_plot_ids(bundle: 
         api.close()
 
 
-@pytest.mark.parametrize("action", ["Clear Data", "Reset All"])
-def test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners(
-    action: str,
-) -> None:
+def test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners() -> None:
     # [test->req~ring5.workspace.reset~1]
     app = create_app_with_data(pd.DataFrame({"kind": ["a"], "metric": [3.0]}))
     api = get_api(app)
@@ -369,7 +366,7 @@ def test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners(
         == "Old plot name"
     )
     app.session_state[EngineManager.STATE_KEY] = "matplotlib"
-    next(button for button in app.sidebar.button if button.label == action).click().run()
+    next(button for button in app.sidebar.button if button.label == "Reset All").click().run()
     assert not app.exception
     assert not api.state_manager.get_plots()
     assert app.session_state["api"] is api

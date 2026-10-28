@@ -23,7 +23,7 @@ def mock_api(sample_data: pd.DataFrame) -> MagicMock:
 @pytest.fixture
 def mock_executor() -> MagicMock:
     executor = MagicMock()
-    executor.apply_shapers.side_effect = lambda df, confs: df.copy()
+    executor.apply_shapers.side_effect = lambda df, confs, **kwargs: df.copy()
     executor.configure_shaper.return_value = {}
     return executor
 
@@ -159,7 +159,19 @@ class TestPipelineControllerRender:
         ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
-        mock_plot.replace_processed_data.assert_called_once()
+        mock_executor.apply_shapers.assert_called_once_with(
+            mock_api.state_manager.get_data.return_value,
+            [mock_plot.pipeline[0]["config"]],
+            track_source_rows=True,
+        )
+        mock_plot.replace_pipeline_data.assert_called_once()
+        published_source, published_output = mock_plot.replace_pipeline_data.call_args.args
+        pd.testing.assert_frame_equal(
+            published_source, mock_api.state_manager.get_data.return_value
+        )
+        pd.testing.assert_frame_equal(published_output, published_source)
+        mock_plot.replace_source_data.assert_not_called()
+        mock_plot.replace_processed_data.assert_not_called()
         mock_step.render_finalize_result.assert_called_once()
         mock_st.rerun.assert_called_once()
 
@@ -270,6 +282,7 @@ class TestPipelineControllerRender:
         ctrl.render(mock_plot)
 
         mock_step.render_finalize_error.assert_called_once()
+        mock_plot.replace_pipeline_data.assert_not_called()
 
     @patch("src.web.controllers.plot.pipeline_controller.PipelineStepComponent")
     @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")

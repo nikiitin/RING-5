@@ -32,9 +32,23 @@ They live in `src/core/services/shapers/`, without Streamlit dependencies.
    `display_order`; a UI entry also requires a web renderer.
 5. **UI**: add the component and `CONFIG_DISPATCH` entry. Obtain display metadata through
    `api.shapers.get_shaper_display_names()`, then pass it into presentation components.
-6. **Tests**: verify constructor/factory/import/pipeline agreement, unknown keys, wrong types and
+6. **Finalized contributors**: implement the exact row relation through `self._source_tracker`
+   when it is present. Use the operation's actual selection, group positions, baseline rows or
+   branch join; `source_contributions.py` owns the bounded DAG. Record identity positions for a
+   row-preserving operation. Place hooks outside numerical caches and let `_call_with_source_rows`
+   scope the tracker. Add the exact implementation class to the reviewed tracked types in
+   `PipelineService._execute`; factory registration and subclassing do not grant tracked execution.
+   Update the Distribution policy separately according to coordinate semantics.
+7. **Tests**: verify constructor/factory/import/pipeline agreement, unknown keys, wrong types and
    modes, data preconditions, immutability and adjacent pipeline interactions. SplitApply uses one
-   shared 100-step/20-level validation budget. Plugin subclasses need their own explicit definition.
+   shared 100-step/20-level validation budget. Assert identical scientific output with tracking
+   enabled, exact original positions through adjacent/nested transforms, input ownership and typed
+   table round trips. Plugin subclasses need their own explicit definition.
+
+`Session.shape` supports registered application plugins. Plot **Finalize** and per-plot analysis
+recipe pipelines require reviewed source contributions and reject an unreviewed implementation
+explicitly. A web editor entry alone does not make a plugin eligible. Do not infer contributors
+from final labels, replay a mutable draft or substitute processed rows for original inputs.
 
 ## Rules & gotchas
 - Immutable always (`.copy()`), no `inplace=True`, no bare `except`.

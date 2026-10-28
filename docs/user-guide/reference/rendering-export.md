@@ -111,6 +111,10 @@ HTML downloaded from the web workspace also includes the processed dataframe tha
 figure. The table works without a server or network connection and supports whole-table search,
 column sorting, pagination, and a client-side CSV download. This is the post-pipeline dataframe:
 it therefore shows the exact rows and columns available to the plot, not the unprocessed input.
+The CSV downloads the complete dataframe in its original row order, regardless of table filtering,
+sorting or pagination. It uses the dataframe's CSV serialization, preserving numeric precision,
+large integer identifiers and timestamp precision. Missing cells are empty CSV fields; the table's
+visual missing-value marker does not become source data.
 
 ### Plotly static formats
 

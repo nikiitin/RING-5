@@ -23,9 +23,13 @@ class DefaultShapersAPI:
         self,
         data: pd.DataFrame,
         pipeline_config: Sequence[Mapping[str, object]],
+        *,
+        track_source_rows: bool = False,
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame."""
-        return PipelineService.process_pipeline(data, pipeline_config)
+        return PipelineService.process_pipeline(
+            data, pipeline_config, track_source_rows=track_source_rows
+        )
 
     def create_shaper(
         self,

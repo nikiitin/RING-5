@@ -77,6 +77,10 @@ inputs and examples.
 | `table.to_csv("measurements.csv")` | Written path; semantics metadata gets a companion file when present. |
 | `table.frame` / `Table(frame)` | Explicit defensive pandas copy / entry point. |
 
+Independent table transformations detach a finalized plot's contributor declaration. Creating a
+plot from the returned table establishes that explicit table as its source. Plot pipelines retain
+original input rows and capture their contributor relation when finalized.
+
 `session.load` returns the primary loaded `Table` and makes it the active workspace, retaining
 replay provenance. `session.get_dataset(name)` retrieves an independently owned table previously
 retained with `add_dataset`; omitting the name requires a selected named dataset. It does not
@@ -281,8 +285,11 @@ execution. `ring5.shapers` exposes the plugin `Shaper` and `ShaperDefinition` ty
 and discovery.
 
 `Session.drill_down` returns a public `DrillDownResult` with its plot identifier, exact filters and
-an owned `rows: Table` snapshot. `row_count` and `columns` summarize those rows. This projection
-preserves the shared plot and native figure handles used by rendering and dashboard operations.
+an owned `rows: Table` snapshot of original contributors. `row_count` and `columns` summarize
+those rows. Finalized pipeline provenance excludes filtered inputs and recovers raw aggregation
+samples and normalization baselines without changing the original values or metadata. Missing or
+inconsistent provenance raises `DataValidationError`. This projection preserves the shared plot
+and native figure handles used by rendering and dashboard operations.
 
 Figures returned by `Session.render` remain usable after plot invalidation, replacement, workspace
 reset or Session context exit. Matplotlib render managers are deregistered without clearing artists,

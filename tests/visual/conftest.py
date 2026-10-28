@@ -87,7 +87,16 @@ def live_server_url(
     The server is started as a subprocess with ``--server.headless true``
     and killed after the entire test session completes.
     """
-    with running_streamlit(_APP_PY, port=_streamlit_port) as url:
+    allowed_roots = [_ROOT_DIR.resolve()]
+    private_fixtures = _ROOT_DIR / "tests" / "data"
+    if private_fixtures.is_dir():
+        # Local acceptance uses an independently copied corpus outside the checkout.
+        allowed_roots.append(private_fixtures.resolve())
+    environment = {
+        "RING5_ALLOWED_STATS_ROOTS": os.pathsep.join(str(root) for root in allowed_roots),
+        "RING5_ALLOWED_REMOTE_HOSTS": "",
+    }
+    with running_streamlit(_APP_PY, port=_streamlit_port, environment=environment) as url:
         yield url
 
 

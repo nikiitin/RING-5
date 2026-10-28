@@ -19,7 +19,10 @@ class ParserStateRepository:
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""
-        # Initialize default state
+        self.reset_to_defaults()
+
+    def reset_to_defaults(self) -> None:
+        """Replace configured inputs and scan results with independent parser defaults."""
         self._parse_variables: list[ParseVariableConfig] = normalize_variable_ids(
             [StatConfigCodec.to_draft(config) for config in default_parse_configs()]
         )
@@ -189,7 +192,7 @@ class ParserStateRepository:
         logger.info("PARSER_REPO: Simulator set to '%s'", simulator)
 
     def clear_parser_state(self) -> None:
-        """Clear all parser-related state (except parse variables)."""
+        """Clear scan results and parser mode while preserving configured inputs."""
         self._scanned_variables = []
         self._use_parser = False
         logger.info("PARSER_REPO: Parser state cleared")

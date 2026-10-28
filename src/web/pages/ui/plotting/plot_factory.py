@@ -8,6 +8,10 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from src.core.common.typed_table_codec import TypedTableCodec
 from src.core.common.numbered_axis import numbered_axis_modes
 from src.core.common.plot_payload import validate_plot_fields
+from src.core.common.source_contributions import (
+    SOURCE_CONTRIBUTIONS_ATTR,
+    validate_present_source_pair,
+)
 
 if TYPE_CHECKING:
     from .base_plot import BasePlot
@@ -156,8 +160,18 @@ class PlotFactory:
         plot.config = data.get("config", {})
         plot.pipeline = data.get("pipeline", [])
         plot.pipeline_counter = data.get("pipeline_counter", 0)
-        plot.replace_source_data(TypedTableCodec.decode(data["source_data"]))
-        plot.replace_processed_data(TypedTableCodec.decode(data["processed_data"]))
+        source = TypedTableCodec.decode(data["source_data"])
+        processed = TypedTableCodec.decode(data["processed_data"])
+        validate_present_source_pair(source, processed)
+        if (
+            source is not None
+            and processed is not None
+            and SOURCE_CONTRIBUTIONS_ATTR in processed.attrs
+        ):
+            plot.replace_pipeline_data(source, processed)
+        else:
+            plot.replace_source_data(source)
+            plot.replace_processed_data(processed)
         return plot
 
     @classmethod

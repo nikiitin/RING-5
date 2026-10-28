@@ -564,6 +564,12 @@ class TestParserStateRepository:
         assert repo.get_parser_strategy() == "config_aware"
 
     def test_clear_parser_state(self, repo: ParserStateRepository) -> None:
+        repo.set_parse_variables([{"name": "authored", "type": "scalar"}])
+        authored = repo.get_parse_variables()
+        repo.set_stats_path("/authored/results")
+        repo.set_stats_pattern("custom.stats")
+        repo.set_parser_strategy("config_aware")
+        repo.set_simulator("authored_backend")
         repo.set_scanned_variables(
             cast(
                 list[ScannedVariableDict],
@@ -586,8 +592,38 @@ class TestParserStateRepository:
         repo.clear_parser_state()
         assert repo.get_scanned_variables() == []
         assert repo.is_using_parser() is False
-        # Clearing scan results preserves configured parse variables.
-        assert len(repo.get_parse_variables()) == 3
+        assert repo.get_parse_variables() == authored
+        assert repo.get_stats_path() == "/authored/results"
+        assert repo.get_stats_pattern() == "custom.stats"
+        assert repo.get_parser_strategy() == "config_aware"
+        assert repo.get_simulator() == "authored_backend"
+
+    def test_reset_to_defaults_replaces_every_authored_parser_input(
+        self, repo: ParserStateRepository
+    ) -> None:
+        repo.set_parse_variables([{"name": "authored", "type": "scalar"}])
+        retired_ids = {variable["_id"] for variable in repo.get_parse_variables()}
+        repo.set_stats_path("/authored/results")
+        repo.set_stats_pattern("custom.stats")
+        repo.set_parser_strategy("config_aware")
+        repo.set_simulator("authored_backend")
+        repo.set_using_parser(True)
+
+        repo.reset_to_defaults()
+
+        variables = repo.get_parse_variables()
+        assert [variable["name"] for variable in variables] == [
+            "simTicks",
+            "benchmark_name",
+            "config_description",
+        ]
+        assert not retired_ids.intersection(variable["_id"] for variable in variables)
+        assert repo.get_stats_path() == "/path/to/stats"
+        assert repo.get_stats_pattern() == "stats.txt"
+        assert repo.get_parser_strategy() == "simple"
+        assert repo.get_simulator() == "gem5"
+        assert repo.get_scanned_variables() == []
+        assert repo.is_using_parser() is False
 
 
 # PreviewRepository
@@ -696,6 +732,11 @@ class TestSessionRepository:
         repo.data_repo.set_data(pd.DataFrame({"a": [1]}))
         repo.config_repo.set_config({"key": "val"})
         repo.plot_repo.set_plot_counter(5)
+        repo.parser_repo.set_parse_variables([{"name": "retired", "type": "scalar"}])
+        repo.parser_repo.set_stats_path("/old/results")
+        repo.parser_repo.set_stats_pattern("old.stats")
+        repo.parser_repo.set_parser_strategy("config_aware")
+        repo.parser_repo.set_simulator("retired_backend")
 
         record = OperationRecord(
             source_columns=["a"],
@@ -715,6 +756,15 @@ class TestSessionRepository:
         assert repo.config_repo.get_config() == {}
         assert repo.history_repo.get_manager_history() == []
         assert repo.history_repo.get_portfolio_history() == []
+        assert [variable["name"] for variable in repo.parser_repo.get_parse_variables()] == [
+            "simTicks",
+            "benchmark_name",
+            "config_description",
+        ]
+        assert repo.parser_repo.get_stats_path() == "/path/to/stats"
+        assert repo.parser_repo.get_stats_pattern() == "stats.txt"
+        assert repo.parser_repo.get_parser_strategy() == "simple"
+        assert repo.parser_repo.get_simulator() == "gem5"
 
     def test_restore_from_portfolio_parser_state(self, repo: SessionRepository) -> None:
         """Test restoring parser-related state from portfolio data."""

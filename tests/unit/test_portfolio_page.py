@@ -240,6 +240,7 @@ class TestShowPortfolioPage:
         messages = [str(call.args[0]) for call in mock_st.toast.call_args_list]
         assert any("Restore incomplete" in message for message in messages)
         assert any("unknown plot type" in message for message in messages)
+        assert not any(message.startswith("Portfolio loaded:") for message in messages)
 
     # NOTE: test_save_pipeline and test_apply_pipeline removed —
     # Pipeline save/load is no longer part of the page.

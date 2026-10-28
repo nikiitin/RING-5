@@ -11,6 +11,7 @@ import pandas as pd
 from src.core.models.source_context_models import LoadedDataOrigin
 
 from src.core.common.dataframe_copy import copy_dataframe
+from src.core.common.source_contributions import without_source_contributions
 from src.core.common.content_identity import frame_signature
 from src.core.common.source_context_codec import SourceContextCodec
 from src.core.models.dataset_workspace_models import (
@@ -70,7 +71,9 @@ class DataRepository:
         origin: LoadedDataOrigin | None = None,
     ) -> None:
         """
-        Store the primary dataset with optional change callback.
+        Store independent workspace data with an optional change callback.
+
+        Workspace ownership detaches per-plot contributor metadata before retaining values.
 
         Args:
             data: DataFrame to store (None to clear)
@@ -95,7 +98,7 @@ class DataRepository:
                 origin=origin,
             )
         else:
-            self._data = copy_dataframe(data)
+            self._data = copy_dataframe(without_source_contributions(data))
             self._origin = origin
 
         if on_change:
@@ -123,12 +126,14 @@ class DataRepository:
 
     def set_processed_data(self, data: pd.DataFrame | None) -> None:
         """
-        Store the processed dataset.
+        Store processed workspace data independently of a finalized plot relation.
 
         Args:
             data: Processed DataFrame to store
         """
-        self._processed_data = copy_dataframe(data) if data is not None else None
+        self._processed_data = (
+            copy_dataframe(without_source_contributions(data)) if data is not None else None
+        )
 
     def has_data(self) -> bool:
         """
@@ -374,7 +379,7 @@ class DataRepository:
                 parents.append(source_revision)
 
         origin = SourceContextCodec.origin_from_payload(SourceContextCodec.origin_payload(origin))
-        snapshot = copy_dataframe(data)
+        snapshot = copy_dataframe(without_source_contributions(data))
         fingerprint = frame_signature(snapshot)
         self._revision_counter += 1
         revision_id = f"rev-{self._revision_counter:06d}"

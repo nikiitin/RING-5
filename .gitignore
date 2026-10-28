@@ -66,3 +66,7 @@ tests/e2e/artifacts/
 !examples/data/gem5/baseline/stats.txt
 !examples/data/gem5/candidate/stats.txt
 example-output/
+
+# Small deterministic browser parser fixtures.
+!tests/e2e/fixtures/tutorial_stats/alpha/stats.txt
+!tests/e2e/fixtures/tutorial_stats/beta/stats.txt

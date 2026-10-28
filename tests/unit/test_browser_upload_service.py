@@ -172,7 +172,18 @@ def test_modified_manifest_portfolio_upload_is_rejected_before_staging(tmp_path:
         )
 
 
-def test_portable_bundle_is_summarized_and_reverified_before_restore(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "content_type",
+    [
+        "",
+        "application/octet-stream",
+        "application/zip",
+        "application/vnd.ring5.portfolio-bundle+zip",
+    ],
+)
+def test_portable_bundle_is_summarized_and_reverified_before_restore(
+    tmp_path: Path, content_type: str
+) -> None:
     # [test->req~ring5.portfolio.portable-bundles~1]
     document = portfolio_document(
         data=TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [1.25]}))
@@ -188,7 +199,7 @@ def test_portable_bundle_is_summarized_and_reverified_before_restore(tmp_path: P
 
     upload = BrowserUploadService.inspect(
         "portable-analysis.ring5-bundle",
-        "application/zip",
+        content_type,
         payload,
         tmp_path,
     )
@@ -303,3 +314,14 @@ def test_sparse_excel_ranges_are_bounded_even_without_dimensions(
     monkeypatch.setattr(module, "MAX_BROWSER_UPLOAD_ROWS", 10)
     with pytest.raises(ValueError, match="row limit|at most 10 rows"):
         module._excel_records(raw)
+
+
+def test_unsupported_extension_is_rejected_before_staging(tmp_path: Path) -> None:
+    destination = tmp_path / "uploads"
+
+    with pytest.raises(ValueError, match="Upload filename must end in"):
+        BrowserUploadService.inspect(
+            "measurements.txt", "text/plain", b"benchmark,ipc\nalpha,1.25\n", destination
+        )
+
+    assert not destination.exists()

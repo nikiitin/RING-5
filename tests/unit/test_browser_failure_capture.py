@@ -45,7 +45,7 @@ def _request(item: MagicMock, page: MagicMock, *, shared: bool) -> MagicMock:
     """Expose only fixtures already requested by the browser case."""
     request = MagicMock(spec=pytest.FixtureRequest)
     request.node = item
-    request.fixturenames = ["shared_page", "page"] if shared else ["page"]
+    request.fixturenames = ["shared_page"] if shared else ["page"]
     request.getfixturevalue.return_value = page
     return request
 
@@ -129,6 +129,67 @@ def test_shared_test_chunks_handoff_without_restarting_the_class_trace(
     assert request.getfixturevalue.call_args_list == [call("shared_page"), call("shared_page")]
     context.new_page.assert_called_once_with()
     page.screenshot.assert_called_once()
+
+
+@pytest.mark.parametrize("same_context", [False, True])
+def test_explicit_page_failure_retains_its_page_and_actual_context_owner(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    same_context: bool,
+) -> None:
+    """Autouse shared setup cannot redirect a component case's screenshot or trace."""
+    monkeypatch.setenv("TRACING", "1")
+    monkeypatch.setenv("PYTEST_XDIST_WORKER", "main")
+    shared_page, shared_context = _page_and_context()
+    explicit_page, explicit_context = _page_and_context()
+    if same_context:
+        explicit_page.context = shared_context
+    owner, item = _nodes()
+    request = _request(item, explicit_page, shared=False)
+    request.fixturenames = ["shared_page", "page"]
+    request.getfixturevalue.side_effect = {
+        "shared_page": shared_page,
+        "page": explicit_page,
+    }.__getitem__
+    name = artifact_stem(item.nodeid)
+
+    with shared_page_capture(shared_context, owner):
+        with capture_failure_artifacts(request, tmp_path):
+            item.rep_call = _failure(item, "call")
+        capture = _shared_capture_for_node(item)
+        assert capture is not None
+        assert capture.chunk_active is not same_context
+
+    request.getfixturevalue.assert_called_once_with("page")
+    explicit_page.screenshot.assert_called_once_with(
+        path=str(tmp_path / f"{name}_failure.png"),
+        full_page=True,
+        timeout=10_000,
+    )
+    shared_page.screenshot.assert_not_called()
+    shared_context.tracing.start.assert_called_once_with(
+        screenshots=True, snapshots=True, sources=True
+    )
+    shared_context.tracing.stop.assert_called_once_with()
+    shared_context.close.assert_called_once_with()
+    if same_context:
+        shared_context.tracing.start_chunk.assert_called_once_with()
+        assert shared_context.tracing.stop_chunk.call_args_list == [
+            call(path=None),
+            call(path=tmp_path / f"{name}_trace.zip"),
+        ]
+        assert explicit_context.tracing.mock_calls == []
+    else:
+        shared_context.tracing.start_chunk.assert_not_called()
+        shared_context.tracing.stop_chunk.assert_not_called()
+        explicit_context.tracing.start.assert_called_once_with(
+            screenshots=True, snapshots=True, sources=True
+        )
+        explicit_context.tracing.stop.assert_called_once_with(path=tmp_path / f"{name}_trace.zip")
+        explicit_context.tracing.start_chunk.assert_not_called()
+        explicit_context.tracing.stop_chunk.assert_not_called()
+    explicit_context.close.assert_not_called()
+    explicit_context.new_page.assert_not_called()
 
 
 @pytest.mark.parametrize("when", ["setup", "call"])

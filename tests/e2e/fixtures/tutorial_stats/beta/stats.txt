@@ -1,0 +1,4 @@
+benchmark_name=beta
+config_description=candidate
+simTicks 246 # Simulated ticks
+system.cpu.ipc 2.5 # Instructions per cycle

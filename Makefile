@@ -163,6 +163,7 @@ test-e2e:
 		--timeout=240 --timeout-method=thread --no-cov
 	$(PYTEST) tests/e2e -m "requires_browser and serial" -n 0 --order-scope=class \
 		--timeout=240 --timeout-method=thread --no-cov
+	$(MAKE) test-visual
 
 test-visual:
 	$(PYTEST) tests/visual -n 0 --order-scope=class --timeout=120 --no-cov

@@ -62,4 +62,8 @@ class GroupPredicateSelector(UniDfShaper):
             in_flagged = pd.Series([key in flagged for key in row_keys], index=result.index)
 
         keep = in_flagged if self.action == "keep" else ~in_flagged
+        if self._source_tracker is not None:
+            self._source_tracker.select(
+                position for position, selected in enumerate(keep) if selected
+            )
         return result[keep].reset_index(drop=True)

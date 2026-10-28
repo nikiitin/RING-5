@@ -9,6 +9,10 @@ import plotly.graph_objects as go
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.common.dataframe_copy import copy_dataframe
+from src.core.common.source_contributions import (
+    require_source_contributions,
+    validate_present_source_pair,
+)
 from src.core.common.plot_render_state import PlotRenderState
 from src.core.common.numbered_axis import numbered_axis_modes
 from src.core.common.plot_payload import validate_plot_config_keys, validate_plot_config_values
@@ -158,6 +162,18 @@ class BasePlot(PlotConfigUIMixin, ABC):
         if previous is not None:
             previous.dispose()
 
+    def replace_pipeline_data(self, source: pd.DataFrame, processed: pd.DataFrame) -> None:
+        """Publish original input and verified finalized contributors as one owned pair.
+
+        Validation and defensive copies complete before either live table changes.
+        """
+        require_source_contributions(source, processed)
+        owned_source = copy_dataframe(source)
+        owned_processed = copy_dataframe(processed)
+        self.source_data = owned_source
+        self.processed_data = owned_processed
+        self.invalidate_figure()
+
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:
         """Replace processed data and atomically invalidate render artifacts.
 
@@ -186,6 +202,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
         Returns:
             Dictionary representation (without Figure objects)
         """
+        validate_present_source_pair(self.source_data, self.processed_data)
         return {
             "id": self.plot_id,
             "name": self.name,

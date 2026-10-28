@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from html import escape
+import json
 
 import pandas as pd
 
@@ -188,8 +189,7 @@ _SCRIPT = """
   previous.addEventListener("click", () => { currentPage -= 1; render(); });
   next.addEventListener("click", () => { currentPage += 1; render(); });
   csvButton.addEventListener("click", () => {
-    const quote = value => `"${display(value).replaceAll('"', '""')}"`;
-    const csv = [columns, ...rows].map(row => row.map(quote).join(",")).join("\\r\\n");
+    const csv = payload.csv;
     const url = URL.createObjectURL(new Blob([csv], {type: "text/csv;charset=utf-8"}));
     const link = document.createElement("a");
     link.href = url;
@@ -207,14 +207,19 @@ def _json_payload(data: pd.DataFrame) -> str:
     """Serialize a dataframe for an inert script node without HTML breakouts."""
     frame = data.copy()
     frame.columns = [str(column) for column in frame.columns]
-    payload = frame.to_json(
-        orient="split",
-        index=False,
-        date_format="iso",
-        default_handler=str,
+    payload = json.loads(
+        frame.to_json(
+            orient="split",
+            index=False,
+            date_format="iso",
+            default_handler=str,
+        )
     )
+    # Browser display formatting and JavaScript number limits must not alter source downloads.
+    payload["csv"] = frame.to_csv(index=False, lineterminator="\r\n")
+    encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     return (
-        payload.replace("&", "\\u0026")
+        encoded.replace("&", "\\u0026")
         .replace("<", "\\u003c")
         .replace(">", "\\u003e")
         .replace("\u2028", "\\u2028")

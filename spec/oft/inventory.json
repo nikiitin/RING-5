@@ -161,9 +161,11 @@
       "evidence": {
         "implementation": ["app.py::run_app", "src/core/state/repository_state_manager.py::RepositoryStateManager.clear_data"],
         "tests": [
-          "tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state",
+          "tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_reset_all_clears_state",
           "tests/ui/test_plot_widget_ownership.py::test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners",
-          "tests/ui/test_plot_selector_identity.py::test_workspace_replacement_reuses_id_and_pushes_its_new_label"
+          "tests/ui/test_plot_selector_identity.py::test_workspace_replacement_reuses_id_and_pushes_its_new_label",
+          "tests/e2e/test_data_journeys.py::TestParserResetDefaults.test_reset_all_removes_authored_parser_settings_data_and_widget_values",
+          "tests/ui/test_data_source_reset.py::test_reset_all_rebuilds_default_parser_inputs_and_retires_authored_widgets"
         ],
         "documentation": ["docs/user-guide/getting-started/concepts.md#core-concepts"]
       }
@@ -537,7 +539,9 @@
           "tests/unit/test_ui_state_manager.py::test_workspace_restore_discards_a_previous_parse_notice",
           "tests/unit/test_visual_page_objects.py::test_parse_wait_without_submission_rejects_retained_data_and_notices",
           "tests/integration/test_typed_parse_jobs.py::test_real_background_full_incremental_consume_and_cache_preserve_literal_cells",
-          "tests/visual/test_e2e_parse_workflow.py::TestVariableAndParse.test_parse_success_and_data_managers"
+          "tests/visual/test_e2e_parse_workflow.py::TestVariableAndParse.test_parse_success_and_data_managers",
+          "tests/e2e/test_data_journeys.py::TestParserEvidence.test_playground_parse_and_repeated_attempt_preserve_their_boundaries",
+          "tests/e2e/test_data_journeys.py::TestParserRecovery.test_partial_result_requires_explicit_loading_before_replacing_data"
         ],
         "documentation": ["docs/user-guide/workflows/loading-data.md#session-background-parsing"]
       },
@@ -618,7 +622,8 @@
           "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_search_specific",
           "tests/ui_unit/test_data_manager_components.py::test_render_visualization_search_is_literal",
           "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_pagination",
-          "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_download"
+          "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_download",
+          "tests/e2e/test_data_journeys.py::TestDataInspectionResults.test_filtered_view_download_has_exact_rows_and_selected_columns"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#inspect-the-table"
@@ -648,7 +653,8 @@
           "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data",
           "tests/unit/test_preview_input_scopes.py::test_pre_reset_named_inputs_cannot_publish_against_reused_names_and_revision_ids",
           "tests/unit/test_preview_input_scopes.py::test_inflight_named_result_rejects_change_and_revert_to_its_captured_revision",
-          "tests/ui/test_preview_input_scopes.py::test_changed_comparison_controls_hide_stale_results_until_recomputed"
+          "tests/ui/test_preview_input_scopes.py::test_changed_comparison_controls_hide_stale_results_until_recomputed",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_arithmetic_preview_invalidation_numeric_and_configuration_mixing"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#preview-and-confirm-changes"
@@ -670,7 +676,8 @@
         ],
         "tests": [
           "tests/unit/test_parser_data_source_services.py::TestReductionService.test_reduce_seeds_basic",
-          "tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_confirm_applies_data"
+          "tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_confirm_applies_data",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_seed_reduction_preserves_group_means_and_sample_standard_deviation"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#reduce-repeated-runs"
@@ -692,7 +699,8 @@
         ],
         "tests": [
           "tests/unit/test_outlier_service.py::TestRemoveOutliers.test_with_group_by_uses_group_iqr",
-          "tests/unit/test_outlier_remover.py::TestOutlierRemoverRender.test_confirm_applies_data"
+          "tests/unit/test_outlier_remover.py::TestOutlierRemoverRender.test_confirm_applies_data",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_outlier_preview_then_confirmation_removes_only_the_extreme_row"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#remove-outliers"
@@ -717,7 +725,8 @@
         "tests": [
           "tests/unit/test_parser_data_source_services.py::TestArithmeticService",
           "tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data",
-          "tests/unit/test_numerical_operation_contracts.py::test_binary_manager_and_scalar_shaper_share_elementwise_values"
+          "tests/unit/test_numerical_operation_contracts.py::test_binary_manager_and_scalar_shaper_share_elementwise_values",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_arithmetic_preview_invalidation_numeric_and_configuration_mixing"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#binary-arithmetic"
@@ -742,7 +751,8 @@
           "tests/unit/test_mixer.py::TestApplyMixerSumOperation",
           "tests/unit/test_mixer.py::TestApplyMixerMeanOperation",
           "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data",
-          "tests/unit/test_numerical_operation_contracts.py::test_row_sums_skip_missing_while_binary_addition_propagates_it"
+          "tests/unit/test_numerical_operation_contracts.py::test_row_sums_skip_missing_while_binary_addition_propagates_it",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_arithmetic_preview_invalidation_numeric_and_configuration_mixing"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#numeric-column-mixing"
@@ -764,7 +774,8 @@
         ],
         "tests": [
           "tests/unit/test_mixer.py::TestApplyMixerConcatenateOperation",
-          "tests/unit/test_mixer_manager.py::TestMixerRender.test_history_load_concatenate"
+          "tests/unit/test_mixer_manager.py::TestMixerRender.test_history_load_concatenate",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_arithmetic_preview_invalidation_numeric_and_configuration_mixing"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#configuration-label-mixing"
@@ -839,7 +850,7 @@
       "tags": ["pipeline", "plots", "shapers"],
       "evidence": {
         "implementation": [
-          "src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline",
+          "src/core/services/shapers/pipeline_service.py::PipelineService._execute",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__",
           "src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_finalize"
         ],
@@ -890,7 +901,8 @@
         "tests": [
           "tests/unit/test_processing_regressions.py::TestMeanNaNHandling.test_arithmean_with_nan_values",
           "tests/unit/test_shapers_extended.py::TestMeanExtended.test_geometric_mean",
-          "tests/unit/test_shapers_extended.py::TestMeanExtended.test_harmonic_mean"
+          "tests/unit/test_shapers_extended.py::TestMeanExtended.test_harmonic_mean",
+          "tests/e2e/test_shaper_semantics.py::TestIndependentColumnGroups.test_transform_mean_and_split_apply_preserve_independent_measurements"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#mean"
@@ -911,7 +923,8 @@
         ],
         "tests": [
           "tests/unit/test_selectors.py::TestColumnSelector.test_select_multiple_columns",
-          "tests/unit/test_selectors.py::TestColumnSelector.test_column_order_preserved"
+          "tests/unit/test_selectors.py::TestColumnSelector.test_column_order_preserved",
+          "tests/e2e/test_shaper_semantics.py::TestReshapingEditors.test_reshape_filter_and_order_publish_exact_csv"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#column-selector"
@@ -931,7 +944,8 @@
           "src/core/services/shapers/impl/selector_algorithms/condition_selector.py::ConditionSelector.__call__"
         ],
         "tests": [
-          "tests/unit/test_condition_selector.py::TestConditionSelectorModes"
+          "tests/unit/test_condition_selector.py::TestConditionSelectorModes",
+          "tests/e2e/test_shaper_semantics.py::TestReshapingEditors.test_reshape_filter_and_order_publish_exact_csv"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#condition-selector"
@@ -952,7 +966,8 @@
         ],
         "tests": [
           "tests/unit/test_selectors.py::TestItemSelector.test_select_multiple_items",
-          "tests/unit/test_selectors.py::TestItemSelector.test_partial_match_contains_mode"
+          "tests/unit/test_selectors.py::TestItemSelector.test_partial_match_contains_mode",
+          "tests/e2e/test_shaper_semantics.py::TestGroupAndDerivedEditors.test_group_filters_derive_normalize_and_select_exact_rows"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#item-selector"
@@ -973,7 +988,8 @@
         ],
         "tests": [
           "tests/unit/test_derive_and_group_shapers.py::test_group_cardinality_eq_keeps_complete_groups",
-          "tests/unit/test_derive_and_group_shapers.py::test_group_cardinality_modes_and_validation"
+          "tests/unit/test_derive_and_group_shapers.py::test_group_cardinality_modes_and_validation",
+          "tests/e2e/test_shaper_semantics.py::TestGroupAndDerivedEditors.test_group_filters_derive_normalize_and_select_exact_rows"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#group-cardinality-selector"
@@ -994,7 +1010,8 @@
         ],
         "tests": [
           "tests/unit/test_derive_and_group_shapers.py::test_group_predicate_drops_zero_baseline_group",
-          "tests/unit/test_derive_and_group_shapers.py::test_group_predicate_keep_action_and_validation"
+          "tests/unit/test_derive_and_group_shapers.py::test_group_predicate_keep_action_and_validation",
+          "tests/e2e/test_shaper_semantics.py::TestGroupAndDerivedEditors.test_group_filters_derive_normalize_and_select_exact_rows"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#group-predicate-selector"
@@ -1016,7 +1033,8 @@
         "tests": [
           "tests/unit/test_shaper_normalize.py::test_normalization_logic",
           "tests/unit/test_shaper_normalize.py::test_normalization_sd",
-          "tests/unit/test_shaper_normalize.py::test_zero_division"
+          "tests/unit/test_shaper_normalize.py::test_zero_division",
+          "tests/e2e/test_shaper_semantics.py::TestGroupAndDerivedEditors.test_group_filters_derive_normalize_and_select_exact_rows"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#normalize"
@@ -1038,7 +1056,8 @@
         "tests": [
           "tests/unit/test_pivot_selective.py::test_pivot_longer_selective_discard",
           "tests/unit/test_pivot_selective.py::test_pivot_longer_selective_merge",
-          "tests/unit/test_pivot_selective.py::test_pivot_longer_multi_group_extraction"
+          "tests/unit/test_pivot_selective.py::test_pivot_longer_multi_group_extraction",
+          "tests/e2e/test_shaper_semantics.py::TestReshapingEditors.test_reshape_filter_and_order_publish_exact_csv"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#pivot-longer"
@@ -1058,7 +1077,8 @@
           "src/core/services/shapers/impl/pivot.py::PivotWider.__call__"
         ],
         "tests": [
-          "tests/unit/test_pivot_selective.py::test_pivot_wider_reshapes_long_table"
+          "tests/unit/test_pivot_selective.py::test_pivot_wider_reshapes_long_table",
+          "tests/e2e/test_shaper_semantics.py::TestReshapingEditors.test_reshape_filter_and_order_publish_exact_csv"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#pivot-wider"
@@ -1078,7 +1098,8 @@
           "src/core/services/shapers/impl/sort.py::Sort.__call__"
         ],
         "tests": [
-          "tests/unit/test_shapers_extended.py::TestSortShaper.test_reorders_rows_by_each_configured_category_order"
+          "tests/unit/test_shapers_extended.py::TestSortShaper.test_reorders_rows_by_each_configured_category_order",
+          "tests/e2e/test_shaper_semantics.py::TestReshapingEditors.test_reshape_filter_and_order_publish_exact_csv"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#sort"
@@ -1100,7 +1121,8 @@
         ],
         "tests": [
           "tests/unit/test_split_apply.py::TestSplitApplyMean.test_mean_values_are_correct_per_axis",
-          "tests/unit/test_split_apply.py::TestSplitApplyFourGroups.test_four_groups_with_mean"
+          "tests/unit/test_split_apply.py::TestSplitApplyFourGroups.test_four_groups_with_mean",
+          "tests/e2e/test_shaper_semantics.py::TestIndependentColumnGroups.test_transform_mean_and_split_apply_preserve_independent_measurements"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#split-apply"
@@ -1120,7 +1142,8 @@
           "src/core/services/shapers/impl/transformer.py::Transformer.__call__"
         ],
         "tests": [
-          "tests/unit/test_shapers_extended.py::TestTransformer"
+          "tests/unit/test_shapers_extended.py::TestTransformer",
+          "tests/e2e/test_shaper_semantics.py::TestIndependentColumnGroups.test_transform_mean_and_split_apply_preserve_independent_measurements"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#transformer"
@@ -1147,7 +1170,8 @@
           "tests/unit/test_derive_and_group_shapers.py::test_derive_ratio_zero_denominator_becomes_nan",
           "tests/unit/test_derive_and_group_shapers.py::test_derive_scalar_and_concat_and_map",
           "tests/unit/test_numerical_operation_contracts.py::test_binary_manager_and_scalar_shaper_share_elementwise_values",
-          "tests/unit/test_numerical_operation_contracts.py::test_row_sums_skip_missing_while_binary_addition_propagates_it"
+          "tests/unit/test_numerical_operation_contracts.py::test_row_sums_skip_missing_while_binary_addition_propagates_it",
+          "tests/e2e/test_shaper_semantics.py::TestGroupAndDerivedEditors.test_group_filters_derive_normalize_and_select_exact_rows"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#derive-column"
@@ -2456,7 +2480,8 @@
         "tests": [
           "tests/integration/test_native_artifact_lifecycle.py::test_rejected_restore_releases_only_new_candidate_artifacts",
           "tests/unit/test_repository_state_manager.py::TestRestoreSession",
-          "tests/integration/test_portfolio_service_integration.py::test_restore_report_complete_with_deserializer"
+          "tests/integration/test_portfolio_service_integration.py::test_restore_report_complete_with_deserializer",
+          "tests/ui/test_data_source_reset.py::test_loading_a_configured_portfolio_rebuilds_saved_parser_controls"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#save-and-restore-in-the-web-application"
@@ -2914,7 +2939,11 @@
       "description": "Core managers, shapers, and public table operations shall return new data objects and preserve caller-owned inputs.",
       "tags": ["data", "immutability", "quality"],
       "evidence": {
-        "implementation": ["src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation", "src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline", "ring5/data.py::Table.with_scalar_op"],
+        "implementation": [
+          "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation",
+          "src/core/services/shapers/pipeline_service.py::PipelineService._execute",
+          "ring5/data.py::Table.with_scalar_op"
+        ],
         "tests": ["tests/integration/test_ring5_api_completeness.py::test_manager_operations_preserve_dataframe_and_table", "tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data", "tests/unit/test_ring5_convenience_api.py::TestTable"],
         "documentation": ["docs/developer-guide/architecture/design-patterns.md#immutable-data-operations"]
       }
@@ -3733,7 +3762,8 @@
         "tests": [
           "tests/unit/test_comparison_service.py::test_compare_calculates_changes_and_directional_outcomes",
           "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_explicit_frame_interoperability_comparison",
-          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview"
+          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview",
+          "tests/e2e/test_data_journeys.py::TestComparisonArtifacts.test_threshold_results_download_as_exact_csv_json_junit_and_confirm"
         ],
         "documentation": ["docs/user-guide/guides/compare-configurations.md#calculate-regressions"]
       }
@@ -3755,7 +3785,8 @@
         "tests": [
           "tests/unit/test_statistical_comparison_service.py::test_statistics_include_intervals_effect_bootstrap_and_significance",
           "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_repeated_sample_statistics",
-          "tests/e2e/test_data_managers.py::TestStatisticalComparison.test_statistical_preview"
+          "tests/e2e/test_data_managers.py::TestStatisticalComparison.test_statistical_preview",
+          "tests/e2e/test_data_journeys.py::TestComparisonArtifacts.test_statistical_download_preserves_sample_counts_means_and_warnings"
         ],
         "documentation": ["docs/user-guide/guides/compare-configurations.md#estimate-statistical-evidence"]
       }
@@ -3810,7 +3841,8 @@
         "tests": [
           "tests/unit/test_state_repositories.py::TestDataRepository.test_lineage_undo_redo_inspect_and_restore",
           "tests/integration/test_ring5_public_api.py::TestDatasetLineageAndRecovery.test_lineage_undo_redo_and_restore",
-          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_lineage_inspection_undo_and_redo"
+          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_lineage_inspection_undo_and_redo",
+          "tests/e2e/test_data_journeys.py::TestNamedWorkspaceResults.test_undo_redo_revision_restore_and_snapshot_preserve_exact_contents"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#trace-and-recover-dataset-changes"
@@ -3852,7 +3884,8 @@
         "tests": [
           "tests/unit/test_dataset_workspace_service.py::test_append_and_join_create_results_without_mutating_sources",
           "tests/integration/test_ring5_public_api.py::TestNamedDatasetWorkspace.test_workspace_retains_selects_compares_joins_and_appends",
-          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_retain_current_dataset"
+          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_retain_current_dataset",
+          "tests/e2e/test_data_journeys.py::TestNamedWorkspaceResults.test_append_creates_an_independent_table_and_keeps_both_sources"
         ],
         "documentation": ["docs/user-guide/workflows/managing-datasets.md#keep-multiple-named-datasets"]
       }
@@ -3876,7 +3909,8 @@
         "tests": [
           "tests/unit/test_quality_profile_service.py::test_profile_reports_dataset_and_column_issues",
           "tests/integration/test_ring5_public_api.py::TestDataQuality.test_profile_table",
-          "tests/e2e/test_data_managers.py::TestDataQualityProfile.test_profile_dataset"
+          "tests/e2e/test_data_managers.py::TestDataQualityProfile.test_profile_dataset",
+          "tests/e2e/test_data_journeys.py::TestDataInspectionResults.test_quality_profile_download_counts_missing_and_duplicate_data_without_mutation"
         ],
         "documentation": ["docs/user-guide/workflows/managing-datasets.md#profile-data-quality"]
       }
@@ -3903,7 +3937,8 @@
         "tests": [
           "tests/unit/test_dataset_workspace_service.py::test_validated_join_reports_duplicates_unmatched_rows_and_cardinality",
           "tests/integration/test_ring5_public_api.py::TestValidatedDatasetJoins.test_diagnose_and_execute_validated_join",
-          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_join_cardinality_diagnostics_gate_output"
+          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_join_cardinality_diagnostics_gate_output",
+          "tests/e2e/test_data_journeys.py::TestNamedWorkspaceResults.test_join_conflict_blocks_publication_and_the_declared_relationship_is_exact"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#validate-joins-before-creating-output"
@@ -3930,7 +3965,8 @@
         "tests": [
           "tests/unit/test_schema_contract_service.py::test_contract_reports_required_type_null_range_category_and_extra_rules",
           "tests/integration/test_ring5_public_api.py::TestDatasetSchemaContracts.test_infer_define_and_validate_schema_contract",
-          "tests/e2e/test_data_managers.py::TestDatasetSchemaContract.test_validate_inferred_contract"
+          "tests/e2e/test_data_managers.py::TestDatasetSchemaContract.test_validate_inferred_contract",
+          "tests/e2e/test_data_journeys.py::TestSchemaContractSemantics.test_schema_rejection_semantic_conversion_failure_and_undo_preserve_exact_values"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#define-and-validate-a-schema-contract"
@@ -3980,7 +4016,8 @@
           "tests/unit/test_semantic_metadata_service.py::test_conversion_rejects_invalid_requests",
           "tests/unit/test_semantic_metadata_service.py::test_figure_labels_are_inferred_but_explicit_labels_win",
           "tests/unit/test_semantic_metadata_service.py::test_parallel_dimensions_receive_semantic_labels",
-          "tests/unit/test_semantic_metadata_service.py::test_schema_inference_retains_existing_semantic_metadata"
+          "tests/unit/test_semantic_metadata_service.py::test_schema_inference_retains_existing_semantic_metadata",
+          "tests/e2e/test_data_journeys.py::TestSchemaContractSemantics.test_schema_rejection_semantic_conversion_failure_and_undo_preserve_exact_values"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#retain-semantic-labels-and-units"
@@ -4018,7 +4055,8 @@
           "tests/unit/test_dataset_snapshot_service.py::test_load_rejects_checksum_and_fingerprint_tampering",
           "tests/unit/test_parsing_services.py::TestPathService.test_get_dataset_snapshots_dir_creates_directory",
           "tests/integration/test_ring5_public_api.py::TestReusableDatasetSnapshots.test_save_list_reload_overwrite_and_delete",
-          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_save_and_reload_verified_dataset_snapshot"
+          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_save_and_reload_verified_dataset_snapshot",
+          "tests/e2e/test_data_journeys.py::TestNamedWorkspaceResults.test_undo_redo_revision_restore_and_snapshot_preserve_exact_contents"
         ],
         "documentation": [
           "docs/user-guide/workflows/dataset-snapshots.md#reuse-dataset-snapshots"
@@ -4046,7 +4084,7 @@
         "tests": [
           "tests/integration/test_dashboard_public_api.py::test_public_dashboard_renders_both_engines_and_exports_whole_figure",
           "tests/ui_logic/test_dashboard_composer.py::test_composer_builds_previews_and_exports_selected_panels",
-          "tests/e2e/test_dashboard_composer.py::test_build_and_offer_whole_dashboard_export"
+          "tests/e2e/test_dashboard_composer.py::test_build_export_and_link_dashboard_without_changing_source"
         ],
         "documentation": [
           "docs/user-guide/workflows/multi-panel-dashboards.md#build-multi-panel-dashboards"
@@ -4075,7 +4113,7 @@
           "tests/unit/test_linked_selection.py::test_highlight_links_matching_values_without_mutating_figure",
           "tests/integration/test_linked_selection_public_api.py::test_public_linked_selection_highlights_dashboard_copy",
           "tests/ui_logic/test_dashboard_composer.py::test_linked_preview_consumes_selection_and_keeps_base_figure",
-          "tests/e2e/test_dashboard_composer.py::test_build_and_offer_whole_dashboard_export"
+          "tests/e2e/test_dashboard_composer.py::test_build_export_and_link_dashboard_without_changing_source"
         ],
         "documentation": [
           "docs/user-guide/workflows/linked-selections.md#link-dashboard-selections"
@@ -4111,7 +4149,10 @@
           "tests/integration/test_drill_down_public_api.py::test_public_drill_down_recovers_aggregate_source_rows_without_mutation",
           "tests/integration/test_public_value_contracts.py::test_drill_down_and_report_tables_use_owned_public_values",
           "tests/ui_logic/test_render_controller.py::TestDrillDownInteraction.test_click_resolves_rows_and_preserves_config",
-          "tests/e2e/test_plot_drill_down.py::test_point_drill_down_shows_source_rows_and_returns_with_config"
+          "tests/e2e/test_plot_drill_down.py::test_point_drill_down_returns_exact_clicked_category_and_color",
+          "tests/e2e/test_plot_drill_down.py::test_gallery_drill_down_excludes_rows_outside_its_pipeline",
+          "tests/unit/test_source_contribution_adversarial.py::test_multikey_mean_matches_original_rows_after_missing_and_category_sorting",
+          "tests/unit/test_source_contributions.py::test_all_builtin_shapers_preserve_exact_original_contributors"
         ],
         "documentation": [
           "docs/user-guide/workflows/plot-drill-down.md#explore-rows-behind-a-plot"
@@ -4499,7 +4540,7 @@
           "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills"
         ],
         "tests": [
-          "tests/e2e/test_settings.py::TestFigureThemePreset.test_apply_dark_theme_keeps_plot_and_exposes_import_export",
+          "tests/e2e/test_settings.py::TestFigureThemePreset.test_theme_json_round_trip_changes_appearance_and_rejects_data_bindings",
           "tests/integration/test_figure_theme_public_api.py::test_public_theme_round_trip_preserves_data_and_renders_dark_bars_in_both_engines",
           "tests/integration/test_figure_theme_public_api.py::test_public_theme_errors_are_typed_and_do_not_accept_data_bindings",
           "tests/ui_logic/test_render_controller.py::TestRefreshLogic.test_theme_apply_requests_one_refresh_even_when_auto_refresh_is_off",
@@ -4540,7 +4581,7 @@
           "tests/integration/test_dashboard_public_api.py::test_publication_panel_composition_is_consistent_across_engines",
           "tests/integration/test_prepared_native_rendering.py::test_dashboard_owns_each_child_legend_role_and_preserves_numbered_annotation_style",
           "tests/ui_logic/test_dashboard_composer.py::test_composer_exposes_publication_labels_captions_and_spacing",
-          "tests/e2e/test_dashboard_composer.py::test_build_and_offer_whole_dashboard_export"
+          "tests/e2e/test_dashboard_composer.py::test_build_export_and_link_dashboard_without_changing_source"
         ],
         "documentation": [
           "docs/user-guide/workflows/publication-panel-composition.md#compose-publication-panels"
@@ -4598,7 +4639,8 @@
           "tests/unit/test_report_service.py::test_report_service_captures_stable_provenance_and_bounded_tables",
           "tests/integration/test_batch_reports_public_api.py::test_report_contains_every_content_type_and_is_byte_stable",
           "tests/unit/test_report_composer.py::test_report_composer_builds_panel_table_narrative_and_download",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_03_generate_batch_report"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_03_generate_batch_report",
+          "tests/e2e/test_portfolio_lifecycle.py::TestPublicationReportArtifacts.test_report_modes_have_real_content_and_changed_settings_hide_stale_downloads"
         ],
         "documentation": [
           "docs/user-guide/workflows/batch-reports.md#build-analysis-reports"
@@ -4625,7 +4667,8 @@
         "tests": [
           "tests/integration/test_batch_reports_public_api.py::test_interactive_gallery_contains_live_plots_and_each_processed_dataframe",
           "tests/unit/test_report_composer.py::test_report_composer_builds_interactive_gallery_as_individual_cards",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_03_generate_batch_report"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_03_generate_batch_report",
+          "tests/e2e/test_portfolio_lifecycle.py::TestPublicationReportArtifacts.test_report_modes_have_real_content_and_changed_settings_hide_stale_downloads"
         ],
         "documentation": [
           "docs/user-guide/workflows/batch-reports.md#export-an-interactive-gallery"
@@ -4654,7 +4697,8 @@
           "tests/integration/test_browser_upload_application_api.py::test_upload_is_non_mutating_until_confirmed_load_or_restore",
           "tests/unit/test_browser_upload_component.py::test_dataset_upload_routes_to_import_review",
           "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_load_loads_data",
-          "tests/ui/test_plot_widget_ownership.py::test_browser_portfolio_restore_discards_widgets_for_reused_plot_ids"
+          "tests/ui/test_plot_widget_ownership.py::test_browser_portfolio_restore_discards_widgets_for_reused_plot_ids",
+          "tests/e2e/test_data_journeys.py::TestTabularImportJourneys.test_json_and_excel_are_reviewed_before_loading_exact_values"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#upload-data-or-a-portfolio-from-your-browser"
@@ -4683,7 +4727,8 @@
           "tests/unit/test_remote_source_service.py::test_http_ssh_and_s3_adapters_fetch_bounded_credential_safe_sources",
           "tests/integration/test_remote_source_application_api.py::test_remote_download_is_staged_for_review_before_load",
           "tests/unit/test_remote_source_component.py::test_remote_source_fetches_into_existing_import_review",
-          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_remote_source_controls_show_the_authorization_boundary"
+          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_remote_source_controls_show_the_authorization_boundary",
+          "tests/e2e/test_data_journeys.py::TestRemoteSourceBoundary.test_unauthorized_remote_adapters_cannot_fetch"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#fetch-an-authorized-remote-source"
@@ -4715,7 +4760,8 @@
           "tests/integration/test_incremental_parsing.py::test_incremental_parse_reuses_updates_and_removes_exact_source_rows",
           "tests/unit/test_incremental_parse_component.py::test_incremental_background_job_finalizes_an_all_reused_batch",
           "tests/unit/test_application_api_delegation.py::TestIncrementalParsing.test_submit_and_finalize_delegate_to_parser",
-          "tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_incremental_parse_control_is_visible_and_enabled"
+          "tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_incremental_parse_control_is_visible_and_enabled",
+          "tests/e2e/test_data_journeys.py::TestParserRecovery.test_incremental_updates_and_removed_files_rebuild_the_exact_current_table"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#reuse-unchanged-simulator-files"
@@ -4753,7 +4799,9 @@
           "tests/unit/test_parser_playground_component.py::test_playground_dialog_shows_evidence_without_loading_workspace",
           "tests/ui_unit/test_data_source_components.py::test_render_parser_config_submits_the_bounded_playground",
           "tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_parser_playground_action_is_visible",
-          "tests/visual/test_ds_parser_config.py::TestParserConfig.test_parse_button_behaviour"
+          "tests/visual/test_ds_parser_config.py::TestParserConfig.test_parse_button_behaviour",
+          "tests/e2e/test_data_journeys.py::TestParserEvidence.test_playground_parse_and_repeated_attempt_preserve_their_boundaries",
+          "tests/e2e/test_data_journeys.py::TestParserRecovery.test_missing_measurements_remain_visible_in_preview_and_empty_in_parsed_csv"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#test-parser-settings-before-a-full-run"
@@ -4784,7 +4832,8 @@
           "tests/unit/test_import_preview_service.py::test_preview_detects_structure_types_and_explains_rejected_rows",
           "tests/integration/test_import_preview_public_api.py::test_preview_is_non_mutating_and_loads_only_reviewed_rows",
           "tests/unit/test_import_preview_component.py::test_review_applies_type_correction_and_loads_only_after_confirmation",
-          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_review_detects_format_before_loading"
+          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_review_detects_format_before_loading",
+          "tests/e2e/test_data_journeys.py::TestTabularImportJourneys.test_rejected_rows_are_explicit_and_an_empty_result_cannot_replace_data"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#review-a-tabular-import-before-loading"
@@ -4823,7 +4872,8 @@
           "tests/integration/test_analysis_recipe_public_api.py::test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typed",
           "tests/integration/test_analysis_recipe_public_api.py::test_saved_parser_recipe_replays_complete_catalog_without_rescanning",
           "tests/unit/test_analysis_recipe_component.py::test_capture_parameterizes_source_and_saves_without_overwrite",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_04_save_and_download_analysis_recipe"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_04_save_and_download_analysis_recipe",
+          "tests/e2e/test_portfolio_lifecycle.py::TestAnalysisRecipeExchange.test_recipe_download_import_conflict_replace_version_rejection_and_delete"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#save-a-reusable-analysis-recipe"
@@ -4901,7 +4951,8 @@
           "tests/integration/test_portfolio_bundle_public_api.py::test_export_inspect_read_and_restore_portable_bundle",
           "tests/integration/test_portfolio_bundle_public_api.py::test_portable_bundle_errors_use_public_portfolio_error",
           "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio",
-          "tests/ui/test_plot_widget_ownership.py::test_browser_portfolio_restore_discards_widgets_for_reused_plot_ids"
+          "tests/ui/test_plot_widget_ownership.py::test_browser_portfolio_restore_discards_widgets_for_reused_plot_ids",
+          "tests/e2e/test_portfolio_lifecycle.py::TestPortableBundleLifecycle.test_bundle_review_tamper_rejection_and_exact_restore"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#share-a-portable-analysis-bundle"
@@ -4942,7 +4993,8 @@
           "tests/integration/test_signed_portfolio_public_api.py::test_public_api_distinguishes_checksums_and_verified_signatures",
           "tests/integration/test_signed_portfolio_public_api.py::test_modified_portfolio_is_reported_and_never_restored",
           "tests/integration/test_signed_portfolio_public_api.py::test_integrity_public_errors_remain_portfolio_errors",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio",
+          "tests/e2e/test_portfolio_lifecycle.py::TestSignedPortfolioLifecycle.test_signed_save_wrong_secret_rejection_then_exact_authenticated_restore"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#check-integrity-and-authenticate-a-portfolio"
@@ -5003,7 +5055,8 @@
           "tests/unit/test_analysis_recipe_automation_service.py::test_notebook_is_deterministic_safe_and_uses_standard_v4_cells",
           "tests/unit/test_analysis_recipe_component.py::test_saved_recipe_shows_counts_and_portable_automation_downloads",
           "tests/integration/test_analysis_recipe_public_api.py::test_recipe_exports_execute_through_only_the_public_api",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_04_save_and_download_analysis_recipe"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_04_save_and_download_analysis_recipe",
+          "tests/e2e/test_portfolio_lifecycle.py::TestDownloadedRecipeExecution.test_downloaded_python_runs_typed_source_and_output_arguments"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#take-a-recipe-into-python-or-jupyter"
@@ -5061,7 +5114,8 @@
           "tests/unit/test_regression_result_export_service.py::test_json_is_versioned_deterministic_and_retains_result_semantics",
           "tests/unit/test_regression_result_export_service.py::test_junit_maps_regressions_to_failures_and_incomplete_rows_to_skips",
           "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_machine_readable_results_support_tables_and_typed_errors",
-          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview"
+          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview",
+          "tests/e2e/test_data_journeys.py::TestComparisonArtifacts.test_threshold_results_download_as_exact_csv_json_junit_and_confirm"
         ],
         "documentation": [
           "docs/user-guide/guides/compare-configurations.md#export-regression-results-for-automation"

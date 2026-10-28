@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pyarrow as pa
 import pytest
 from pandas import DataFrame
 
@@ -132,26 +133,45 @@ def test_mixer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> 
     assert mock_api.confirm_preview.call_args.kwargs["operation"].startswith("Mixer:")
 
 
-def test_preprocessor_render_op(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:
-    """Test Preprocessor operation workflow."""
+@pytest.mark.parametrize(
+    ("right", "ratio", "columns"),
+    [
+        ("B", 0.25, ["A", "B", "new_col"]),
+        ("A", 1.0, ["A", "new_col"]),
+    ],
+)
+def test_preprocessor_render_op(
+    mock_streamlit: Any,
+    mock_api: Any,
+    sample_data: Any,
+    right: str,
+    ratio: float,
+    columns: list[str],
+) -> None:
+    """Distinct and repeated operands publish an Arrow-serializable preview."""
     _, mock_st = mock_streamlit
 
     manager = PreprocessorManager(mock_api)
     setattr(manager, "get_data", MagicMock(return_value=sample_data))
 
     # Interaction parameters.
-    mock_st.selectbox.side_effect = ["A", "Divide", "B"]
+    mock_st.selectbox.side_effect = ["A", "Divide", right]
     mock_st.text_input.return_value = "new_col"
     preview_key = WidgetKeyBuilder.manager_key("preprocessor", "preview")
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == preview_key
 
     mock_api.managers.list_operators.return_value = ["Divide"]
-    result_df = pd.DataFrame({"A": [1], "B": [4], "new_col": [0.25]})
+    result_df = pd.DataFrame({"A": [1], "B": [4], "new_col": [ratio]})
     mock_api.managers.apply_operation.return_value = result_df
+    mock_st.dataframe.side_effect = lambda frame, **kwargs: pa.Table.from_pandas(frame)
 
     manager.render()
 
     mock_api.managers.apply_operation.assert_called()
+    mock_st.exception.assert_not_called()
+    preview = mock_st.dataframe.call_args_list[0].args[0]
+    assert preview.columns.tolist() == columns
+    assert preview["new_col"].tolist() == [ratio]
 
     # Check result stored via api
     mock_api.set_preview.assert_called_once()

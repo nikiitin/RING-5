@@ -174,4 +174,8 @@ class Mean(UniDfShaper):
         relevant_cols = self.mean_vars + self.grouping_columns + [self.replacing_column]
         fingerprint = compute_data_fingerprint(data_frame, self._params, relevant_cols)
 
-        return copy_dataframe(self._calculate_mean_with_cache(data_frame, fingerprint))
+        result = copy_dataframe(self._calculate_mean_with_cache(data_frame, fingerprint))
+        if self._source_tracker is not None:
+            groups = data_frame.groupby(self.grouping_columns, dropna=False).indices.values()
+            self._source_tracker.append_groups(groups)
+        return result

@@ -6,6 +6,8 @@ from typing import Any, cast, override
 
 import pandas as pd
 
+from src.core.common.source_contributions import SourceTracker
+
 from src.core.models.shaper_models import (
     SplitApplyGroupConfig,
     SplitApplyShaperConfig,
@@ -66,6 +68,7 @@ class SplitApply(UniDfShaper):
     def _apply_sub_pipeline(
         data: pd.DataFrame,
         pipeline: Sequence[Mapping[str, object]],
+        tracker: SourceTracker | None = None,
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame slice.
 
@@ -82,7 +85,7 @@ class SplitApply(UniDfShaper):
         # [impl->req~ring5.shaping.split-apply~1]
         from src.core.services.shapers.pipeline_service import PipelineService
 
-        return PipelineService.process_pipeline(data.copy(), pipeline)
+        return PipelineService._execute(data.copy(), pipeline, tracker)
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
@@ -109,6 +112,7 @@ class SplitApply(UniDfShaper):
 
         # Also include any .sd columns that correspond to group columns
         group_results: list[pd.DataFrame] = []
+        group_roots: list[list[int]] = []
         for idx, group in enumerate(self._groups):
             group_cols: list[str] = list(group.get("columns", []))
             pipeline: Sequence[Mapping[str, object]] = group.get("pipeline", [])
@@ -122,10 +126,11 @@ class SplitApply(UniDfShaper):
             # Slice the DataFrame to only this group's columns
             slice_df: pd.DataFrame = data_frame[select_cols].copy()
 
+            tracker = self._source_tracker.fork() if self._source_tracker is not None else None
             # Apply sub-pipeline if any
             if pipeline:
                 try:
-                    slice_df = self._apply_sub_pipeline(slice_df, pipeline)
+                    slice_df = self._apply_sub_pipeline(slice_df, pipeline, tracker)
                 except (KeyError, TypeError, ValueError, RuntimeError) as e:
                     raise ValueError(
                         f"SplitApply: Sub-pipeline failed for group "
@@ -138,15 +143,30 @@ class SplitApply(UniDfShaper):
                     f"{self._join_columns}; include every row-identifying column."
                 )
             group_results.append(slice_df)
+            if tracker is not None:
+                group_roots.append(tracker.roots.copy())
 
         # Merge results: start with first group, outer-join the rest
         merged: pd.DataFrame = group_results[0]
-        for subsequent in group_results[1:]:
-            merged = merged.merge(
+        if self._source_tracker is not None:
+            self._source_tracker.roots = group_roots[0].copy()
+            self._source_tracker.revision += 1
+        for ordinal, subsequent in enumerate(group_results[1:], start=1):
+            previous = merged
+            merged = previous.merge(
                 subsequent,
                 on=self._join_columns,
                 how="outer",
                 validate="one_to_one",
             )
+            if self._source_tracker is not None:
+                self._source_tracker.merge_branches(
+                    previous,
+                    self._source_tracker.roots.copy(),
+                    subsequent,
+                    group_roots[ordinal],
+                    self._join_columns,
+                    merged,
+                )
 
         return merged

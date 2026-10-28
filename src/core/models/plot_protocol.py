@@ -42,6 +42,10 @@ class PlotProtocol(Protocol):
         """Discard owned derived artifacts after data/configuration changes or removal."""
         raise NotImplementedError
 
+    def replace_pipeline_data(self, source: pd.DataFrame, processed: pd.DataFrame) -> None:
+        """Publish an owned, verified original-source/finalized-output pair atomically."""
+        raise NotImplementedError
+
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:
         """Replace processed data and discard derived figure artifacts."""
         raise NotImplementedError

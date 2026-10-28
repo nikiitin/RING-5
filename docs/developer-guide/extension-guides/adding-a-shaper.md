@@ -49,11 +49,42 @@ of JSON values, 10,000 characters per string and 126 raw container levels. The 1
 SplitApply limits apply independently. Encoded exchange documents also have a 256 KiB file limit.
 These bounds prevent a plugin schema or shared value graph from bypassing admission budgets.
 
+## Preserve finalized source contributions
+
+Plot **Finalize** and per-plot analysis recipe pipelines execute with source tracking enabled.
+The pipeline publishes its original source, finalized output and contributor relation together.
+Implement the relation using `self._source_tracker` when it is present; the scoped
+`Shaper._call_with_source_rows` boundary supplies and clears it around the ordinary numerical call.
+Do not retain the tracker on cached results or change the public `__call__` signature.
+
+Use the actual numerical operation's row positions: `select` for filters and permutations,
+`append_groups` for appended aggregates, `normalize` for original rows plus their baseline,
+`combine_groups` for regrouping and `merge_branches` for joined branch results. A row-preserving
+operation records the identity positions. The tracker owns bounded DAG nodes in
+`src/core/common/source_contributions.py`; no scientific columns carry tracking state. Keep hooks
+outside numerical caches so cache hits bind to the current source and execution. Mean, Normalize,
+PivotLonger and SplitApply show the existing integration points.
+
+Add the exact implementation class to the reviewed tracked types in `PipelineService._execute`
+after reviewing the relation. Registration, a web renderer and inheritance from another shaper do
+not grant this capability. Update the independent Distribution policy according to the operation's
+coordinate semantics. Tracked execution rejects an unreviewed type explicitly, including nested
+SplitApply steps; it never guesses a mapping from final values or replays the current editor draft.
+
+Test identical scientific output with tracking enabled and disabled, exact original row positions,
+duplicated caller indexes, missing values, adjacent and nested transformations, input ownership and
+TypedTable round trips. Aggregation retains original samples; normalization includes its supporting
+baseline. Add the new built-in to `tests/unit/test_source_contributions.py` and cover any new relation
+with focused adversarial cases.
+
 ## Register an application plugin
 
 Scripts use the public definition contract. A plugin has no editor entry unless its definition
 provides an editor position and the application also supplies its web configuration renderer.
-Register plugins before admitting saved pipelines that use them.
+Register plugins before admitting saved pipelines that use them. Registered plugins work with
+`Session.shape`; using one in a plot's Finalize or per-plot recipe pipeline also requires the reviewed
+contribution integration described above. A shaped plugin result passed directly to
+`Session.create_plot` establishes that explicit result table as the new plot's source.
 
 ```python
 from collections.abc import Mapping

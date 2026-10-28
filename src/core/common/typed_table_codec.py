@@ -16,6 +16,7 @@ import pandas as pd
 
 from src.core.common.content_identity import content_signature, frame_signature
 from src.core.common.distribution_metadata import inspect_distribution_layouts
+from src.core.common.source_contributions import inspect_source_contributions
 from src.core.common.security_limits import (
     MAX_TYPED_TABLE_BYTES,
     MAX_TYPED_TABLE_CELLS,
@@ -326,6 +327,7 @@ class TypedTableCodec:
     @staticmethod
     def _validate_attrs(data: pd.DataFrame) -> None:
         inspect_distribution_layouts(data)
+        inspect_source_contributions(data)
         if SEMANTICS_ATTR in data.attrs:
             normalized = semantics_to_payload(inspect_semantics(data))
             if content_signature(normalized) != content_signature(data.attrs[SEMANTICS_ATTR]):

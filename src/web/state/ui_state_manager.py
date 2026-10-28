@@ -63,6 +63,12 @@ class WidgetKeyBuilder:
         return key
 
     @staticmethod
+    def data_source_key(key: str) -> str:
+        """Keep a Data Source widget stable until its workspace projection is retired."""
+        generation = st.session_state.get("data_source.widget_generation", 0)
+        return f"{key}.__reset_{generation}" if generation else key
+
+    @staticmethod
     def manager_key(manager: str, *parts: str) -> str:
         """Build a namespaced key for a data manager."""
         return f"manager.{manager}.{'_'.join(parts)}"
@@ -137,6 +143,17 @@ class _ManagerUIState:
     Namespaced under ``manager.{manager_name}.*``.
     """
 
+    def set_success_notice(self, manager_name: str, message: str) -> None:
+        """Retain a successful publication message across its app refresh."""
+        st.session_state[WidgetKeyBuilder.manager_key(manager_name, "success_notice")] = message
+
+    def consume_success_notice(self, manager_name: str) -> str | None:
+        """Take this manager's publication message once after the refresh."""
+        result: str | None = st.session_state.pop(
+            WidgetKeyBuilder.manager_key(manager_name, "success_notice"), None
+        )
+        return result
+
     def consume_load_trigger(self, manager_name: str) -> dict[str, Any] | None:
         """Get and clear a load trigger (atomic pop)."""
         result: dict[str, Any] | None = st.session_state.pop(
@@ -191,8 +208,58 @@ class _ParseUIState:
         st.session_state["parse.completion"] = notice
 
 
+class _DataSourceUIState:
+    """Retire parser and import widget projections before a workspace is replaced."""
+
+    _PREFIXES = (
+        "data_source.",
+        "var_",
+        "delete_var_",
+        "use_pattern_filter_",
+        "pattern_entries_",
+        "keep_source_indices_",
+        "hist_parse_mode_",
+        "hist_rebin_",
+        "hist_bins_",
+        "hist_max_range_",
+        "hist_entry_mode_",
+        "vec_parse_mode_",
+        "entry_mode_",
+        "deep_scan_",
+        "finish_",
+        "vector_entries_",
+        "stat_",
+        "dist_",
+        "config_onempty_",
+        "dialog_",
+    )
+    _KEYS = (
+        "data_source_choice",
+        "simulator_selector",
+        "stats_path_input",
+        "stats_pattern_input",
+        "parser_strategy_selector",
+        "parser_incremental_enabled",
+        "parser_test_configuration",
+        "add_selected_var",
+        "add_manual_var",
+        "adv_repeat",
+    )
+
+    def cleanup(self) -> None:
+        """Retire owned values and browser identities before projecting current core state."""
+        generation = st.session_state.get("data_source.widget_generation", 0)
+        _clear_keys(self._PREFIXES)
+        for key in list(st.session_state):
+            if isinstance(key, str) and any(
+                key == logical or key.startswith(f"{logical}.__reset_") for logical in self._KEYS
+            ):
+                del st.session_state[key]
+        st.session_state["data_source.widget_generation"] = generation + 1
+
+
 class UIStateManager:
-    """Own transient plot, manager, navigation and parse state for this session."""
+    """Own transient presentation state for this browser session."""
 
     def __init__(self) -> None:
         """Initialize sub-managers."""
@@ -200,7 +267,9 @@ class UIStateManager:
         self.manager: _ManagerUIState = _ManagerUIState()
         self.nav: _NavUIState = _NavUIState()
         self.parse: _ParseUIState = _ParseUIState()
+        self.data_source: _DataSourceUIState = _DataSourceUIState()
 
     def cleanup_all(self) -> None:
         """Clear workspace widget state, retaining global preferences and browser identity."""
         _clear_keys(("plot.", "manager.", "nav.", "parse."))
+        self.data_source.cleanup()

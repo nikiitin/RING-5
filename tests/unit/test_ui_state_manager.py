@@ -162,8 +162,45 @@ def test_workspace_reset_preserves_browser_owner_api_and_engine_preferences(
         }
     )
     ui_state.cleanup_all()
-    assert mock_state == retained
+    assert mock_state == {**retained, "data_source.widget_generation": 1}
     assert mock_state["api"] is api
+
+
+def test_replacement_discards_data_source_projections_without_touching_global_owners(
+    ui_state: UIStateManager, mock_state: dict[Any, Any]
+) -> None:
+    retained = {
+        "api": object(),
+        "ring5_engine_mode": "matplotlib",
+        "_recovery_last_capture_at": 1.0,
+    }
+    owned = {
+        "data_source_choice": "Upload data or portfolio",
+        "stats_path_input": "/retired/results",
+        "stats_pattern_input": "retired.stats",
+        "parser_strategy_selector": "config_aware",
+        "simulator_selector": "retired_backend",
+        "parser_incremental_enabled": False,
+        "data_source.import_types.old_hash": {"edited": True},
+        "data_source.remote.bearer_token": "retired-secret",
+        "data_source.browser_upload": object(),
+        "var_name_old_id": "retired.stat",
+        "var_alias_old_id": "retired alias",
+        "var_source_type_old_id": "vector",
+        "dist_bucket_size_old_id": 2.0,
+        "vector_entries_select_old_id__search": "retired search",
+        "use_pattern_filter_old_id": True,
+        "pattern_entries_old_id": ["retired.source"],
+        "config_onempty_old_id": "retired fallback",
+        "dialog_manual_name": "retired dialog",
+        "adv_repeat": 4,
+    }
+    mock_state.update(retained)
+    mock_state.update(owned)
+
+    ui_state.cleanup_all()
+
+    assert mock_state == {**retained, "data_source.widget_generation": 1}
 
 
 def test_parse_completion_is_shared_but_not_consumed_by_another_accessor(
@@ -208,7 +245,7 @@ def test_workspace_restore_discards_a_previous_parse_notice(
 
     assert ui_state.parse.get_completion() is None
     assert ui_state.parse.get_job_id() is None
-    assert set(mock_state) == {"api"}
+    assert set(mock_state) == {"api", "data_source.widget_generation"}
 
 
 def test_widget_identities_are_stable_until_their_owned_scope_resets(
@@ -293,3 +330,50 @@ def test_widget_reset_cleans_all_generated_descendants_and_cleanup_discards_epoc
     assert WidgetKeyBuilder.plot_key(1, "widgets.appearance.series") == (
         "plot.1.widgets.appearance.series"
     )
+
+
+def test_data_source_keys_change_only_when_the_workspace_projection_is_retired(
+    ui_state: UIStateManager, mock_state: dict[Any, Any]
+) -> None:
+    logical_keys = (
+        "data_source_choice",
+        "stats_path_input",
+        "data_source.browser_upload",
+        "data_source.remote.bearer_token",
+        "var_name_saved_id",
+        "dialog_manual_name",
+        "pattern_entries_saved_id",
+    )
+    initial = {key: WidgetKeyBuilder.data_source_key(key) for key in logical_keys}
+    assert initial == dict(zip(logical_keys, logical_keys, strict=True))
+    mock_state["api"] = owner = object()
+    mock_state["ring5_engine_mode"] = "matplotlib"
+    for generation in (1, 2, 3):
+        retired = {key: WidgetKeyBuilder.data_source_key(key) for key in logical_keys}
+        mock_state.update({physical: "retired" for physical in retired.values()})
+        ui_state.cleanup_all()
+        for logical, previous in retired.items():
+            physical = WidgetKeyBuilder.data_source_key(logical)
+            assert physical == f"{logical}.__reset_{generation}"
+            assert physical != previous
+            assert WidgetKeyBuilder.data_source_key(logical) == physical
+            assert previous not in mock_state
+        assert mock_state["api"] is owner
+        assert mock_state["ring5_engine_mode"] == "matplotlib"
+        assert mock_state["data_source.widget_generation"] == generation
+
+
+def test_manager_success_notice_is_consumed_once_within_its_owner(
+    ui_state: UIStateManager, mock_state: dict[Any, Any]
+) -> None:
+    ui_state.manager.set_success_notice("schema_contract", "Converted latency to s")
+    ui_state.manager.set_success_notice("mixer", "Mixed columns")
+
+    assert UIStateManager().manager.consume_success_notice("schema_contract") == (
+        "Converted latency to s"
+    )
+    assert ui_state.manager.consume_success_notice("schema_contract") is None
+    assert mock_state == {"manager.mixer.success_notice": "Mixed columns"}
+
+    ui_state.cleanup_all()
+    assert ui_state.manager.consume_success_notice("mixer") is None

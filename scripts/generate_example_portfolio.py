@@ -284,10 +284,10 @@ def build_example_plots(data: pd.DataFrame) -> list[BasePlot]:
         plot.config = copy.deepcopy(combined)
         plot.pipeline = copy.deepcopy(pipeline)
         plot.pipeline_counter = len(pipeline)
-        plot.replace_source_data(data)
-        plot.replace_processed_data(
-            PipelineService.process_pipeline(data, [step["config"] for step in pipeline])
+        processed = PipelineService.process_pipeline(
+            data, [step["config"] for step in pipeline], track_source_rows=True
         )
+        plot.replace_pipeline_data(data, processed)
         plots.append(plot)
 
     add(

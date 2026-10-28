@@ -1,0 +1,4 @@
+benchmark_name=alpha
+config_description=baseline
+simTicks 123 # Simulated ticks
+system.cpu.ipc 1.5 # Instructions per cycle

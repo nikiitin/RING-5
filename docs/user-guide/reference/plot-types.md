@@ -148,7 +148,10 @@ Covers:
 
 Histogram plots select a logical frequency variable and optional categorical group. Grouped traces
 overlay. Native Distribution data uses its exact declared bindings, including arbitrary physical
-column names. Ordinary Vector/CSV data uses the explicit interval suffix contract described below.
+column names. Ordinary Vector/CSV data uses the explicit interval suffix contract described below. The editor
+preserves these intervals by default. Enable **Rebin continuous intervals** and choose a positive
+**Bucket Size** to redistribute counts into a different width; fractional widths are supported.
+Disable rebinning to return to the original interval geometry.
 
 A native view displays storage-cell mass at ordinal positions with literal bucket labels and equal
 glyph widths. The default axis title is **Native bucket**; an explicit title takes precedence.

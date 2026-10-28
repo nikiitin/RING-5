@@ -15,7 +15,13 @@ import re
 import shutil
 from pathlib import Path
 
-from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
+from playwright.sync_api import (
+    Download,
+    Locator,
+    Page,
+    TimeoutError as PlaywrightTimeoutError,
+    expect,
+)
 
 from tests.visual.pages.base_page import BasePage
 
@@ -208,9 +214,9 @@ class DataSourcePage(BasePage):
     @property
     def parse_button(self) -> Locator:
         """'Parse gem5 Stats Files' primary action button."""
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stBaseButton-primary']"
-        ).filter(has_text="Parse gem5 Stats Files")
+        return self.page.get_by_test_id("stMainBlockContainer").get_by_role(
+            "button", name="Parse gem5 Stats Files", exact=True
+        )
 
     @property
     def incremental_parse_checkbox(self) -> Locator:
@@ -244,6 +250,20 @@ class DataSourcePage(BasePage):
         return self.page.locator("input[type='file']")
 
     @property
+    def upload_interpretation_selectbox(self) -> Locator:
+        """Declared interpretation for a browser dataset, portfolio, or bundle."""
+        return self.page.get_by_test_id("stSelectbox").filter(
+            has=self.page.get_by_text("Interpret upload as", exact=True)
+        )
+
+    @property
+    def upload_validation_error(self) -> Locator:
+        """Validation rejection shown before any upload can replace workspace data."""
+        return self.page.get_by_test_id("stAlertContentError").filter(
+            has_text="Upload validation failed:"
+        )
+
+    @property
     def upload_origin_control(self) -> Locator:
         """Selector between local browser and remote sources."""
         return self.page.get_by_role("radiogroup", name="Source location")
@@ -261,12 +281,19 @@ class DataSourcePage(BasePage):
     @property
     def remote_adapter_select(self) -> Locator:
         """Remote transport adapter selector."""
-        return self.page.get_by_text("Remote adapter", exact=True)
+        return self.page.get_by_test_id("stSelectbox").filter(
+            has=self.page.get_by_text("Remote adapter", exact=True)
+        )
 
     @property
     def remote_https_url_input(self) -> Locator:
         """HTTPS remote-source URL input."""
         return self.page.get_by_label("HTTPS URL")
+
+    @property
+    def remote_fetch_button(self) -> Locator:
+        """Explicit remote fetch action subject to the server host allowlist."""
+        return self.page.get_by_role("button", name="Fetch and validate", exact=False)
 
     # SECTION 5: Recent CSV pool (Load from Recent mode)
 
@@ -313,6 +340,11 @@ class DataSourcePage(BasePage):
     def import_accepted_metric(self) -> Locator:
         """Accepted-row count from the structured preview."""
         return self.page.locator("[data-testid='stMetric']").filter(has_text="Accepted rows")
+
+    @property
+    def import_rejected_metric(self) -> Locator:
+        """Rejected-row count from the structured preview."""
+        return self.page.get_by_test_id("stMetric").filter(has_text="Rejected rows")
 
     @property
     def load_accepted_import_button(self) -> Locator:
@@ -459,6 +491,31 @@ class DataSourcePage(BasePage):
         )
 
     @property
+    def parse_job_load_partial_button(self) -> Locator:
+        """Explicit consent to replace workspace data with a partial parse result."""
+        return self.page.get_by_test_id("stMainBlockContainer").get_by_role(
+            "button", name="Load Partial", exact=True
+        )
+
+    @property
+    def parse_job_dismiss_button(self) -> Locator:
+        """Acknowledge one terminal attempt without loading its data."""
+        return self.page.get_by_test_id("stMainBlockContainer").get_by_role(
+            "button", name="Dismiss", exact=True
+        )
+
+    def get_parse_recovery_id(self) -> str:
+        """Read the exact terminal job identity from its keyed recovery control."""
+        owner = self.parse_job_retry_button.locator(
+            "xpath=ancestor::*[contains(@class, 'st-key-retry_parse_job_')][1]"
+        )
+        expect(owner).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        classes = owner.get_attribute("class") or ""
+        matches = re.findall(r"\bst-key-retry_parse_job_([0-9a-f]{32})\b", classes)
+        assert len(matches) == 1, "Expected one job-bound recovery control"
+        return matches[0]
+
+    @property
     def parse_completion_notice(self) -> Locator:
         """Persistent keyed notice for the session's last consumed parse result."""
         return self.page.locator("[class*='st-key-parse_completion_']")
@@ -496,14 +553,16 @@ class DataSourcePage(BasePage):
         """Select a segmented-control option and wait for its rerun."""
         if option.is_checked():
             return
-        # Streamlit replaces segmented-control buttons as soon as their callback
-        # starts a rerun.  The normal Playwright actionability sequence can see
-        # the old button detach between scrolling and mouse dispatch, then retry
-        # against a control whose visibility has changed.  A forced pointer click
-        # still exercises the real React handler while avoiding that stale-node
-        # retry window.
-        option.click(force=True)
-        self.wait_for_streamlit(expect_rerun=True)
+        # Keyboard activation targets the real radio even when retained scroll
+        # position places it underneath Streamlit's fixed header.
+        in_dialog = option.locator("xpath=ancestor::*[@data-testid='stDialog']").count() > 0
+        if in_dialog:
+            # Callers await the dialog's changed body to prove its fragment
+            # committed; the enclosing app need not publish a running cycle.
+            option.press("Space", timeout=self.RENDER_TIMEOUT)
+        else:
+            with self.expect_script_rerun():
+                option.press("Space", timeout=self.RENDER_TIMEOUT)
         expect(option).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     def _refresh_data_source_render(self) -> None:
@@ -515,12 +574,12 @@ class DataSourcePage(BasePage):
         Visiting a sibling page and returning provides a deterministic full-app
         synchronization point while preserving the session under test.
         """
-        self.sidebar.get_by_role("button", name="Data Managers").click(force=True)
+        self.sidebar.get_by_role("button", name="Data Managers", exact=True).click(force=True)
         self.page.get_by_text("Data Managers & Transformations").wait_for(
             state="visible",
             timeout=self.RENDER_TIMEOUT,
         )
-        self.sidebar.get_by_role("button", name=self.PAGE_NAME).click(force=True)
+        self.sidebar.get_by_role("button", name=self.PAGE_NAME, exact=True).click(force=True)
         self.step_header.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
         self.wait_for_streamlit()
 
@@ -672,6 +731,9 @@ class DataSourcePage(BasePage):
     def switch_dialog_to_manual(self) -> None:
         """Switch the Add Variable dialog to Manual Entry mode."""
         self._select_mode(self.dialog_manual_pill)
+        expect(
+            self.dialog_overlay.get_by_role("textbox", name="Variable Name", exact=True)
+        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def switch_dialog_to_search(self) -> None:
         """Switch the Add Variable dialog to Search Scanned Variables."""
@@ -795,6 +857,30 @@ class DataSourcePage(BasePage):
         # Do not infer success from Streamlit's transient running indicator: a
         # fast or missed rerun can make that wait return before state is stored.
         expect(self.loaded_review_success).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def upload_for_review(self, path: str | Path, interpretation: str = "Auto detect") -> None:
+        """Upload and validate one file without loading or restoring its content."""
+        self.select_csv_mode()
+        self._select_mode(self.local_source_option)
+        self._open_and_select(self.upload_interpretation_selectbox, interpretation)
+        self.browser_upload_input.set_input_files(str(path))
+        validated = self.page.get_by_test_id("stAlertContentSuccess").filter(
+            has_text=re.compile(r"Validated .+: " + re.escape(Path(path).name))
+        )
+        expect(validated).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def download_playground_sample(self) -> Download:
+        """Download the real sampled table from the parser dialog's dataframe toolbar."""
+        table = self.dialog_overlay.get_by_test_id("stDataFrame")
+        expect(table).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        table.hover()
+        self.page.evaluate(
+            "Object.defineProperty(window, 'showSaveFilePicker', "
+            "{configurable: true, value: undefined})"
+        )
+        with self.page.expect_download(timeout=self.RENDER_TIMEOUT) as pending:
+            self.dialog_overlay.get_by_role("button", name="Download as CSV", exact=True).click()
+        return pending.value
 
     # Assertions
 
@@ -1122,6 +1208,7 @@ class DataSourcePage(BasePage):
         expect(self.data_rows_metric.get_by_test_id("stMetricValue")).to_have_text(
             re.compile(r"^[1-9][\d,]*$"), timeout=timeout
         )
+        expect(self.parse_button).to_have_count(1, timeout=timeout)
         expect(self.parse_button).to_be_enabled(timeout=timeout)
         expect(self.parse_job_heading).not_to_be_visible(timeout=timeout)
         expect(self.parse_job_retry_button).not_to_be_visible(timeout=timeout)
@@ -1131,6 +1218,26 @@ class DataSourcePage(BasePage):
         """Submit a parse and wait for its automatic background consumption."""
         self.click_parse()
         self.wait_for_parse_completion(timeout=timeout)
+
+    def retry_parse_and_wait(self, *, timeout: int = 60_000) -> None:
+        """Request a fresh attempt and require a new consumed result identity."""
+        previous_job = self.get_parse_recovery_id()
+        self._parse_attempt_pending = False
+        self._previous_parse_completion_id = (
+            self.get_parse_completion_id() if self.parse_completion_notice.count() else None
+        )
+        self.parse_job_retry_button.click()
+        self._parse_attempt_pending = True
+        self.wait_for_parse_completion(timeout=timeout)
+        assert self.get_parse_completion_id() != previous_job, "Retry must create a new attempt"
+
+    def load_partial_parse_and_wait(self, *, timeout: int = 60_000) -> None:
+        """Explicitly consume the inspected partial job and verify that exact identity."""
+        expected_job = self.get_parse_recovery_id()
+        self.parse_job_load_partial_button.click()
+        expect(self.parse_completion_notice).to_be_visible(timeout=timeout)
+        assert self.get_parse_completion_id() == expected_job
+        self._assert_consumed_parse_data(timeout=timeout)
 
     def wait_for_parse_terminal_outcome(self, *, timeout: int = 60_000) -> None:
         """Require this submission's consumed notice or explicit manual recovery."""

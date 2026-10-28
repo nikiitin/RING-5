@@ -95,7 +95,11 @@ from src.core.services.example_portfolio_service import (
     load_example_portfolio as read_example_portfolio,
 )
 from src.core.services.shapers.shapers_api import ShapersAPI
-from src.core.services.visualization.drill_down_service import drill_down_rows
+from src.core.services.visualization.drill_down_service import (
+    drill_down_rows,
+    matching_row_positions,
+)
+from src.core.common.source_contributions import require_source_contributions
 from src.core.services.visualization.small_multiples_service import (
     create_small_multiples_spec as build_small_multiples_spec,
 )
@@ -1594,10 +1598,24 @@ class ApplicationAPI:
         )
         if plot is None:
             raise ValueError(f"Drill-down references unknown plot ID: {plot_id}.")
-        source_data = plot.source_data if plot.source_data is not None else plot.processed_data
-        if source_data is None:
+        source_data, processed_data = plot.source_data, plot.processed_data
+        if source_data is None or processed_data is None:
             raise ValueError(f"Plot {plot_id} has no source data to inspect.")
-        return drill_down_rows(plot_id, source_data, filters)
+        relation = require_source_contributions(source_data, processed_data)
+        if not isinstance(filters, Mapping):
+            raise ValueError("Drill-down filters must be a column-to-value mapping.")
+        point_filters = {
+            column: value for column, value in filters.items() if column in processed_data.columns
+        }
+        source_filters = {
+            column: value
+            for column, value in filters.items()
+            if column not in processed_data.columns
+        }
+        positions, _ = matching_row_positions(processed_data, point_filters)
+        contributors = source_data.iloc[relation.resolve(positions)]
+        matched = drill_down_rows(plot_id, contributors, source_filters)
+        return DrillDownResult(plot_id, tuple(filters.items()), matched.rows)
 
     # Previews (Delegated to StateManager)
 

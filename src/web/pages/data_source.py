@@ -5,6 +5,8 @@ Page for selecting and configuring data sources.
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.application_api import ApplicationAPI
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from src.web.components.example_portfolio import render_example_portfolio
@@ -50,7 +52,7 @@ class DataSourcePage:
             "Select your data source:",
             data_source_options,
             default=data_source_options[0],
-            key="data_source_choice",
+            key=WidgetKeyBuilder.data_source_key("data_source_choice"),
         )
 
         if choice == parse_label:

@@ -44,6 +44,10 @@ class PlotHandle(Protocol):
     pipeline: list[PipelineStep]
     pipeline_counter: int
 
+    def replace_pipeline_data(self, source: pd.DataFrame, processed: pd.DataFrame) -> None:
+        """Publish an owned, verified original-source/finalized-output pair atomically."""
+        raise NotImplementedError
+
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:
         """Replace processed data and invalidate all derived render state."""
         raise NotImplementedError
@@ -170,6 +174,8 @@ class PipelineExecutor(Protocol):
         self,
         data: pd.DataFrame,
         configs: Sequence[Mapping[str, object]],
+        *,
+        track_source_rows: bool = False,
     ) -> pd.DataFrame:
         """Apply a shaper pipeline to data."""
         raise NotImplementedError

@@ -15,6 +15,8 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.common.source_contributions import SourceTracker
+
 
 class Shaper(ABC):
     """
@@ -42,6 +44,17 @@ class Shaper(ABC):
 
         ShaperFactory.validate_implementation(type(self), params)
         self.params: dict[str, Any] = deepcopy(params)
+        self._source_tracker: SourceTracker | None = None
+
+    def _call_with_source_rows(
+        self, data_frame: pd.DataFrame, tracker: SourceTracker
+    ) -> pd.DataFrame:
+        """Scope an owned contribution sidecar to this one canonical operation."""
+        self._source_tracker = tracker
+        try:
+            return self(data_frame)
+        finally:
+            self._source_tracker = None
 
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """
