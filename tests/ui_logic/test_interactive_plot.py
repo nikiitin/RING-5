@@ -8,11 +8,13 @@ Verifies:
 """
 
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import plotly.graph_objects as go
+import pytest
 
 MODULE = "src.web.components.plotting.interactive_plot"
 
@@ -136,6 +138,51 @@ class TestInteractivePlotlyChart:
         interactive_plotly_chart(go.Figure(), capture_click=True)
 
         assert mock_func.call_args.kwargs["capture_click"] is True
+
+    @pytest.mark.parametrize("capture_click", [False, True])
+    @patch(f"{MODULE}._component_func")
+    def test_click_capture_owns_its_hover_policy_without_mutating_the_figure(
+        self, mock_func: MagicMock, capture_click: bool
+    ) -> None:
+        """Only the click-enabled browser snapshot uses closest-point hover."""
+        from src.web.components.plotting.interactive_plot import interactive_plotly_chart
+
+        figure = go.Figure(
+            [
+                go.Bar(x=[10, 30], y=[18, 30], name="Baseline"),
+                go.Bar(x=[10, 30], y=[32, 36], name="Prefetch"),
+            ],
+            layout={"hovermode": "x unified", "barmode": "overlay", "title": "Latency"},
+        )
+        original = figure.to_plotly_json()
+        expected = deepcopy(original)
+        if capture_click:
+            expected["layout"]["hovermode"] = "closest"
+
+        interactive_plotly_chart(figure, capture_click=capture_click)
+
+        assert json.loads(mock_func.call_args.kwargs["spec"]) == expected
+        assert mock_func.call_args.kwargs["capture_click"] is capture_click
+        assert figure.to_plotly_json() == original
+        assert figure.layout.hovermode == "x unified"
+
+    @patch(f"{MODULE}._component_func")
+    def test_disabling_click_capture_restores_the_configured_hover_mode(
+        self, mock_func: MagicMock
+    ) -> None:
+        """A later ordinary render uses the unchanged figure's configured hover mode."""
+        from src.web.components.plotting.interactive_plot import interactive_plotly_chart
+
+        figure = go.Figure(go.Bar(x=[10], y=[32]), layout={"hovermode": "y unified"})
+        original = figure.to_plotly_json()
+
+        interactive_plotly_chart(figure, key="same-chart", capture_click=True)
+        interactive_plotly_chart(figure, key="same-chart", capture_click=False)
+
+        first, second = mock_func.call_args_list
+        assert json.loads(first.kwargs["spec"])["layout"]["hovermode"] == "closest"
+        assert json.loads(second.kwargs["spec"]) == original
+        assert figure.to_plotly_json() == original
 
     @patch(f"{MODULE}._component_func")
     def test_returns_component_value(self, mock_func: MagicMock) -> None:

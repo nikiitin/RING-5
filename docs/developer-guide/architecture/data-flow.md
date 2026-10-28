@@ -129,6 +129,11 @@ PlotRepository compares object identity when disposing removed or replaced plots
 publication and rejected-candidate cleanup. Duplication detaches artifacts before copying domain
 state; transient facet views never acquire ownership of the source plot's artifacts.
 
+Workspace storage detaches the per-plot source contributor declaration when it owns primary,
+processed or named revision data. Manager previews and later revisions therefore cannot inherit a
+finalized plot's claim after values or rows change. Other scientific metadata remains intact.
+Finalized plot source/output pairs retain their own validated contributor relation independently.
+
 Manager services and shapers copy their inputs. A confirmed manager result replaces the workspace
 table; a shaper result belongs to its plot. The render controller pairs processed data, persisted
 configuration, rendering engine, and a cache key before reusing a figure.

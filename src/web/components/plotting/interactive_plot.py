@@ -48,7 +48,7 @@ def interactive_plotly_chart(
         config: Optional Plotly configuration dictionary
         key: Optional Streamlit component key for state management
         capture_selection: Return sanitized Plotly box/lasso selection events.
-        capture_click: Return sanitized clicks carrying drill-down filters.
+        capture_click: Capture a closest-point click without changing the figure.
 
     Returns:
         Dictionary containing relayoutData if an interaction occurred,
@@ -57,9 +57,13 @@ def interactive_plotly_chart(
     # [impl->req~ring5.figure.interactive-editing~1]
     # [impl->req~ring5.plots.linked-selections~1]
     # [impl->req~ring5.plots.drill-down~1]
+    spec = fig.to_plotly_json()
+    if capture_click:
+        # Unified hover supplies multiple series; exploration needs one clicked point.
+        spec["layout"]["hovermode"] = "closest"
     # Avoid a late native orjson import while parser threads may be active.
     fig_json = json.dumps(
-        fig.to_plotly_json(),
+        spec,
         cls=PlotlyJSONEncoder,
         separators=(",", ":"),
     )

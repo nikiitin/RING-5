@@ -11,50 +11,19 @@ Columns: benchmark_name, config_description, seed, system.cpu.ipc,
 
 from __future__ import annotations
 
+from pathlib import Path
+from statistics import quantiles
+
 import pytest
-from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
+from playwright.sync_api import Page, expect
 
 from tests.visual.pages.data_managers_page import DataManagersPage
+from tests.visual.pages.data_source_page import DataSourcePage
+from tests.visual.pages.plot_interactions_page import PlotInteractionsPage
 
 pytestmark = pytest.mark.requires_browser
 
 _E2E_TIMEOUT: int = 30_000
-
-
-# Helpers — Streamlit widget interaction
-
-
-def _select_dropdown_option(page: Page, selectbox: Locator, text: str) -> None:
-    """Open a Streamlit selectbox and choose *text*, retrying missed clicks."""
-    option = page.get_by_role("option", name=text, exact=True).first
-    for attempt in range(3):
-        selectbox.get_by_role("combobox").click()
-        try:
-            option.wait_for(state="visible", timeout=5_000)
-            option.click(timeout=5_000)
-        except PlaywrightTimeoutError:
-            page.keyboard.press("Escape")
-            if attempt == 2:
-                raise
-            page.wait_for_timeout(250)
-            continue
-        return
-
-
-def _select_second_dropdown_option(page: Page, selectbox: Locator) -> None:
-    """Choose the second available option, retrying a click lost to a rerun."""
-    option = page.get_by_role("option").nth(1)
-    for _ in range(3):
-        selectbox.get_by_role("combobox").click()
-        try:
-            option.wait_for(state="visible", timeout=5_000)
-            option.click(timeout=5_000)
-        except PlaywrightTimeoutError:
-            page.keyboard.press("Escape")
-            page.wait_for_timeout(250)
-            continue
-        return
-    expect(option).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
 # Page structure
@@ -110,10 +79,20 @@ class TestDataManagersPageStructure:
 
 @pytest.mark.xdist_group("e2e_data_managers_outlier")
 class TestOutlierRemover:
-    """Tier 1: Outlier Remover workflow (ordered tests, state accumulates)."""
+    """Remove a known extreme sample through one ordered, grouped IQR workflow."""
 
     @pytest.mark.order(1)
-    def test_01_tab_loads(self, tier1_page: Page) -> None:
+    def test_01_tab_loads(self, tier1_page: Page, tmp_path: Path) -> None:
+        source = tmp_path / "grouped-outlier.csv"
+        source.write_text(
+            "benchmark_name,config_description,seed,simTicks\n"
+            "alpha,baseline,0,10\nalpha,baseline,1,11\nalpha,baseline,2,12\n"
+            "alpha,baseline,3,13\nalpha,baseline,4,14\nalpha,baseline,5,1000\n",
+            encoding="utf-8",
+        )
+        uploader = DataSourcePage(tier1_page)
+        uploader.navigate()
+        uploader.upload_csv(source)
         dm = DataManagersPage(tier1_page)
         dm.navigate()
         dm.select_tab("Outlier Remover")
@@ -123,7 +102,7 @@ class TestOutlierRemover:
     @pytest.mark.order(2)
     def test_02_select_column(self, tier1_page: Page) -> None:
         dm = DataManagersPage(tier1_page)
-        _select_dropdown_option(tier1_page, dm.outlier_column_selectbox, "simTicks")
+        dm._open_and_select(dm.outlier_column_selectbox, "simTicks")
         dm.wait_for_streamlit()
 
     @pytest.mark.order(3)
@@ -135,8 +114,20 @@ class TestOutlierRemover:
     @pytest.mark.order(4)
     def test_04_confirm_applies_filter(self, tier1_page: Page) -> None:
         dm = DataManagersPage(tier1_page)
+        interactions = PlotInteractionsPage(tier1_page)
+        before = interactions.download_workspace_rows()
+        assert [float(row["simTicks"]) for row in before] == [10, 11, 12, 13, 14, 1000]
+        assert {(row["benchmark_name"], row["config_description"]) for row in before} == {
+            ("alpha", "baseline")
+        }
+        q1, _, q3 = quantiles([float(row["simTicks"]) for row in before], n=4, method="inclusive")
+        lower, upper = q1 - 1.5 * (q3 - q1), q3 + 1.5 * (q3 - q1)
+        expected = [row for row in before if lower <= float(row["simTicks"]) <= upper]
+        assert len(expected) == 5
+        dm.select_tab("Outlier Remover")
         dm.confirm_outlier_remover()
-        dm.assert_success_message_visible()
+        assert interactions.download_workspace_rows() == expected
+        dm.assert_summary_has_rows(expected=5)
 
 
 # Seeds Reducer
@@ -198,16 +189,29 @@ class TestMixer:
         dm = DataManagersPage(tier1_page)
         dm.add_mixer_column("system.cpu.ipc")
         dm.add_mixer_column("simTicks")
-        tier1_page.keyboard.press("Escape")
-        dm.wait_for_streamlit()
+        dm._open_and_select(dm.mixer_operation_selectbox, "Sum")
         dm.mixer_new_name_input.fill("mixed_metric")
         dm.apply_mixer_preview()
 
     @pytest.mark.order(4)
     def test_04_confirm_merge(self, tier1_page: Page) -> None:
         dm = DataManagersPage(tier1_page)
+        interactions = PlotInteractionsPage(tier1_page)
+        before = interactions.download_workspace_rows()
+        assert len(before) == 18
+        assert all("mixed_metric" not in row for row in before)
+        dm.select_tab("Mixer")
         dm.confirm_mixer()
-        dm.assert_success_message_visible()
+        after = interactions.download_workspace_rows()
+        assert len(after) == len(before)
+        for source, merged in zip(before, after, strict=True):
+            assert set(merged) == set(source) | {"mixed_metric"}
+            assert {name: merged[name] for name in source} == source
+            assert float(merged["mixed_metric"]) == (
+                float(source["system.cpu.ipc"]) + float(source["simTicks"])
+            )
+        dm.assert_summary_has_rows(expected=18)
+        dm.assert_summary_has_columns(expected=9)
 
 
 # Preprocessor
@@ -235,9 +239,9 @@ class TestPreprocessor:
     @pytest.mark.order(3)
     def test_03_preview_result(self, tier1_page: Page) -> None:
         dm = DataManagersPage(tier1_page)
-        _select_dropdown_option(tier1_page, dm.preproc_src1_selectbox, "simTicks")
+        dm._open_and_select(dm.preproc_src1_selectbox, "simTicks")
         dm.wait_for_streamlit()
-        _select_dropdown_option(tier1_page, dm.preproc_src2_selectbox, "system.cpu.committedInsts")
+        dm._open_and_select(dm.preproc_src2_selectbox, "system.cpu.committedInsts")
         dm.wait_for_streamlit()
         dm.preproc_name_input.fill("ticks_per_inst")
         dm.apply_preprocessor_preview()
@@ -270,8 +274,7 @@ class TestRegressionComparison:
         # [test->req~ring5.analysis.regression-annotations~1]
         # [test->req~ring5.automation.machine-readable-regression~1]
         dm = DataManagersPage(tier1_page)
-        _select_dropdown_option(
-            tier1_page,
+        dm._open_and_select(
             dm.comparison_group_selectbox,
             "config_description",
         )
@@ -281,7 +284,6 @@ class TestRegressionComparison:
         dm.add_comparison_key("benchmark_name")
         dm.wait_for_streamlit()
         dm.add_comparison_key("seed")
-        tier1_page.keyboard.press("Escape")
         dm.wait_for_streamlit()
         dm.apply_comparison()
         expect(dm.comparison_confirm_button).to_be_visible(timeout=_E2E_TIMEOUT)
@@ -299,14 +301,12 @@ class TestStatisticalComparison:
         dm = DataManagersPage(tier1_page)
         dm.navigate()
         dm.select_tab("Compare")
-        _select_dropdown_option(
-            tier1_page,
+        dm._open_and_select(
             dm.comparison_group_selectbox,
             "config_description",
         )
         dm.wait_for_streamlit()
-        _select_dropdown_option(
-            tier1_page,
+        dm._open_and_select(
             dm.comparison_method_selectbox,
             "Statistics",
         )
@@ -314,7 +314,6 @@ class TestStatisticalComparison:
         dm.add_comparison_metric("system.cpu.ipc")
         dm.wait_for_streamlit()
         dm.add_comparison_key("benchmark_name")
-        tier1_page.keyboard.press("Escape")
         dm.wait_for_streamlit()
         dm.apply_comparison()
         expect(dm.comparison_confirm_button).to_be_visible(timeout=_E2E_TIMEOUT)
@@ -329,29 +328,32 @@ class TestNamedDatasetWorkspace:
         dm = DataManagersPage(tier1_page)
         dm.navigate()
         dm.select_tab("Workspace")
-        dm.retain_current_dataset("tier1_results")
+        # A dataset name must not be mistaken for its published Active flag.
+        dm.retain_current_dataset("Yes")
         expect(dm.workspace_dataset_metric_value).to_be_visible(timeout=_E2E_TIMEOUT)
 
-    def test_lineage_inspection_undo_and_redo(self, tier1_page: Page) -> None:
+    def test_lineage_inspection_undo_and_redo(self, tier1_page: Page, e2e_csv_path: Path) -> None:
         # [test->req~ring5.data.lineage-undo-redo~1]
+        source = DataSourcePage(tier1_page)
+        source.navigate()
+        source.upload_csv(e2e_csv_path)
         dm = DataManagersPage(tier1_page)
         dm.navigate()
+        original = PlotInteractionsPage(tier1_page).download_workspace_rows()
+        assert len(original) == 18
+        assert all("system.cpu.committedInsts" in row for row in original)
         dm.select_tab("Workspace")
         dm.retain_current_dataset("recoverable_results")
 
         dm.select_tab("Preprocessor")
-        # Other randomly ordered workspace tests can leave a derived dataset
-        # active. The preprocessor defaults are always numeric columns in the
-        # active dataset, which is all this lineage test needs.
-        _select_second_dropdown_option(tier1_page, dm.preproc_src2_selectbox)
+        dm._open_and_select(dm.preproc_src2_selectbox, "system.cpu.committedInsts")
         dm.wait_for_streamlit()
         dm.preproc_name_input.fill("lineage_ratio")
         dm.apply_preprocessor_preview()
         dm.confirm_preprocessor()
 
         dm.select_tab("Workspace")
-        _select_dropdown_option(
-            tier1_page,
+        dm._open_and_select(
             dm.workspace_dataset_selectbox,
             "recoverable_results",
         )
@@ -388,15 +390,14 @@ class TestNamedDatasetWorkspace:
         dm.retain_current_dataset("join_right")
         before_count = int(dm.workspace_dataset_metric_value.inner_text())
 
-        _select_dropdown_option(tier1_page, dm.workspace_operation_selectbox, "Join")
+        dm._open_and_select(dm.workspace_operation_selectbox, "Join")
         dm.wait_for_streamlit()
-        _select_dropdown_option(tier1_page, dm.workspace_join_left, "join_left")
+        dm._open_and_select(dm.workspace_join_left, "join_left")
         dm.wait_for_streamlit()
-        _select_dropdown_option(tier1_page, dm.workspace_join_right, "join_right")
+        dm._open_and_select(dm.workspace_join_right, "join_right")
         dm.wait_for_streamlit()
         dm.workspace_join_output_input.fill("validated_join_output")
         dm.add_workspace_join_key("benchmark_name")
-        tier1_page.keyboard.press("Escape")
         dm.wait_for_streamlit()
         expect(dm.workspace_cardinality_metric).to_contain_text(
             "Conflict",
@@ -404,8 +405,7 @@ class TestNamedDatasetWorkspace:
         )
         expect(dm.workspace_join_button).to_be_disabled()
 
-        _select_dropdown_option(
-            tier1_page,
+        dm._open_and_select(
             dm.workspace_join_cardinality,
             "Many rows on both sides",
         )
@@ -450,11 +450,21 @@ class TestDatasetSchemaContract:
     def test_apply_semantic_metadata_from_human_first_editor(self, tier1_page: Page) -> None:
         # [test->req~ring5.data.semantic-units~1]
         dm = DataManagersPage(tier1_page)
-        dm.navigate()
+        interactions = PlotInteractionsPage(tier1_page)
+        before = interactions.download_workspace_rows()
+        assert len(before) == 18
         dm.select_tab("Schema Contract")
-        expect(dm.schema_semantics_apply_button).to_be_visible(timeout=_E2E_TIMEOUT)
+        dm.edit_schema_rule("system.cpu.ipc", "Semantic label", "Instructions per cycle")
+        dm.edit_schema_rule("system.cpu.ipc", "Unit", "ratio")
         dm.apply_schema_semantics()
-        expect(dm.schema_semantics_success).to_be_visible(timeout=_E2E_TIMEOUT)
+        expect(
+            dm.schema_semantics_row("system.cpu.ipc").get_by_role("gridcell", include_hidden=True)
+        ).to_have_text(
+            ["system.cpu.ipc", "Instructions per cycle", "ratio", "Instructions per cycle (ratio)"],
+            timeout=_E2E_TIMEOUT,
+        )
+        expect(dm.schema_unit_target_selectbox).to_contain_text("currently ratio")
+        assert interactions.download_workspace_rows() == before
 
 
 # Operations History

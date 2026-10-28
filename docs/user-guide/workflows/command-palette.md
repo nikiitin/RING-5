@@ -42,7 +42,7 @@ they reserve the same key combination.
 ## Safety boundary
 
 The palette only contains registered actions. It can navigate and focus search; it does not expose
-**Clear Data**, **Reset All**, deletion, overwrite, or another destructive operation. Every command
+**Reset All**, deletion, overwrite, or another destructive operation. Every command
 shows its description and shortcut before you run it.
 
 ## Python discovery

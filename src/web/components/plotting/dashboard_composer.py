@@ -485,6 +485,7 @@ class DashboardComposer:
                     mime=get_matplotlib_mime(typed_mpl_fmt),
                     width="stretch",
                     key="dashboard.composer.matplotlib_download",
+                    on_click="ignore",
                 )
 
 

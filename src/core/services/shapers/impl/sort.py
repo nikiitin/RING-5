@@ -67,6 +67,10 @@ class Sort(UniDfShaper):
 
         # Sort values using stable sort to preserve existing relative order for equal categories
         if not self.order_dict:
+            if self._source_tracker is not None:
+                self._source_tracker.select(range(len(data_frame)))
             return data_frame.copy()
         positions = sort_keys.sort_values(by=list(self.order_dict), kind="stable").index
+        if self._source_tracker is not None:
+            self._source_tracker.select(positions)
         return data_frame.iloc[positions].copy()

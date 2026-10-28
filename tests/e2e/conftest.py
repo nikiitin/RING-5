@@ -104,13 +104,30 @@ def _streamlit_port() -> int:
 
 
 @pytest.fixture(scope="session")
-def live_server_url(_streamlit_port: int, _isolated_data_dir: None) -> Generator[str]:
+def browser_stats_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Own writable synthetic simulator sources outside the frozen checkout."""
+    return tmp_path_factory.mktemp("browser-stats")
+
+
+@pytest.fixture(scope="session")
+def live_server_url(
+    _streamlit_port: int, _isolated_data_dir: None, browser_stats_root: Path
+) -> Generator[str]:
     """Start a Streamlit server and yield its base URL.
 
     Depends on ``_isolated_data_dir`` so ``RING5_DATA_DIR`` is exported before the
     server subprocess (which inherits ``os.environ``) starts.
     """
-    with running_streamlit(_APP_PY, port=_streamlit_port) as url:
+    allowed_roots = [_ROOT_DIR.resolve(), browser_stats_root.resolve()]
+    private_fixtures = _ROOT_DIR / "tests" / "data"
+    if private_fixtures.is_dir():
+        # Local acceptance uses a symlink to the independently copied fixture corpus.
+        allowed_roots.append(private_fixtures.resolve())
+    environment = {
+        "RING5_ALLOWED_STATS_ROOTS": os.pathsep.join(str(root) for root in allowed_roots),
+        "RING5_ALLOWED_REMOTE_HOSTS": "",
+    }
+    with running_streamlit(_APP_PY, port=_streamlit_port, environment=environment) as url:
         yield url
 
 

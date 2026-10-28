@@ -18,6 +18,10 @@ conventions and runs the right test layers. For *writing* UI tests, use the
   data managers use `manager.<name>.*`, and navigation uses `nav.current_page`.
   Construct plot/manager keys through `WidgetKeyBuilder`. Use `plot.reset_widgets` before rendering
   reset controls, `plot.cleanup` for deletion, and `cleanup_all` for workspace reset/restore.
+- Data Source widgets use `WidgetKeyBuilder.data_source_key` for their logical keys, including
+  fragment reads. `cleanup_all` retires their projection and advances its widget generation so
+  browser values cannot override defaults or restored parser configuration. Core parser reset
+  belongs to `ApplicationAPI.reset_session`; projection cleanup does not change domain inputs.
 - Parse progress identity and the persistent last-consumed notice use the typed `parse.*` owner.
   Accepted submission/retry clears the old notice; `cleanup_all` clears it on workspace reset or
   restore. Completion is recorded only after facade consumption succeeds, using the receipt job ID.
@@ -31,6 +35,9 @@ conventions and runs the right test layers. For *writing* UI tests, use the
   `ThemePresetsSettingsComponent`. Tick marks / tick pad / grid dash belong in Axes; font sizes and
   colors in Typography; Y-axis title standoff and vertical shift in Axes Y-Left.
 - Components are self-contained widgets — no business logic; that belongs in a service behind the facade.
+- Keep conditional feedback in stable containers before keyed chart components. Follow the
+  [browser acceptance guidance](../../../docs/developer-guide/development/testing.md#browser-acceptance)
+  to preserve iframe identity and diagnose native chart failures.
 
 ## Run the tests (no browser → browser)
 ```bash

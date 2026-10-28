@@ -42,17 +42,6 @@ PLOT_TYPES: tuple[str, ...] = (
     "waterfall",
 )
 
-# Available shapers (Add transformation selectbox options)
-SHAPER_TYPES: tuple[str, ...] = (
-    "Column Selector",
-    "Sort",
-    "Mean Calculator",
-    "Normalize",
-    "Filter",
-    "Split-Apply (Per-Axis)",
-    "Transformer",
-)
-
 
 class ManagePlotsPage(BasePage):
     """POM for the *Manage Plots* page.
@@ -221,13 +210,6 @@ class ManagePlotsPage(BasePage):
     def pipeline_configuration_import_button(self) -> Locator:
         """Validate, save, and use the uploaded pipeline."""
         return self.pipeline_exchange_expander.get_by_role("button", name="Import, save, and use")
-
-    @property
-    def pipeline_configuration_import_success(self) -> Locator:
-        """Human-readable pipeline import confirmation."""
-        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
-            has_text="Imported and loaded"
-        )
 
     def get_pipeline_step(self, index: int) -> Locator:
         """Return the *n*-th pipeline step expander (0-based).
@@ -748,13 +730,21 @@ class ManagePlotsPage(BasePage):
             shaper_name: Exact display label (e.g. "Column Selector").
         """
         self._open_and_select(self.add_transformation_selectbox, shaper_name)
+        previous = self.pipeline_steps.count()
         self.add_to_pipeline_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        expect(self.pipeline_steps).to_have_count(previous + 1, timeout=self.RENDER_TIMEOUT)
+        summary = self.get_pipeline_step(previous).locator("summary").first
+        expect(summary.get_by_text(f"{previous + 1}. {shaper_name}", exact=True)).to_be_visible(
+            timeout=self.RENDER_TIMEOUT
+        )
 
     def finalize_pipeline(self) -> None:
-        """Click 'Finalize Pipeline for Plotting' and wait."""
-        self.finalize_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        """Wait for the application rerun that publishes the finalized pipeline.
+
+        Callers verify the resulting native chart or downloaded measurements.
+        """
+        with self.expect_script_rerun():
+            self.finalize_button.click()
 
     def open_pipeline_exchange(self) -> None:
         """Open the pipeline import/export panel when it is collapsed."""
@@ -769,14 +759,18 @@ class ManagePlotsPage(BasePage):
         download_info.value.save_as(str(path))
 
     def upload_and_use_pipeline_configuration(self, path: str | Path) -> None:
-        """Upload, validate, save, and use one portable pipeline file."""
+        """Submit an uploaded pipeline; callers verify its retained configuration."""
         self.open_pipeline_exchange()
         self.pipeline_configuration_uploader.set_input_files(str(path))
-        self.wait_for_streamlit(expect_rerun=True)
-        self.page.wait_for_timeout(500)
-        self.pipeline_configuration_import_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
-        self.page.wait_for_timeout(500)
+        expect(
+            self.pipeline_exchange_expander.get_by_title(Path(path).name, exact=True)
+        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(
+            self.pipeline_exchange_expander.get_by_test_id("stFileChipIconSpinner")
+        ).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+        expect(self.pipeline_configuration_import_button).to_be_enabled(timeout=self.RENDER_TIMEOUT)
+        with self.expect_script_rerun():
+            self.pipeline_configuration_import_button.click()
 
     def delete_step(self, index: int) -> None:
         """Delete a pipeline step by index.
@@ -804,6 +798,41 @@ class ManagePlotsPage(BasePage):
         """
         self.get_step_down_button(index).click()
         self.wait_for_streamlit()
+
+    def open_pipeline_step(self, index: int) -> Locator:
+        """Expand and return one owning pipeline step."""
+        step = self.get_pipeline_step(index)
+        summary = step.locator("summary").first
+        expect(summary).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if not step.locator("details").first.evaluate("node => node.open"):
+            summary.click()
+        return step
+
+    def set_multiselect_values(self, widget: Locator, values: list[str]) -> None:
+        """Replace an explicit multiselect selection through its ordinary controls.
+
+        Args:
+            widget: The uniquely scoped ``stMultiSelect`` container.
+            values: Exact option labels in the required selection order.
+        """
+        expect(widget).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        tags = widget.locator("[data-tag]")
+        control = widget.locator("input").first
+        current = [value.strip() for value in tags.all_text_contents()]
+        retained = 0
+        for actual, wanted in zip(current, values):
+            if actual != wanted:
+                break
+            retained += 1
+        for remaining in range(len(current), retained, -1):
+            control.fill("")
+            control.press("Backspace")
+            expect(tags).to_have_count(remaining - 1, timeout=self.RENDER_TIMEOUT)
+        for index, value in enumerate(values[retained:], start=retained + 1):
+            self._open_and_select(widget, value, multiple=True)
+            expect(tags).to_have_count(index, timeout=self.RENDER_TIMEOUT)
+        control.press("Escape")
+        expect(tags).to_have_count(len(values), timeout=self.RENDER_TIMEOUT)
 
     #  ACTIONS — Column Selector shaper
 
@@ -881,14 +910,6 @@ class ManagePlotsPage(BasePage):
     def enable_drill_down(self) -> None:
         """Enable point-click source-row exploration and wait for the fragment rerun."""
         self.viz_drill_down_toggle.click()
-        self.wait_for_streamlit(expect_rerun=True)
-        self.page.wait_for_timeout(500)
-
-    def click_first_plot_point(self) -> None:
-        """Click the first rendered Plotly point inside the custom-component frame."""
-        self.assert_chart_visible()
-        frame = self.plotly_chart.first.content_frame
-        frame.locator(".plotly .point").first.click(force=True)
         self.wait_for_streamlit(expect_rerun=True)
         self.page.wait_for_timeout(500)
 
@@ -1003,17 +1024,9 @@ class ManagePlotsPage(BasePage):
         if pill.is_checked():
             wait_for_selected_chart()
             return
-        for _ in range(3):
+        with self.expect_script_rerun():
             pill.click()
-            try:
-                expect(pill).to_be_checked(timeout=10_000)
-            except AssertionError:
-                self.page.wait_for_timeout(250)
-                continue
-            wait_for_selected_chart()
-            expect(pill).to_be_checked(timeout=60_000)
-            return
-        expect(pill).to_be_checked(timeout=60_000)
+        expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
         wait_for_selected_chart()
 
     def select_figure_theme(self, name: str) -> None:

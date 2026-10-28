@@ -8,6 +8,7 @@ from typing import Literal
 import pandas as pd
 from pandas.errors import MergeError
 
+from src.core.common.source_contributions import without_source_contributions
 from src.core.models.dataset_workspace_models import JoinCardinality, JoinDiagnostics
 from src.core.common.distribution_metadata import (
     concat_distribution_layouts,
@@ -49,7 +50,7 @@ class DatasetWorkspaceService:
         for index, frame in enumerate(frames, start=1):
             cls._validate_columns(frame, f"Dataset {index}")
         result = pd.concat(frames, axis=0, ignore_index=True, join=join, sort=False)
-        return concat_distribution_layouts(frames, result)
+        return without_source_contributions(concat_distribution_layouts(frames, result))
 
     @classmethod
     def join(
@@ -86,7 +87,7 @@ class DatasetWorkspaceService:
                 sort=False,
                 suffixes=suffixes,
             )
-            return with_distribution_layouts(result, {})
+            return without_source_contributions(with_distribution_layouts(result, {}))
         except (KeyError, MergeError, TypeError, ValueError) as exc:
             raise ValueError(f"Datasets cannot be joined: {exc}") from exc
 

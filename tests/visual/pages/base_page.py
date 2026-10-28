@@ -9,12 +9,19 @@ Provides common operations:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from pathlib import Path
 import re
 import time
 
 from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
+
+_APP_IDLE = """() => {
+    const app = document.querySelector('[data-testid="stApp"]');
+    return app?.getAttribute('data-test-script-state') === 'notRunning' &&
+        app.getAttribute('data-test-connection-state') === 'CONNECTED';
+}"""
 
 
 class BasePage:
@@ -66,23 +73,66 @@ class BasePage:
             page_name: Exact label of the sidebar nav button
                 (e.g. "Data Source", "Data Managers").
         """
-        btn = self.sidebar.get_by_role("button", name=page_name)
+        btn = self.sidebar.get_by_role("button", name=page_name, exact=True)
         if btn.get_attribute("data-testid") == "stBaseButton-primary":
             self.wait_for_streamlit()
             return
-        btn.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        with self.expect_script_rerun():
+            btn.click()
+        # The route change requests another app run after the button's own run.
+        expect(btn).to_have_attribute(
+            "data-testid", "stBaseButton-primary", timeout=self.RENDER_TIMEOUT
+        )
 
     def reset_all(self) -> None:
-        """Click the sidebar 'Reset All' button to clear all app state.
+        """Wait for the reset's replacement Data Source projection to finish rendering."""
+        deadline = time.monotonic() + self.RENDER_TIMEOUT / 1000
 
-        Drives ``api.reset_session()`` to clear the current browser session's
-        plots, data, and configuration.
-        """
-        self.sidebar.get_by_role("button", name="Reset All").click()
-        # Reset reruns to clear state; wait for it to start (and finish) so a
-        # too-fast follow-up navigation cannot abort ``reset_session()``.
-        self.wait_for_streamlit(expect_rerun=True)
+        def remaining() -> int:
+            milliseconds = int((deadline - time.monotonic()) * 1000)
+            assert milliseconds > 0, "Workspace reset exceeded the render budget"
+            return milliseconds
+
+        source_mode = self.page.get_by_role(
+            "radiogroup", name="Select your data source:", exact=True
+        )
+        projection = self.page.get_by_test_id("stElementContainer").filter(has=source_mode)
+        previous_identity = None
+        count = projection.count()
+        assert count in {0, 1}, "Expected at most one current Data Source projection"
+        if count:
+            classes = projection.get_attribute("class", timeout=remaining()) or ""
+            identities = [
+                token for token in classes.split() if token.startswith("st-key-data_source_choice")
+            ]
+            assert len(identities) == 1, "The source mode must expose its owned widget identity"
+            previous_identity = identities[0]
+
+        with self.expect_script_rerun(timeout=remaining()):
+            self.sidebar.get_by_role("button", name="Reset All", exact=True).click(
+                timeout=remaining()
+            )
+        # Reset retires the mode's widget key and requests a second app render.
+        expect(projection).to_have_count(1, timeout=remaining())
+        if previous_identity is not None:
+            expect(projection).not_to_have_class(
+                re.compile(rf"(?:^|\s){re.escape(previous_identity)}(?:\s|$)"),
+                timeout=remaining(),
+            )
+        expect(
+            self.sidebar.get_by_role("button", name="Data Source", exact=True)
+        ).to_have_attribute("data-testid", "stBaseButton-primary", timeout=remaining())
+        expect(
+            source_mode.get_by_role("radio", name="Parse gem5 Stats Files", exact=True)
+        ).to_be_checked(timeout=remaining())
+        expect(
+            self.page.get_by_role("textbox", name="Stats directory path", exact=True)
+        ).to_have_value("/path/to/stats", timeout=remaining())
+        rows = self.page.get_by_test_id("stMetric").filter(
+            has=self.page.get_by_text("Rows", exact=True)
+        )
+        expect(rows).to_have_count(0, timeout=remaining())
+        self.page.wait_for_function(_APP_IDLE, timeout=remaining())
 
     def _owned_listbox(
         self, control: Locator, *, timeout: int | None = None
@@ -99,10 +149,13 @@ class BasePage:
         return popup_id, listbox
 
     def _open_and_select(self, widget: Locator, value: str, *, multiple: bool = False) -> None:
-        """Select an exact owned option, retrying only an interrupted popup.
+        """Commit an exact owned option, retrying only an interrupted popup.
 
         Retry a closed or replaced popup within the existing render budget.
         An option missing from an intact popup fails without trying another one.
+        Completion proves the closed control value or selected chips. Callers
+        verify the resulting backend operation; fragment widgets need not emit
+        a global script-running cycle.
         """
         control = widget.get_by_role("combobox")
         chip = widget.locator("[data-tag]").filter(has=self.page.get_by_text(value, exact=True))
@@ -122,16 +175,8 @@ class BasePage:
                 and control.input_value(timeout=remaining()) == value
             )
 
-        def settle(*, expect_rerun: bool) -> None:
-            running = self.page.locator("[data-testid='stStatusWidget']")
-            if expect_rerun:
-                try:
-                    running.wait_for(state="visible", timeout=min(6000, remaining()))
-                except PlaywrightTimeoutError:
-                    pass
-            running.wait_for(state="hidden", timeout=remaining())
-            if expect_rerun:
-                self.page.wait_for_timeout(min(250, remaining()))
+        def settle() -> None:
+            self.wait_for_streamlit(timeout=remaining())
 
         def verify() -> None:
             if multiple:
@@ -151,11 +196,20 @@ class BasePage:
                     multiple
                     and control.get_attribute("aria-expanded", timeout=remaining()) == "true"
                 ):
-                    control.press("Escape", timeout=remaining())
-                settle(expect_rerun=False)
+                    control.press("Tab", timeout=remaining())
+                settle()
                 verify()
                 return
             popup_id: str | None = None
+
+            def interrupted() -> bool:
+                if control.count() == 0:
+                    return True
+                current_popup = control.get_attribute("aria-controls", timeout=remaining())
+                return control.get_attribute("aria-expanded", timeout=remaining()) != "true" or (
+                    popup_id is not None and current_popup != popup_id
+                )
+
             try:
                 control.click(timeout=remaining())
                 control.fill(value, timeout=remaining())
@@ -166,21 +220,103 @@ class BasePage:
                 expect(option).to_have_count(1, timeout=min(5000, remaining()))
                 option.click(timeout=min(5000, remaining()))
             except (AssertionError, PlaywrightTimeoutError):
-                interrupted = control.count() == 0
-                if not interrupted:
-                    current_popup = control.get_attribute("aria-controls", timeout=remaining())
-                    interrupted = control.get_attribute(
-                        "aria-expanded", timeout=remaining()
-                    ) != "true" or (popup_id is not None and current_popup != popup_id)
-                if not interrupted:
+                if not interrupted():
                     raise
-                settle(expect_rerun=False)
+                settle()
                 continue
-            control.press("Escape", timeout=remaining())
-            settle(expect_rerun=True)
+
+            # Single selects close themselves; Escape can clear their committed value.
+            # Tab closes an open multiselect without changing its selected chips.
+            if multiple and control.get_attribute("aria-expanded", timeout=remaining()) == "true":
+                control.press("Tab", timeout=remaining())
+            settle()
             verify()
             return
         raise AssertionError(f"Could not select {value!r} after interrupted rerenders")
+
+    @contextmanager
+    def expect_script_rerun(self, *, timeout: int | None = None) -> Iterator[None]:
+        """Observe a committed running/idle cycle after arming the triggering action.
+
+        Streamlit delays the visual spinner for fast runs. Its own frontend
+        message records completion after React commits, including runs too short
+        to display the spinner. The host event has no request or fragment ID:
+        callers must also verify an operation-specific result, such as finalized
+        rows, a new pipeline step, or the current native chart values.
+        """
+        deadline = time.monotonic() + (timeout or self.RENDER_TIMEOUT) / 1000
+
+        def remaining() -> int:
+            milliseconds = int((deadline - time.monotonic()) * 1000)
+            assert milliseconds > 0, "Streamlit script completion exceeded the render budget"
+            return milliseconds
+
+        generation: int | None = None
+        while generation is None:
+            self.page.wait_for_function(_APP_IDLE, timeout=remaining())
+            generation = self.page.evaluate("""async () => {
+                const key = '__ring5BrowserScriptCompletions';
+                if (!window[key]) {
+                    const observed = {next: 0, active: 0, completed: 0, running: false};
+                    window[key] = observed;
+                    window.addEventListener('message', event => {
+                        if (event.source !== window || event.origin !== location.origin ||
+                            event.data?.stCommVersion !== 1 ||
+                            event.data.type !== 'SCRIPT_RUN_STATE_CHANGED' ||
+                            !observed.active) return;
+                        if (event.data.scriptRunState === 'running') observed.running = true;
+                        if (event.data.scriptRunState === 'notRunning' && observed.running) {
+                            observed.completed = observed.active;
+                            observed.running = false;
+                        }
+                    });
+                }
+                const observed = window[key];
+                observed.active = 0;
+                observed.running = false;
+                // A message on the same task source follows already-posted host events.
+                await new Promise(resolve => {
+                    const token = crypto.randomUUID();
+                    const barrier = event => {
+                        if (event.source === window && event.origin === location.origin &&
+                            event.data?.ring5BrowserScriptBarrier === token) {
+                            window.removeEventListener('message', barrier);
+                            resolve();
+                        }
+                    };
+                    window.addEventListener('message', barrier);
+                    window.postMessage({ring5BrowserScriptBarrier: token}, location.origin);
+                });
+                const app = document.querySelector('[data-testid="stApp"]');
+                if (app?.getAttribute('data-test-script-state') !== 'notRunning' ||
+                    app.getAttribute('data-test-connection-state') !== 'CONNECTED') return null;
+                observed.active = ++observed.next;
+                return observed.active;
+            }""")
+        try:
+            yield
+            self.page.wait_for_function(
+                """generation => {
+                    const observed = window.__ring5BrowserScriptCompletions;
+                    const app = document.querySelector('[data-testid="stApp"]');
+                    return observed.completed === generation &&
+                        app?.getAttribute('data-test-script-state') === 'notRunning' &&
+                        app.getAttribute('data-test-connection-state') === 'CONNECTED';
+                }""",
+                arg=generation,
+                timeout=remaining(),
+            )
+        finally:
+            self.page.evaluate(
+                """generation => {
+                    const observed = window.__ring5BrowserScriptCompletions;
+                    if (observed.active === generation) {
+                        observed.active = 0;
+                        observed.running = false;
+                    }
+                }""",
+                generation,
+            )
 
     # Streamlit sync helpers
 
@@ -274,6 +410,6 @@ class BasePage:
 
     def assert_on_page(self, page_name: str) -> None:
         """Assert the requested navigation button has Streamlit's active marker."""
-        btn = self.sidebar.get_by_role("button", name=page_name)
+        btn = self.sidebar.get_by_role("button", name=page_name, exact=True)
         expect(btn).to_be_visible()
         expect(btn).to_have_attribute("data-testid", "stBaseButton-primary")

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.web.state.ui_state_manager import UIStateManager
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.workspace_search_models import WorkspaceSearchResult
@@ -106,6 +106,7 @@ class WorkspaceSearchComponent:
                 raise KeyError(f"Plot {plot_id} is no longer available.")
             api.state_manager.set_current_plot_id(plot_id)
         elif result.kind == "variable":
-            st.session_state["var_search_box__search"] = result.identifier
+            search_key = f"{WidgetKeyBuilder.data_source_key('var_search_box')}__search"
+            st.session_state[search_key] = result.identifier
 
         UIStateManager().nav.set_current_page(result.location)

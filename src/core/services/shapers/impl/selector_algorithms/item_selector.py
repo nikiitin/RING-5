@@ -40,7 +40,8 @@ class ItemSelector(Selector):
         self._verify_preconditions(data_frame)
 
         if self.mode == "exact":
-            result = data_frame[data_frame[self.column].astype(str).isin(self.strings)]
+            mask = data_frame[self.column].astype(str).isin(self.strings)
+            result = data_frame[mask]
         else:
             values = data_frame[self.column].astype(str)
             mask = pd.Series(False, index=data_frame.index)
@@ -54,5 +55,7 @@ class ItemSelector(Selector):
                 f"found in column '{self.column}'."
             )
 
+        if self._source_tracker is not None:
+            self._source_tracker.select(position for position, keep in enumerate(mask) if keep)
         # .copy() so the shaper returns an independent frame, not a view.
         return result.copy()

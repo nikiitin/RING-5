@@ -2,6 +2,8 @@
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.models.data_models import SourceInstanceDict
 from src.core.models.parsing_models import SourceInstance
 from src.core.models.pattern_index_service import PatternIndexService
@@ -48,7 +50,7 @@ class PatternIndexSelector:
         use_filter = st.checkbox(
             "Select specific instances",
             value=current_selection is not None,
-            key=f"use_pattern_filter_{var_id}",
+            key=WidgetKeyBuilder.data_source_key(f"use_pattern_filter_{var_id}"),
         )
         if not use_filter:
             st.info(f"Will parse all {len(sources)} matching source instances")
@@ -67,7 +69,7 @@ class PatternIndexSelector:
             "Instances to include",
             options=sources,
             default=sources if current_selection is None else current_selection,
-            key=f"pattern_entries_{var_id}",
+            key=WidgetKeyBuilder.data_source_key(f"pattern_entries_{var_id}"),
             format_func=display,
         )
         if selected:

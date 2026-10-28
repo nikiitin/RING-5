@@ -40,6 +40,7 @@ def test_dataset_upload_routes_to_import_review(mock_st: MagicMock) -> None:
     with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
         DataSourceComponents.render_browser_upload(api)
 
+    assert mock_st.file_uploader.call_args.kwargs.get("type") is None
     api.inspect_browser_upload.assert_called_once_with(
         "measurements.json",
         "application/json",
@@ -63,7 +64,10 @@ def test_invalid_upload_stays_out_of_the_workspace(mock_st: MagicMock) -> None:
 
     DataSourceComponents.render_browser_upload(api)
 
-    mock_st.error.assert_called_once()
+    mock_st.error.assert_called_once_with(
+        "Upload validation failed: declared media type does not match"
+    )
+    api.inspect_browser_upload.assert_called_once_with("bad.csv", "image/png", b"bad", "auto")
     api.load_import_preview.assert_not_called()
     api.restore_browser_portfolio.assert_not_called()
 

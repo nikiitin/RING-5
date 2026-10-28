@@ -6,7 +6,7 @@ import hashlib
 
 import streamlit as st
 
-from src.web.state.ui_state_manager import UIStateManager
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.workspace_metadata_models import WorkspaceArtifact, WorkspaceArtifactKind
@@ -139,7 +139,8 @@ class WorkspaceOrganizerComponent:
         if not isinstance(artifact, WorkspaceArtifact):
             raise TypeError("Workspace organizer targets must be WorkspaceArtifact instances.")
         if artifact.kind == "variable":
-            st.session_state["var_search_box__search"] = artifact.identifier
+            search_key = f"{WidgetKeyBuilder.data_source_key('var_search_box')}__search"
+            st.session_state[search_key] = artifact.identifier
             UIStateManager().nav.set_current_page("Data Source")
             return
         if artifact.kind == "dataset":

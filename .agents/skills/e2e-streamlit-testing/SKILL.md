@@ -34,9 +34,25 @@ engine selectors use radio roles; inspect checked state before clicking an activ
 
 - Navigate with `wait_until="domcontentloaded"`, then `BasePage.wait_for_streamlit()`. Persistent
   Streamlit/chart connections make network-idle unsuitable as the readiness boundary.
-- For actions that trigger a rerun, use `wait_for_streamlit(expect_rerun=True)`. It observes the
-  running indicator before waiting for idle and accommodates fast cycles. Verify the resulting
-  widget/chart state with Playwright expectations before the next dependent action.
+- Arm `BasePage.expect_script_rerun()` before full application actions: navigation, reset, or pipeline
+  finalization. The finalization controller explicitly calls `st.rerun()` after publishing its data.
+  It drains posted host messages and observes a committed running/idle cycle, including fast runs whose
+  delayed spinner never appears. The host event has no request or fragment ID; always require the
+  operation's own result, such as a new pipeline step, reset defaults, or exact native values.
+  `wait_for_streamlit` waits for already-running work; its spinner is not proof of a new action.
+  Form controls commit locally until submission, so verify their exact value without requiring
+  a backend cycle for each field.
+- Select an exact option through `BasePage._open_and_select`. A single select closes its own
+  popup after selection. Do not press Escape afterward: Streamlit clears a committed optional
+  selection when no search is active. For a multiselect, Tab closes an open popup while retaining
+  its chips. Verify the closed control's value or selected chips before the next action.
+  This helper proves the widget commit only. Form, dialog and ordinary fragment controls need not
+  publish a global script-running cycle; do not use that cycle as a generic dropdown barrier.
+  Require a backend result at the operation boundary: the newly added step's exact count/type,
+  a changed dependent form, current native values, or downloaded data. Pipeline text/number
+  fields and multiselect removal also commit within their fragment. Finalization waits for its fresh
+  full application cycle, followed by exact result assertions; its brief toast is not a completion gate.
+  The pipeline and figure controls run in separate fragments in `src/web/pages/manage_plots.py`.
 - Plot pills use immutable plot IDs with unique display labels and require an active selection.
   The controller prepares `plot.<current_id>.selector` through `UIStateManager`; a changed user
   selection retires only its previous selector and reruns before rendering controls. Creation and
@@ -70,10 +86,13 @@ engine selectors use radio roles; inspect checked state before clicking an activ
 
 ## Browser execution and resource use
 
-`make test-e2e` uses `E2E_WORKERS=2` with loadgroup scheduling for non-serial cases, then a separate
-`-n 0` invocation for cases marked `serial`. `make test-visual` runs serially. All three browser
-invocations use `--order-scope=class`: numbered steps run together within their owning class, so
-class-scoped pages and tier fixtures retain state throughout the flow. Each class starts from its
+`make test-e2e` is the complete browser gate: `E2E_WORKERS=2` with loadgroup scheduling for
+non-serial E2E cases, a separate `-n 0` invocation for cases marked `serial`, then the entire visual
+suite serially. `make test-visual` reruns only that final subset. Chromium, the pinned Chrome for
+static Plotly exports, and TeX Live for PGF must be available. A successful isolated rerun does not
+replace a green complete gate after a fix. All three browser invocations use `--order-scope=class`:
+numbered steps run together within their owning class, so class-scoped pages and tier fixtures
+retain state throughout the flow. Each class starts from its
 own reset boundary; order numbers do not coordinate different classes. The Make targets own these
 defaults; inspect them before changing parallelism.
 

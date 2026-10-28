@@ -126,13 +126,21 @@ def render(
         help="Create multiple histograms grouped by this categorical variable",
     )
 
-    if layout is None:
+    rebin = layout is None and st.checkbox(
+        "Rebin continuous intervals",
+        value=saved_config.get("bucket_size") is not None,
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.histogram_rebin"),
+        help="Redistribute interval counts into an explicitly chosen bucket width.",
+    )
+    if rebin:
+        width = saved_config.get("bucket_size")
         config["bucket_size"] = st.number_input(
             "Bucket Size",
-            min_value=1,
-            value=int(saved_config.get("bucket_size", 10)),
+            min_value=0.0,
+            value=float(width) if width is not None else 1.0,
+            format="%g",
             key=WidgetKeyBuilder.plot_key(plot_id, "widgets.histogram_bucket"),
-            help="Size of histogram buckets (for rebinning)",
+            help="Positive continuous bucket width, including fractional units.",
         )
     else:
         config.pop("bucket_size", None)

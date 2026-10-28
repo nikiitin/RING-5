@@ -34,7 +34,7 @@ class DrillDownPanel:
             st.caption(title)
             if result.filters:
                 dimensions = " · ".join(f"{column} = {value}" for column, value in result.filters)
-                st.caption(f"Matched dimensions: {dimensions}")
+                st.caption(f"Selected plot dimensions: {dimensions}")
             else:
                 st.caption("This aggregate uses all source rows in the plot snapshot.")
             st.metric("Matching rows", result.row_count)
@@ -44,8 +44,9 @@ class DrillDownPanel:
                 height=min(520, 90 + max(1, result.row_count) * 35),
             )
             st.caption(
-                "This is a read-only snapshot. The source dataset and active figure settings "
-                "remain unchanged."
+                "These are original input rows retained by the finalized pipeline. "
+                "Supporting inputs, such as normalization baselines, can have different labels "
+                "from the selected plot value. The dataset and figure settings remain unchanged."
             )
             return st.button(
                 ":material/arrow_back: Back to full plot",

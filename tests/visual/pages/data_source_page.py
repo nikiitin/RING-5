@@ -15,9 +15,15 @@ import re
 import shutil
 from pathlib import Path
 
-from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
+from playwright.sync_api import (
+    Download,
+    Locator,
+    Page,
+    TimeoutError as PlaywrightTimeoutError,
+    expect,
+)
 
-from tests.visual.pages.base_page import BasePage
+from tests.visual.pages.base_page import BasePage, _APP_IDLE
 
 
 class DataSourcePage(BasePage):
@@ -198,6 +204,29 @@ class DataSourcePage(BasePage):
         """The JSON configuration preview block."""
         return self.page.locator("[data-testid='stJson']")
 
+    def config_preview_string(self, key: str) -> Locator:
+        """String values belonging to an exact key in the rendered configuration."""
+        key_cell = self.page.locator(".object-key").filter(
+            has_text=re.compile(rf'^"{re.escape(key)}"$')
+        )
+        return (
+            self.config_json_view.locator(".variable-row")
+            .filter(has=key_cell)
+            .locator(".string-value")
+        )
+
+    @staticmethod
+    def _preview_string_text(value: str) -> str:
+        """Match Streamlit's JSON-view string escaping, including literal embedded quotes."""
+        escaped = (
+            value.replace("\\", "\\\\")
+            .replace("\n", "\\n")
+            .replace("\t", "\\t")
+            .replace("\r", "\\r")
+            .replace("\f", "\\f")
+        )
+        return f'"{escaped}"'
+
     # 3e — Parse button (outside fragment)
 
     @property
@@ -208,9 +237,9 @@ class DataSourcePage(BasePage):
     @property
     def parse_button(self) -> Locator:
         """'Parse gem5 Stats Files' primary action button."""
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stBaseButton-primary']"
-        ).filter(has_text="Parse gem5 Stats Files")
+        return self.page.get_by_test_id("stMainBlockContainer").get_by_role(
+            "button", name="Parse gem5 Stats Files", exact=True
+        )
 
     @property
     def incremental_parse_checkbox(self) -> Locator:
@@ -244,6 +273,20 @@ class DataSourcePage(BasePage):
         return self.page.locator("input[type='file']")
 
     @property
+    def upload_interpretation_selectbox(self) -> Locator:
+        """Declared interpretation for a browser dataset, portfolio, or bundle."""
+        return self.page.get_by_test_id("stSelectbox").filter(
+            has=self.page.get_by_text("Interpret upload as", exact=True)
+        )
+
+    @property
+    def upload_validation_error(self) -> Locator:
+        """Validation rejection shown before any upload can replace workspace data."""
+        return self.page.get_by_test_id("stAlertContentError").filter(
+            has_text="Upload validation failed:"
+        )
+
+    @property
     def upload_origin_control(self) -> Locator:
         """Selector between local browser and remote sources."""
         return self.page.get_by_role("radiogroup", name="Source location")
@@ -261,12 +304,19 @@ class DataSourcePage(BasePage):
     @property
     def remote_adapter_select(self) -> Locator:
         """Remote transport adapter selector."""
-        return self.page.get_by_text("Remote adapter", exact=True)
+        return self.page.get_by_test_id("stSelectbox").filter(
+            has=self.page.get_by_text("Remote adapter", exact=True)
+        )
 
     @property
     def remote_https_url_input(self) -> Locator:
         """HTTPS remote-source URL input."""
         return self.page.get_by_label("HTTPS URL")
+
+    @property
+    def remote_fetch_button(self) -> Locator:
+        """Explicit remote fetch action subject to the server host allowlist."""
+        return self.page.get_by_role("button", name="Fetch and validate", exact=False)
 
     # SECTION 5: Recent CSV pool (Load from Recent mode)
 
@@ -313,6 +363,11 @@ class DataSourcePage(BasePage):
     def import_accepted_metric(self) -> Locator:
         """Accepted-row count from the structured preview."""
         return self.page.locator("[data-testid='stMetric']").filter(has_text="Accepted rows")
+
+    @property
+    def import_rejected_metric(self) -> Locator:
+        """Rejected-row count from the structured preview."""
+        return self.page.get_by_test_id("stMetric").filter(has_text="Rejected rows")
 
     @property
     def load_accepted_import_button(self) -> Locator:
@@ -459,6 +514,31 @@ class DataSourcePage(BasePage):
         )
 
     @property
+    def parse_job_load_partial_button(self) -> Locator:
+        """Explicit consent to replace workspace data with a partial parse result."""
+        return self.page.get_by_test_id("stMainBlockContainer").get_by_role(
+            "button", name="Load Partial", exact=True
+        )
+
+    @property
+    def parse_job_dismiss_button(self) -> Locator:
+        """Acknowledge one terminal attempt without loading its data."""
+        return self.page.get_by_test_id("stMainBlockContainer").get_by_role(
+            "button", name="Dismiss", exact=True
+        )
+
+    def get_parse_recovery_id(self) -> str:
+        """Read the exact terminal job identity from its keyed recovery control."""
+        owner = self.parse_job_retry_button.locator(
+            "xpath=ancestor::*[contains(@class, 'st-key-retry_parse_job_')][1]"
+        )
+        expect(owner).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        classes = owner.get_attribute("class") or ""
+        matches: list[str] = re.findall(r"\bst-key-retry_parse_job_([0-9a-f]{32})\b", classes)
+        assert len(matches) == 1, "Expected one job-bound recovery control"
+        return matches[0]
+
+    @property
     def parse_completion_notice(self) -> Locator:
         """Persistent keyed notice for the session's last consumed parse result."""
         return self.page.locator("[class*='st-key-parse_completion_']")
@@ -496,54 +576,22 @@ class DataSourcePage(BasePage):
         """Select a segmented-control option and wait for its rerun."""
         if option.is_checked():
             return
-        # Streamlit replaces segmented-control buttons as soon as their callback
-        # starts a rerun.  The normal Playwright actionability sequence can see
-        # the old button detach between scrolling and mouse dispatch, then retry
-        # against a control whose visibility has changed.  A forced pointer click
-        # still exercises the real React handler while avoiding that stale-node
-        # retry window.
-        option.click(force=True)
-        self.wait_for_streamlit(expect_rerun=True)
+        # Keyboard activation targets the real radio even when retained scroll
+        # position places it underneath Streamlit's fixed header.
+        in_dialog = option.locator("xpath=ancestor::*[@data-testid='stDialog']").count() > 0
+        if in_dialog:
+            # Callers await the dialog's changed body to prove its fragment
+            # committed; the enclosing app need not publish a running cycle.
+            option.press("Space", timeout=self.RENDER_TIMEOUT)
+        else:
+            with self.expect_script_rerun():
+                option.press("Space", timeout=self.RENDER_TIMEOUT)
         expect(option).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
-    def _refresh_data_source_render(self) -> None:
-        """Force a full-page render without replacing the browser session.
-
-        Streamlit can accept a second widget interaction while the frontend is
-        still applying an earlier fragment result.  In that narrow window the
-        radio's optimistic checked state and the server-rendered body disagree.
-        Visiting a sibling page and returning provides a deterministic full-app
-        synchronization point while preserving the session under test.
-        """
-        self.sidebar.get_by_role("button", name="Data Managers").click(force=True)
-        self.page.get_by_text("Data Managers & Transformations").wait_for(
-            state="visible",
-            timeout=self.RENDER_TIMEOUT,
-        )
-        self.sidebar.get_by_role("button", name=self.PAGE_NAME).click(force=True)
-        self.step_header.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
-        self.wait_for_streamlit()
-
     def _select_top_level_mode(self, option: Locator, content: Locator) -> None:
-        """Select a source mode and verify its server-rendered body, retrying once."""
-        for attempt in range(2):
-            option_selected = option.is_checked()
-            content_rendered = content.is_visible()
-            if option_selected and content_rendered:
-                return
-            if option_selected != content_rendered:
-                self._refresh_data_source_render()
-                if option.is_checked() and content.is_visible():
-                    return
-
-            self._select_mode(option)
-            try:
-                content.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
-                return
-            except PlaywrightTimeoutError:
-                if attempt:
-                    raise
-                self._refresh_data_source_render()
+        """Require one source mode's selected radio and its server-rendered body."""
+        self._select_mode(option)
+        content.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
 
     def ensure_parse_mode(self) -> None:
         """Ensure Parse mode is active without toggling it off.
@@ -562,61 +610,57 @@ class DataSourcePage(BasePage):
         self._select_top_level_mode(self.csv_option, self.csv_success_message)
 
     def select_remote_source(self) -> None:
-        """Open the remote-source form within upload mode."""
+        """Open upload mode, then require the selected remote-source form."""
         self.select_csv_mode()
-        for attempt in range(2):
-            self._select_mode(self.remote_source_option)
-            try:
-                self.remote_adapter_select.wait_for(
-                    state="visible",
-                    timeout=self.RENDER_TIMEOUT,
-                )
-                return
-            except PlaywrightTimeoutError:
-                if attempt:
-                    raise
-                self._refresh_data_source_render()
-                self.select_csv_mode()
+        self._select_top_level_mode(self.remote_source_option, self.remote_adapter_select)
 
     def select_recent_mode(self) -> None:
         """Click the 'Load from Recent' option."""
         self._select_top_level_mode(self.recent_option, self.recent_header)
 
+    def _fill_parser_source_input(self, field: Locator, key: str, value: str) -> None:
+        """Blur one text edit and require its exact backend configuration value."""
+        field.fill(value)
+        field.press("Tab")
+        expect(field).to_have_value(value, timeout=self.RENDER_TIMEOUT)
+        expect(self.config_preview_string(key)).to_have_text(
+            re.compile(rf"^{re.escape(self._preview_string_text(value))}$"),
+            timeout=self.RENDER_TIMEOUT,
+        )
+
     def fill_stats_path(self, path: str) -> None:
-        """Type a value into the stats directory path input."""
-        self.stats_path_input.fill(path)
-        self.stats_path_input.press("Tab")
-        self.wait_for_streamlit()
-        # Extra stabilisation after fragment rerender
-        self.page.wait_for_timeout(500)
+        """Commit the directory path through the parser fragment's own preview."""
+        self._fill_parser_source_input(self.stats_path_input, "statsPath", path)
 
     def fill_stats_pattern(self, pattern: str) -> None:
-        """Type a value into the file pattern input."""
-        self.stats_pattern_input.fill(pattern)
-        self.stats_pattern_input.press("Tab")
-        self.wait_for_streamlit()
-        # Extra stabilisation after fragment rerender
-        self.page.wait_for_timeout(500)
+        """Commit the filename pattern through the parser fragment's own preview."""
+        self._fill_parser_source_input(self.stats_pattern_input, "statsPattern", pattern)
+
+    def _select_parser_strategy(self, option: Locator, strategy: str) -> None:
+        """Commit a fragment strategy through its checked radio and exact preview value."""
+        if not option.is_checked():
+            option.press("Space", timeout=self.RENDER_TIMEOUT)
+        expect(option).to_be_checked(timeout=self.RENDER_TIMEOUT)
+        expect(self.config_preview_string("strategy")).to_have_text(
+            re.compile(rf"^{re.escape(self._preview_string_text(strategy))}$"),
+            timeout=self.RENDER_TIMEOUT,
+        )
 
     def select_simple_strategy(self) -> None:
-        """Select the 'Simple' parsing strategy."""
-        self._select_mode(self.strategy_simple_option)
+        """Select the Simple parsing strategy and await its backend preview."""
+        self._select_parser_strategy(self.strategy_simple_option, "simple")
 
     def ensure_simple_strategy(self) -> None:
-        """Ensure 'Simple' strategy is active without toggling it off.
-
-        Same pattern as ``ensure_parse_mode`` — only clicks if not
-        already active.
-        """
-        self._select_mode(self.strategy_simple_option)
+        """Require Simple without toggling an already selected radio."""
+        self._select_parser_strategy(self.strategy_simple_option, "simple")
 
     def select_config_aware_strategy(self) -> None:
-        """Select the 'Config-Aware' parsing strategy."""
-        self._select_mode(self.strategy_config_aware_option)
+        """Select Config-Aware and await its backend preview."""
+        self._select_parser_strategy(self.strategy_config_aware_option, "config_aware")
 
     def ensure_config_aware_strategy(self) -> None:
-        """Ensure 'Config-Aware' strategy is active without toggling it off."""
-        self._select_mode(self.strategy_config_aware_option)
+        """Require Config-Aware without toggling an already selected radio."""
+        self._select_parser_strategy(self.strategy_config_aware_option, "config_aware")
 
     def toggle_deep_scan(self) -> None:
         """Toggle the 'Deep Scan' checkbox."""
@@ -672,6 +716,9 @@ class DataSourcePage(BasePage):
     def switch_dialog_to_manual(self) -> None:
         """Switch the Add Variable dialog to Manual Entry mode."""
         self._select_mode(self.dialog_manual_pill)
+        expect(
+            self.dialog_overlay.get_by_role("textbox", name="Variable Name", exact=True)
+        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def switch_dialog_to_search(self) -> None:
         """Switch the Add Variable dialog to Search Scanned Variables."""
@@ -795,6 +842,30 @@ class DataSourcePage(BasePage):
         # Do not infer success from Streamlit's transient running indicator: a
         # fast or missed rerun can make that wait return before state is stored.
         expect(self.loaded_review_success).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def upload_for_review(self, path: str | Path, interpretation: str = "Auto detect") -> None:
+        """Upload and validate one file without loading or restoring its content."""
+        self.select_csv_mode()
+        self._select_mode(self.local_source_option)
+        self._open_and_select(self.upload_interpretation_selectbox, interpretation)
+        self.browser_upload_input.set_input_files(str(path))
+        validated = self.page.get_by_test_id("stAlertContentSuccess").filter(
+            has_text=re.compile(r"Validated .+: " + re.escape(Path(path).name))
+        )
+        expect(validated).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def download_playground_sample(self) -> Download:
+        """Download the real sampled table from the parser dialog's dataframe toolbar."""
+        table = self.dialog_overlay.get_by_test_id("stDataFrame")
+        expect(table).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        table.hover()
+        self.page.evaluate(
+            "Object.defineProperty(window, 'showSaveFilePicker', "
+            "{configurable: true, value: undefined})"
+        )
+        with self.page.expect_download(timeout=self.RENDER_TIMEOUT) as pending:
+            self.dialog_overlay.get_by_role("button", name="Download as CSV", exact=True).click()
+        return pending.value
 
     # Assertions
 
@@ -997,6 +1068,7 @@ class DataSourcePage(BasePage):
         Args:
             name: Exact scanned-variable name, excluding its displayed type suffix.
         """
+        previous_names = [field.input_value() for field in self.variable_name_inputs.all()]
         self.open_add_variable_dialog()
         expect(self.dialog_search_selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
         control = self.dialog_search_selectbox.get_by_role(
@@ -1023,10 +1095,7 @@ class DataSourcePage(BasePage):
         expect(self.dialog_overlay.get_by_role("textbox", name="Name", exact=True)).to_have_value(
             name, timeout=self.RENDER_TIMEOUT
         )
-        expect(self.dialog_add_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.dialog_add_button.click()
-        expect(self.dialog_overlay).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.wait_for_streamlit()
+        self._publish_dialog_variable(name, previous_names)
 
     def add_manual_variable(self, name: str, var_type: str = "scalar") -> None:
         """Open dialog, enter a manual variable, and add it.
@@ -1038,43 +1107,48 @@ class DataSourcePage(BasePage):
             name: Variable name (e.g. ``system.cpu.ipc``).
             var_type: Explicit source and matching output type for the variable.
         """
+        previous_names = [field.input_value() for field in self.variable_name_inputs.all()]
         self.open_add_variable_dialog()
         self.switch_dialog_to_manual()
         self.fill_dialog_manual_name(name)
 
-        # Manual drafts require a declared raw contract as well as an output type.
         for selectbox in (
             self.dialog_manual_type_selectbox,
             self.dialog_raw_source_type_selectbox,
         ):
-            control = selectbox.get_by_role("combobox")
-            if control.input_value() != var_type:
-                selectbox.get_by_role("button", name="Open", exact=True).click()
-                option = self.page.get_by_role("option", name=var_type, exact=True)
-                expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
-                option.click()
-                self.wait_for_streamlit(expect_rerun=True)
-            expect(control).to_have_value(var_type, timeout=self.RENDER_TIMEOUT)
+            self._open_and_select(selectbox, var_type)
+        self._publish_dialog_variable(name, previous_names)
 
-        # Click "Add to Configuration"
+    def _publish_dialog_variable(self, name: str, previous_names: list[str]) -> None:
+        """Observe a new variable's app publication or the explicit duplicate warning."""
         expect(self.dialog_add_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.dialog_add_button.click()
-
-        # Dialog auto-closes via st.rerun() on success. If this helper is called
-        # twice in the same session, close the duplicate-variable warning.
-        try:
-            expect(self.dialog_overlay).not_to_be_visible(timeout=5_000)
-        except (AssertionError, Exception):
-            # Check if it's the "already exists" warning
-            warning = self.dialog_overlay.locator("[data-testid='stAlertContentWarning']")
-            if warning.count() > 0 and "already exists" in (warning.inner_text() or ""):
-                # Variable already exists in this session.
-                self.close_dialog()
-                expect(self.dialog_overlay).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
-            else:
-                # Unknown error — re-raise
-                raise
-        self.wait_for_streamlit()
+        duplicate = name in previous_names
+        if duplicate:
+            # Duplicate submissions stay in the dialog and do not request an app run.
+            self.dialog_add_button.click()
+            warning = self.dialog_overlay.get_by_test_id("stAlertContentWarning")
+            expect(warning).to_have_text(
+                f"Variable '{name}' already exists.", timeout=self.RENDER_TIMEOUT
+            )
+            self.close_dialog()
+        else:
+            with self.expect_script_rerun():
+                self.dialog_add_button.click()
+        expect(self.dialog_overlay).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(self.variable_name_inputs).to_have_count(
+            len(previous_names) + int(not duplicate), timeout=self.RENDER_TIMEOUT
+        )
+        index = previous_names.index(name) if duplicate else len(previous_names)
+        expect(self.variable_name_inputs.nth(index)).to_have_value(
+            name, timeout=self.RENDER_TIMEOUT
+        )
+        expect(
+            self.config_preview_string("name").filter(
+                has_text=re.compile(rf"^{re.escape(self._preview_string_text(name))}$")
+            )
+        ).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        if not duplicate:
+            self.page.wait_for_function(_APP_IDLE, timeout=self.RENDER_TIMEOUT)
 
     # E2E: Variable editor — verify added variables
 
@@ -1122,6 +1196,7 @@ class DataSourcePage(BasePage):
         expect(self.data_rows_metric.get_by_test_id("stMetricValue")).to_have_text(
             re.compile(r"^[1-9][\d,]*$"), timeout=timeout
         )
+        expect(self.parse_button).to_have_count(1, timeout=timeout)
         expect(self.parse_button).to_be_enabled(timeout=timeout)
         expect(self.parse_job_heading).not_to_be_visible(timeout=timeout)
         expect(self.parse_job_retry_button).not_to_be_visible(timeout=timeout)
@@ -1131,6 +1206,26 @@ class DataSourcePage(BasePage):
         """Submit a parse and wait for its automatic background consumption."""
         self.click_parse()
         self.wait_for_parse_completion(timeout=timeout)
+
+    def retry_parse_and_wait(self, *, timeout: int = 60_000) -> None:
+        """Request a fresh attempt and require a new consumed result identity."""
+        previous_job = self.get_parse_recovery_id()
+        self._parse_attempt_pending = False
+        self._previous_parse_completion_id = (
+            self.get_parse_completion_id() if self.parse_completion_notice.count() else None
+        )
+        self.parse_job_retry_button.click()
+        self._parse_attempt_pending = True
+        self.wait_for_parse_completion(timeout=timeout)
+        assert self.get_parse_completion_id() != previous_job, "Retry must create a new attempt"
+
+    def load_partial_parse_and_wait(self, *, timeout: int = 60_000) -> None:
+        """Explicitly consume the inspected partial job and verify that exact identity."""
+        expected_job = self.get_parse_recovery_id()
+        self.parse_job_load_partial_button.click()
+        expect(self.parse_completion_notice).to_be_visible(timeout=timeout)
+        assert self.get_parse_completion_id() == expected_job
+        self._assert_consumed_parse_data(timeout=timeout)
 
     def wait_for_parse_terminal_outcome(self, *, timeout: int = 60_000) -> None:
         """Require this submission's consumed notice or explicit manual recovery."""

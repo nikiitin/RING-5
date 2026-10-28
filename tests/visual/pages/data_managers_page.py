@@ -131,6 +131,18 @@ class DataManagersPage(BasePage):
             self.current_view_download_button.click()
         return pending.value
 
+    def clear_multiselect(self, widget: Locator) -> None:
+        """Remove selected options with the multiselect's normal keyboard control."""
+        control = widget.get_by_role("combobox")
+        tags = widget.locator("[data-tag]")
+        count = tags.count()
+        for remaining in range(count - 1, -1, -1):
+            control.fill("")
+            control.press("Backspace")
+            expect(tags).to_have_count(remaining, timeout=self.RENDER_TIMEOUT)
+            self.wait_for_streamlit(expect_rerun=True)
+        control.press("Escape")
+
     # Summary tab locators
 
     @property
@@ -273,9 +285,10 @@ class DataManagersPage(BasePage):
         self.wait_for_streamlit()
 
     def confirm_seeds_reducer(self) -> None:
-        """Click 'Confirm and Apply Seeds Reducer' and wait."""
-        self.seeds_confirm_button.click()
-        self.wait_for_streamlit()
+        """Publish the preview and await its consumed confirmation after app refresh."""
+        with self.expect_script_rerun():
+            self.seeds_confirm_button.click()
+        expect(self.seeds_confirm_button).to_have_count(0, timeout=self.RENDER_TIMEOUT)
 
     # E2E: Outlier Remover
 
@@ -315,9 +328,10 @@ class DataManagersPage(BasePage):
         self.wait_for_streamlit()
 
     def confirm_outlier_remover(self) -> None:
-        """Click 'Confirm and Apply Outlier Remover' and wait."""
-        self.outlier_confirm_button.click()
-        self.wait_for_streamlit()
+        """Publish the preview and await its consumed confirmation after app refresh."""
+        with self.expect_script_rerun():
+            self.outlier_confirm_button.click()
+        expect(self.outlier_confirm_button).to_have_count(0, timeout=self.RENDER_TIMEOUT)
 
     # E2E: Preprocessor
 
@@ -362,9 +376,10 @@ class DataManagersPage(BasePage):
         self.wait_for_streamlit(expect_rerun=True)
 
     def confirm_preprocessor(self) -> None:
-        """Click 'Confirm and Add Column to Dataset' and wait."""
-        self.preproc_confirm_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        """Publish the preview and await its consumed confirmation after app refresh."""
+        with self.expect_script_rerun():
+            self.preproc_confirm_button.click()
+        expect(self.preproc_confirm_button).to_have_count(0, timeout=self.RENDER_TIMEOUT)
 
     # E2E: Mixer
 
@@ -402,6 +417,11 @@ class DataManagersPage(BasePage):
         """New column name text input in Mixer."""
         return self._by_label("stTextInput", "New Column Name").locator("input")
 
+    @property
+    def mixer_separator_input(self) -> Locator:
+        """Separator between values in a configuration merge."""
+        return self.page.get_by_role("textbox", name="Separator", exact=True)
+
     def add_mixer_column(self, column: str) -> None:
         """Add the exact source column and verify its selected chip."""
         self._open_and_select(self.mixer_columns_multiselect, column, multiple=True)
@@ -412,9 +432,10 @@ class DataManagersPage(BasePage):
         self.wait_for_streamlit()
 
     def confirm_mixer(self) -> None:
-        """Click 'Confirm and Merge' and wait."""
-        self.mixer_confirm_button.click()
-        self.wait_for_streamlit()
+        """Publish the preview and await its consumed confirmation after app refresh."""
+        with self.expect_script_rerun():
+            self.mixer_confirm_button.click()
+        expect(self.mixer_confirm_button).to_have_count(0, timeout=self.RENDER_TIMEOUT)
 
     # E2E: Baseline comparison
 
@@ -466,15 +487,27 @@ class DataManagersPage(BasePage):
         """Download button for the regression JUnit XML document."""
         return self.page.get_by_role("button", name="Download JUnit XML")
 
+    def download_comparison(self, file_format: str) -> Download:
+        """Transfer one current comparison artifact through its visible download control."""
+        labels = {
+            "csv": "Download comparison CSV",
+            "json": "Download results JSON",
+            "junit": "Download JUnit XML",
+        }
+        with self.page.expect_download(timeout=self.RENDER_TIMEOUT) as pending:
+            self.page.get_by_role("button", name=labels[file_format], exact=True).click()
+        return pending.value
+
     @property
     def regression_plot(self) -> Locator:
         """Accessible regression-outcome chart in the comparison preview."""
         return self.page.locator("[data-testid='stCustomComponentV1']:visible")
 
     def apply_comparison(self) -> None:
-        """Calculate the comparison and wait for the preview."""
-        self.comparison_apply_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        """Observe the comparison's app refresh and its retained confirmation control."""
+        with self.expect_script_rerun():
+            self.comparison_apply_button.click()
+        expect(self.comparison_confirm_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     # E2E: Named dataset workspace
 
@@ -497,6 +530,32 @@ class DataManagersPage(BasePage):
     def workspace_dataset_metric_value(self) -> Locator:
         """Numeric retained-dataset count inside the workspace metric."""
         return self.workspace_dataset_metric.locator("[data-testid='stMetricValue']")
+
+    @property
+    def workspace_dataset_table(self) -> Locator:
+        """Retained datasets and their published active-source flags."""
+        return (
+            self.page.get_by_role("tabpanel", name="Workspace", exact=True)
+            .get_by_test_id("stDataFrame")
+            .filter(
+                has=self.page.get_by_role(
+                    "columnheader", name="Active", exact=True, include_hidden=True
+                )
+            )
+        )
+
+    def workspace_dataset_row(self, name: str) -> Locator:
+        """Find a retained dataset by its exact first-column name."""
+        source = self.page.get_by_role("gridcell", name=name, exact=True, include_hidden=True).and_(
+            self.page.locator('[aria-colindex="1"]')
+        )
+        return self.workspace_dataset_table.get_by_role("row", include_hidden=True).filter(
+            has=source
+        )
+
+    def workspace_dataset_active_cell(self, name: str) -> Locator:
+        """The published Active cell, excluding a dataset whose name itself is Yes."""
+        return self.workspace_dataset_row(name).locator('[role="gridcell"][aria-colindex="4"]')
 
     @property
     def workspace_snapshots_panel(self) -> Locator:
@@ -554,6 +613,46 @@ class DataManagersPage(BasePage):
         return self._by_label("stSelectbox", "Workspace dataset")
 
     @property
+    def workspace_activate_button(self) -> Locator:
+        """Make the inspected dataset active without changing other retained tables."""
+        return self.page.get_by_role("button", name="Activate Dataset", exact=True)
+
+    @property
+    def workspace_remove_button(self) -> Locator:
+        """Remove the inspected named dataset."""
+        return self.page.get_by_role("button", name="Remove Dataset", exact=True)
+
+    @property
+    def workspace_append_name_input(self) -> Locator:
+        """Name assigned to a newly appended dataset."""
+        return self.page.get_by_role("textbox", name="Appended dataset name", exact=True)
+
+    @property
+    def workspace_append_button(self) -> Locator:
+        """Append the selected sources under a new name."""
+        return self.page.get_by_role("button", name="Append Retained Datasets", exact=True)
+
+    @property
+    def workspace_revision_selectbox(self) -> Locator:
+        """Immutable revision inspected in the lineage panel."""
+        return self._by_label("stSelectbox", "Inspect revision")
+
+    @property
+    def workspace_snapshot_source_selectbox(self) -> Locator:
+        """Named source whose exact data will be saved in a reusable snapshot."""
+        return self._by_label("stSelectbox", "Dataset to snapshot")
+
+    def activate_workspace_dataset(self, name: str) -> None:
+        """Select and explicitly activate one named dataset."""
+        self.select_tab("Workspace")
+        self._open_and_select(self.workspace_dataset_selectbox, name)
+        with self.expect_script_rerun():
+            self.workspace_activate_button.click()
+        expect(self.workspace_dataset_active_cell(name)).to_have_text(
+            "Yes", timeout=self.RENDER_TIMEOUT
+        )
+
+    @property
     def workspace_join_left(self) -> Locator:
         """Left named dataset selector."""
         return self._by_label("stSelectbox", "Left dataset")
@@ -562,6 +661,11 @@ class DataManagersPage(BasePage):
     def workspace_join_right(self) -> Locator:
         """Right named dataset selector."""
         return self._by_label("stSelectbox", "Right dataset")
+
+    @property
+    def workspace_join_mode(self) -> Locator:
+        """Inner, left, right or outer join selected for the composed dataset."""
+        return self._by_label("stSelectbox", "Join mode")
 
     @property
     def workspace_join_keys(self) -> Locator:
@@ -599,10 +703,13 @@ class DataManagersPage(BasePage):
             expect(self.workspace_dataset_metric_value).to_be_visible(timeout=self.RENDER_TIMEOUT)
             previous_count = int(self.workspace_dataset_metric_value.inner_text())
         self.workspace_name_input.fill(name)
-        self.workspace_retain_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        with self.expect_script_rerun():
+            self.workspace_retain_button.click()
         expect(self.workspace_dataset_metric_value).to_have_text(
             str(previous_count + 1), timeout=self.RENDER_TIMEOUT
+        )
+        expect(self.workspace_dataset_active_cell(name)).to_have_text(
+            "Yes", timeout=self.RENDER_TIMEOUT
         )
 
     def open_workspace_snapshots(self) -> None:
@@ -619,33 +726,64 @@ class DataManagersPage(BasePage):
         self.page.keyboard.press("Tab")
         self.wait_for_streamlit()
         self.open_workspace_snapshots()
-        self.workspace_snapshot_save_button.click()
-        self.wait_for_streamlit()
+        with self.expect_script_rerun():
+            self.workspace_snapshot_save_button.click()
+        table = (
+            self.page.get_by_role("tabpanel", name="Workspace", exact=True)
+            .get_by_test_id("stDataFrame")
+            .filter(
+                has=self.page.get_by_role(
+                    "columnheader", name="Snapshot", exact=True, include_hidden=True
+                )
+            )
+        )
+        expect(
+            table.get_by_role("gridcell", name=name, exact=True, include_hidden=True).and_(
+                self.page.locator('[aria-colindex="1"]')
+            )
+        ).to_have_count(1, timeout=self.RENDER_TIMEOUT)
 
     def load_workspace_snapshot(self, dataset_name: str) -> None:
         """Verify the selected snapshot, load it, and wait for rerendering."""
         self.open_workspace_snapshots()
+        previous_count = int(self.workspace_dataset_metric_value.inner_text())
         self.workspace_snapshot_output_input.fill(dataset_name)
         self.page.keyboard.press("Tab")
         self.wait_for_streamlit()
         self.open_workspace_snapshots()
-        self.workspace_snapshot_load_button.click()
-        self.wait_for_streamlit()
+        with self.expect_script_rerun():
+            self.workspace_snapshot_load_button.click()
+        expect(self.workspace_dataset_metric_value).to_have_text(
+            str(previous_count + 1), timeout=self.RENDER_TIMEOUT
+        )
+        expect(self.workspace_dataset_active_cell(dataset_name)).to_have_text(
+            "Yes", timeout=self.RENDER_TIMEOUT
+        )
 
     def undo_workspace_dataset(self) -> None:
-        """Undo one named-dataset revision and wait for the rerender."""
-        self.workspace_undo_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        """Publish the preceding revision and require its durable redo action."""
+        with self.expect_script_rerun():
+            self.workspace_undo_button.click()
+        expect(self.workspace_redo_button).to_be_enabled(timeout=self.RENDER_TIMEOUT)
 
     def redo_workspace_dataset(self) -> None:
-        """Redo one named-dataset revision and wait for the rerender."""
-        self.workspace_redo_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        """Publish the next revision and require its durable undo action."""
+        with self.expect_script_rerun():
+            self.workspace_redo_button.click()
+        expect(self.workspace_undo_button).to_be_enabled(timeout=self.RENDER_TIMEOUT)
 
     def join_workspace_datasets(self) -> None:
-        """Execute the validated join and wait for the workspace rerender."""
-        self.workspace_join_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        """Require the validated join's new named result and active-source flag."""
+        previous_count = int(self.workspace_dataset_metric_value.inner_text())
+        name = self.workspace_join_output_input.input_value()
+        with self.expect_script_rerun():
+            self.workspace_join_button.click()
+        expect(self.workspace_dataset_metric_value).to_have_text(
+            str(previous_count + 1), timeout=self.RENDER_TIMEOUT
+        )
+        expect(self.workspace_dataset_active_cell(name)).to_have_text(
+            "Yes", timeout=self.RENDER_TIMEOUT
+        )
 
     # E2E: Data quality
 
@@ -659,12 +797,184 @@ class DataManagersPage(BasePage):
         """Schema-violation summary metric."""
         return self.page.locator("[data-testid='stMetric']").filter(has_text="Schema violations")
 
+    def download_quality_profile(self) -> Download:
+        """Transfer the per-column quality report through its ordinary CSV download."""
+        with self.page.expect_download(timeout=self.RENDER_TIMEOUT) as pending:
+            self.page.get_by_role("button", name="Download quality profile", exact=True).click()
+        return pending.value
+
     def profile_data(self) -> None:
         """Calculate the data-quality report and wait for rendering."""
         self.quality_profile_button.click()
         self.wait_for_streamlit()
 
     # E2E: Dataset schema contract
+
+    @property
+    def schema_contract_panel(self) -> Locator:
+        """The active schema editor, validation report and unit-conversion controls."""
+        return self.page.get_by_role("tabpanel", name="Schema Contract", exact=True)
+
+    @property
+    def schema_contract_editor(self) -> Locator:
+        """The explicitly keyed rule editor, excluding read-only report tables."""
+        return self.schema_contract_panel.locator(
+            ".st-key-manager-schema_contract-rules"
+        ).get_by_test_id("stDataFrame")
+
+    def _select_schema_rule_cell(self, column: str, field: str) -> tuple[Locator, Locator]:
+        """Navigate owned grid cells by their global IDs and virtualized ARIA headers."""
+        editor = self.schema_contract_editor
+        expect(editor).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        canvas = editor.get_by_test_id("data-grid-canvas")
+        # Glide's scroller owns pointer events above its keyboard-focus canvas.
+        scroller = editor.locator(".dvn-scroller")
+        expect(scroller).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        scroller.hover()
+        canvas.focus()
+        grid = editor.locator('table[role="grid"]')
+        expect(grid).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        selected = grid.locator('[role="gridcell"][aria-selected="true"]')
+        expect(selected).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+
+        def position(cell: Locator) -> tuple[int, int]:
+            cell_id = cell.get_attribute("id")
+            assert cell_id is not None and cell_id.startswith("glide-cell-"), cell_id
+            coordinates = cell_id.removeprefix("glide-cell-").split("-")
+            assert len(coordinates) == 2, cell_id
+            return int(coordinates[0]), int(coordinates[1])
+
+        def await_cell(column_index: int, row_index: int) -> Locator:
+            cell = grid.get_by_test_id(f"glide-cell-{column_index}-{row_index}")
+            expect(cell).to_have_attribute("aria-selected", "true", timeout=self.RENDER_TIMEOUT)
+            return cell
+
+        current_column, current_row = position(selected)
+        # Read source-column labels at the left edge. Avoid a no-op Home command
+        # and await each React selection before sending its next navigation key.
+        for column_index in range(current_column - 1, -1, -1):
+            canvas.press("ArrowLeft")
+            await_cell(column_index, current_row)
+        for row_index in range(current_row - 1, -1, -1):
+            canvas.press("ArrowUp")
+            await_cell(0, row_index)
+        first_column = grid.locator('tbody [role="gridcell"][aria-colindex="1"]')
+        names = first_column.all_text_contents()
+        assert names.count(column) == 1, f"Expected one schema source column {column!r}: {names}"
+        _, target_row = position(first_column.nth(names.index(column)))
+
+        header = grid.get_by_role("columnheader", name=field, exact=True, include_hidden=True)
+        if header.count() == 0:
+            column_count = grid.get_attribute("aria-colcount")
+            assert column_count is not None
+            last_column = int(column_count) - 1
+            current_column, current_row = position(selected)
+            if current_column != last_column:
+                canvas.press("End")
+                await_cell(last_column, current_row)
+            expect(header).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        header_index = header.get_attribute("aria-colindex")
+        assert header_index is not None, f"Schema rule header {field!r} has no global column index"
+        target_column = int(header_index) - 1
+        current_column, current_row = position(selected)
+        horizontal_key = "ArrowRight" if target_column > current_column else "ArrowLeft"
+        horizontal_step = 1 if target_column > current_column else -1
+        for column_index in range(
+            current_column + horizontal_step, target_column + horizontal_step, horizontal_step
+        ):
+            canvas.press(horizontal_key)
+            await_cell(column_index, current_row)
+        for row_index in range(current_row + 1, target_row + 1):
+            canvas.press("ArrowDown")
+            await_cell(target_column, row_index)
+        return canvas, await_cell(target_column, target_row)
+
+    def edit_schema_rule(self, column: str, field: str, value: str) -> None:
+        """Commit a rule through the grid's printable-key overlay without canvas coordinates."""
+        assert value and value[0].isprintable() and not value[0].isspace()
+        canvas, cell = self._select_schema_rule_cell(column, field)
+        expect(cell).to_have_attribute("aria-readonly", "false")
+        canvas.press(value[0])
+        overlay = self.page.locator("input.gdg-input:visible, textarea.gdg-input:visible")
+        expect(overlay).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        overlay.fill(value)
+        overlay.press("Enter")
+        expect(overlay).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+        canvas.focus()
+        expect(cell).to_have_text(value, timeout=self.RENDER_TIMEOUT)
+
+    def schema_rule_value(self, column: str, field: str) -> str:
+        """Read an exact accessible rule cell through the grid's native horizontal scroller."""
+        editor = self.schema_contract_editor
+        expect(editor).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        scroller = editor.locator(".dvn-scroller")
+        expect(scroller).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        grid = editor.locator('table[role="grid"]')
+        expect(grid).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+
+        def scroll_to_edge(*, right: bool) -> None:
+            position = scroller.evaluate(
+                "element => ({current: element.scrollLeft, "
+                "last: element.scrollWidth - element.clientWidth})"
+            )
+            target = position["last"] if right else 0
+            if position["current"] != target:
+                scroller.hover()
+                self.page.mouse.wheel(target - position["current"], 0)
+                expect(scroller).to_have_js_property(
+                    "scrollLeft", target, timeout=self.RENDER_TIMEOUT
+                )
+
+        source = grid.get_by_role("gridcell", name=column, exact=True, include_hidden=True).and_(
+            grid.locator('[aria-colindex="1"]')
+        )
+        if source.count() == 0:
+            scroll_to_edge(right=False)
+        expect(source).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        source_id = source.get_attribute("id")
+        assert source_id is not None and source_id.startswith("glide-cell-0-"), source_id
+        row_index = int(source_id.removeprefix("glide-cell-0-"))
+
+        header = grid.get_by_role("columnheader", name=field, exact=True, include_hidden=True)
+        if header.count() == 0:
+            scroll_to_edge(right=True)
+        expect(header).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        header_index = header.get_attribute("aria-colindex")
+        assert header_index is not None, f"Schema rule header {field!r} has no global column index"
+        cell = grid.get_by_test_id(f"glide-cell-{int(header_index) - 1}-{row_index}")
+        expect(cell).to_have_count(1, timeout=self.RENDER_TIMEOUT)
+        return cell.inner_text()
+
+    @property
+    def schema_failed_rules_metric(self) -> Locator:
+        """Number of rejected schema rules for the current validation."""
+        return self.schema_contract_panel.get_by_test_id("stMetric").filter(has_text="Failed rules")
+
+    @property
+    def schema_affected_rows_metric(self) -> Locator:
+        """Number of row-level failures in the current schema report."""
+        return self.schema_contract_panel.get_by_test_id("stMetric").filter(
+            has_text="Affected rows"
+        )
+
+    @property
+    def schema_unit_column_selectbox(self) -> Locator:
+        """Declared metric selected for physical unit conversion."""
+        return self._by_label("stSelectbox", "Column to convert")
+
+    @property
+    def schema_unit_target_selectbox(self) -> Locator:
+        """Target unit selector whose label states the retained source unit."""
+        return self._by_label("stSelectbox", "Target unit (currently")
+
+    def convert_schema_unit(self, column: str, target: str) -> None:
+        """Submit an explicit unit conversion through the schema controls."""
+        self._open_and_select(self.schema_unit_column_selectbox, column)
+        self._open_and_select(self.schema_unit_target_selectbox, target)
+        with self.expect_script_rerun():
+            self.schema_contract_panel.get_by_role(
+                "button", name="Convert Unit", exact=True
+            ).click()
 
     @property
     def schema_contract_validate_button(self) -> Locator:
@@ -682,10 +992,21 @@ class DataManagersPage(BasePage):
         return self.page.get_by_role("button", name="Apply Labels and Units")
 
     @property
-    def schema_semantics_success(self) -> Locator:
-        """Confirmation that semantic metadata entered the data lifecycle."""
-        return self.page.get_by_text(
-            "Semantic labels and units are retained with the active dataset."
+    def schema_semantics_table(self) -> Locator:
+        """The retained metadata table, excluding editable rules and validation reports."""
+        return self.schema_contract_panel.get_by_test_id("stDataFrame").filter(
+            has=self.page.get_by_role(
+                "columnheader", name="display_label", exact=True, include_hidden=True
+            )
+        )
+
+    def schema_semantics_row(self, column: str) -> Locator:
+        """Find retained metadata by its exact source-column cell."""
+        source = self.page.get_by_role(
+            "gridcell", name=column, exact=True, include_hidden=True
+        ).and_(self.page.locator('[aria-colindex="1"]'))
+        return self.schema_semantics_table.get_by_role("row", include_hidden=True).filter(
+            has=source
         )
 
     def validate_schema_contract(self) -> None:
@@ -694,9 +1015,9 @@ class DataManagersPage(BasePage):
         self.wait_for_streamlit()
 
     def apply_schema_semantics(self) -> None:
-        """Apply the current labels/units and wait for the rerender."""
-        self.schema_semantics_apply_button.click()
-        self.wait_for_streamlit()
+        """Publish labels and units after arming their full application refresh."""
+        with self.expect_script_rerun():
+            self.schema_semantics_apply_button.click()
 
     # E2E: Data Visualization tab
 
@@ -709,6 +1030,11 @@ class DataManagersPage(BasePage):
     def viz_search_term_input(self) -> Locator:
         """Search term text input in Data Visualization."""
         return self._by_label("stTextInput", "Search term").locator("input")
+
+    @property
+    def viz_display_columns_multiselect(self) -> Locator:
+        """Columns included in the visible table and its CSV download."""
+        return self._by_label("stMultiSelect", "Select columns to display")
 
     def assert_dataframe_visible(self) -> None:
         """Assert the visualization tab's heading and data table are visible."""

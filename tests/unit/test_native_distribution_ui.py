@@ -168,6 +168,71 @@ def test_ordinary_histogram_keeps_generic_rebin_and_density_controls(
     assert norm.kwargs["format_func"]("density") == "density"
 
 
+@pytest.mark.parametrize("width", [None, 0.25, 1e-10, 20.0])
+def test_generic_controls_preserve_original_intervals_or_explicit_fractional_width(
+    widgets: tuple[MagicMock, MagicMock], width: float | None
+) -> None:
+    """Opening a histogram never introduces an unrequested numeric transformation."""
+    st, _ = widgets
+    saved: PlotConfig = {"histogram_variable": "ordinary"}
+    if width is not None:
+        saved["bucket_size"] = width
+    before = deepcopy(saved)
+    result = histogram_config.render(frame("native"), saved, 2)
+    assert saved == before
+    if width is None:
+        assert "bucket_size" not in result
+        st.number_input.assert_not_called()
+    else:
+        assert result["bucket_size"] == width
+        assert st.number_input.call_args.kwargs["value"] == width
+    rebin = next(
+        call for call in st.checkbox.call_args_list if call.args[0] == "Rebin continuous intervals"
+    )
+    assert rebin.kwargs["value"] is (width is not None)
+
+
+def test_generic_rebin_can_be_disabled_without_mutating_saved_configuration(
+    widgets: tuple[MagicMock, MagicMock],
+) -> None:
+    st, _ = widgets
+    st.checkbox.side_effect = lambda label, **kwargs: (
+        False if label == "Rebin continuous intervals" else kwargs["value"]
+    )
+    saved: PlotConfig = {"histogram_variable": "ordinary", "bucket_size": 0.25}
+    result = histogram_config.render(frame("native"), saved, 2)
+    assert "bucket_size" not in result
+    assert saved["bucket_size"] == 0.25
+    st.number_input.assert_not_called()
+
+
+def test_real_generic_rebin_control_preserves_intervals_and_accepts_fractional_width() -> None:
+    script = """import streamlit as st
+from tests.unit.test_native_distribution_ui import frame
+from src.web.components.plotting.config import histogram_config
+saved = st.session_state.get("config", {"histogram_variable": "ordinary"})
+st.session_state["config"] = histogram_config.render(frame("native"), saved, 7)
+"""
+    app = AppTest.from_string(script).run(timeout=15)
+    assert not app.exception
+    assert "bucket_size" not in app.session_state["config"]
+    assert not any(widget.label == "Bucket Size" for widget in app.number_input)
+    rebin = next(widget for widget in app.checkbox if widget.label == "Rebin continuous intervals")
+    rebin.check().run(timeout=15)
+    assert not app.exception
+    bucket = next(widget for widget in app.number_input if widget.label == "Bucket Size")
+    bucket.set_value(0.25).run(timeout=15)
+    assert not app.exception
+    assert app.session_state["config"]["bucket_size"] == 0.25
+    app.run(timeout=15)
+    assert app.session_state["config"]["bucket_size"] == 0.25
+    next(
+        widget for widget in app.checkbox if widget.label == "Rebin continuous intervals"
+    ).uncheck().run(timeout=15)
+    assert not app.exception
+    assert "bucket_size" not in app.session_state["config"]
+
+
 def test_real_editor_preserves_native_grid_precision_and_policy_across_reruns() -> None:
     """Streamlit empty values and serialized doubles preserve the declared draft."""
     script = """from copy import deepcopy

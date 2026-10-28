@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from src.core.common.source_contributions import validate_present_source_pair
+
 from src.core.models.portfolio_contract import validate_portfolio_schema
 from src.core.common.source_context_codec import SourceContextCodec
 from src.core.services.shapers.factory import ShaperFactory
@@ -31,6 +33,7 @@ def validate_portfolio_document(value: dict[str, Any]) -> dict[str, Any]:
         validate_plot_fields(plot)
         if not {"source_data", "processed_data"} <= plot.keys():
             raise ValueError("Portfolio plots require current typed source and processed data.")
-        TypedTableCodec.decode(plot["source_data"])
-        TypedTableCodec.decode(plot["processed_data"])
+        source = TypedTableCodec.decode(plot["source_data"])
+        processed = TypedTableCodec.decode(plot["processed_data"])
+        validate_present_source_pair(source, processed)
     return value

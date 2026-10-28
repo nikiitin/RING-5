@@ -14,6 +14,7 @@ from __future__ import annotations
 import csv
 import json
 from io import StringIO
+from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
@@ -110,9 +111,52 @@ class TestPortfolioSaveLoad:
 
         gallery = tier3_page.context.new_page()
         try:
-            gallery.set_content(payload.decode("utf-8"), wait_until="networkidle")
+            gallery.set_content(payload.decode("utf-8"), wait_until="load")
             expect(gallery.locator("[data-ring5-gallery-item]")).to_have_count(2)
             expect(gallery.locator(".plotly-graph-div")).to_have_count(2)
+            # Both figures carry their own real post-pipeline table. Inspect
+            # the resolved native values before exercising the card filter.
+            source_path = Path(__file__).parent / "fixtures" / "sample_data.csv"
+            expected_rows = list(csv.DictReader(StringIO(source_path.read_text())))
+            rendered = gallery.wait_for_function(
+                """() => {
+                const graphs = [...document.querySelectorAll('.plotly-graph-div')];
+                if (graphs.length !== 2 || graphs.some(graph => !graph.calcdata?.length)) {
+                    return false;
+                }
+                return graphs.map(graph => graph._fullData.map(trace => ({
+                    type: trace.type, name: trace.name, values: Array.from(trace.y),
+                    calculated: graph.calcdata[0].length,
+                })));
+            }""",
+                timeout=E2E_TIMEOUT,
+            ).json_value()
+            for traces in rendered:
+                assert len(traces) == 1 and traces[0]["type"] == "bar"
+                metric = traces[0]["name"]
+                assert metric in {"system.cpu.ipc", "seed"}
+                assert traces[0]["calculated"] == len(expected_rows) == 18
+                assert sorted(traces[0]["values"]) == pytest.approx(
+                    sorted(float(row[metric]) for row in expected_rows)
+                )
+            for card in gallery.locator("[data-ring5-gallery-item]").all():
+                with gallery.expect_download(timeout=E2E_TIMEOUT) as source_download:
+                    card.get_by_role(
+                        "button", name="Download source data as CSV", exact=True
+                    ).click()
+                rows = list(
+                    csv.DictReader(
+                        StringIO(source_download.value.path().read_text(encoding="utf-8-sig"))
+                    )
+                )
+                assert len(rows) == 18
+                for actual, expected in zip(rows, expected_rows, strict=True):
+                    assert actual.keys() == expected.keys()
+                    for column, value in expected.items():
+                        if column in {"benchmark_name", "config_description"}:
+                            assert actual[column] == value
+                        else:
+                            assert float(actual[column]) == pytest.approx(float(value))
             expect(gallery.locator("[data-ring5-gallery-count]")).to_have_text(
                 "2 of 2 plots visible"
             )
@@ -135,14 +179,15 @@ class TestPortfolioSaveLoad:
         pf.navigate()
         pf.save_current_as_recipe("E2E Analysis Recipe")
 
-        expect(pf.recipe_saved_success).to_be_visible(timeout=E2E_TIMEOUT)
-        pf.open_analysis_recipes()
-        pf.saved_recipes_tab.click()
+        expect(pf.saved_recipe_selectbox.get_by_role("combobox")).to_have_value(
+            "E2E Analysis Recipe"
+        )
         expect(pf.download_recipe_button).to_be_visible(timeout=E2E_TIMEOUT)
         with tier3_page.expect_download(timeout=E2E_TIMEOUT) as download_info:
             pf.download_recipe_button.click()
         document = json.loads(download_info.value.path().read_text())
         assert document["format"] == "ring5.analysis-recipe"
+        assert document["name"] == "E2E Analysis Recipe"
         assert document["source"]["path"] == "{{source_path}}"
         assert document["parameters"][0]["type"] == "path"
         assert len(document["plots"]) == 2

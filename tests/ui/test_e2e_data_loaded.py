@@ -168,17 +168,17 @@ class TestSidebarWithData:
             len(row_metrics) > 0 or len(col_metrics) > 0
         ), "Expected Rows/Columns metrics in data preview"
 
-    def test_clear_data_button_clears_state(self) -> None:
-        """Clicking Clear Data removes data from state."""
+    def test_reset_all_clears_state(self) -> None:
+        """Reset All removes the active dataset."""
         # [test->req~ring5.workspace.reset~1]
         at = create_app_with_data()
         at.run()
 
         assert not at.exception
-        # Click "Clear Data" in sidebar
-        clear_buttons = [b for b in at.sidebar.button if "clear" in b.label.lower()]
-        assert len(clear_buttons) > 0
-        clear_buttons[0].click().run()
+        # Reset the workspace through its canonical action.
+        reset_buttons = [b for b in at.sidebar.button if b.label == "Reset All"]
+        assert len(reset_buttons) == 1
+        reset_buttons[0].click().run()
 
         # After clear, data should be gone
         api = get_api(at)

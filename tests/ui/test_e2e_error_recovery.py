@@ -22,18 +22,18 @@ from tests.ui.helpers import (
 )
 
 
-# Clear data recovery
-class TestClearDataRecovery:
+# Session reset recovery
+class TestSessionResetRecovery:
     """App recovers gracefully when data is cleared mid-session."""
 
-    def test_clear_data_via_sidebar(self) -> None:
-        """Clicking Clear Data button removes data from state."""
+    def test_reset_all_via_sidebar(self) -> None:
+        """Reset All removes the active dataset."""
         at = create_app_with_data()
         at.run()
 
-        clear_buttons = [b for b in at.sidebar.button if "clear" in b.label.lower()]
-        assert len(clear_buttons) > 0, "Expected Clear Data button"
-        clear_buttons[0].click().run()
+        reset_buttons = [b for b in at.sidebar.button if b.label == "Reset All"]
+        assert len(reset_buttons) == 1
+        reset_buttons[0].click().run()
 
         api: Any = get_api(at)
         assert not api.state_manager.has_data()

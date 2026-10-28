@@ -93,9 +93,11 @@ class PipelineExecutorAdapter:
         self,
         data: pd.DataFrame,
         configs: Sequence[Mapping[str, object]],
+        *,
+        track_source_rows: bool = False,
     ) -> pd.DataFrame:
         """Apply a sequence of shaper configs to data."""
-        return self._shapers.process_pipeline(data, configs)
+        return self._shapers.process_pipeline(data, configs, track_source_rows=track_source_rows)
 
     def configure_shaper(
         self,

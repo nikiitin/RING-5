@@ -6,7 +6,11 @@ with correct headers/magic bytes for PNG, SVG, and PDF formats.
 
 from __future__ import annotations
 
+import csv
+from io import StringIO
+import json
 from pathlib import Path
+import re
 from typing import Any, cast
 
 import pandas as pd
@@ -86,13 +90,17 @@ class TestPlotlyHTML:
     ) -> None:
         # [test->req~ring5.export.plotly-html-source-data~1]
         """Workspace HTML can carry searchable data without executable cell HTML."""
+        unsafe_note = '</script><script>alert(1)</script> & "quoted",\r\nnext line'
         source = pd.DataFrame(
             {
                 "benchmark": ["mcf", "omnetpp"],
                 "ipc": [2.1, 1.85],
-                "note": ["safe", "</script><script>alert(1)</script>"],
+                "identifier": [2**63 - 1, 2**53 + 1],
+                "optional": [None, "—"],
+                "note": ["safe", unsafe_note],
             }
         )
+        before = source.copy(deep=True)
 
         text = plotly_download_bytes(
             simple_bar_figure,
@@ -105,11 +113,27 @@ class TestPlotlyHTML:
         assert "Interactive source dataframe" in text
         assert "Filter rows" in text
         assert "Download source data as CSV" in text
-        assert "2 rows × 3 columns" in text
-        assert '"benchmark"' in text
-        assert "mcf" in text
-        assert "</script><script>alert(1)</script>" not in text
-        assert "\\u003c\\/script\\u003e" in text
+        assert "2 rows × 5 columns" in text
+        payloads = re.findall(
+            r'<script id="ring5-source-data-payload" type="application/json">(.*?)</script>',
+            text,
+            flags=re.DOTALL,
+        )
+        assert len(payloads) == 1
+        encoded = payloads[0]
+        assert "<" not in encoded and ">" not in encoded and "&" not in encoded
+        payload = json.loads(encoded)
+        assert payload["columns"] == ["benchmark", "ipc", "identifier", "optional", "note"]
+        assert payload["data"] == [
+            ["mcf", 2.1, 2**63 - 1, None, "safe"],
+            ["omnetpp", 1.85, 2**53 + 1, "—", unsafe_note],
+        ]
+        assert list(csv.reader(StringIO(payload["csv"], newline=""))) == [
+            ["benchmark", "ipc", "identifier", "optional", "note"],
+            ["mcf", "2.1", str(2**63 - 1), "", "safe"],
+            ["omnetpp", "1.85", str(2**53 + 1), "—", unsafe_note],
+        ]
+        pd.testing.assert_frame_equal(source, before)
 
     def test_dataframe_html_export_remains_deterministic(
         self, simple_bar_figure: go.Figure

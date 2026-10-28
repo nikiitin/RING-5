@@ -44,6 +44,29 @@
         },
       };
 
+      // The parent's React listener may mount after this iframe. Keep the
+      // readiness handshake within Streamlit's existing 60-second deadline.
+      var readyTimer = null;
+      var readyDeadline = 0;
+
+      function stopReadyAnnouncements() {
+        readyDeadline = 0;
+        if (readyTimer !== null) {
+          window.clearTimeout(readyTimer);
+          readyTimer = null;
+        }
+      }
+
+      function announceReady() {
+        readyTimer = null;
+        var remaining = readyDeadline - performance.now();
+        if (remaining <= 0) return;
+        sendMessageToStreamlitClient("streamlit:componentReady", {
+          apiVersion: 1,
+        });
+        readyTimer = window.setTimeout(announceReady, Math.min(250, remaining));
+      }
+
       function onRender(event) {
         var args = event.data.args;
         if (
@@ -82,6 +105,9 @@
           Array.isArray(config)
         )
           return;
+
+        // Only a validated parent render acknowledges the readiness handshake.
+        stopReadyAnnouncements();
 
         if (window._ring5_plotly_version !== args.plotly_version) {
           var bundle = document.createElement("script");
@@ -175,11 +201,14 @@
       }
 
       function handlePlotClick(graphDiv, eventData) {
-        if (!graphDiv._streamlit_capture_click) return;
-        var point =
-          eventData && Array.isArray(eventData.points)
-            ? eventData.points[0]
-            : null;
+        if (
+          !graphDiv._streamlit_capture_click ||
+          !eventData ||
+          !Array.isArray(eventData.points) ||
+          eventData.points.length !== 1
+        )
+          return;
+        var point = eventData.points[0];
         var filters = drillDownFilters(point);
         if (!point || filters === null) return;
         Streamlit.setComponentValue({
@@ -209,10 +238,10 @@
         }
       });
 
-      // Notify Streamlit we are ready
-      sendMessageToStreamlitClient("streamlit:componentReady", {
-        apiVersion: 1,
-      });
+      window.addEventListener("pagehide", stopReadyAnnouncements);
+      window.addEventListener("unload", stopReadyAnnouncements);
+      readyDeadline = performance.now() + 60000;
+      announceReady();
     </script>
   </body>
 </html>

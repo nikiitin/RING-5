@@ -33,6 +33,10 @@ flowchart LR
     G --> I
 ```
 
+Use **Reset All** in the sidebar to start a fresh session. It clears loaded data, plots and parser
+configuration, restores the default inputs, and cancels session-owned jobs. Other browser sessions
+and global rendering preferences remain independent.
+
 ## Data source
 
 The gem5 parser scans a directory tree for files that match a pattern such as `stats.txt`. A

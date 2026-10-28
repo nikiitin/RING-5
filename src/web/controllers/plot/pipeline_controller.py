@@ -276,9 +276,10 @@ class PipelineController:
                     "before finalizing."
                 )
             confs: list[Mapping[str, object]] = [step["config"] for step in plot.pipeline]
-            processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)
-            plot.replace_source_data(raw_data)
-            plot.replace_processed_data(processed)
+            processed: pd.DataFrame = self._pipeline.apply_shapers(
+                raw_data, confs, track_source_rows=True
+            )
+            plot.replace_pipeline_data(raw_data, processed)
             PipelineStepComponent.render_finalize_result(processed)
             # Finalization runs inside a fragment. An app rerun refreshes the
             # separate visualization fragment immediately with the new data.

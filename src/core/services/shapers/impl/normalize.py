@@ -203,4 +203,21 @@ class Normalize(UniDfShaper):
         fingerprint = compute_data_fingerprint(data_frame, self._params, relevant_cols)
 
         result: DataFrame = self._normalize_with_cache(data_frame, fingerprint)
+        if self._source_tracker is not None:
+            dependencies = []
+            groups = data_frame.groupby(self._group_by, sort=False, dropna=False).indices.values()
+            for positions in groups:
+                positions = [int(position) for position in positions]
+                mask = (
+                    data_frame.iloc[positions][self._normalizer_column]
+                    .eq(self._normalizer_value)
+                    .fillna(False)
+                )
+                baselines = [
+                    position for position, selected in zip(positions, mask, strict=True) if selected
+                ]
+                if len(baselines) != 1:
+                    raise ValueError("Normalization source contributions require one baseline.")
+                dependencies.append((positions, baselines[0]))
+            self._source_tracker.normalize(dependencies)
         return copy_dataframe(result)

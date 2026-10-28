@@ -18,6 +18,7 @@ from src.core.state.repositories.preview_repository import PreviewRepository
 from src.core.state.repositories.visualization_repository import VisualizationRepository
 from src.core.common.typed_table_codec import TypedTableCodec
 from src.core.common.plot_payload import validate_plot_fields
+from src.core.common.source_contributions import validate_present_source_pair
 
 logger = logging.getLogger(__name__)
 
@@ -100,8 +101,9 @@ class SessionRepository:
             if not isinstance(plot_payload, dict):
                 raise ValueError("Portfolio plots must be objects.")
             validate_plot_fields(plot_payload)
-            TypedTableCodec.decode(plot_payload.get("source_data"))
-            TypedTableCodec.decode(plot_payload.get("processed_data"))
+            source = TypedTableCodec.decode(plot_payload.get("source_data"))
+            processed = TypedTableCodec.decode(plot_payload.get("processed_data"))
+            validate_present_source_pair(source, processed)
         self.clear_all()
 
         # Restore parser state. Portfolio JSON is untrusted input — a
@@ -221,7 +223,7 @@ class SessionRepository:
         removed = self.plot_repo.clear_plots()
         self.plot_repo.set_plot_counter(0)
         self.plot_repo.set_current_plot_id(None)
-        self.parser_repo.clear_parser_state()
+        self.parser_repo.reset_to_defaults()
         self.config_repo.clear_config()
         self.config_repo.set_csv_path("")
         self.config_repo.set_temp_dir("")

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.core.common.source_contributions import identity_source_contributions
+
 import copy
 import shutil
 import tempfile
@@ -1661,7 +1663,7 @@ class Session:
             result = self.api.managers.attach_semantics(frame, semantics)
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return Table(result)
+        return Table._from_transformed(result)
 
     def inspect_semantics(
         self,
@@ -1713,7 +1715,7 @@ class Session:
             result = self.api.managers.convert_unit(frame, column, target_unit)
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return Table(result)
+        return Table._from_transformed(result)
 
     def supported_units(self) -> tuple[str, ...]:
         """Return canonical unit symbols accepted by :meth:`convert_unit`."""
@@ -1955,11 +1957,19 @@ class Session:
         Returns:
             A new table containing the shaped data.
         """
+        return self._shape_table(data, pipeline, track_source_rows=False)
+
+    def _shape_table(
+        self, data: "Table", pipeline: Sequence[Mapping[str, object]], *, track_source_rows: bool
+    ) -> "Table":
+        """Use one typed execution boundary for ordinary and finalized recipe pipelines."""
         from src.core.services.shapers.pipeline_service import PipelineStepError
 
         frame = _table_frame(data, PipelineError)
         try:
-            shaped = self.api.shapers.process_pipeline(frame, pipeline)
+            shaped = self.api.shapers.process_pipeline(
+                frame, pipeline, track_source_rows=track_source_rows
+            )
             return Table(shaped)
         except PipelineStepError as exc:
             raise PipelineError(
@@ -2040,7 +2050,7 @@ class Session:
             reduced = self.api.managers.reduce_seeds(frame, categorical_cols, statistic_cols)
         except (ValueError, TypeError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return Table(reduced)
+        return Table._from_transformed(reduced)
 
     def compare(
         self,
@@ -2105,7 +2115,7 @@ class Session:
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
         self._guided_comparison_ready = True
-        return Table(result)
+        return Table._from_transformed(result)
 
     def compare_statistics(
         self,
@@ -2167,7 +2177,7 @@ class Session:
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
         self._guided_comparison_ready = True
-        return Table(result)
+        return Table._from_transformed(result)
 
     def annotate_comparison(
         self,
@@ -2202,7 +2212,7 @@ class Session:
             )
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return Table(result)
+        return Table._from_transformed(result)
 
     def export_regression_results(
         self,
@@ -2261,7 +2271,7 @@ class Session:
             cleaned = self.api.managers.remove_outliers(frame, outlier_col, group_by_cols or [])
         except (ValueError, TypeError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return Table(cleaned)
+        return Table._from_transformed(cleaned)
 
     def apply_operation(
         self,
@@ -2295,7 +2305,7 @@ class Session:
             result = self.api.managers.apply_operation(frame, operation, src1, src2, dest)
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return Table(result)
+        return Table._from_transformed(result)
 
     def mix_columns(
         self,
@@ -2332,7 +2342,7 @@ class Session:
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return Table(result)
+        return Table._from_transformed(result)
 
     # figures
     def create_plot(
@@ -2380,13 +2390,16 @@ class Session:
             raise DataValidationError(f"{diagnostic}: {exc}") from exc
         validate_plot_config(resolved_type, frame, raw_config)
 
-        # Validation happens before registration so a rejected configuration
-        # cannot leave a broken plot behind in the session portfolio.
+        try:
+            finalized = identity_source_contributions(frame)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(f"Invalid plot data or metadata: {exc}") from exc
+
+        # Validate both configuration and data before registration changes portfolio state.
         plot = PlotService.create_plot(name or resolved_type, resolved_type, self.api.state_manager)
         if name is None:
             plot.name = f"{resolved_type}_{plot.plot_id}"
-        plot.replace_processed_data(frame.copy())
-        plot.replace_source_data(frame)
+        plot.replace_pipeline_data(frame, finalized)
         # Plot configuration contains nested lists and dictionaries. Copy it so a
         # later caller mutation cannot silently change an already registered plot.
         plot.config = copy.deepcopy(raw_config)
@@ -2682,13 +2695,15 @@ class Session:
 
         Args:
             plot: A plot registered in this session, or its integer ID.
-            filters: Exact source dimensions attached to the plotted point.
+            filters: Exact dimensions attached to the finalized plot point. Metadata
+                projected out of the figure further restricts original contributors.
 
         Returns:
-            A source-row snapshot with an independently owned :class:`ring5.Table`.
+            Original contributors, including aggregate samples and baseline inputs,
+            with an independently owned :class:`ring5.Table`.
 
         Raises:
-            DataValidationError: The plot, source data, or filters are invalid.
+            DataValidationError: The plot, filters, or finalized contribution relation is invalid.
         """
         plot_id = plot.plot_id if isinstance(plot, BasePlot) else plot
         try:
@@ -3857,7 +3872,7 @@ class Session:
         transformed = self.shape(Table(data), materialized.transformations)
         prepared: list[tuple[RecipePlot, Table]] = []
         for plot_spec in materialized.plots:
-            plot_data = self.shape(transformed, plot_spec.pipeline)
+            plot_data = self._shape_table(transformed, plot_spec.pipeline, track_source_rows=True)
             resolved_type = _resolve_plot_type(plot_spec.plot_type)
             validate_plot_config(resolved_type, plot_data.frame, dict(plot_spec.config))
             prepared.append((plot_spec, plot_data))
@@ -3913,7 +3928,7 @@ class Session:
                 for index, config in enumerate(plot_spec.pipeline)
             ]
             plot.pipeline_counter = len(plot.pipeline)
-            plot.replace_source_data(transformed.frame)
+            plot.replace_pipeline_data(transformed.frame, plot_data.frame)
             created[plot_spec.name] = plot
 
         exported: list[str] = []

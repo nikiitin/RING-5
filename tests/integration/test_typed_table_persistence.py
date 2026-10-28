@@ -10,6 +10,10 @@ import pytest
 
 from tests.helpers.tables import scientific_frames
 from src.core.common.content_identity import frame_signature
+from src.core.common.source_contributions import (
+    require_source_contributions,
+    without_source_contributions,
+)
 from src.core.services.autosave_recovery_service import AutosaveRecoveryService
 from src.core.services.browser_upload_service import BrowserUploadService
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
@@ -176,7 +180,12 @@ def test_public_portfolio_replay_renders_typed_tables_with_both_engines(
     with ring5.Session() as restored:
         assert restored.load_portfolio("typed-replay").complete
         plot = restored.plots[0]
-        _assert_frame(plot.processed_data, data)
+        assert plot.source_data is not None and plot.processed_data is not None
+        _assert_frame(plot.source_data, data)
+        relation = require_source_contributions(plot.source_data, plot.processed_data)
+        assert relation.resolve([0]) == [0]
+        assert relation.resolve([1]) == [1]
+        _assert_frame(without_source_contributions(plot.processed_data), data)
         plotly = restored.render(plot, engine="plotly")
         assert list(plotly.data[0].y) == [2, 4]
         matplotlib = restored.render(plot, engine="matplotlib")

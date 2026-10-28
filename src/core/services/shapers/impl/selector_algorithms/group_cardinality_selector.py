@@ -45,4 +45,8 @@ class GroupCardinalitySelector(UniDfShaper):
             keep = n >= self.count
         else:  # "le"
             keep = n <= self.count
+        if self._source_tracker is not None:
+            self._source_tracker.select(
+                position for position, selected in enumerate(keep) if selected
+            )
         return result[keep].reset_index(drop=True)

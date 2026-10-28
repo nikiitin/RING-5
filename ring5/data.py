@@ -15,6 +15,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.core.common.source_contributions import (
+    inspect_source_contributions,
+    without_source_contributions,
+)
 from src.core.common.semantic_metadata import semantics_to_payload
 from src.core.common.dataframe_copy import copy_dataframe
 from src.core.common.distribution_metadata import (
@@ -53,14 +57,20 @@ class Table:
 
         Raises:
             TypeError: The source is not a pandas DataFrame.
-            DataValidationError: Reserved Distribution declarations or bindings are invalid.
+            DataValidationError: Reserved table declarations or bindings are invalid.
         """
         if not isinstance(frame, pd.DataFrame):
             raise TypeError(f"Table requires a pandas DataFrame; got {type(frame).__name__}.")
         try:
+            inspect_source_contributions(frame)
             self._df = copy_dataframe(frame)
         except (TypeError, ValueError) as exc:
             raise DataValidationError(f"Invalid table data or metadata: {exc}") from exc
+
+    @classmethod
+    def _from_transformed(cls, frame: pd.DataFrame) -> "Table":
+        """Own new independent data without claiming a previous plot's source relation."""
+        return cls(without_source_contributions(frame))
 
     # constructors
     @classmethod
@@ -178,7 +188,7 @@ class Table:
         """
         self._require_columns([column])
         result = self._df[self._df[column] == value].reset_index(drop=True)
-        return Table(preserve_distribution_layouts(self._df, result))
+        return Table._from_transformed(preserve_distribution_layouts(self._df, result))
 
     def sort(self, by: list[str]) -> "Table":
         """Sort rows stably by one or more columns.
@@ -194,7 +204,7 @@ class Table:
         """
         self._require_columns(by)
         result = self._df.sort_values(by, kind="stable").reset_index(drop=True)
-        return Table(preserve_distribution_layouts(self._df, result))
+        return Table._from_transformed(preserve_distribution_layouts(self._df, result))
 
     def with_scalar_op(self, new_column: str, src_column: str, op: str, value: float) -> "Table":
         # [impl->req~ring5.quality.immutable-data~1]
@@ -246,7 +256,7 @@ class Table:
         """
         frames = [self._df, other._df]
         result = pd.concat(frames, ignore_index=True)
-        return Table(concat_distribution_layouts(frames, result))
+        return Table._from_transformed(concat_distribution_layouts(frames, result))
 
     # value extraction (for over-cap / dot labels)
     def value_map(self, key_columns: list[str], value_column: str) -> dict[tuple, float]:
@@ -320,7 +330,7 @@ class DrillDownResult:
 
     Attributes:
         plot_id: Registered plot identifier.
-        filters: Exact source dimensions represented by the interaction.
+        filters: Selected finalized dimensions and optional original metadata constraints.
         rows: Independent table of matching source rows.
     """
 

@@ -31,7 +31,7 @@ their prerequisites are complete. Normal sidebar navigation and all advanced con
 available throughout the workflow.
 
 The export milestone records an actual figure-download action for the current browser session. It
-resets with **Clear Data** or **Reset All**; it does not claim that a file reached any external
+resets with **Reset All**; it does not claim that a file reached any external
 publication or review system.
 
 ## Inspect progress from Python

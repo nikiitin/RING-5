@@ -315,7 +315,7 @@ row. Tabular uploads are additionally bounded to 100,000 rows, 500 columns, 2,00
 10,000 characters per normalized cell.
 
 CSV, JSON, and Excel datasets continue into the same required import review described below. A
-JSON file that could be either data or a portfolio can be labeled explicitly with **Interpret JSON
+JSON file that could be either data or a portfolio can be labeled explicitly with **Interpret upload
 as**. Portfolio uploads show their schema version, plot count, and whether data is present before
 **Restore uploaded portfolio** replaces the current workspace. Validation alone never changes
 workspace data or plots.
@@ -521,7 +521,7 @@ currently selected dataset. Explicitly loaded partial output remains marked as p
 Cancellation affects only the selected session job. Pending files are cancelled, while
 already-running parser calls finish safely before their results are discarded. Partial
 results require an explicit **Load Partial**, **Retry**, or **Dismiss** choice; failed and
-cancelled attempts remain visible until acknowledged. **Clear Data**, **Reset All**, and
+cancelled attempts remain visible until acknowledged. **Reset All** and
 session closure cancel active parsing and remove transient job metadata.
 
 Reviewed datetime columns preserve naive timestamps as naive. Timezone-aware timestamps are

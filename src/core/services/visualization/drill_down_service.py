@@ -8,6 +8,7 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.common.source_contributions import without_source_contributions
 from src.core.models.visualization.drill_down_result import DrillDownResult
 
 
@@ -47,15 +48,10 @@ def _matching_rows(series: pd.Series[Any], value: Any) -> pd.Series[bool]:
     return exact
 
 
-def drill_down_rows(
-    plot_id: int,
-    source_data: pd.DataFrame,
-    filters: Mapping[str, Any],
-) -> DrillDownResult:
-    # [impl->req~ring5.plots.drill-down~1]
-    """Return source rows matching the exact dimensions attached to a plot point."""
-    if isinstance(plot_id, bool) or not isinstance(plot_id, int):
-        raise ValueError("Drill-down plot ID must be an integer.")
+def matching_row_positions(
+    source_data: pd.DataFrame, filters: Mapping[str, Any]
+) -> tuple[list[int], tuple[tuple[str, Any], ...]]:
+    """Return exact scalar dimension matches by position, retaining duplicate indexes."""
     if not isinstance(source_data, pd.DataFrame):
         raise ValueError("Drill-down source data must be a pandas DataFrame.")
     if not isinstance(filters, Mapping):
@@ -74,11 +70,24 @@ def drill_down_rows(
     mask = pd.Series(True, index=source_data.index, dtype=bool)
     for column, value in normalized:
         mask &= _matching_rows(source_data[column], value)
+    return [position for position, selected in enumerate(mask) if selected], tuple(normalized)
+
+
+def drill_down_rows(
+    plot_id: int,
+    source_data: pd.DataFrame,
+    filters: Mapping[str, Any],
+) -> DrillDownResult:
+    # [impl->req~ring5.plots.drill-down~1]
+    """Return source rows matching the exact dimensions attached to a plot point."""
+    if isinstance(plot_id, bool) or not isinstance(plot_id, int):
+        raise ValueError("Drill-down plot ID must be an integer.")
+    positions, normalized = matching_row_positions(source_data, filters)
     return DrillDownResult(
         plot_id=plot_id,
         filters=tuple(normalized),
-        _rows=source_data.loc[mask],
+        _rows=without_source_contributions(source_data.iloc[positions]),
     )
 
 
-__all__ = ["drill_down_rows"]
+__all__ = ["drill_down_rows", "matching_row_positions"]

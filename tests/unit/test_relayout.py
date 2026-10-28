@@ -5,6 +5,8 @@ updates is presentation logic (it understands Plotly's wire format), so it
 lives in the web rendering layer rather than core.
 """
 
+import pytest
+
 from src.web.rendering.relayout import update_config_from_relayout
 
 
@@ -12,6 +14,20 @@ class TestUpdateConfigFromRelayout:
     """Tests for relayout event processing."""
 
     # [test->req~ring5.figure.interactive-editing~1]
+
+    @pytest.mark.parametrize("zoom", [False, True])
+    def test_browser_hover_policy_never_replaces_the_saved_hover_mode(self, zoom: bool) -> None:
+        """Relayout admits a real zoom while ignoring a temporary browser hover mode."""
+        config = {"hovermode": "x unified", "range_x": None}
+        event: dict[str, object] = {"hovermode": "closest"}
+        if zoom:
+            event["xaxis.range"] = [10, 30]
+
+        updated, changed = update_config_from_relayout(config, event)
+
+        assert changed is zoom
+        assert updated == {"hovermode": "x unified", "range_x": [10, 30] if zoom else None}
+        assert config == {"hovermode": "x unified", "range_x": None}
 
     def test_empty_relayout_returns_unchanged(self) -> None:
         config = {"range_x": [0, 10]}

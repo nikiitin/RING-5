@@ -11,6 +11,8 @@ from concurrent.futures import Future, TimeoutError as FuturesTimeoutError, as_c
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.application_api import ApplicationAPI
 from src.core.common.security_limits import MAX_SCAN_FILES, SCAN_BATCH_TIMEOUT_SECONDS
 from src.core.common.utils import validate_web_stats_path
@@ -80,7 +82,11 @@ class VariableEditor:
                     f"The variable editor does not support type {var.get('type')!r}; "
                     "its configuration is preserved."
                 )
-                if not st.button("X", key=f"delete_var_{var_id}", type="tertiary"):
+                if not st.button(
+                    "X",
+                    key=WidgetKeyBuilder.data_source_key(f"delete_var_{var_id}"),
+                    type="tertiary",
+                ):
                     updated_vars.append(var)
                 continue
 
@@ -130,7 +136,7 @@ class VariableEditor:
                     min_value=min(1, repeat_default),
                     value=repeat_default,
                     step=1,
-                    key=f"var_repeat_{var_id}",
+                    key=WidgetKeyBuilder.data_source_key(f"var_repeat_{var_id}"),
                 )
             )
             if repeat > 1 or "repeat" in var:
@@ -168,7 +174,7 @@ class VariableEditor:
             var_name = st.text_input(
                 f"Variable {idx+1} Name",
                 value=var.get("source_name") or var.get("name", ""),
-                key=f"var_name_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"var_name_{var_id}"),
                 label_visibility="collapsed",
                 placeholder="stats.name",
             )
@@ -177,7 +183,7 @@ class VariableEditor:
             var_alias = st.text_input(
                 f"Alias {idx+1}",
                 value=var.get("name", "") if var.get("source_name") else "",
-                key=f"var_alias_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"var_alias_{var_id}"),
                 label_visibility="collapsed",
                 placeholder="Alias (Optional)",
             )
@@ -191,7 +197,7 @@ class VariableEditor:
                     f"Type {idx+1}",
                     options=options,
                     index=options.index(current_type) if current_type else None,
-                    key=f"var_type_{var_id}",
+                    key=WidgetKeyBuilder.data_source_key(f"var_type_{var_id}"),
                     label_visibility="collapsed",
                     placeholder="Choose a statistic type",
                 )
@@ -207,7 +213,7 @@ class VariableEditor:
                     f"Raw source type {idx+1}",
                     choices,
                     index=choices.index(current_source) if current_source else None,
-                    key=f"var_source_type_{var_id}",
+                    key=WidgetKeyBuilder.data_source_key(f"var_source_type_{var_id}"),
                     placeholder="Choose raw source type",
                     label_visibility="collapsed",
                     help=(
@@ -219,7 +225,9 @@ class VariableEditor:
             )
 
         with col4:
-            delete_clicked = st.button("X", key=f"delete_var_{var_id}", type="tertiary")
+            delete_clicked = st.button(
+                "X", key=WidgetKeyBuilder.data_source_key(f"delete_var_{var_id}"), type="tertiary"
+            )
 
         return var_name, var_alias, var_type, source_type, delete_clicked
 
@@ -252,7 +260,7 @@ class VariableEditor:
         var_config["keep_indices"] = st.checkbox(
             "Keep each source as a separate output",
             value=original_var.get("keep_indices", False),
-            key=f"keep_source_indices_{var_id}",
+            key=WidgetKeyBuilder.data_source_key(f"keep_source_indices_{var_id}"),
         )
 
     @classmethod
@@ -332,7 +340,7 @@ class VariableEditor:
             "Parsing mode:",
             options=hist_parse_options,
             default=hist_default,
-            key=f"hist_parse_mode_{var_id}",
+            key=WidgetKeyBuilder.data_source_key(f"hist_parse_mode_{var_id}"),
             help=(
                 "Statistics Only: Parse mean, stdev, etc. without individual buckets. "
                 "Bucket Entries Only: Parse histogram bucket frequencies. "
@@ -376,7 +384,7 @@ class VariableEditor:
             enable_rebin = st.checkbox(
                 "Normalize to Fixed Buckets (Rebinning)",
                 value=bool(original_var.get("params", {}).get("bins", 0)),
-                key=f"hist_rebin_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"hist_rebin_{var_id}"),
                 help="Normalizes histograms with inconsistent bucket ranges across simulations",
             )
 
@@ -388,7 +396,7 @@ class VariableEditor:
                         min_value=1,
                         max_value=1000,
                         value=cast(int, original_var.get("params", {}).get("bins", 10)),
-                        key=f"hist_bins_{var_id}",
+                        key=WidgetKeyBuilder.data_source_key(f"hist_bins_{var_id}"),
                     )
                 with c2:
                     max_range = st.number_input(
@@ -400,7 +408,7 @@ class VariableEditor:
                                 original_var.get("params", {}).get("max_range", 1024.0),
                             )
                         ),
-                        key=f"hist_max_range_{var_id}",
+                        key=WidgetKeyBuilder.data_source_key(f"hist_max_range_{var_id}"),
                     )
                 var_config.setdefault("params", {})["bins"] = bins
                 var_config.setdefault("params", {})["max_range"] = max_range
@@ -416,7 +424,7 @@ class VariableEditor:
                 "How to specify histogram entries:",
                 options=entry_options,
                 default=entry_options[0],
-                key=f"hist_entry_mode_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"hist_entry_mode_{var_id}"),
             )
 
             cls._handle_deep_scan(
@@ -482,7 +490,7 @@ class VariableEditor:
             "Parsing mode:",
             options=vec_parse_options,
             default=vec_default,
-            key=f"vec_parse_mode_{var_id}",
+            key=WidgetKeyBuilder.data_source_key(f"vec_parse_mode_{var_id}"),
             help=(
                 "Statistics Only: Parse total, mean, stdev, etc. without "
                 "individual entries. Entries Only: Parse selected entries. "
@@ -523,7 +531,7 @@ class VariableEditor:
                 "How to specify entries:",
                 options=entry_options,
                 default=entry_options[0],
-                key=f"entry_mode_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"entry_mode_{var_id}"),
             )
 
             cls._handle_deep_scan(
@@ -573,7 +581,11 @@ class VariableEditor:
             help_text = f"Scan up to {MAX_SCAN_FILES} stats files to find variable entries."
 
         if should_show_scan:
-            if st.button(btn_label, key=f"deep_scan_{var_id}", help=help_text):
+            if st.button(
+                btn_label,
+                key=WidgetKeyBuilder.data_source_key(f"deep_scan_{var_id}"),
+                help=help_text,
+            ):
                 try:
                     safe_stats_path = str(validate_web_stats_path(stats_path))
                     futures = api.submit_scan_async(
@@ -683,7 +695,7 @@ class VariableEditor:
             # Retire settled scans without aborting another session's live work.
             api.release_settled_scans()
 
-        if st.button("Close", key=f"finish_{var_id}"):
+        if st.button("Close", key=WidgetKeyBuilder.data_source_key(f"finish_{var_id}")):
             st.rerun()
 
     @classmethod
@@ -714,7 +726,7 @@ class VariableEditor:
             "Select entries to extract:",
             options=filtered_entries,
             default=valid_defaults,
-            key=f"vector_entries_select_{var_id}",
+            key=WidgetKeyBuilder.data_source_key(f"vector_entries_select_{var_id}"),
         )
 
         var_config.setdefault("params", {})["entries"] = selected_entries
@@ -738,7 +750,7 @@ class VariableEditor:
         vector_entries_input = st.text_input(
             "Vector entries (comma-separated)",
             value=default_entries,
-            key=f"vector_entries_{var_id}",
+            key=WidgetKeyBuilder.data_source_key(f"vector_entries_{var_id}"),
             placeholder="e.g., cpu0, cpu1, cpu2 or bank0, bank1, bank2",
             help="Enter the exact names of vector entries as they appear in stats.txt",
         )
@@ -778,23 +790,31 @@ class VariableEditor:
 
         with col_stat1:
             extract_total = st.checkbox(
-                "total (sum)", value="total" in current_entries, key=f"stat_total_{var_id}"
+                "total (sum)",
+                value="total" in current_entries,
+                key=WidgetKeyBuilder.data_source_key(f"stat_total_{var_id}"),
             )
             extract_mean = st.checkbox(
-                "mean (arithmetic)", value="mean" in current_entries, key=f"stat_mean_{var_id}"
+                "mean (arithmetic)",
+                value="mean" in current_entries,
+                key=WidgetKeyBuilder.data_source_key(f"stat_mean_{var_id}"),
             )
             extract_gmean = st.checkbox(
-                "gmean (geometric)", value="gmean" in current_entries, key=f"stat_gmean_{var_id}"
+                "gmean (geometric)",
+                value="gmean" in current_entries,
+                key=WidgetKeyBuilder.data_source_key(f"stat_gmean_{var_id}"),
             )
 
         with col_stat2:
             extract_samples = st.checkbox(
-                "samples (count)", value="samples" in current_entries, key=f"stat_samples_{var_id}"
+                "samples (count)",
+                value="samples" in current_entries,
+                key=WidgetKeyBuilder.data_source_key(f"stat_samples_{var_id}"),
             )
             extract_stdev = st.checkbox(
                 "stdev (standard deviation)",
                 value="stdev" in current_entries,
-                key=f"stat_stdev_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"stat_stdev_{var_id}"),
             )
 
         special_members: list[str] = []
@@ -854,7 +874,7 @@ class VariableEditor:
             "Parsing mode:",
             options=dist_parse_options,
             default=dist_default,
-            key=f"dist_parse_mode_{var_id}",
+            key=WidgetKeyBuilder.data_source_key(f"dist_parse_mode_{var_id}"),
             help=(
                 "Statistics Only: Parse mean, stdev, etc. without individual buckets. "
                 "Bucket Entries Only: Parse distribution bucket frequencies. "
@@ -920,7 +940,7 @@ class VariableEditor:
                 "Omitted frequency cells",
                 policies,
                 index=policies.index(policy) if policy in policies else 0,
-                key=f"dist_zero_policy_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"dist_zero_policy_{var_id}"),
                 help=(
                     "missing retains absent cells as NaN. nozero is your guarantee that omitted "
                     "frequencies or tails in a present observation are measured zero. Text cannot "
@@ -958,7 +978,13 @@ class VariableEditor:
         if invalid:
             st.error(f"{label} must be a finite, exactly representable native number.")
             default = None
-        edited = st.number_input(label, value=default, step=1.0, format="%.17g", key=key)
+        edited = st.number_input(
+            label,
+            value=default,
+            step=1.0,
+            format="%.17g",
+            key=WidgetKeyBuilder.data_source_key(key),
+        )
         return value if invalid and edited is None else edited
 
     @staticmethod
@@ -980,43 +1006,51 @@ class VariableEditor:
 
         with col_stat1:
             extract_mean = st.checkbox(
-                "mean", value="mean" in current_stats, key=f"dist_stat_mean_{var_id}"
+                "mean",
+                value="mean" in current_stats,
+                key=WidgetKeyBuilder.data_source_key(f"dist_stat_mean_{var_id}"),
             )
             extract_stdev = st.checkbox(
-                "stdev", value="stdev" in current_stats, key=f"dist_stat_stdev_{var_id}"
+                "stdev",
+                value="stdev" in current_stats,
+                key=WidgetKeyBuilder.data_source_key(f"dist_stat_stdev_{var_id}"),
             )
             extract_samples = st.checkbox(
                 "samples",
                 value="samples" in current_stats,
-                key=f"dist_stat_samples_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"dist_stat_samples_{var_id}"),
             )
             extract_underflows = not native_frequencies and st.checkbox(
                 "underflows",
                 value="underflows" in current_stats,
-                key=f"dist_stat_underflows_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"dist_stat_underflows_{var_id}"),
             )
             extract_minimum = st.checkbox(
                 "min_value",
                 value="min_value" in current_stats,
-                key=f"dist_stat_min_value_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"dist_stat_min_value_{var_id}"),
             )
 
         with col_stat2:
             extract_total = st.checkbox(
-                "total", value="total" in current_stats, key=f"dist_stat_total_{var_id}"
+                "total",
+                value="total" in current_stats,
+                key=WidgetKeyBuilder.data_source_key(f"dist_stat_total_{var_id}"),
             )
             extract_gmean = st.checkbox(
-                "gmean", value="gmean" in current_stats, key=f"dist_stat_gmean_{var_id}"
+                "gmean",
+                value="gmean" in current_stats,
+                key=WidgetKeyBuilder.data_source_key(f"dist_stat_gmean_{var_id}"),
             )
             extract_overflows = not native_frequencies and st.checkbox(
                 "overflows",
                 value="overflows" in current_stats,
-                key=f"dist_stat_overflows_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"dist_stat_overflows_{var_id}"),
             )
             extract_maximum = st.checkbox(
                 "max_value",
                 value="max_value" in current_stats,
-                key=f"dist_stat_max_value_{var_id}",
+                key=WidgetKeyBuilder.data_source_key(f"dist_stat_max_value_{var_id}"),
             )
 
         selected_stats: list[str] = []
@@ -1070,7 +1104,7 @@ class VariableEditor:
         on_empty = st.text_input(
             "Default value (if not found)",
             value=original_var.get("params", {}).get("on_empty", "None"),
-            key=f"config_onempty_{var_id}",
+            key=WidgetKeyBuilder.data_source_key(f"config_onempty_{var_id}"),
             help="Value to use if the configuration variable is not found in stats",
         )
         var_config.setdefault("params", {})["on_empty"] = on_empty
@@ -1092,7 +1126,7 @@ class VariableEditor:
                 selected_option = filtered_selectbox(
                     "Search available variables",
                     options=options,
-                    key="var_search_box",
+                    key=WidgetKeyBuilder.data_source_key("var_search_box"),
                     help="Type to search for variables found in your stats files",
                 )
 
@@ -1100,7 +1134,9 @@ class VariableEditor:
                     name = selected_option.split(" (")[0]
                     var_type = selected_option.split(" (")[1][:-1]
 
-                    if st.button("Add Selected", key="add_selected_var"):
+                    if st.button(
+                        "Add Selected", key=WidgetKeyBuilder.data_source_key("add_selected_var")
+                    ):
                         scanned = next(
                             v
                             for v in available_variables
@@ -1119,7 +1155,7 @@ class VariableEditor:
                 st.info("Scan stats files to enable variable search.")
 
         with col_add2:
-            if st.button("+ Add Manual", key="add_manual_var"):
+            if st.button("+ Add Manual", key=WidgetKeyBuilder.data_source_key("add_manual_var")):
                 manual_var: ParseVariableConfig = {
                     "name": "new_variable",
                     "type": "scalar",

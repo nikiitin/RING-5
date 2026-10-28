@@ -142,7 +142,7 @@ class PreprocessorManager(DataManager):
                 st.success(f"Created column `{new_col_name}`!")
 
                 st.markdown("**Preview with new column:**")
-                preview_cols = [src_col1, src_col2, new_col_name]
+                preview_cols = list(dict.fromkeys([src_col1, src_col2, new_col_name]))
                 st.dataframe(preview_data[preview_cols].head(10), width="stretch")
 
                 st.markdown("**Statistics:**")

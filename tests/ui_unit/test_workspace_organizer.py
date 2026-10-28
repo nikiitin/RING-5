@@ -56,21 +56,34 @@ def test_render_filters_and_saves_canonical_metadata(
     mock_st.rerun.assert_called_once()
 
 
+@pytest.mark.parametrize("workspace_replacements", [0, 1, 2])
 @patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.workspace_organizer.st")
 def test_activate_opens_each_artifact_kind_and_rejects_stale_plots(
-    mock_st: MagicMock, mock_ui_st: MagicMock
+    mock_st: MagicMock, mock_ui_st: MagicMock, workspace_replacements: int
 ) -> None:
     from src.web.components.workspace_organizer import WorkspaceOrganizerComponent
 
     mock_st.session_state = {}
     mock_ui_st.session_state = mock_st.session_state
+    from src.web.state.ui_state_manager import UIStateManager
+
+    for _ in range(workspace_replacements):
+        UIStateManager().cleanup_all()
     api = MagicMock()
     api.state_manager.get_plots.return_value = [MagicMock(plot_id=7)]
 
     WorkspaceOrganizerComponent.activate(
         api, WorkspaceArtifact("variable", "system.cpu.ipc", "IPC")
     )
+    key = (
+        f"var_search_box.__reset_{workspace_replacements}__search"
+        if workspace_replacements
+        else "var_search_box__search"
+    )
+    assert mock_st.session_state[key] == "system.cpu.ipc"
+    if workspace_replacements:
+        assert "var_search_box__search" not in mock_st.session_state
     assert mock_st.session_state["nav.current_page"] == "Data Source"
     WorkspaceOrganizerComponent.activate(api, WorkspaceArtifact("dataset", "nightly", "Nightly"))
     api.select_dataset.assert_called_once_with("nightly")

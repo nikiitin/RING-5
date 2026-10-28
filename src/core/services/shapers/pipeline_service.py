@@ -11,6 +11,13 @@ import time
 
 import pandas as pd
 
+from src.core.common.source_contributions import (
+    SOURCE_CONTRIBUTIONS_ATTR,
+    SourceTracker,
+    inspect_source_contributions,
+    without_source_contributions,
+)
+
 from src.core.common.distribution_metadata import (
     inspect_distribution_layouts,
     preserve_distribution_layouts,
@@ -20,6 +27,8 @@ from src.core.services.shapers.definition import ShaperValidationError
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.impl.derive_column import DeriveColumn
 from src.core.services.shapers.impl.mean import Mean
+from src.core.services.shapers.impl.pivot import PivotLonger, PivotWider
+from src.core.services.shapers.impl.split_apply import SplitApply
 from src.core.services.shapers.impl.normalize import Normalize
 from src.core.services.shapers.impl.selector_algorithms.column_selector import ColumnSelector
 from src.core.services.shapers.impl.selector_algorithms.condition_selector import ConditionSelector
@@ -90,7 +99,24 @@ class PipelineService:
 
     @staticmethod
     def process_pipeline(
-        data: pd.DataFrame, pipeline_config: Sequence[Mapping[str, object]]
+        data: pd.DataFrame,
+        pipeline_config: Sequence[Mapping[str, object]],
+        *,
+        track_source_rows: bool = False,
+    ) -> pd.DataFrame:
+        """Run the canonical executor and optionally seal exact raw-row contributors."""
+        try:
+            tracker = SourceTracker(data) if track_source_rows else None
+        except (TypeError, ValueError) as exc:
+            raise PipelineStepError(str(exc), step_index=None, shaper_type=None) from exc
+        result = PipelineService._execute(data, pipeline_config, tracker)
+        return tracker.publish(result) if tracker is not None else result
+
+    @staticmethod
+    def _execute(
+        data: pd.DataFrame,
+        pipeline_config: Sequence[Mapping[str, object]],
+        tracker: SourceTracker | None,
     ) -> pd.DataFrame:
         """Apply admitted shapers with explicit Distribution metadata policies.
 
@@ -112,6 +138,7 @@ class PipelineService:
             if not isinstance(data, pd.DataFrame):
                 raise ValueError("Pipeline input must be a pandas DataFrame.")
             inspect_distribution_layouts(data)
+            inspect_source_contributions(data)
             captured = ShaperFactory.validate_pipeline(pipeline_config)
         except ShaperValidationError as exc:
             raise PipelineStepError(
@@ -120,13 +147,17 @@ class PipelineService:
         except (TypeError, ValueError) as exc:
             raise PipelineStepError(str(exc), step_index=None, shaper_type=None) from exc
 
-        current_data = data
+        current_data = (
+            without_source_contributions(data) if SOURCE_CONTRIBUTIONS_ATTR in data.attrs else data
+        )
         for i, shaper_config in enumerate(captured):
             shaper_type = ShaperFactory.get_definition(shaper_config["type"]).identifier
             try:
                 t_shaper_start = time.perf_counter()
                 shaper = ShaperFactory.create_shaper(shaper_type, shaper_config)
                 source = current_data
+                if SOURCE_CONTRIBUTIONS_ATTR in source.attrs:
+                    source = without_source_contributions(source)
                 # Reconstruction can slice before invoking nested pipelines. Clear its
                 # inherited declarations before those strict admission boundaries.
                 coordinate_input = type(shaper) in _COORDINATE_PRESERVING_SHAPERS or type(
@@ -135,12 +166,37 @@ class PipelineService:
                 operation_input = (
                     source if coordinate_input else with_distribution_layouts(source, {})
                 )
-                result = operation_input.pipe(shaper)
+                if tracker is None:
+                    result = operation_input.pipe(shaper)
+                else:
+                    reviewed = _COORDINATE_PRESERVING_SHAPERS | {
+                        DeriveColumn,
+                        Transformer,
+                        PivotLonger,
+                        PivotWider,
+                        SplitApply,
+                    }
+                    if type(shaper) not in reviewed:
+                        raise ValueError(
+                            f"Shaper {shaper_type!r} does not define exact source contributions."
+                        )
+                    revision = tracker.revision
+                    result = shaper._call_with_source_rows(operation_input, tracker)
+                    if type(shaper) not in {ColumnSelector, DeriveColumn, Transformer}:
+                        if tracker.revision == revision:
+                            raise ValueError(
+                                "Shaper did not publish its source contribution relation."
+                            )
+                    if len(tracker.roots) != len(result):
+                        raise ValueError(
+                            "Shaper source contributions do not match its output rows."
+                        )
                 if not isinstance(result, pd.DataFrame):
                     raise TypeError(
                         f"Shaper output must be a pandas DataFrame; got {type(result).__name__}."
                     )
                 current_data = _distribution_policy(shaper, source, result)
+                inspect_source_contributions(current_data)
                 t_shaper_end = time.perf_counter()
                 logger.info(
                     f"PERF: Shaper {i} ({shaper_type}) took {t_shaper_end - t_shaper_start:.4f}s"

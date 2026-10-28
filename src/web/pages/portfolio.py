@@ -351,7 +351,8 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                             selected_portfolio,
                             issues,
                         )
-                    st.toast(f"Portfolio loaded: {selected_portfolio}", icon="✅")
+                    else:
+                        st.toast(f"Portfolio loaded: {selected_portfolio}", icon="✅")
                     st.rerun(scope="app")
                 except PortfolioVersionError as e:
                     st.error(str(e))

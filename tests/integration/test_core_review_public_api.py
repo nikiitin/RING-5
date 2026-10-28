@@ -161,6 +161,146 @@ def test_pipeline_rejects_invalid_plugin_results_without_changing_owned_input(
         ring5.Table(cast(pd.DataFrame, returned))
 
 
+@pytest.mark.parametrize("corruption", ["malformed", "stale-output", "after-metadata-policy"])
+def test_plugin_contribution_metadata_errors_keep_the_failing_step_location(
+    corruption: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core.common.distribution_metadata import with_distribution_layouts
+    from src.core.common.source_contributions import (
+        SOURCE_CONTRIBUTIONS_ATTR,
+        identity_source_contributions,
+    )
+    from src.core.models.native_distribution_layout import (
+        DistributionColumn,
+        OpaqueDistributionLayout,
+    )
+
+    def invalid_metadata(frame: pd.DataFrame) -> pd.DataFrame:
+        if corruption == "malformed":
+            output = frame.copy()
+            output.attrs[SOURCE_CONTRIBUTIONS_ATTR] = {"version": True}
+            return output
+        if corruption == "stale-output":
+            output = identity_source_contributions(frame)
+            return output.assign(x=output["x"] + 1.0)
+        declared = with_distribution_layouts(
+            frame,
+            {
+                "logical": OpaqueDistributionLayout(
+                    (DistributionColumn("x", "0", "source", None),)
+                ),
+            },
+        )
+        # The plugin policy drops its unsupported Distribution layout. Validate the actual
+        # step output after that policy, not an intermediate table with a different identity.
+        return identity_source_contributions(declared)
+
+    _register_mutation(monkeypatch, invalid_metadata)
+    source = ring5.Table.from_rows([{"x": 1.0}, {"x": 2.0}])
+    with ring5.Session() as session:
+        with pytest.raises(ring5.PipelineError, match="Source contribution") as failure:
+            session.shape(
+                source,
+                [
+                    {"type": "columnSelector", "columns": ["x"]},
+                    {"type": "ownedMutation"},
+                ],
+            )
+        assert failure.value.step_index == 1
+        assert failure.value.shaper_type == "ownedMutation"
+        cause = failure.value.__cause__
+        assert isinstance(cause, PipelineStepError)
+        assert cause.step_index == 1 and cause.shaper_type == "ownedMutation"
+        assert type(cause.__cause__) is ValueError
+        expected = "invalid fields" if corruption == "malformed" else "output identity"
+        assert expected in str(cause)
+    assert source.rows() == [{"x": 1.0}, {"x": 2.0}]
+
+
+def test_plugin_valid_output_metadata_remains_an_owned_public_table(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core.common.source_contributions import (
+        identity_source_contributions,
+        inspect_source_contributions,
+    )
+
+    def valid_metadata(frame: pd.DataFrame) -> pd.DataFrame:
+        return identity_source_contributions(frame.assign(x=frame["x"] + 1.0))
+
+    _register_mutation(monkeypatch, valid_metadata)
+    source = ring5.Table.from_rows([{"x": 1.0}, {"x": 2.0}])
+    with ring5.Session() as session:
+        result = session.shape(source, [{"type": "ownedMutation"}])
+    assert result.rows() == [{"x": 2.0}, {"x": 3.0}]
+    assert inspect_source_contributions(result.frame) is not None
+    assert source.rows() == [{"x": 1.0}, {"x": 2.0}]
+
+
+@pytest.mark.parametrize("following", ["derive", "filter", "sort", "split"])
+def test_valid_plugin_metadata_does_not_prevent_adjacent_independent_transformations(
+    following: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core.common.source_contributions import (
+        SOURCE_CONTRIBUTIONS_ATTR,
+        identity_source_contributions,
+        inspect_source_contributions,
+    )
+
+    def valid_metadata(frame: pd.DataFrame) -> pd.DataFrame:
+        return identity_source_contributions(frame.assign(x=frame["x"] + 1.0))
+
+    _register_mutation(monkeypatch, valid_metadata)
+    steps: dict[str, dict[str, object]] = {
+        "derive": {
+            "type": "deriveColumn",
+            "dest": "scaled",
+            "sources": ["x"],
+            "op": "scalar",
+            "scalar_op": "*",
+            "scalar": 2.0,
+        },
+        "filter": {
+            "type": "conditionSelector",
+            "column": "x",
+            "mode": "greater_than",
+            "threshold": 2.0,
+        },
+        "sort": {"type": "sort", "order_dict": {"x": [3.0, 2.0]}},
+        "split": {
+            "type": "splitApply",
+            "joinColumns": ["x"],
+            "groups": [
+                {"columns": ["y"], "pipeline": []},
+                {"columns": ["z"], "pipeline": []},
+            ],
+        },
+    }
+    source = ring5.Table.from_rows(
+        [
+            {"x": 1.0, "y": 10.0, "z": 100.0},
+            {"x": 2.0, "y": 20.0, "z": 200.0},
+        ]
+    )
+    with ring5.Session() as session:
+        intermediate = session.shape(source, [{"type": "ownedMutation"}])
+        together = session.shape(source, [{"type": "ownedMutation"}, steps[following]])
+        sequential = session.shape(intermediate, [steps[following]])
+    pd.testing.assert_frame_equal(together.frame, sequential.frame)
+    assert SOURCE_CONTRIBUTIONS_ATTR not in together.frame.attrs
+    assert inspect_source_contributions(intermediate.frame) is not None
+    expected_x = {"derive": [2.0, 3.0], "filter": [3.0], "sort": [3.0, 2.0], "split": [2.0, 3.0]}
+    assert together.frame["x"].tolist() == expected_x[following]
+    if following == "derive":
+        assert together.frame["scaled"].tolist() == [4.0, 6.0]
+    assert source.rows() == [
+        {"x": 1.0, "y": 10.0, "z": 100.0},
+        {"x": 2.0, "y": 20.0, "z": 200.0},
+    ]
+
+
 @pytest.mark.parametrize(
     ("declarations", "cause_type"), [(None, TypeError), ({"logical": {}}, ValueError)]
 )

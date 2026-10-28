@@ -21,6 +21,8 @@ class ShapersAPI(Protocol):
         self,
         data: pd.DataFrame,
         pipeline_config: Sequence[Mapping[str, object]],
+        *,
+        track_source_rows: bool = False,
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame."""
         raise NotImplementedError

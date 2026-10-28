@@ -116,6 +116,8 @@ class TestPipelineComponent:
 
         export_fn.assert_called_once_with("Paper pipeline", "Reviewed")
         mock_st.download_button.assert_called_once()
+        assert mock_st.download_button.call_args.kwargs["data"] == b"{}"
+        assert mock_st.download_button.call_args.kwargs["on_click"] == "ignore"
         assert result == {
             "import_clicked": True,
             "payload": b'{"format":"ring5.pipeline-configuration"}',

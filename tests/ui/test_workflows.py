@@ -101,21 +101,14 @@ class TestDataManagersEmptyState:
 class TestSidebarActions:
     """Tests for sidebar action buttons."""
 
-    def test_clear_data_button_exists(self) -> None:
-        """Clear Data button is present in sidebar."""
-        at = AppTest.from_file(_APP_PATH, default_timeout=10)
-        at.run()
-
-        clear_buttons = [b for b in at.sidebar.button if "clear" in b.label.lower()]
-        assert len(clear_buttons) > 0, "Expected 'Clear Data' button"
-
     def test_reset_all_button_exists(self) -> None:
         """Reset All button is present in sidebar."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
-        reset_buttons = [b for b in at.sidebar.button if "reset" in b.label.lower()]
-        assert len(reset_buttons) > 0, "Expected 'Reset All' button"
+        reset_buttons = [b for b in at.sidebar.button if b.label == "Reset All"]
+        assert len(reset_buttons) == 1
+        assert not any(b.label == "Clear Data" for b in at.sidebar.button)
 
     def test_navigation_options_complete(self) -> None:
         """All expected navigation options are present."""

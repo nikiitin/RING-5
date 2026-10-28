@@ -203,6 +203,7 @@ class ReportComposer:
                     mime="text/html" if stored_fmt == "html" else "application/pdf",
                     width="stretch",
                     key="report.composer.download",
+                    on_click="ignore",
                 )
             elif isinstance(stored_payload, bytes):
                 st.info("Report settings changed. Build again before downloading.")

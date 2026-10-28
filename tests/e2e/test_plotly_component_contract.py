@@ -82,6 +82,42 @@ def _protocol_args() -> dict[str, str]:
     }
 
 
+def _observe_ready_announcements(page: Page) -> None:
+    """Record transport readiness independently of the component's internal timer."""
+    page.evaluate("""() => {
+        window.readyAnnouncements = 0;
+        window.addEventListener('message', event => {
+            if (event.source === window.parent && event.origin === location.origin &&
+                event.data?.isStreamlitMessage === true &&
+                event.data.type === 'streamlit:componentReady') {
+                window.readyAnnouncements += 1;
+            }
+        });
+    }""")
+
+
+def _ready_count(page: Page) -> int:
+    """Drain posted messages before reading the parent's readiness receipt count."""
+    return int(page.evaluate("""() => new Promise(resolve => {
+        const token = 'ready-barrier-' + Math.random();
+        const barrier = event => {
+            if (event.source === window && event.data?.ring5ReadyBarrier === token) {
+                window.removeEventListener('message', barrier);
+                resolve(window.readyAnnouncements);
+            }
+        };
+        window.addEventListener('message', barrier);
+        window.postMessage({ring5ReadyBarrier: token}, '*');
+    })"""))
+
+
+def _assert_ready_is_pending(page: Page) -> None:
+    """An unacknowledged component announces readiness again without a real-time sleep."""
+    previous = _ready_count(page)
+    page.clock.fast_forward(1000)
+    assert _ready_count(page) > previous
+
+
 @pytest.mark.parametrize(
     ("source", "origin"),
     [("parent", "https://foreign.example"), ("other", None), ("none", None)],
@@ -89,12 +125,15 @@ def _protocol_args() -> dict[str, str]:
 def test_component_rejects_foreign_render_messages(
     page: Page, source: str, origin: str | None
 ) -> None:
+    page.clock.install()
     page.set_content(_COMPONENT.read_text())
+    _observe_ready_announcements(page)
     _message(
         page, {"type": "streamlit:render", "args": _protocol_args()}, source=source, origin=origin
     )
     assert page.evaluate("window.bundleRuns || 0") == 0
     assert page.evaluate("window.renderCalls || 0") == 0
+    _assert_ready_is_pending(page)
 
 
 @pytest.mark.parametrize(
@@ -129,7 +168,9 @@ def test_component_ignores_invalid_payloads_before_loading_a_bundle(
         errors.append(str(error))
 
     page.on("pageerror", record_error)
+    page.clock.install()
     page.set_content(_COMPONENT.read_text())
+    _observe_ready_announcements(page)
     payload: Any = {"type": "streamlit:render", "args": _protocol_args()}
     if field == "message":
         payload = value
@@ -140,6 +181,7 @@ def test_component_ignores_invalid_payloads_before_loading_a_bundle(
     _message(page, payload)
     assert page.evaluate("window.bundleRuns || 0") == 0
     assert page.evaluate("window.renderCalls || 0") == 0
+    _assert_ready_is_pending(page)
     assert errors == []
 
 
@@ -154,6 +196,146 @@ def test_component_accepts_parent_rerenders_and_loads_each_bundle_version_once(p
     _message(page, {"type": "streamlit:render", "args": args})
     assert page.evaluate("window.bundleRuns") == 2
     assert page.evaluate("window.renderCalls") == 3
+
+
+@pytest.mark.parametrize(
+    ("capture_click", "point_count"), [(False, 1), (True, 0), (True, 1), (True, 2)]
+)
+def test_component_emits_only_one_unambiguous_captured_point(
+    page: Page, capture_click: bool, point_count: int
+) -> None:
+    """The actual browser bridge rejects disabled, empty and ambiguous click payloads."""
+    page.set_content(_COMPONENT.read_text())
+    emitted = page.evaluate(
+        """({capture, count}) => {
+            const messages = [];
+            const original = Streamlit.setComponentValue;
+            Streamlit.setComponentValue = value => messages.push(value);
+            const point = {
+                curveNumber: 2, pointNumber: 0, pointIndex: 0, x: 10, y: 32,
+                data: {name: 'Prefetch', meta: {
+                    ring5_drilldown: [{configuration: 'Prefetch'}],
+                }},
+            };
+            try {
+                handlePlotClick({_streamlit_capture_click: capture}, {
+                    points: Array.from({length: count}, () => point),
+                });
+            } finally {
+                Streamlit.setComponentValue = original;
+            }
+            return messages;
+        }""",
+        {"capture": capture_click, "count": point_count},
+    )
+    expected = (
+        [
+            {
+                "kind": "drill_down",
+                "curveNumber": 2,
+                "pointNumber": 0,
+                "pointIndex": 0,
+                "x": 10,
+                "y": 32,
+                "traceName": "Prefetch",
+                "filters": {"configuration": "Prefetch"},
+            }
+        ]
+        if capture_click and point_count == 1
+        else []
+    )
+    assert emitted == expected
+
+
+def test_component_recovers_a_ready_message_dropped_before_parent_registration(page: Page) -> None:
+    """A late parent listener receives readiness and renders real native observations."""
+    origin = "https://ring5-component.test"
+    parent = """<!doctype html><html><body><script>
+        window.unregisteredReady = 0;
+        window.readyAnnouncements = 0;
+        window.componentReadyListener = null;
+        window.addEventListener('message', event => {
+            const child = document.getElementById('component')?.contentWindow;
+            if (event.source !== child || event.origin !== location.origin ||
+                event.data?.isStreamlitMessage !== true ||
+                event.data.type !== 'streamlit:componentReady') return;
+            if (window.componentReadyListener === null) {
+                window.unregisteredReady += 1;
+                return;
+            }
+            window.readyAnnouncements += 1;
+            window.componentReadyListener(event);
+        });
+        </script><iframe id="component" src="/chart"></iframe></body></html>"""
+
+    def serve(route: Route) -> None:
+        document = _COMPONENT.read_text() if route.request.url.endswith("/chart") else parent
+        route.fulfill(status=200, content_type="text/html", body=document)
+
+    page.clock.install()
+    page.route(f"{origin}/**", serve)
+    page.goto(f"{origin}/parent", wait_until="load")
+    page.wait_for_function("window.unregisteredReady > 0")
+    assert page.evaluate("typeof document.getElementById('component').contentWindow.Plotly") == (
+        "undefined"
+    )
+    args = {
+        "plotly_js": get_plotlyjs(),
+        "plotly_version": _PLOTLY_VERSION,
+        "spec": json.dumps(
+            {"data": [{"type": "scatter", "x": [1, 2, 3], "y": [2, 4, 8]}], "layout": {}}
+        ),
+        "config": "{}",
+    }
+    page.evaluate(
+        """args => {
+            window.componentReadyListener = () => {
+                document.getElementById('component').contentWindow.postMessage(
+                    {type: 'streamlit:render', args}, location.origin);
+            };
+        }""",
+        args,
+    )
+    page.clock.fast_forward(1000)
+    native = page.wait_for_function("""() => {
+        const graph = document.getElementById('component').contentDocument.getElementById('myDiv');
+        return graph.calcdata?.[0]?.length === 3 && graph.calcdata[0].map(point => point.y);
+    }""").json_value()
+    assert native == [2, 4, 8]
+    received = _ready_count(page)
+    assert received > 0
+    page.clock.fast_forward(1000)
+    assert _ready_count(page) == received
+
+
+def test_component_stops_unacknowledged_readiness_at_the_parent_deadline(page: Page) -> None:
+    """A missing parent cannot leave an unbounded transport timer running."""
+    page.clock.install()
+    page.set_content(_COMPONENT.read_text())
+    _observe_ready_announcements(page)
+    _assert_ready_is_pending(page)
+    received = _ready_count(page)
+    page.clock.fast_forward(60_000)
+    assert _ready_count(page) == received
+    page.clock.fast_forward(60_000)
+    assert _ready_count(page) == received
+    assert page.evaluate("typeof window.Plotly") == "undefined"
+
+
+@pytest.mark.parametrize("event_name", ["pagehide", "unload"])
+def test_component_releases_pending_readiness_when_its_document_leaves(
+    page: Page, event_name: str
+) -> None:
+    """Document lifecycle cleanup cancels readiness without accepting a render."""
+    page.clock.install()
+    page.set_content(_COMPONENT.read_text())
+    _observe_ready_announcements(page)
+    _assert_ready_is_pending(page)
+    page.evaluate("name => window.dispatchEvent(new Event(name))", event_name)
+    received = _ready_count(page)
+    page.clock.fast_forward(1000)
+    assert _ready_count(page) == received
+    assert page.evaluate("typeof window.Plotly") == "undefined"
 
 
 def test_installed_component_accepts_the_actual_streamlit_parent(

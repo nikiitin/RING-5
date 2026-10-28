@@ -26,12 +26,16 @@ and other figure settings intact.
 
 1. Build a plot from a finalized pipeline on **Manage Plots** and use the Plotly engine.
 2. Turn on **Explore source rows** below the engine selector.
-3. Click a plotted value. RING-5 shows the clicked trace and coordinates, the matched dimensions,
+3. Click a plotted value. RING-5 shows the clicked trace and coordinates, the selected dimensions,
    the number of source rows, and a scrollable source table.
 4. Select **Back to full plot** to close the table. The plot configuration is not reset or rebuilt.
 
 The feature is opt-in so ordinary Plotly editing, zooming, and panning remain uncluttered. Matplotlib
 is a static engine and therefore does not expose point clicks.
+
+While exploration is enabled, hover targets the closest point so overlapping series resolve to the
+value you click. Turning it off restores the configured hover mode. Saved figures and exports retain
+their figure settings.
 
 RING-5 attaches only the point's grouping dimensions to the browser figure—for example,
 `workload = mcf` and `variant = baseline`. Full source rows remain in the Python session and are
@@ -44,8 +48,16 @@ histogram bin, every row in the selected histogram group can contribute a bucket
 detail table shows that group rather than inventing per-sample values that are not present in the
 flattened gem5 histogram columns.
 
-The source snapshot is captured when a pipeline is finalized and retained in the current portfolio
-format. When no separate source snapshot is available, drill-down uses the plot's processed rows.
+Finalization captures the original input and the exact relation from output rows to their raw
+contributors together. A pipeline filter excludes removed rows even when another scenario uses
+the same category names. Aggregation returns the original samples behind the aggregate; a
+normalized value includes its supporting baseline input. Returned values and metadata retain
+their original form, so their labels can differ from the selected plot dimensions.
+
+The input snapshot and contribution relation are retained in the current portfolio format. Draft
+pipeline edits do not change the contributors behind the finalized figure. Unproven external
+tables remain renderable, but row exploration requires a finalized contribution relation. Missing
+or inconsistent provenance is reported explicitly; finalizing establishes a new valid snapshot.
 
 ## Resolve the same rows in Python
 
@@ -75,4 +87,6 @@ The application derives the filter mapping from a clicked point. Python callers 
 mapping explicitly. `ring5.DrillDownResult.rows` is an owned `ring5.Table`; its `rows()` method
 returns independent row records. Use `result.rows.frame` for an explicit pandas copy. Neither
 conversion can change the registered plot or its source snapshot. Invalid plot IDs, filter
-columns, and non-scalar filter values raise `ring5.DataValidationError`.
+columns, non-scalar filter values, and missing or inconsistent contribution metadata raise
+`ring5.DataValidationError`. A filter on metadata projected out of the figure further restricts
+the resolved original rows; it does not add unrelated input rows.
