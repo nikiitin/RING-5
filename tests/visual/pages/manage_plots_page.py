@@ -14,6 +14,8 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
+import time
+from typing import Literal
 
 from playwright.sync_api import Locator, Page, expect
 
@@ -588,6 +590,30 @@ class ManagePlotsPage(BasePage):
     def download_button(self) -> Locator:
         """Download button inside the download expander."""
         return self.download_expander.get_by_role("button", name="Download")
+
+    def open_download_expander(
+        self, engine: Literal["plotly", "matplotlib"], *, timeout: int
+    ) -> None:
+        """Open the current engine's Download section after stale sections leave."""
+        deadline = time.monotonic() + timeout / 1000
+
+        def remaining() -> int:
+            milliseconds = int((deadline - time.monotonic()) * 1000)
+            assert milliseconds > 0, "Opening the current Download section exceeded its budget"
+            return milliseconds
+
+        anchor = {"plotly": "html", "matplotlib": "pgf"}[engine]
+        current = self.download_expander.filter(
+            has=self.page.get_by_role("radio", name=anchor, exact=True, include_hidden=True)
+        )
+        expect(current).to_have_count(1, timeout=remaining())
+        expect(self.download_expander).to_have_count(1, timeout=remaining())
+        details = current.locator("details")
+        expect(details).to_have_count(1, timeout=remaining())
+        if details.get_attribute("open", timeout=remaining()) is None:
+            current.locator("summary").click(timeout=remaining())
+        expect(details).to_have_js_property("open", True, timeout=remaining())
+        expect(current.get_by_role("radiogroup", name="Format")).to_be_visible(timeout=remaining())
 
     #  8. Workspace management
 

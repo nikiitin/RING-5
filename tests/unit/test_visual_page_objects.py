@@ -6,6 +6,7 @@ import pytest
 
 from tests.visual.pages.base_page import BasePage
 from tests.visual.pages.data_source_page import DataSourcePage
+from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
 
 def test_initial_navigation_does_not_wait_for_network_idle() -> None:
@@ -239,3 +240,106 @@ def test_interrupted_single_select_requires_an_option_commit() -> None:
 
     assert committed == search == "bar"
     assert chosen_options == ["bar"]
+
+
+def test_download_open_ignores_visible_stale_engine_controls() -> None:
+    """An old open Plotly section cannot make the current collapsed PGF visible."""
+    page = MagicMock()
+    all_owners = MagicMock()
+    current = MagicMock()
+    old = MagicMock()
+    anchor = MagicMock()
+    details = MagicMock()
+    summary = MagicMock()
+    formats = MagicMock()
+    stale_formats = MagicMock()
+    all_expectation = MagicMock()
+    current_expectation = MagicMock()
+    details_expectation = MagicMock()
+    formats_expectation = MagicMock()
+    current_open = False
+    old_present = True
+    opened: list[str] = []
+    anchor_name = ""
+
+    def find_anchor(role: str, *, name: str, exact: bool, include_hidden: bool) -> MagicMock:
+        nonlocal anchor_name
+        assert role == "radio" and exact and include_hidden
+        anchor_name = name
+        return anchor
+
+    def owner_with_format(*, has: MagicMock) -> MagicMock:
+        assert has is anchor
+        if anchor_name in ("pdf", "pgf", "png", "svg"):
+            return current
+        assert anchor_name == "html"
+        return old
+
+    def require_current(count: int, *, timeout: int) -> None:
+        assert count == 1
+        assert anchor_name == "pgf"
+
+    def settle_owners(count: int, *, timeout: int) -> None:
+        nonlocal old_present
+        assert count == 1
+        old_present = False
+
+    def open_state(name: str, *, timeout: int) -> str | None:
+        assert name == "open"
+        return "" if current_open else None
+
+    def open_current(*, timeout: int) -> None:
+        nonlocal current_open
+        assert not old_present and not current_open
+        current_open = True
+        opened.append("matplotlib")
+
+    def require_open(name: str, value: bool, *, timeout: int) -> None:
+        assert name == "open" and value is True
+        assert current_open
+
+    def require_formats(*, timeout: int) -> None:
+        assert current_open and not old_present
+
+    def expectation(locator: object) -> MagicMock:
+        if locator is all_owners:
+            return all_expectation
+        if locator is current:
+            return current_expectation
+        if locator is details:
+            return details_expectation
+        assert locator is formats
+        return formats_expectation
+
+    page.get_by_role.side_effect = find_anchor
+    all_owners.filter.side_effect = owner_with_format
+    all_owners.get_by_role.return_value = stale_formats
+    stale_formats.is_visible.return_value = True
+    old.locator.return_value = MagicMock()
+    current.locator.side_effect = lambda selector: {"details": details, "summary": summary}[
+        selector
+    ]
+    current.get_by_role.return_value = formats
+    details.get_attribute.side_effect = open_state
+    summary.click.side_effect = open_current
+    all_expectation.to_have_count.side_effect = settle_owners
+    current_expectation.to_have_count.side_effect = require_current
+    details_expectation.to_have_js_property.side_effect = require_open
+    formats_expectation.to_be_visible.side_effect = require_formats
+
+    with (
+        patch.object(
+            ManagePlotsPage,
+            "download_expander",
+            new_callable=PropertyMock,
+            return_value=all_owners,
+        ),
+        patch("tests.visual.pages.manage_plots_page.expect", side_effect=expectation),
+        patch("tests.visual.pages.manage_plots_page.time") as clock,
+    ):
+        clock.monotonic.return_value = 100.0
+        ManagePlotsPage(page).open_download_expander("matplotlib", timeout=60_000)
+
+    assert current_open
+    assert opened == ["matplotlib"]
+    old.locator.return_value.click.assert_not_called()
