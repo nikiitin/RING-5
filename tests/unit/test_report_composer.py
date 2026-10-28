@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from src.core.models import EnvironmentMetadata
+from src.core.models.environment_models import EnvironmentMetadata
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
@@ -81,6 +81,7 @@ def test_report_composer_builds_panel_table_narrative_and_download(
     mock_st.download_button.assert_called_once()
     assert mock_st.download_button.call_args.kwargs["data"] == b"<html>report</html>"
     assert mock_st.download_button.call_args.kwargs["file_name"] == "Performance report.html"
+    assert mock_st.download_button.call_args.kwargs["on_click"] == "ignore"
 
 
 @patch("src.web.components.report_composer.EnvironmentMetadataService.capture")
@@ -130,6 +131,7 @@ def test_report_composer_builds_interactive_gallery_as_individual_cards(
     assert mock_render.call_args.kwargs == {"fmt": "html", "html_mode": "gallery"}
     assert mock_st.download_button.call_args.args[0] == "Download HTML gallery"
     assert mock_st.download_button.call_args.kwargs["data"] == b"<html>gallery</html>"
+    assert mock_st.download_button.call_args.kwargs["on_click"] == "ignore"
 
 
 @patch("src.web.components.report_composer.st")

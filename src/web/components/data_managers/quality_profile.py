@@ -121,4 +121,5 @@ class QualityProfileManager(DataManager):
             file_name="ring5-data-quality.csv",
             mime="text/csv",
             key=WidgetKeyBuilder.manager_key("quality", "download"),
+            on_click="ignore",
         )

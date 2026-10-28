@@ -1,10 +1,10 @@
 """Tests for shaper configuration, pipeline components, and data management."""
 
-from typing import Any, cast
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import pytest
+from src.core.services.shapers.factory import ShaperFactory
 
 
 def _columns_side_effect(*args: Any, **kwargs: Any) -> list[MagicMock]:
@@ -27,7 +27,14 @@ class TestShaperConfig:
         from src.web.pages.ui.shaper_config import configure_shaper
 
         df = pd.DataFrame({"a": [1]})
-        result = configure_shaper("unknownType", df, 1, None)
+        result = configure_shaper(
+            "unknownType",
+            df,
+            1,
+            None,
+            display_names=ShaperFactory.get_display_name_map(),
+            owner_id=0,
+        )
 
         assert result.get("type") == "unknownType"
 
@@ -39,50 +46,17 @@ class TestShaperConfig:
         df = pd.DataFrame({"a": [1]})
 
         with patch.dict(CONFIG_DISPATCH, {"columnSelector": mock_render}):
-            result = configure_shaper("columnSelector", df, 1, None)
+            result = configure_shaper(
+                "columnSelector",
+                df,
+                1,
+                None,
+                display_names=ShaperFactory.get_display_name_map(),
+                owner_id=0,
+            )
 
         mock_st.exception.assert_called()
         assert result.get("type") == "columnSelector"
-
-
-class TestShaperApplication:
-    """Tests for applying shaper configurations."""
-
-    @patch("src.web.pages.ui.shaper_config.st")
-    def test_apply_none_data_raises(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.shaper_config import apply_shapers
-
-        with pytest.raises(ValueError, match="Cannot apply shapers to None"):
-            apply_shapers(None, [])  # type: ignore[arg-type]
-
-    @patch("src.web.pages.ui.shaper_config.apply_shapers")
-    def test_apply_transformer_branch(self, mock_apply: MagicMock) -> None:
-        from src.web.pages.ui.shaper_config import apply_shapers
-
-        df = pd.DataFrame({"a": [1]})
-        apply_shapers(df, cast(Any, [{"type": "transformer"}]))
-        mock_apply.assert_called()
-
-    @patch("src.web.pages.ui.shaper_config.st")
-    def test_apply_skip_no_type(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.shaper_config import apply_shapers
-
-        df = pd.DataFrame({"a": [1]})
-        # Cast to Any then to list[ShaperStepConfig] to satisfy Pyright
-        result = apply_shapers(df, cast(Any, [{}]))  # no type key
-        pd.testing.assert_frame_equal(result, df)
-
-    @patch("src.web.pages.ui.shaper_config.st")
-    def test_apply_incomplete_config_warns(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.shaper_config import apply_shapers
-
-        df = pd.DataFrame({"a": [1]})
-        # normalize requires normalizeVars, normalizerColumn, etc.
-        # Cast to Any then to list[ShaperStepConfig] to satisfy Pyright
-        result = apply_shapers(df, cast(Any, [{"type": "normalize"}]))
-
-        mock_st.warning.assert_called()
-        pd.testing.assert_frame_equal(result, df)
 
 
 class TestPipelineComponent:
@@ -96,7 +70,9 @@ class TestPipelineComponent:
         mock_st.selectbox.return_value = "Sort"
         mock_st.button.return_value = True
 
-        result = PipelineComponent.render_add_shaper(plot_id=1)
+        result = PipelineComponent.render_add_shaper(
+            plot_id=1, display_names=ShaperFactory.get_display_name_map()
+        )
 
         assert result["add_clicked"] is True
         assert result["shaper_type"] == "sort"
@@ -116,7 +92,7 @@ class TestPipelineComponent:
         mock_st.button.return_value = False
 
         result = PipelineComponent.render_shaper_controls(
-            plot_id=1, idx=0, shaper_type="sort", is_first=False, is_last=False
+            plot_id=1, idx=0, is_first=False, is_last=False
         )
 
         assert "move_up" in result
@@ -140,6 +116,8 @@ class TestPipelineComponent:
 
         export_fn.assert_called_once_with("Paper pipeline", "Reviewed")
         mock_st.download_button.assert_called_once()
+        assert mock_st.download_button.call_args.kwargs["data"] == b"{}"
+        assert mock_st.download_button.call_args.kwargs["on_click"] == "ignore"
         assert result == {
             "import_clicked": True,
             "payload": b'{"format":"ring5.pipeline-configuration"}',
@@ -180,12 +158,6 @@ class TestDataManagerBase:
 
         api = _make_mock_api()
         api.state_manager.get_data.return_value = pd.DataFrame({"x": [1]})
-
-        from src.web.pages.ui.shaper_config import apply_shapers
-
-        # Missing group_by
-        # Use a dummy dataframe and config
-        result = apply_shapers(pd.DataFrame({"a": [1]}), cast(Any, [{"type": "mean"}]))
 
         # Create a concrete subclass
         class Concrete(DataManager):

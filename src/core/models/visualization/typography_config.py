@@ -37,8 +37,8 @@ class TypographyConfig:
     font_size_ticks: int = 7  # X-tick labels
     font_size_yticks: int = 7  # Y-tick labels
     font_size_y2ticks: int = INHERIT  # -1 → follow yticks
-    font_size_legend: int = 8  # primary legend text
-    font_size_legend2: int = INHERIT  # -1 → follow legend
+    font_size_legend: float = 8  # primary legend text
+    font_size_legend2: float = INHERIT  # -1 → follow legend
 
     # Bold flags
     bold_title: bool = False

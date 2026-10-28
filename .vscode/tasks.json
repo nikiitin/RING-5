@@ -29,7 +29,7 @@
     {
       "label": "Start Streamlit App",
       "type": "shell",
-      "command": "./python_venv/bin/streamlit run app.py",
+      "command": "make run",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -52,7 +52,7 @@
     {
       "label": "Format Code (Black)",
       "type": "shell",
-      "command": "./python_venv/bin/black src/ tests/",
+      "command": "make format",
       "group": "build",
       "presentation": {
         "reveal": "silent",
@@ -63,7 +63,7 @@
     {
       "label": "Lint Code (Flake8)",
       "type": "shell",
-      "command": "./python_venv/bin/flake8 src/ tests/",
+      "command": "make lint",
       "group": "test",
       "presentation": {
         "reveal": "always",

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.models import DatasetInfo
+from src.core.models.dataset_workspace_models import DatasetInfo
 from src.core.services import workspace_metadata_service as metadata_module
 from src.core.services.workspace_metadata_service import WorkspaceMetadataService
 
@@ -21,8 +22,20 @@ def _state() -> MagicMock:
         {"name": "system.cpu.ipc", "type": "scalar", "_id": "v1"}
     ]
     state.get_scanned_variables.return_value = [
-        {"name": "system.cpu.ipc", "type": "scalar", "entries": []},
-        {"name": "system.cache.misses", "type": "vector", "entries": []},
+        {
+            "name": "system.cpu.ipc",
+            "type": "scalar",
+            "entries": [],
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
+            "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
+        },
+        {
+            "name": "system.cache.misses",
+            "type": "vector",
+            "entries": [],
+            "source_evidence": {"state": "resolved", "kind": "vector", "basis": "backend_metadata"},
+            "instances": [{"source_name": "system.cache.misses", "indices": []}],
+        },
     ]
     state.list_datasets.return_value = (DatasetInfo("nightly", 3, 2, True),)
     state.get_plots.return_value = [
@@ -36,7 +49,7 @@ def _state() -> MagicMock:
     return state
 
 
-def test_every_artifact_kind_can_be_tagged_favorited_and_filtered(portfolios_dir) -> None:
+def test_every_artifact_kind_can_be_tagged_favorited_and_filtered(portfolios_dir: Path) -> None:
     # [test->req~ring5.workspace.favorites-tags~1]
     state = _state()
     targets = (
@@ -79,7 +92,7 @@ def test_every_artifact_kind_can_be_tagged_favorited_and_filtered(portfolios_dir
 
 
 def test_workspace_records_survive_config_restore_and_portfolio_records_are_local(
-    portfolios_dir,
+    portfolios_dir: Path,
 ) -> None:
     first = _state()
     WorkspaceMetadataService.set_metadata(
@@ -119,7 +132,7 @@ def test_workspace_records_survive_config_restore_and_portfolio_records_are_loca
     ],
 )
 def test_invalid_targets_and_metadata_are_rejected(
-    portfolios_dir,
+    portfolios_dir: Path,
     kind: object,
     identifier: str,
     tags: object,
@@ -156,7 +169,7 @@ def test_workspace_tag_validation_rejects_unsupported_forms(tag: str) -> None:
         WorkspaceMetadataService._normalize_tag(tag)
 
 
-def test_empty_metadata_removes_records_and_filters_are_bounded(portfolios_dir) -> None:
+def test_empty_metadata_removes_records_and_filters_are_bounded(portfolios_dir: Path) -> None:
     state = _state()
     WorkspaceMetadataService.set_metadata(
         state,
@@ -184,10 +197,26 @@ def test_empty_metadata_removes_records_and_filters_are_bounded(portfolios_dir) 
         )
 
 
-def test_discovery_reports_per_kind_truncation(monkeypatch, portfolios_dir) -> None:
+def test_discovery_reports_per_kind_truncation(
+    monkeypatch: pytest.MonkeyPatch, portfolios_dir: Path
+) -> None:
     monkeypatch.setattr(metadata_module, "MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND", 1)
     response = WorkspaceMetadataService.list_artifacts(_state(), ["paper"], limit=100)
 
     assert response.index_truncated is True
     assert response.available_artifacts > response.indexed_artifacts
     assert sum(artifact.kind == "variable" for artifact in response.artifacts) == 1
+
+
+def test_metadata_pruning_uses_complete_catalog_beyond_display_cap(
+    portfolios_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    state = _state()
+    WorkspaceMetadataService.set_metadata(state, ["last"], "portfolio", "last", tags=("keep",))
+    monkeypatch.setattr(metadata_module, "MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND", 1)
+    WorkspaceMetadataService.set_metadata(
+        state, ["first", "last"], "portfolio", "first", favorite=True
+    )
+    persisted = WorkspaceMetadataService._portfolio_metadata()
+    assert persisted[("portfolio", "last")]["tags"] == ["keep"]
+    assert persisted[("portfolio", "first")]["favorite"] is True

@@ -13,21 +13,17 @@ The controller orchestrates figure generation and delegates all
 ``st.*`` display calls to this component.
 """
 
-import logging
 from typing import Any
 
-import matplotlib.pyplot as plt
-import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
-from src.core.models.visualization.trace_config import TraceConfig
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
+from matplotlib.figure import Figure as MplFigure
+from src.web.models.render_artifact import RenderArtifact
 from src.web.components.plotting.interactive_plot import interactive_plotly_chart
 from src.web.pages.ui.plotting.download_section import render_download_section
-from src.web.rendering.matplotlib_figure_builder import apply_dual_axis, build_matplotlib_figure
-
-logger = logging.getLogger(__name__)
 
 
 class ChartDisplayComponent:
@@ -55,10 +51,14 @@ class ChartDisplayComponent:
             new_auto: bool = st.toggle(
                 "Auto-refresh",
                 value=auto_refresh,
-                key=f"auto_t_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.auto_refresh"),
             )
         with r2:
-            manual: bool = st.button("Refresh Plot", key=f"refresh_{plot_id}", width="stretch")
+            manual: bool = st.button(
+                "Refresh Plot",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.refresh"),
+                width="stretch",
+            )
 
         should_generate: bool = manual or (new_auto and config_changed)
 
@@ -85,23 +85,24 @@ class ChartDisplayComponent:
             ),
             selection_mode="single",
             default=current_engine,
-            key=f"engine_selector_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.engine_selector"),
         )
         return engine_choice
 
     @staticmethod
     def render_plotly_chart(
-        fig: go.Figure,
+        artifact: RenderArtifact,
         plot_id: int,
         plot_name: str,
-        config: dict[str, Any],
-        source_data: pd.DataFrame | None = None,
         *,
         capture_click: bool = False,
         component_generation: int = 0,
     ) -> dict[str, Any] | None:
         # [impl->req~ring5.export.plotly-scale~1]
-        """Render an interactive Plotly chart with relayout feedback."""
+        """Display the exact Plotly artifact and its matching export inputs."""
+        fig, config = artifact.figure, artifact.config
+        if not isinstance(fig, go.Figure):
+            raise TypeError("Plotly display requires its published Plotly artifact.")
         plotly_config: dict[str, Any] = {
             "responsive": False,
             "editable": True,
@@ -124,8 +125,14 @@ class ChartDisplayComponent:
             "toImageButtonOptions": {
                 "format": "svg",
                 "filename": f"{plot_name}_view",
-                "height": config.get("height", 500),
-                "width": config.get("width", 800),
+                "height": (
+                    fig.layout.height
+                    if fig.layout.height is not None
+                    else config.get("height", 500)
+                ),
+                "width": (
+                    fig.layout.width if fig.layout.width is not None else config.get("width", 800)
+                ),
                 "scale": config.get("export_scale", 1),
             },
         }
@@ -133,94 +140,21 @@ class ChartDisplayComponent:
         relayout_data: dict[str, Any] | None = interactive_plotly_chart(
             fig,
             config=plotly_config,
-            key=f"chart_{plot_id}_{component_generation}",
+            key=WidgetKeyBuilder.plot_key(plot_id, f"widgets.chart_{component_generation}"),
             capture_click=capture_click,
         )
 
-        render_download_section(plot_id, plot_name, fig, source_data)
+        render_download_section(plot_id, plot_name, artifact)
 
         return relayout_data
 
     @staticmethod
-    def render_matplotlib_chart(
-        plotly_fig: go.Figure,
-        plot_id: int,
-        plot_name: str,
-        config: dict[str, Any],
-        plot_type: str,
-        traces: list[TraceConfig] | None = None,
-        separator_lines: list[SeparatorLine] | None = None,
-        shaded_regions: list[ShadedRegion] | None = None,
-        rule_lines: list[RuleLine] | None = None,
-    ) -> None:
-        """Render a matplotlib chart derived from a Plotly figure.
-
-        The figure itself is built by the shared UI-free builder
-        (``src.web.rendering.matplotlib_figure_builder``) — the same one the
-        public ring5 package uses — so the app preview and a headless export
-        of the same plot are the same figure. This method only adds the
-        Streamlit display and the session cache the download section reads.
-        """
-        mpl_state_key = f"plot.{plot_id}.mpl_fig"
-        spec_state_key = f"plot.{plot_id}.mpl_spec"
-
-        # 0. Close previous matplotlib figure to prevent memory leak
-        old_fig = st.session_state.get(mpl_state_key)
-        if old_fig is not None:
-            plt.close(old_fig)
-            del st.session_state[mpl_state_key]
-        st.session_state.pop(spec_state_key, None)
-
-        # 1. Build the figure via the single shared render sequence
-        mpl_fig, spec = build_matplotlib_figure(
-            plotly_fig,
-            config,
-            plot_type,
-            traces,
-            separator_lines,
-            shaded_regions,
-            rule_lines,
-        )
-
-        ChartDisplayComponent.render_prebuilt_matplotlib_chart(
-            mpl_fig,
-            plotly_fig,
-            plot_id,
-            plot_name,
-            spec=spec,
-        )
-
-    @staticmethod
-    def render_prebuilt_matplotlib_chart(
-        mpl_fig: Any,
-        plotly_fig: go.Figure,
-        plot_id: int,
-        plot_name: str,
-        *,
-        spec: Any = None,
-    ) -> None:
-        """Display and cache a complete Matplotlib figure built elsewhere."""
-        mpl_state_key = f"plot.{plot_id}.mpl_fig"
-        spec_state_key = f"plot.{plot_id}.mpl_spec"
-        old_fig = st.session_state.get(mpl_state_key)
-        if old_fig is not None and old_fig is not mpl_fig:
-            plt.close(old_fig)
-        st.session_state.pop(spec_state_key, None)
-
-        try:
-            st.pyplot(mpl_fig)
-            st.session_state[mpl_state_key] = mpl_fig
-            resolved_spec = spec if spec is not None else getattr(mpl_fig, "_ring5_spec", None)
-            st.session_state[spec_state_key] = resolved_spec
-            render_download_section(plot_id, plot_name, plotly_fig)
-        except Exception:
-            plt.close(mpl_fig)
-            raise
-
-    @staticmethod
-    def _apply_matplotlib_dual_axis(twin: Any, config: dict[str, Any], spec: Any) -> None:
-        """Delegate to the shared builder's dual-axis fix-up (one canonical impl)."""
-        apply_dual_axis(twin, config, spec)
+    def render_matplotlib_chart(artifact: RenderArtifact, plot_id: int, plot_name: str) -> None:
+        """Display an already-built native artifact without rebuilding or caching it."""
+        if not isinstance(artifact.figure, MplFigure):
+            raise TypeError("Matplotlib display requires its published native artifact.")
+        st.pyplot(artifact.figure)
+        render_download_section(plot_id, plot_name, artifact)
 
     @staticmethod
     def render_error(error: Exception) -> None:

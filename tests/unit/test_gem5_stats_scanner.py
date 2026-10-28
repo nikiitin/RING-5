@@ -9,7 +9,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.core.models import ScannedVariable
+from src.core.models.parsing_models import ScannedVariable
 from src.parsing.gem5.impl.scanning.scanner import Gem5StatsScanner
 
 
@@ -130,7 +130,7 @@ class TestScanFileScanFile:
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
-        mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
+        mock_run = Mock(return_value=Mock(stdout='{"variables": [], "error": null}', stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
         scanner.scan_file(test_file)
@@ -149,33 +149,42 @@ class TestScanFileScanFile:
         test_file.write_text("dummy")
 
         perl_output = json.dumps(
-            [
-                {"name": "simTicks", "type": "scalar"},
-                {"name": "cpu.ipc", "type": "scalar"},
-            ]
+            {
+                "variables": [
+                    {
+                        "name": "simTicks",
+                        "type": "scalar",
+                        "entries": [],
+                        "source_evidence": {
+                            "state": "resolved",
+                            "kind": "scalar",
+                            "basis": "wire_contract",
+                        },
+                        "instances": [{"source_name": "simTicks", "indices": []}],
+                    },
+                    {
+                        "name": "cpu.ipc",
+                        "type": "scalar",
+                        "entries": [],
+                        "source_evidence": {
+                            "state": "resolved",
+                            "kind": "scalar",
+                            "basis": "wire_contract",
+                        },
+                        "instances": [{"source_name": "cpu.ipc", "indices": []}],
+                    },
+                ],
+                "error": None,
+            }
         )
         mock_run = Mock(return_value=Mock(stdout=perl_output, stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
         result = scanner.scan_file(test_file)
 
-        assert len(result) == 2
-        assert all(isinstance(v, ScannedVariable) for v in result)
-
-    def test_scan_file_with_config_vars(
-        self, scanner: Any, tmp_path: Any, monkeypatch: Any
-    ) -> None:
-
-        test_file = tmp_path / "stats.txt"
-        test_file.write_text("dummy")
-
-        mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
-        monkeypatch.setattr("subprocess.run", mock_run)
-
-        scanner.scan_file(test_file, config_vars=["benchmark", "seed"])
-
-        args = mock_run.call_args[0][0]
-        assert "benchmark,seed" in args
+        assert len(result.variables) == 2
+        assert result.ok
+        assert all(isinstance(v, ScannedVariable) for v in result.variables)
 
     def test_scan_file_with_empty_output(
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
@@ -187,9 +196,8 @@ class TestScanFileScanFile:
         mock_run = Mock(return_value=Mock(stdout="", stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        result = scanner.scan_file(test_file)
-
-        assert result == []
+        with pytest.raises(RuntimeError, match="corrupt JSON"):
+            scanner.scan_file(test_file)
 
     def test_scan_file_with_whitespace_only_output(
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
@@ -201,9 +209,8 @@ class TestScanFileScanFile:
         mock_run = Mock(return_value=Mock(stdout="   \n  \t  ", stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
-        result = scanner.scan_file(test_file)
-
-        assert result == []
+        with pytest.raises(RuntimeError, match="corrupt JSON"):
+            scanner.scan_file(test_file)
 
     def test_scan_file_with_timeout_raises(
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
@@ -247,13 +254,25 @@ class TestScanFileScanFile:
     @pytest.mark.parametrize(
         "payload,error",
         [
-            ({"name": "simTicks", "type": "scalar"}, "non-list JSON"),
-            (["not-an-object"], "not a variable object"),
+            ({"name": "simTicks", "type": "scalar"}, "current catalog outcome"),
+            (["not-an-object"], "invalid variable schema"),
             ([{"name": "", "type": "scalar"}], "invalid variable schema"),
             ([{"name": "simTicks", "type": 3}], "invalid variable schema"),
             ([{"name": "simTicks", "type": "unknown"}], "invalid variable schema"),
             (
-                [{"name": "simTicks", "type": "scalar", "entries": "not-a-list"}],
+                [
+                    {
+                        "name": "simTicks",
+                        "type": "scalar",
+                        "entries": "not-a-list",
+                        "source_evidence": {
+                            "state": "resolved",
+                            "kind": "scalar",
+                            "basis": "wire_contract",
+                        },
+                        "instances": [{"source_name": "simTicks", "indices": []}],
+                    }
+                ],
                 "invalid variable schema",
             ),
             (
@@ -272,6 +291,8 @@ class TestScanFileScanFile:
     ) -> None:
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
+        if isinstance(payload, list):
+            payload = {"variables": payload, "error": None}
         mock_run = Mock(return_value=Mock(stdout=json.dumps(payload), stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
@@ -302,7 +323,7 @@ class TestScanFileScanFile:
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
-        mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
+        mock_run = Mock(return_value=Mock(stdout='{"variables": [], "error": null}', stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
         scanner.scan_file(test_file)
@@ -316,7 +337,7 @@ class TestScanFileScanFile:
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
 
-        mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
+        mock_run = Mock(return_value=Mock(stdout='{"variables": [], "error": null}', stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
         scanner.scan_file(test_file)
@@ -328,7 +349,7 @@ class TestScanFileScanFile:
     ) -> None:
         test_file = tmp_path / "stats.txt"
         test_file.write_text("dummy")
-        mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
+        mock_run = Mock(return_value=Mock(stdout='{"variables": [], "error": null}', stderr=""))
         monkeypatch.setattr("subprocess.run", mock_run)
 
         scanner.scan_file(test_file)

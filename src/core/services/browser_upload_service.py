@@ -16,6 +16,9 @@ from openpyxl import load_workbook
 
 from src.core.common.security_limits import (
     MAX_BROWSER_UPLOAD_BYTES,
+    MAX_BROWSER_UPLOAD_ARCHIVE_MEMBERS,
+    MAX_BROWSER_UPLOAD_ARCHIVE_MEMBER_BYTES,
+    MAX_BROWSER_UPLOAD_COMPRESSION_RATIO,
     MAX_BROWSER_UPLOAD_CELL_LENGTH,
     MAX_BROWSER_UPLOAD_CELLS,
     MAX_BROWSER_UPLOAD_NAME_LENGTH,
@@ -30,7 +33,7 @@ from src.core.models.browser_upload_models import (
 from src.core.models.portfolio_models import PortfolioData
 from src.core.models.portfolio_bundle_models import PortfolioBundleContents
 from src.core.services.import_preview_service import ImportPreviewService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.services.data_services.portfolio_validation_service import validate_portfolio_document
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 from src.core.services.portfolio_bundle_service import PortfolioBundleService
 
@@ -159,6 +162,20 @@ def _excel_records(content: bytes) -> tuple[tuple[str, ...], list[list[Any]], st
     """Read the first visible worksheet from a validated modern Excel workbook."""
     if not zipfile.is_zipfile(io.BytesIO(content)):
         raise ValueError("Excel upload is not a valid .xlsx archive.")
+    with zipfile.ZipFile(io.BytesIO(content)) as archive:
+        members = archive.infolist()
+        if (
+            len(members) > MAX_BROWSER_UPLOAD_ARCHIVE_MEMBERS
+            or sum(member.file_size for member in members) > MAX_BROWSER_UPLOAD_BYTES
+        ):
+            raise ValueError("Expanded Excel archive exceeds its safe upload limit.")
+        if any(member.file_size > MAX_BROWSER_UPLOAD_ARCHIVE_MEMBER_BYTES for member in members):
+            raise ValueError("Excel archive member exceeds its safe expanded-size limit.")
+        if any(
+            member.file_size > MAX_BROWSER_UPLOAD_COMPRESSION_RATIO * max(member.compress_size, 1)
+            for member in members
+        ):
+            raise ValueError("Excel archive member exceeds its safe compression-ratio limit.")
     try:
         workbook = load_workbook(
             io.BytesIO(content),
@@ -173,6 +190,10 @@ def _excel_records(content: bytes) -> tuple[tuple[str, ...], list[list[Any]], st
         if not visible:
             raise ValueError("Excel upload has no visible worksheet.")
         sheet = visible[0]
+        if (sheet.max_row or 0) > MAX_BROWSER_UPLOAD_ROWS + 1:
+            raise ValueError("Excel worksheet dimensions exceed the row limit.")
+        if (sheet.max_row or 0) * (sheet.max_column or 0) > MAX_BROWSER_UPLOAD_CELLS:
+            raise ValueError("Excel worksheet dimensions exceed the cell limit.")
         records = sheet.iter_rows(values_only=True)
         try:
             raw_header = next(records)
@@ -188,10 +209,14 @@ def _excel_records(content: bytes) -> tuple[tuple[str, ...], list[list[Any]], st
         if any(not value for value in header) or len(set(header)) != len(header):
             raise ValueError("Excel header names must be non-empty and unique.")
         rows: list[list[Any]] = []
-        for raw_row in records:
-            if len(rows) >= MAX_BROWSER_UPLOAD_ROWS:
+        for row_number, raw_row in enumerate(records, start=2):
+            if row_number > MAX_BROWSER_UPLOAD_ROWS + 1:
                 raise ValueError(
                     f"Browser uploads support at most {MAX_BROWSER_UPLOAD_ROWS:,} rows."
+                )
+            if any(value is not None for value in raw_row[len(header) :]):
+                raise ValueError(
+                    f"Excel row {row_number} contains data beyond its named header columns."
                 )
             relevant = raw_row[: len(header)]
             if not any(value is not None for value in relevant):
@@ -254,24 +279,23 @@ def _portfolio(
     signing_key: str | bytes | None = None,
     require_signature: bool = False,
 ) -> dict[str, Any]:
-    """Validate and migrate a recognizable RING-5 portfolio object."""
+    """Validate a current RING-5 portfolio object."""
     if not isinstance(value, dict):
         raise ValueError("Portfolio JSON must contain one top-level object.")
-    if "plots" not in value or not ({"data_csv", "schema_version"} & set(value)):
+    if "plots" not in value or not ({"data", "schema_version"} & set(value)):
         raise ValueError("JSON does not contain a recognizable RING-5 portfolio.")
     if not isinstance(value.get("plots"), list):
         raise ValueError("Portfolio plots must be an array.")
-    if "data_csv" in value and not isinstance(value["data_csv"], str):
-        raise ValueError("Portfolio data_csv must be text.")
     if "config" in value and not isinstance(value["config"], dict):
         raise ValueError("Portfolio config must be an object.")
     try:
+        validate_portfolio_document(value)
         integrity = PortfolioIntegrityService.verify(value, signing_key=signing_key)
         PortfolioIntegrityService.require_restorable(
             integrity,
             require_signature=require_signature,
         )
-        return PortfolioMigrator.migrate(cast(dict[str, Any], value))
+        return cast(dict[str, Any], value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"Portfolio schema validation failed: {exc}") from exc
 
@@ -286,7 +310,7 @@ def _kind(file_name: str, value: Any | None, request: BrowserUploadRequest) -> B
         is_portfolio = (
             isinstance(value, dict)
             and "plots" in value
-            and bool({"data_csv", "schema_version"} & set(value))
+            and bool({"data", "schema_version"} & set(value))
         )
         detected = "portfolio" if is_portfolio else "json"
     elif suffix == ".ring5-bundle":
@@ -349,13 +373,14 @@ class BrowserUploadService:
                 f"Declared media type {normalized_media!r} does not match {kind} upload."
             )
 
+        bundle_info = PortfolioBundleService.inspect(content) if kind == "bundle" else None
+        portfolio = _portfolio(json_value) if kind == "portfolio" else None
         digest = hashlib.sha256(content).hexdigest()
         destination.mkdir(parents=True, exist_ok=True)
         source = destination / f"{digest}{Path(clean_name).suffix.lower()}"
         source.write_bytes(content)
 
         if kind == "bundle":
-            bundle_info = PortfolioBundleService.inspect(content)
             return BrowserUpload(
                 file_name=clean_name,
                 content_type=normalized_media or "not provided",
@@ -367,7 +392,7 @@ class BrowserUploadService:
             )
 
         if kind == "portfolio":
-            portfolio = _portfolio(json_value)
+            portfolio = cast(dict[str, Any], portfolio)
             integrity = PortfolioIntegrityService.verify(cast(dict[str, Any], json_value))
             return BrowserUpload(
                 file_name=clean_name,
@@ -378,7 +403,7 @@ class BrowserUploadService:
                 source_path=str(source.resolve()),
                 portfolio_schema_version=int(portfolio["schema_version"]),
                 portfolio_plot_count=len(portfolio.get("plots", [])),
-                portfolio_has_data=bool(portfolio.get("data_csv")),
+                portfolio_has_data=portfolio.get("data") is not None,
                 portfolio_integrity_status=integrity.status,
                 portfolio_signing_key_id=integrity.key_id,
             )

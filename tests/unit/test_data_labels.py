@@ -1,7 +1,11 @@
 """
 Tests for Data Labels features in GroupedStackedBarPlot.
-Tests: font size, constraint to bar, uniformtext, and style application flow.
+Tests: font size, constraint to bar, uniformtext, and public rendering.
 """
+
+from ring5 import Session
+from typing import cast
+import plotly.graph_objects as go
 
 from typing import Any
 
@@ -9,7 +13,6 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 
-from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import (
     GroupedStackedBarPlot,
 )
@@ -34,19 +37,13 @@ def plot() -> GroupedStackedBarPlot:
     return GroupedStackedBarPlot(1, "Test Plot")
 
 
-@pytest.fixture
-def applicator() -> StyleApplicator:
-    """Create a StyleApplicator instance."""
-    return StyleApplicator("grouped_stacked_bar")
-
-
 class TestDataLabelsBasic:
     """Test basic data labels functionality."""
 
     # [test->req~ring5.figure.data-labels~1]
 
     def test_show_values_disabled_by_default(
-        self, plot: Any, sample_data: Any, applicator: Any
+        self, plot: Any, sample_data: Any, plot_session: Session
     ) -> None:
         """Test that data labels are not shown by default."""
         config = {
@@ -55,13 +52,15 @@ class TestDataLabelsBasic:
             "y_columns": ["Val1", "Val2"],
             "show_values": False,
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.texttemplate is None or trace.texttemplate == ""
 
-    def test_show_values_enabled(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_show_values_enabled(self, plot: Any, sample_data: Any, plot_session: Session) -> None:
         """Test that data labels are shown when enabled."""
         config = {
             "x": "Category",
@@ -70,26 +69,30 @@ class TestDataLabelsBasic:
             "show_values": True,
             "text_format": "%{y:.2f}",
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.texttemplate == "%{y:.2f}"
 
 
 class TestDataLabelsFontSize:
     """Test font size configuration."""
 
-    def test_default_font_size(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_default_font_size(self, plot: Any, sample_data: Any, plot_session: Session) -> None:
         """Test default font size of 12."""
         config = {"x": "Category", "group": "Group", "y_columns": ["Val1"], "show_values": True}
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textfont.size == 12
 
-    def test_custom_font_size(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_custom_font_size(self, plot: Any, sample_data: Any, plot_session: Session) -> None:
         """Test custom font size."""
         config = {
             "x": "Category",
@@ -98,17 +101,19 @@ class TestDataLabelsFontSize:
             "show_values": True,
             "text_font_size": 20,
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textfont.size == 20
 
 
 class TestConstrainToBar:
     """Test Constrain to Bar functionality."""
 
-    def test_constraint_disabled(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_constraint_disabled(self, plot: Any, sample_data: Any, plot_session: Session) -> None:
         """Test that constraintext is 'none' when disabled."""
         config = {
             "x": "Category",
@@ -117,13 +122,15 @@ class TestConstrainToBar:
             "show_values": True,
             "text_constraint": False,
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.constraintext == "none"
 
-    def test_constraint_enabled(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_constraint_enabled(self, plot: Any, sample_data: Any, plot_session: Session) -> None:
         """Test that constraintext is 'inside' when enabled."""
         config = {
             "x": "Category",
@@ -132,15 +139,17 @@ class TestConstrainToBar:
             "show_values": True,
             "text_constraint": True,
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.constraintext == "inside"
             assert trace.textposition == "inside"
 
     def test_constraint_sets_uniformtext(
-        self, plot: Any, sample_data: Any, applicator: Any
+        self, plot: Any, sample_data: Any, plot_session: Session
     ) -> None:
         """Test that uniformtext is set when constraint is enabled."""
         config = {
@@ -151,8 +160,9 @@ class TestConstrainToBar:
             "text_constraint": True,
             "text_font_size": 12,
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig.layout.uniformtext is not None
         assert fig.layout.uniformtext.mode == "hide"
@@ -164,7 +174,7 @@ class TestTextPosition:
 
     # [test->req~ring5.figure.data-labels~1]
 
-    def test_position_auto(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_position_auto(self, plot: Any, sample_data: Any, plot_session: Session) -> None:
         """Test auto position."""
         config = {
             "x": "Category",
@@ -173,14 +183,16 @@ class TestTextPosition:
             "show_values": True,
             "text_position": "auto",
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textposition == "auto"
 
     def test_position_inside_with_anchor(
-        self, plot: Any, sample_data: Any, applicator: Any
+        self, plot: Any, sample_data: Any, plot_session: Session
     ) -> None:
         """Test inside position with middle anchor."""
         config = {
@@ -191,10 +203,12 @@ class TestTextPosition:
             "text_position": "inside",
             "text_anchor": "middle",
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textposition == "inside"
             assert trace.insidetextanchor == "middle"
 
@@ -202,16 +216,18 @@ class TestTextPosition:
 class TestTextRotation:
     """Test text rotation."""
 
-    def test_default_rotation(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_default_rotation(self, plot: Any, sample_data: Any, plot_session: Session) -> None:
         """Test default rotation of 0."""
         config = {"x": "Category", "group": "Group", "y_columns": ["Val1"], "show_values": True}
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textangle == 0
 
-    def test_custom_rotation(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_custom_rotation(self, plot: Any, sample_data: Any, plot_session: Session) -> None:
         """Test custom rotation."""
         config = {
             "x": "Category",
@@ -220,17 +236,19 @@ class TestTextRotation:
             "show_values": True,
             "text_rotation": 90,
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textangle == 90
 
 
 class TestTextColor:
     """Test text color modes."""
 
-    def test_custom_color(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_custom_color(self, plot: Any, sample_data: Any, plot_session: Session) -> None:
         """Test custom text color."""
         config = {
             "x": "Category",
@@ -240,17 +258,21 @@ class TestTextColor:
             "text_color_mode": "Custom",
             "text_color": "#FF0000",
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textfont.color == "#FF0000"
 
 
 class TestEdgeCasesAndValidation:
     """Test edge cases and input validation for robustness."""
 
-    def test_invalid_font_size_string(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_invalid_font_size_string(
+        self, plot: Any, sample_data: Any, plot_session: Session
+    ) -> None:
         """Test that invalid font size string falls back to default."""
         config = {
             "x": "Category",
@@ -259,13 +281,17 @@ class TestEdgeCasesAndValidation:
             "show_values": True,
             "text_font_size": "invalid",
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textfont.size == 12  # Default
 
-    def test_font_size_clamped_to_min(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_font_size_clamped_to_min(
+        self, plot: Any, sample_data: Any, plot_session: Session
+    ) -> None:
         """Test that font size is clamped to minimum of 6."""
         config = {
             "x": "Category",
@@ -274,13 +300,17 @@ class TestEdgeCasesAndValidation:
             "show_values": True,
             "text_font_size": 2,  # Below minimum
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textfont.size == 6  # Clamped to min
 
-    def test_font_size_clamped_to_max(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_font_size_clamped_to_max(
+        self, plot: Any, sample_data: Any, plot_session: Session
+    ) -> None:
         """Test that font size is clamped to maximum of 48."""
         config = {
             "x": "Category",
@@ -289,13 +319,17 @@ class TestEdgeCasesAndValidation:
             "show_values": True,
             "text_font_size": 200,  # Above maximum
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textfont.size == 100  # Clamped to max (100)
 
-    def test_invalid_rotation_string(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_invalid_rotation_string(
+        self, plot: Any, sample_data: Any, plot_session: Session
+    ) -> None:
         """Test that invalid rotation string falls back to default."""
         config = {
             "x": "Category",
@@ -304,13 +338,17 @@ class TestEdgeCasesAndValidation:
             "show_values": True,
             "text_rotation": "invalid",
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textangle == 0  # Default
 
-    def test_rotation_clamped_to_range(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_rotation_clamped_to_range(
+        self, plot: Any, sample_data: Any, plot_session: Session
+    ) -> None:
         """Test that rotation is clamped to -360 to 360."""
         config = {
             "x": "Category",
@@ -319,16 +357,19 @@ class TestEdgeCasesAndValidation:
             "show_values": True,
             "text_rotation": 500,  # Above max, will be clamped to 360
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         # Plotly normalizes 360 to 0, so we check the clamping worked
         # by verifying the angle is in valid range
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
+            assert trace.textangle is not None
             assert -360 <= trace.textangle <= 360
 
     def test_invalid_position_falls_back(
-        self, plot: Any, sample_data: Any, applicator: Any
+        self, plot: Any, sample_data: Any, plot_session: Session
     ) -> None:
         """Test that invalid position falls back to auto."""
         config = {
@@ -338,13 +379,17 @@ class TestEdgeCasesAndValidation:
             "show_values": True,
             "text_position": "invalid_position",
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textposition == "auto"
 
-    def test_invalid_anchor_ignored(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_invalid_anchor_ignored(
+        self, plot: Any, sample_data: Any, plot_session: Session
+    ) -> None:
         """Test that invalid anchor is ignored."""
         config = {
             "x": "Category",
@@ -354,14 +399,18 @@ class TestEdgeCasesAndValidation:
             "text_position": "inside",
             "text_anchor": "invalid_anchor",
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         # Should not raise and anchor should not be set
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.insidetextanchor is None
 
-    def test_invalid_threshold_string(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_invalid_threshold_string(
+        self, plot: Any, sample_data: Any, plot_session: Session
+    ) -> None:
         """Test that invalid threshold string falls back to 0."""
         config = {
             "x": "Category",
@@ -371,11 +420,12 @@ class TestEdgeCasesAndValidation:
             "text_display_logic": "If > Threshold",
             "text_threshold": "invalid",
         }
-        fig = plot.create_figure(sample_data, config)
-        # Should not raise
-        _ = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
+        assert isinstance(fig, go.Figure)
 
-    def test_none_values_handled(self, plot: Any, sample_data: Any, applicator: Any) -> None:
+    def test_none_values_handled(self, plot: Any, sample_data: Any, plot_session: Session) -> None:
         """Test that None values are handled gracefully."""
         config = {
             "x": "Category",
@@ -387,11 +437,13 @@ class TestEdgeCasesAndValidation:
             "text_position": None,
             "text_constraint": None,
         }
-        fig = plot.create_figure(sample_data, config)
-        fig = applicator.apply_styles(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         # Should use defaults
         for trace in fig.data:
+            assert isinstance(trace, go.Bar)
             assert trace.textfont.size == 12
             assert trace.textangle == 0
             assert trace.textposition == "auto"

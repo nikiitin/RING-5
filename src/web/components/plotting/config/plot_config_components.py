@@ -3,8 +3,10 @@
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.common.bounded_options import bounded_unique_strings
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class PlotConfigComponents:
@@ -20,8 +22,8 @@ class PlotConfigComponents:
         saved_column: object,
     ) -> None:
         """Reset a filter to all values when its mapped column changes."""
-        column_key = f"{filter_name}_column_{plot_id}"
-        widget_key = f"{filter_name}_{plot_id}"
+        column_key = WidgetKeyBuilder.plot_key(plot_id, f"widgets.{filter_name}_column")
+        widget_key = WidgetKeyBuilder.plot_key(plot_id, f"widgets.{filter_name}")
         previous_column = st.session_state.get(column_key, saved_column)
         if previous_column != column:
             st.session_state[widget_key] = list(options)
@@ -74,7 +76,7 @@ class PlotConfigComponents:
 
             # Sanitize session state — Streamlit >= 1.53 raises when keys hold
             # values that are no longer valid options (e.g. after a data update).
-            _xf_key = f"x_filter_{plot_id}"
+            _xf_key = WidgetKeyBuilder.plot_key(plot_id, "widgets.x_filter")
             PlotConfigComponents._sync_filter_column(
                 plot_id=plot_id,
                 filter_name="x_filter",
@@ -119,7 +121,7 @@ class PlotConfigComponents:
             default_g = [g for g in default_g if g in unique_g]
 
             # Sanitize session state for group filter (same reason as above).
-            _gf_key = f"group_filter_{plot_id}"
+            _gf_key = WidgetKeyBuilder.plot_key(plot_id, "widgets.group_filter")
             PlotConfigComponents._sync_filter_column(
                 plot_id=plot_id,
                 filter_name="group_filter",
@@ -186,7 +188,7 @@ class PlotConfigComponents:
 
         # Sanitize session state to prevent StreamlitInvalidOptionError when
         # previously selected columns are no longer available after a data change.
-        _ys_key = f"y_multiselect_{plot_id}"
+        _ys_key = WidgetKeyBuilder.plot_key(plot_id, "widgets.y_multiselect")
         if _ys_key in st.session_state:
             _ys_state = st.session_state[_ys_key]
             if isinstance(_ys_state, list):
@@ -198,7 +200,7 @@ class PlotConfigComponents:
             label,
             options=numeric_cols,
             default=valid_ys,
-            key=f"y_multiselect_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.y_multiselect"),
             help=help_text,
         )
         return list(result) if isinstance(result, list) else []
@@ -236,7 +238,7 @@ class PlotConfigComponents:
             *,
             help_text: str | None = None,
         ) -> str:
-            key = f"{field}_{plot_id}"
+            key = WidgetKeyBuilder.plot_key(plot_id, f"widgets.{field}")
             if key in st.session_state:
                 return st.text_input(label, key=key, help=help_text) or ""
             return (

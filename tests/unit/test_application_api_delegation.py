@@ -1,17 +1,28 @@
 """Tests for ApplicationAPI delegation, conversion, and error handling."""
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+from src.core.models.parsing_models import SourceInstance
 from collections.abc import Generator
 from concurrent.futures import Future
+from pathlib import Path
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ParseVariableConfig
-from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.history_models import OperationRecord
+from src.core.models.preview_models import ActivePreviewInputs
+from src.core.models.parsing_models import (
+    ParseBatchResult,
+    ScanFileResult,
+    ScanResult,
+    ScannedVariable,
+)
+from tests.helpers.parsed_values import completed_future, numeric_file, numeric_output
 
 
 @pytest.fixture
@@ -27,7 +38,7 @@ def api() -> Generator[ApplicationAPI, None, None]:
         inst._services = mock_svc_cls.return_value
         inst._parser = MagicMock()
         yield inst
-        inst.close_background_jobs(wait=True)
+        inst.close(wait=True)
 
 
 class TestPropertyAccess:
@@ -89,7 +100,18 @@ class TestSubmitParseAsync:
         api.submit_parse_async(
             "/path",
             "stats.txt",
-            [cast(ParseVariableConfig, {"name": "simTicks", "type": "scalar"})],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {
+                            "name": "simTicks",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        },
+                    )
+                ]
+            ),
             "/out",
         )
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
@@ -110,19 +132,26 @@ class TestSubmitParseAsync:
         api.submit_parse_async(
             "/path",
             "stats.txt",
-            [
-                cast(
-                    ParseVariableConfig,
-                    {"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC"},
-                )
-            ],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {
+                            "source_name": "system.cpu.ipc",
+                            "type": "scalar",
+                            "name": "IPC",
+                            "params": {"source_type": "scalar"},
+                        },
+                    )
+                ]
+            ),
             "/out",
         )
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
         configs = args_tuple[0][2]
         assert configs[0].name == "IPC"
         assert configs[0].source_name == "system.cpu.ipc"
-        assert configs[0].params["parsed_ids"] == ["system.cpu.ipc"]
+        assert configs[0].params == {"source_type": "scalar"}
 
     def test_dict_regex_with_alias_preserves_source_pattern(self, api: ApplicationAPI) -> None:
         """Regex detection uses the source statistic rather than its alias."""
@@ -130,16 +159,19 @@ class TestSubmitParseAsync:
         api.submit_parse_async(
             "/path",
             "stats.txt",
-            [
-                cast(
-                    ParseVariableConfig,
-                    {
-                        "name": r"system.cpu\d+.ipc",
-                        "type": "scalar",
-                        "alias": "IPC",
-                    },
-                )
-            ],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {
+                            "source_name": r"system.cpu\d+.ipc",
+                            "type": "scalar",
+                            "name": "IPC",
+                            "params": {"source_type": "scalar"},
+                        },
+                    )
+                ]
+            ),
             "/out",
         )
 
@@ -155,7 +187,18 @@ class TestSubmitParseAsync:
         api.submit_parse_async(
             "/path",
             "stats.txt",
-            [cast(ParseVariableConfig, {"name": r"system.cpu\d+.ipc", "type": "vector"})],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {
+                            "name": "system.cpu\\d+.ipc",
+                            "type": "vector",
+                            "params": {"entries": ["0"], "source_type": "vector"},
+                        },
+                    )
+                ]
+            ),
             "/out",
         )
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
@@ -168,51 +211,60 @@ class TestSubmitParseAsync:
         api.submit_parse_async(
             "/path",
             "stats.txt",
-            [
-                cast(
-                    ParseVariableConfig,
-                    {"name": "hist", "type": "histogram", "statistics_only": True},
-                )
-            ],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {
+                            "name": "hist",
+                            "type": "histogram",
+                            "statistics_only": True,
+                            "params": {"statistics": ["mean"], "source_type": "histogram"},
+                        },
+                    )
+                ]
+            ),
             "/out",
         )
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
         configs = args_tuple[0][2]
         assert configs[0].statistics_only is True
 
-    def test_scanned_variable_object(self, api: ApplicationAPI) -> None:
-        """ScannedVariable-like object is converted to StatConfig."""
+    def test_scanned_variable_object_is_not_a_runnable_configuration(
+        self, api: ApplicationAPI
+    ) -> None:
+        """Discovery objects cannot bypass the explicit runnable model."""
         scanned = MagicMock()
         scanned.name = "system.cpu.ipc"
         scanned.type = "scalar"
-        scanned.entries = ["0", "1"]
-        # Remove params attr so it triggers the elif branch
-        del scanned.params
-
-        cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
-        api.submit_parse_async("/path", "stats.txt", [scanned], "/out")
-        args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
-        configs = args_tuple[0][2]
-        assert configs[0].name == "system.cpu.ipc"
-        assert configs[0].params["entries"] == ["0", "1"]
+        with pytest.raises(TypeError, match="StatConfig instances"):
+            api.submit_parse_async("/path", "stats.txt", [scanned], "/out")
+        cast(MagicMock, api._parser.submit_parse_async).assert_not_called()
 
     def test_stat_config_passthrough(self, api: ApplicationAPI) -> None:
         """StatConfig objects pass through unchanged."""
-        from src.core.models import StatConfig
+        from src.core.models.parsing_models import StatConfig
 
-        sc = StatConfig(name="test", type="scalar")
+        sc = StatConfig(name="test", type="scalar", params={"source_type": "scalar"})
         cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
         api.submit_parse_async("/path", "stats.txt", [sc], "/out")
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
         configs = args_tuple[0][2]
-        assert configs[0] is sc
+        assert configs[0] == sc
+        assert configs[0] is not sc
 
     def test_scanned_vars_kwarg_forwarded(self, api: ApplicationAPI) -> None:
         """scanned_vars kwarg is forwarded to the parser."""
         from src.core.models.parsing_models import ScannedVariable
 
         cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
-        sv = ScannedVariable(name="test_var", type="scalar", entries=[])
+        sv = ScannedVariable(
+            name="test_var",
+            type="scalar",
+            entries=[],
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+            instances=(SourceInstance("test_var", ()),),
+        )
         scanned = [sv]
         api.submit_parse_async("/path", "stats.txt", [], "/out", scanned_vars=scanned)
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
@@ -223,52 +275,83 @@ class TestSubmitParseAsync:
 
 
 class TestFinalizeParsing:
-    """Test finalize_parsing delegation."""
+    """Test typed finalization delegates its complete immutable plan."""
 
-    def test_delegates_to_parser(self, api: ApplicationAPI) -> None:
-        cast(Any, api._parser.finalize_parsing).return_value = "/out/result.csv"
-        result = api.finalize_parsing("/out", [MagicMock()])
-        assert result == "/out/result.csv"
+    def test_delegates_to_parser(self, api: ApplicationAPI, tmp_path: Path) -> None:
+        value = numeric_file("source", {"x": 1.0})
+        batch = ParseBatchResult(
+            (completed_future(value),), ("x",), ("source",), str(tmp_path), "simple"
+        )
+        output = numeric_output(tmp_path / "result.csv", {"x": 1.0})
+        cast(Any, api._parser.finalize_parsing).return_value = output
+        result = api.finalize_parsing(batch, [value])
+        assert result is output
 
-    def test_with_var_names(self, api: ApplicationAPI) -> None:
-        cast(Any, api._parser.finalize_parsing).return_value = "/out/r.csv"
-        api.finalize_parsing("/out", [], var_names=["a", "b"])
-        args_tuple = cast(MagicMock, api._parser.finalize_parsing).call_args
-        call_kwargs = args_tuple[1]
-        assert call_kwargs["var_names"] == ["a", "b"]
+    def test_with_batch_variable_order(self, api: ApplicationAPI, tmp_path: Path) -> None:
+        value = numeric_file("source", {"a": 1.0, "b": 2.0})
+        batch = ParseBatchResult(
+            (completed_future(value),), ("a", "b"), ("source",), str(tmp_path), "simple"
+        )
+        output = numeric_output(tmp_path / "r.csv", {"a": 1.0, "b": 2.0})
+        cast(Any, api._parser.finalize_parsing).return_value = output
+        api.finalize_parsing(batch, [value])
+        call_args = cast(MagicMock, api._parser.finalize_parsing).call_args
+        assert call_args.args == (batch, [value])
+        assert call_args.args[0].var_names == ("a", "b")
+        assert call_args.kwargs == {"complete": True}
 
 
 class TestIncrementalParsing:
     """Incremental requests share normalization and delegate their complete plan."""
 
-    def test_submit_and_finalize_delegate_to_parser(self, api: ApplicationAPI) -> None:
+    @pytest.mark.parametrize("complete", [True, False])
+    def test_submit_and_finalize_delegate_to_parser(
+        self, api: ApplicationAPI, tmp_path: Path, complete: bool
+    ) -> None:
         # [test->req~ring5.ingestion.incremental-parsing~1]
-        from src.core.models import IncrementalParseBatchResult, IncrementalParseResult
+        from src.core.models.parsing_models import (
+            IncrementalParseBatchResult,
+            IncrementalParseResult,
+        )
 
         batch = IncrementalParseBatchResult(
-            futures=[],
-            var_names=["IPC"],
+            futures=(),
+            var_names=("IPC",),
             output_dir="/out",
             strategy_type="simple",
             cache_path="/out/cache.json",
             configuration_hash="a" * 64,
-            fingerprints=(),
-            cached_rows=(),
+            fingerprints=(("/inputs/stats.txt", "b" * 64),),
+            cached_results=(numeric_file("/inputs/stats.txt", {"IPC": 1.0}),),
             changed_files=(),
             removed_files=(),
         )
-        result = IncrementalParseResult("/out/results.csv", 0, 1, 0, 1)
+        result = IncrementalParseResult(
+            numeric_output(tmp_path / "results.csv", {"IPC": 1.0}), 0, 1, 0, 1
+        )
         cast(Any, api._parser.submit_incremental_parse_async).return_value = batch
         cast(Any, api._parser.finalize_incremental_parsing).return_value = result
 
         submitted = api.submit_incremental_parse_async(
             "/inputs",
             "stats.txt",
-            [cast(ParseVariableConfig, {"name": "cpu.ipc", "alias": "IPC"})],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {
+                            "source_name": "cpu.ipc",
+                            "name": "IPC",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        },
+                    )
+                ]
+            ),
             "/out",
             cache_path="/out/cache.json",
         )
-        finalized = api.finalize_incremental_parsing(submitted, [])
+        finalized = api.finalize_incremental_parsing(submitted, [], complete=complete)
 
         assert submitted is batch
         assert finalized is result
@@ -276,7 +359,9 @@ class TestIncrementalParsing:
         configs = cast(MagicMock, api._parser.submit_incremental_parse_async).call_args.args[2]
         assert configs[0].name == "IPC"
         assert configs[0].source_name == "cpu.ipc"
-        cast(MagicMock, api._parser.finalize_incremental_parsing).assert_called_once_with(batch, [])
+        cast(MagicMock, api._parser.finalize_incremental_parsing).assert_called_once_with(
+            batch, [], complete=complete
+        )
 
 
 class TestParserPlayground:
@@ -284,11 +369,17 @@ class TestParserPlayground:
 
     def test_submit_and_finalize_delegate_to_parser(self, api: ApplicationAPI) -> None:
         # [test->req~ring5.ingestion.parser-playground~1]
-        from src.core.models import ParserPlaygroundBatchResult, ParserPlaygroundResult
+        from src.core.models.parsing_models import (
+            ParserPlaygroundBatchResult,
+            ParserPlaygroundResult,
+        )
 
         batch = ParserPlaygroundBatchResult(
-            futures=[],
-            var_names=["IPC"],
+            futures=(
+                completed_future(numeric_file("/inputs/a/stats.txt", {"IPC": 1.0})),
+                completed_future(numeric_file("/inputs/b/stats.txt", {"IPC": 2.0})),
+            ),
+            var_names=("IPC",),
             output_dir="/out",
             strategy_type="simple",
             matched_file_count=2,
@@ -298,7 +389,7 @@ class TestParserPlayground:
             matched_file_count=2,
             sampled_files=batch.sampled_files,
             columns=("IPC",),
-            rows=(("1.0",), ("2.0",)),
+            rows=((1.0,), (2.0,)),
             missing_variables=(),
             diagnostics=("The sampled configuration is ready for a full parse.",),
             ready_for_full_parse=True,
@@ -309,10 +400,23 @@ class TestParserPlayground:
         submitted = api.submit_parser_playground_async(
             "/inputs",
             "stats.txt",
-            [cast(ParseVariableConfig, {"name": "cpu.ipc", "alias": "IPC"})],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {
+                            "source_name": "cpu.ipc",
+                            "name": "IPC",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        },
+                    )
+                ]
+            ),
             "/out",
         )
-        finalized = api.finalize_parser_playground(submitted, [{"IPC": 1.0}])
+        values = [future.result() for future in submitted.futures]
+        finalized = api.finalize_parser_playground(submitted, values)
 
         assert submitted is batch
         assert finalized is result
@@ -321,7 +425,7 @@ class TestParserPlayground:
         assert configs[0].name == "IPC"
         assert configs[0].source_name == "cpu.ipc"
         cast(MagicMock, api._parser.finalize_parser_playground).assert_called_once_with(
-            batch, [{"IPC": 1.0}]
+            batch, values
         )
 
 
@@ -343,94 +447,19 @@ class TestScanMethods:
         assert api.list_background_jobs() == ()
 
     def test_finalize_scan(self, api: ApplicationAPI) -> None:
-        cast(Any, api._parser.aggregate_scan_results).return_value = [MagicMock()]
-        result = api.finalize_scan([[MagicMock()]])
-        assert len(result) == 1
-
-    def test_status_methods(self, api: ApplicationAPI) -> None:
-        assert api.get_parse_status() == "idle"
-        assert api.get_scanner_status() == "idle"
-
-
-class TestShapersDelegation:
-    # [test->req~ring5.quality.application-facade~1]
-
-    """Test apply_shapers delegation."""
-
-    def test_apply_shapers(self, api: ApplicationAPI) -> None:
-        df = pd.DataFrame({"x": [1, 2]})
-        pipeline = [cast(ShaperStepConfig, {"type": "selector", "columns": ["x"]})]
-        api.apply_shapers(df, pipeline)
-        cast(MagicMock, api._services.shapers.process_pipeline).assert_called_once_with(
-            df, pipeline
+        variable = ScannedVariable(
+            "value",
+            "scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+            instances=(SourceInstance("value", ()),),
         )
-
-
-class TestConfigurationManagement:
-    """Test config CRUD delegation."""
-
-    def test_save_configuration(self, api: ApplicationAPI) -> None:
-        api.save_configuration("name", "desc", [], "/path.csv")
-        cast(MagicMock, api._services.data_services.save_configuration).assert_called_once_with(
-            "name", "desc", [], "/path.csv"
-        )
-
-    def test_load_configuration(self, api: ApplicationAPI) -> None:
-        api.load_configuration("/config.json")
-        cast(MagicMock, api._services.data_services.load_configuration).assert_called_once_with(
-            "/config.json"
-        )
-
-    def test_export_configuration(self, api: ApplicationAPI) -> None:
-        api.export_configuration("name", "desc", [], "/path.csv")
-        cast(MagicMock, api._services.data_services.export_configuration).assert_called_once_with(
-            "name", "desc", [], "/path.csv"
-        )
-
-    def test_import_configuration(self, api: ApplicationAPI) -> None:
-        api.import_configuration(b"{}", conflict="rename")
-        cast(MagicMock, api._services.data_services.import_configuration).assert_called_once_with(
-            b"{}", conflict="rename"
-        )
-
-    def test_load_csv_pool(self, api: ApplicationAPI) -> None:
-        api.load_csv_pool()
-        cast(MagicMock, api._services.data_services.load_csv_pool).assert_called_once()
-
-    def test_load_saved_configs(self, api: ApplicationAPI) -> None:
-        api.load_saved_configs()
-        cast(MagicMock, api._services.data_services.load_saved_configs).assert_called_once()
-
-    def test_delete_configuration(self, api: ApplicationAPI) -> None:
-        api.delete_configuration("/cfg.json")
-        cast(MagicMock, api._services.data_services.delete_configuration).assert_called_once_with(
-            "/cfg.json"
-        )
-
-    def test_add_to_csv_pool(self, api: ApplicationAPI) -> None:
-        api.add_to_csv_pool("/data.csv")
-        cast(MagicMock, api._services.data_services.add_to_csv_pool).assert_called_once_with(
-            "/data.csv"
-        )
-
-    def test_delete_from_pool(self, api: ApplicationAPI) -> None:
-        api.delete_from_pool("/data.csv")
-        cast(MagicMock, api._services.data_services.delete_from_csv_pool).assert_called_once_with(
-            "/data.csv"
-        )
-
-    def test_delete_from_csv_pool_alias(self, api: ApplicationAPI) -> None:
-        """delete_from_csv_pool is an alias for delete_from_pool."""
-        api.delete_from_csv_pool("/data.csv")
-        cast(MagicMock, api._services.data_services.delete_from_csv_pool).assert_called_once_with(
-            "/data.csv"
-        )
-
-    def test_load_csv_file(self, api: ApplicationAPI) -> None:
-        api.load_csv_file("/data.csv")
-        cast(MagicMock, api._services.data_services.load_csv_file).assert_called_once_with(
-            "/data.csv"
-        )
+        value = ScanFileResult("source", [variable])
+        aggregate = ScanResult([variable], scanned_files=1)
+        cast(Any, api._parser.aggregate_scan_results).return_value = aggregate
+        result = api.finalize_scan([value])
+        assert result is aggregate
+        assert len(result.variables) == 1
+        cast(MagicMock, api._parser.aggregate_scan_results).assert_called_once_with([value])
 
 
 class TestGetColumnInfo:
@@ -462,16 +491,33 @@ class TestGetColumnInfo:
 class TestPreviewDelegation:
     # [test->req~ring5.quality.application-facade~1]
 
-    """Test preview methods delegate to state manager."""
+    """Test scoped preview operations route through their required service boundary."""
+
+    def test_capture_preview_inputs(self, api: ApplicationAPI) -> None:
+        with patch("src.core.application_api.WorkspaceInputService") as service_type:
+            result = api.capture_preview_inputs(("baseline", "candidate"))
+        service_type.assert_called_once_with(api.state_manager)
+        service_type.return_value.capture_preview_inputs.assert_called_once_with(
+            ("baseline", "candidate")
+        )
+        assert result is service_type.return_value.capture_preview_inputs.return_value
 
     def test_set_preview(self, api: ApplicationAPI) -> None:
         dummy_df = pd.DataFrame({"col": ["data"]})
-        api.set_preview("op", dummy_df)
-        cast(MagicMock, api.state_manager.set_preview).assert_called_once_with("op", dummy_df)
+        inputs = ActivePreviewInputs("source", 0)
+        with patch("src.core.application_api.WorkspaceInputService") as service_type:
+            api.set_preview("op", dummy_df, operation_config={}, inputs=inputs)
+        service_type.assert_called_once_with(api.state_manager)
+        service_type.return_value.set_preview.assert_called_once_with(
+            "op", dummy_df, operation_config={}, inputs=inputs
+        )
 
     def test_get_preview(self, api: ApplicationAPI) -> None:
-        api.get_preview("op")
-        cast(MagicMock, api.state_manager.get_preview).assert_called_once_with("op")
+        with patch("src.core.application_api.WorkspaceInputService") as service_type:
+            result = api.get_preview("op")
+        service_type.assert_called_once_with(api.state_manager)
+        service_type.return_value.get_preview.assert_called_once_with("op")
+        assert result is service_type.return_value.get_preview.return_value
 
     def test_has_preview(self, api: ApplicationAPI) -> None:
         api.has_preview("op")
@@ -518,3 +564,14 @@ class TestHistoryDelegation:
         cast(MagicMock, api.state_manager.remove_portfolio_history_record).assert_called_once_with(
             record
         )
+
+
+def test_close_can_upgrade_background_wait_policy() -> None:
+    api = ApplicationAPI()
+    try:
+        with patch.object(api._background_jobs, "close") as close_jobs:
+            api.close()
+            api.close(wait=True)
+            assert close_jobs.call_args_list == [call(wait=False), call(wait=True)]
+    finally:
+        api.close(wait=True)

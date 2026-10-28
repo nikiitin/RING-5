@@ -5,8 +5,6 @@ parent: Stable Interfaces
 grand_parent: Developer Guide
 nav_order: 6
 permalink: /developer-guide/api-reference/registries-and-factories/
-redirect_from:
-  - /engineering-reference/reference/factory-registry/
 ---
 
 # Registries and factories
@@ -19,11 +17,18 @@ not documentation, is the current inventory.
 | Simulator registry | Simulator name and metadata | `ApplicationAPI.available_simulators()` |
 | Strategy factory | Backend-specific strategy name | Simulator metadata |
 | Plot factory | Snake-case plot identifier | `ring5.available_plot_types()` |
-| Shaper factory | Serialized camel-case or legacy identifier | Web **Add transformation** selector |
+| Shaper definitions | Exact registered identifier and required Literal discriminator | `ring5.shapers.available_shaper_types()` |
 | Stat type registry | Backend variable-type string | Simulator metadata |
 
 Factories reject unknown identifiers and report available choices at the relevant boundary. Display
 names are presentation metadata and must map back to one identifier.
 
 Before renaming or removing an identifier, find portfolio, pipeline, CLI, and public API consumers.
-Add migration or alias handling and a fixture that proves older serialized content still loads.
+Replace those callers together. Test the current contract and clear rejection of retired names;
+do not add migration or alias handling.
+
+Shapers register through `ring5.shapers.register_shaper(ShaperDefinition(...))`. The definition owns
+its implementation, exact TypedDict configuration, semantic validator and display metadata.
+Constructors, factory creation, pipeline execution and pipeline import use this one validator.
+Built-ins retain separate explicit discovery and editor ordering. Plugins default to API-only;
+a web editor requires its own configuration renderer. See [Add a shaper]({{ site.baseurl }}/developer-guide/extension-guides/adding-a-shaper/).

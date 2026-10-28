@@ -1,20 +1,11 @@
-"""
-Bidirectional builders — construct FigureConfig from various sources.
-
-  - ``PlotlyFigureSpecBuilder`` — extract spec from Plotly figure + config dict
-  - ``ConfigSpecBuilder`` — build spec from a flat config dict (UI widgets)
-"""
+"""Build resolved figure inputs from editable configuration and neutral trace metadata."""
 
 from __future__ import annotations
 
 from typing import Any, Literal
 
-import plotly.graph_objects as go
-
-from src.core.models.visualization.annotation_config import (
-    AnnotationConfig,
-    ReferenceLineConfig,
-)
+from src.core.common.numbered_axis import numbered_axis_modes
+from src.core.models.visualization.annotation_config import ReferenceLineConfig
 from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import (
@@ -29,8 +20,10 @@ from src.core.models.visualization.legend_config import (
 )
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import HeatmapTraceConfig
 from src.core.models.visualization.typography_config import TypographyConfig
 from src.core.services.visualization.palette_service import resolve_palette
+from src.web.rendering._connector_protocol import validate_annotation_types
 
 
 def should_show_x_tick_labels(config: dict[str, Any]) -> bool:
@@ -38,101 +31,13 @@ def should_show_x_tick_labels(config: dict[str, Any]) -> bool:
     (``ConfigSpecBuilder.from_config``) and plotly (``grouped_stacked_bar``) paths so they
     can't drift.
 
-    With the ``numbered_xaxis_modes`` multiselect, labels show iff "Numbers" or "Labels" is
-    selected (a sole "Number legend" hides them). The legacy ``numbered_xaxis`` boolean
-    hides labels unless ``show_numbered_ticks`` is set.
+    Numbered modes show labels when Numbers or Labels is selected. An absent
+    or empty list leaves the normal label-visibility setting in control.
     """
-    modes = config.get("numbered_xaxis_modes")
+    modes = numbered_axis_modes(config)
     if modes:
         return "Numbers" in modes or "Labels" in modes
-    if config.get("numbered_xaxis") and not config.get("show_numbered_ticks", False):
-        return False
     return bool(config.get("show_x_tick_labels", True))
-
-
-class PlotlyFigureSpecBuilder:
-    """Enrich a FigureConfig with metadata that only exists on a *styled* Plotly figure.
-
-    The spec itself is built by :class:`ConfigSpecBuilder` from the flat config dict; this
-    class supplies the one piece that isn't in the config — layout state computed inside
-    ``create_figure`` (tick vals/labels, annotations, barmode, legend3) — via
-    :meth:`enrich_from_plotly`. (The engine-agnostic counterpart is
-    :func:`enrich_from_traces`, used by the matplotlib path.)
-    """
-
-    @staticmethod
-    def enrich_from_plotly(spec: FigureConfig, fig: go.Figure) -> None:
-        """Merge layout metadata from a Plotly figure into an existing spec.
-
-        Transfers computed layout data (tick positions/labels, annotations,
-        legend3 items) that ``ConfigSpecBuilder.from_config()`` cannot
-        capture because the data is set programmatically in
-        ``create_figure()`` methods rather than stored in the config dict.
-
-        Modifies *spec* in place. The FigureConfig tree is frozen, but this
-        method is only ever handed a freshly-built, caller-owned spec (see
-        ``ChartDisplayComponent`` — built, enriched, then resolved), so the
-        in-place fill via ``object.__setattr__`` is private to that build step.
-        """
-        layout: Any = fig.layout if hasattr(fig, "layout") else None
-        if layout is None:
-            return
-
-        # Tick positions / labels
-        xaxis = getattr(layout, "xaxis", None)
-        if xaxis is not None:
-            tv = getattr(xaxis, "tickvals", None)
-            tt = getattr(xaxis, "ticktext", None)
-            if tv is not None:
-                raw = tv.tolist() if hasattr(tv, "tolist") else list(tv)
-                object.__setattr__(spec.axes.x, "tick_values", raw)
-            if tt is not None:
-                raw_t = tt.tolist() if hasattr(tt, "tolist") else list(tt)
-                object.__setattr__(spec.axes.x, "tick_text", [str(t) for t in raw_t])
-
-        yaxis = getattr(layout, "yaxis", None)
-        if yaxis is not None:
-            tv = getattr(yaxis, "tickvals", None)
-            tt = getattr(yaxis, "ticktext", None)
-            if tv is not None:
-                raw = tv.tolist() if hasattr(tv, "tolist") else list(tv)
-                object.__setattr__(spec.axes.y, "tick_values", raw)
-            if tt is not None:
-                raw_t = tt.tolist() if hasattr(tt, "tolist") else list(tt)
-                object.__setattr__(spec.axes.y, "tick_text", [str(t) for t in raw_t])
-
-        # Annotations
-        # Only merge if spec has none (avoid duplicating config-based ones)
-        if not spec.annotations:
-            object.__setattr__(spec, "annotations", _extract_annotations(layout))
-
-        # Barmode
-        plotly_barmode = getattr(layout, "barmode", None)
-        if plotly_barmode is not None:
-            barmode_str = str(plotly_barmode)
-            if barmode_str in ("group", "stack", "overlay", "relative"):
-                object.__setattr__(spec, "barmode", barmode_str)
-
-        # Legend3 (tertiary legend items)
-        legend3 = getattr(layout, "legend3", None)
-        if legend3 is not None:
-            from src.core.models.visualization.legend_config import LegendConfig
-
-            box_kwargs: dict[str, Any] = {"role": "tertiary"}
-            x = getattr(legend3, "x", None)
-            y = getattr(legend3, "y", None)
-            if x is not None:
-                box_kwargs["position_x"] = float(x)
-                box_kwargs["custom_position"] = True
-            if y is not None:
-                box_kwargs["position_y"] = float(y)
-            xanchor = getattr(legend3, "xanchor", None)
-            if xanchor:
-                box_kwargs["anchor_x"] = xanchor
-            yanchor = getattr(legend3, "yanchor", None)
-            if yanchor:
-                box_kwargs["anchor_y"] = yanchor
-            spec.legends.append(LegendConfig(**box_kwargs))
 
 
 class ConfigSpecBuilder:
@@ -166,7 +71,15 @@ class ConfigSpecBuilder:
             A FigureConfig populated from config values.
             Uses ``dpi=1`` so width/height are effectively in pixels.
         """
+        from src.core.common.plot_payload import (
+            validate_plot_config_keys,
+            validate_plot_config_values,
+        )
+
+        validate_plot_config_keys(config, plot_type=plot_type)
+        validate_plot_config_values(config)
         is_bar = "bar" in plot_type
+        symmetric_y_titles = plot_type == "grouped_stacked_bar" and bool(config.get("dual_axis"))
 
         # Dimensions (dpi=1 ⇒ px passthrough)
         margins = MarginsConfig(
@@ -190,8 +103,10 @@ class ConfigSpecBuilder:
             font_size_title=config.get("title_font_size", 18),
             font_size_xlabel=config.get("xaxis_title_font_size", 14),
             font_size_ylabel=config.get("yaxis_title_font_size", 14),
+            font_size_y2label=config.get("yaxis2_title_font_size", -1),
             font_size_ticks=config.get("xaxis_tickfont_size", 12),
             font_size_yticks=config.get("yaxis_tickfont_size", 12),
+            font_size_y2ticks=config.get("yaxis2_tickfont_size", -1),
             font_size_legend=config.get("legend_font_size", 12),
         )
 
@@ -225,7 +140,8 @@ class ConfigSpecBuilder:
             grid_width=float(config.get("x_grid_width", 1.0)),
             grid_dash=config.get("x_grid_dash", "solid"),
             grid_alpha=float(config.get("x_grid_alpha", 1.0)),
-            show_ticks=config.get("show_xtick_marks", True),
+            show_ticks=config.get("show_xtick_marks", True)
+            and (not _numbered_modes or _show_x_tick_labels),
             show_tick_labels=_show_x_tick_labels,
             tick_dash=config.get("xtick_dash", "solid"),
             tick_font_color=config.get("xaxis_tickfont_color", ""),
@@ -248,6 +164,7 @@ class ConfigSpecBuilder:
             grid_alpha=float(config.get("y_grid_alpha", 1.0)),
             label_standoff=config.get("yaxis_title_standoff", -1),
             title_vshift=float(config.get("yaxis_title_vshift", 0.0)),
+            title_angle=-90.0 if symmetric_y_titles else None,
             show_ticks=config.get("show_ytick_marks", True),
             tick_dash=config.get("ytick_dash", "solid"),
             tick_font_color=config.get("yaxis_tickfont_color", ""),
@@ -279,10 +196,13 @@ class ConfigSpecBuilder:
                 grid_dash=config.get("y2_grid_dash", "solid"),
                 grid_alpha=float(config.get("y2_grid_alpha", 1.0)),
                 label_standoff=config.get("yaxis2_title_standoff", -1),
+                title_vshift=float(config.get("yaxis2_title_vshift", 0.0)),
+                title_angle=90.0 if symmetric_y_titles else None,
+                tick_dash=config.get("y2tick_dash", "solid"),
                 show_ticks=config.get("show_y2tick_marks", True),
                 show_tick_labels=config.get("show_y2tick_labels", True),
                 tick_font_color=config.get("yaxis2_tickfont_color", ""),
-                tick_side="right",
+                tick_side=config.get("yaxis2_tick_side", "right"),
                 axis_color=config.get("axis_color", "#444"),
                 axis_line_color=config.get("y2_axis_line_color", ""),
                 axis_line_width=float(config.get("y2_axis_line_width", 1.0)),
@@ -302,20 +222,37 @@ class ConfigSpecBuilder:
         )
 
         # Primary Legend
-        primary_legend = _build_legend_from_config(config, "legend_", "primary")
+        legend_config = dict(config)
+        if has_y2_axis and not config.get("unified_legend", True):
+            for key, value in {
+                "legend_x": 0.0,
+                "legend_y": 1.0,
+                "legend_anchor_x": "left",
+                "legend_anchor_y": "top",
+                "legend2_x": 1.0,
+                "legend2_y": 1.0,
+                "legend2_anchor_x": "right",
+                "legend2_anchor_y": "top",
+            }.items():
+                legend_config.setdefault(key, value)
+        primary_legend = _build_legend_from_config(legend_config, "legend_", "primary")
         legends: list[LegendConfig] = [primary_legend]
 
         # Secondary legend from UI (dual-axis)
-        if any(config.get(f"legend2_{k}") is not None for k in ("font_size", "x", "ncols")):
-            legends.append(_build_legend_from_config(config, "legend2_", "secondary"))
+        if any(key.startswith("legend2_") for key in config) or (
+            has_y2_axis and not config.get("unified_legend", True)
+        ):
+            legends.append(_build_legend_from_config(legend_config, "legend2_", "secondary"))
 
         # Boxed legend from UI
-        if any(config.get(f"legend3_{k}") is not None for k in ("font_size", "x", "ncols")):
+        if any(key.startswith("legend3_") for key in config):
             legends.append(_build_legend_from_config(config, "legend3_", "tertiary"))
 
         # Backgrounds
         paper_bg = config.get("paper_bgcolor", "white")
         plot_bg = config.get("plot_bgcolor", "white")
+        if config.get("transparent_bg", False):
+            paper_bg = plot_bg = "rgba(0,0,0,0)"
 
         # Title
         title = str(config.get("title") or "").replace("undefined", "")
@@ -405,17 +342,15 @@ class ConfigSpecBuilder:
         trace_overrides: dict[str, SeriesStyleConfig] = {}
         raw_overrides: dict[str, Any] = config.get("series_styles", {})
         for trace_name_raw, style_dict_raw in raw_overrides.items():
-            if not isinstance(style_dict_raw, dict):
-                continue
-            t_name: str = str(trace_name_raw)
-            sd: dict[str, Any] = style_dict_raw  # type: ignore[assignment]
+            t_name: str = trace_name_raw
+            sd = style_dict_raw
             trace_overrides[t_name] = SeriesStyleConfig(
                 color=(str(sd["color"]) if sd.get("use_color") and sd.get("color") else ""),
                 symbol=str(sd.get("symbol", "")),
-                display_name=str(sd.get("name", "")),
                 marker_size=int(sd.get("marker_size") or 0),
                 line_width=float(sd.get("line_width") or 0.0),
-                hatching_pattern=str(sd.get("pattern", "")),
+                hatching_pattern=sd.get("pattern"),
+                opacity=sd.get("opacity"),
             )
 
         # Color palette (resolve name → hex list)
@@ -446,11 +381,13 @@ class ConfigSpecBuilder:
             reference_lines=reference_lines,
             series_styles=series_styles,
             trace_overrides=trace_overrides,
+            legend_labels=config.get("legend_labels", {}),
             color_palette=color_palette,
             show_error_bars=show_error_bars,
             enable_stripes=enable_stripes,
             hovermode=hovermode,
             barmode=barmode_raw,
+            font_family=str(config.get("font_family", "serif")),
         )
 
 
@@ -473,7 +410,7 @@ def _build_legend_from_config(
         Fully populated LegendConfig.
     """
     tracegroupgap_px = int(config.get(f"{prefix}tracegroupgap", 10))
-    font_size = int(config.get(f"{prefix}font_size", 12))
+    font_size = float(config.get(f"{prefix}font_size", 12))
     # Convert tracegroupgap (Plotly px) → labelspacing (Matplotlib, in
     # multiples of font size).  Clamp to sensible range.
     label_spacing = max(0.0, tracegroupgap_px / max(font_size, 1))
@@ -509,13 +446,11 @@ def _build_legend_from_config(
     )
 
     # Orientation (horizontal / vertical)
-    _orient_raw = str(config.get(f"{prefix}orientation", "vertical")).lower()
-    if _orient_raw not in ("horizontal", "vertical"):
-        _orient_raw = "vertical"
+    _orient_raw = config.get(f"{prefix}orientation", "vertical")
 
     # Position and anchor derivation
-    pos_x = float(config.get(f"{prefix}x", 1.02 if role == "primary" else -1.0))
-    pos_y = float(config.get(f"{prefix}y", 1.0 if role == "primary" else -1.0))
+    pos_x = float(config.get(f"{prefix}x", -1.0))
+    pos_y = float(config.get(f"{prefix}y", -1.0))
 
     raw_anchor_x = config.get(f"{prefix}anchor_x", "auto")
     raw_anchor_y = config.get(f"{prefix}anchor_y", "auto")
@@ -540,7 +475,7 @@ def _build_legend_from_config(
         entrywidth=int(config.get(f"{prefix}entrywidth", 0)),
         itemwidth=int(config.get(f"{prefix}itemwidth", 30)),
         indentation=int(config.get(f"{prefix}indentation", 0)),
-        custom_position=True,
+        custom_position=pos_x >= 0 or pos_y >= 0,
         visible=True,
         bgcolor=config.get(f"{prefix}bgcolor", ""),
         bgalpha=float(config.get(f"{prefix}bgalpha", -1.0)),
@@ -555,124 +490,24 @@ def _build_legend_from_config(
     )
 
 
-# Helper functions for PlotlyFigureSpecBuilder
-
-
-def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
-    """Extract annotation objects from Plotly layout."""
-    annotations: list[AnnotationConfig] = []
-    layout_anns: list[Any] = list(getattr(layout, "annotations", None) or [])
-
-    for ann in layout_anns:
-        font = getattr(ann, "font", None)
-        raw_x = getattr(ann, "x", 0)
-        raw_y = getattr(ann, "y", 0)
-        try:
-            x_val: float | str = float(raw_x)
-        except (ValueError, TypeError):
-            x_val = str(raw_x) if raw_x is not None else 0.0
-        try:
-            y_val: float | str = float(raw_y)
-        except (ValueError, TypeError):
-            y_val = str(raw_y) if raw_y is not None else 0.0
-        anchor_kwargs: dict[str, Any] = {}
-        xanchor = getattr(ann, "xanchor", None)
-        if xanchor:
-            anchor_kwargs["xanchor"] = xanchor
-        yanchor = getattr(ann, "yanchor", None)
-        if yanchor:
-            anchor_kwargs["yanchor"] = yanchor
-        annotations.append(
-            AnnotationConfig(
-                text=getattr(ann, "text", ""),
-                x=x_val,
-                y=y_val,
-                xref="paper" if getattr(ann, "xref", "") == "paper" else "data",
-                yref="paper" if getattr(ann, "yref", "") == "paper" else "data",
-                show_arrow=bool(getattr(ann, "showarrow", False)),
-                font_size=int(getattr(font, "size", 0) or 0) if font else -1,
-                font_color=str(getattr(font, "color", "#444") or "#444") if font else "#444",
-                text_angle=float(getattr(ann, "textangle", 0) or 0),
-                border_width=float(getattr(ann, "borderwidth", 0) or 0),
-                border_color=str(getattr(ann, "bordercolor", "") or ""),
-                border_pad=float(getattr(ann, "borderpad", 0) or 0),
-                bgcolor=str(getattr(ann, "bgcolor", "") or ""),
-                align=getattr(ann, "align", "left") or "left",
-                **anchor_kwargs,
-            )
-        )
-
-    return annotations
-
-
-def _annotation_from_dict(ann: dict[str, Any]) -> AnnotationConfig:
-    """Build an ``AnnotationConfig`` from a raw layout-annotation dict.
-
-    The engine-agnostic counterpart of :func:`_extract_annotations` (which reads the very
-    same fields back off a Plotly annotation object). Kept field-for-field identical — and
-    matching Plotly's "unset property is ``None``" semantics — so the direct matplotlib
-    path produces the same spec as the old plotly-round-trip path, byte-for-byte.
-    """
-    raw_x = ann.get("x", 0)
-    raw_y = ann.get("y", 0)
-    try:
-        x_val: float | str = float(raw_x)
-    except (ValueError, TypeError):
-        x_val = str(raw_x) if raw_x is not None else 0.0
-    try:
-        y_val: float | str = float(raw_y)
-    except (ValueError, TypeError):
-        y_val = str(raw_y) if raw_y is not None else 0.0
-
-    # Plotly builds a Font object iff the "font" key is present (truthy even when empty);
-    # absent/None font ⇒ the (-1, "#444") sentinels _extract_annotations uses.
-    font = ann.get("font")
-    if "font" in ann and font is not None:
-        font_size = int((font.get("size") or 0))
-        font_color = str(font.get("color") or "#444")
-    else:
-        font_size = -1
-        font_color = "#444"
-
-    anchor_kwargs: dict[str, Any] = {}
-    xanchor = ann.get("xanchor")
-    if xanchor:
-        anchor_kwargs["xanchor"] = xanchor
-    yanchor = ann.get("yanchor")
-    if yanchor:
-        anchor_kwargs["yanchor"] = yanchor
-
-    return AnnotationConfig(
-        text=ann.get("text", ""),
-        x=x_val,
-        y=y_val,
-        xref="paper" if ann.get("xref", "") == "paper" else "data",
-        yref="paper" if ann.get("yref", "") == "paper" else "data",
-        show_arrow=bool(ann.get("showarrow", False)),
-        font_size=font_size,
-        font_color=font_color,
-        text_angle=float(ann.get("textangle", 0) or 0),
-        border_width=float(ann.get("borderwidth", 0) or 0),
-        border_color=str(ann.get("bordercolor", "") or ""),
-        border_pad=float(ann.get("borderpad", 0) or 0),
-        bgcolor=str(ann.get("bgcolor", "") or ""),
-        align=ann.get("align", "left") or "left",
-        **anchor_kwargs,
-    )
-
-
 def enrich_from_traces(spec: FigureConfig, result: TraceBuildResult) -> None:
-    """Fill *spec* from the engine-agnostic trace-build result — the Plotly-free twin of
-    :meth:`PlotlyFigureSpecBuilder.enrich_from_plotly`.
+    """Merge computed neutral metadata into one freshly built, owned spec.
 
-    The matplotlib path uses this so it never has to construct a Plotly figure. It captures
-    the same data ``enrich_from_plotly`` does — x-axis tick values/labels, barmode, and
-    annotations — directly from ``TraceBuildResult`` (where ``create_traces`` already put
-    them). ``legend3`` (tertiary legend) has no engine-agnostic source — it is produced
-    only during Plotly styling — so it is intentionally not handled here; a plot that needs
-    a programmatic legend3 must keep the Plotly-enriched build path. Modifies *spec* in
-    place (a freshly-built, caller-owned spec, exactly like ``enrich_from_plotly``).
+    Configured and computed annotations share the typed annotation channel.
+    Annotation font roles reference configured styles without creating trace legends.
     """
+
+    validate_annotation_types(result.annotations)
+    if any(trace.legend_role == "secondary" for trace in result.traces) and not any(
+        legend.role == "secondary" for legend in spec.legends
+    ):
+        object.__setattr__(
+            spec, "legends", [*spec.legends, LegendConfig(role="secondary", font_size=-1)]
+        )
+    if result.traces and all(isinstance(trace, HeatmapTraceConfig) for trace in result.traces):
+        first = result.traces[0]
+        if isinstance(first, HeatmapTraceConfig):
+            object.__setattr__(spec.axes.x, "category_order", list(first.col_labels))
     ticks = result.custom_x_ticks
     if ticks:
         vals = ticks.get("vals")
@@ -695,12 +530,7 @@ def enrich_from_traces(spec: FigureConfig, result: TraceBuildResult) -> None:
     if barmode_str in ("group", "stack", "overlay", "relative"):
         object.__setattr__(spec, "barmode", barmode_str)
 
-    # Only merge if the spec has none (mirror enrich_from_plotly's guard). Order matches
-    # traces_to_plotly: result.annotations first, then the raw layout_annotations.
-    if not spec.annotations:
-        anns: list[AnnotationConfig] = list(result.annotations)
-        anns.extend(_annotation_from_dict(d) for d in result.layout_annotations)
-        object.__setattr__(spec, "annotations", anns)
+    object.__setattr__(spec, "annotations", [*spec.annotations, *result.annotations])
 
 
 def build_figure_spec_dict(config: dict[str, Any], plot_type: str) -> dict[str, Any] | None:

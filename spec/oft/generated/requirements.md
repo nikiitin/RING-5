@@ -238,12 +238,14 @@ Needs: impl, test, uman
 
 Tags: api, csv, data, status_approved
 
-### Generic CSV contract
+### Typed parser output contract
 
-`req~ring5.ingestion.csv-contract~1`
+`req~ring5.ingestion.csv-contract~2`
 Status: approved
 
-CSV input shall have a header and at least one data row, remain simulator-independent, and report malformed or empty input explicitly.
+Parser output shall declare simulator-independent logical variable kinds and physical column ownership, contain at least one exact typed source row, and reject malformed schema, CSV encoding, row shape or content-integrity mismatches explicitly.
+
+History records: 1
 
 Covers:
 - feat~ring5.ingestion~1
@@ -308,12 +310,14 @@ Needs: impl, test, uman
 
 Tags: discovery, files, parsing, status_approved
 
-### Statistics variable scan
+### Statistics source evidence scan
 
-`req~ring5.ingestion.variable-scan~1`
+`req~ring5.ingestion.variable-scan~2`
 Status: approved
 
-RING-5 shall scan selected simulator files and aggregate discovered variable names, types, metadata, ranges, and visible per-file failures.
+RING-5 shall scan selected simulator files and aggregate observed names, literal entry labels, compatible source-contract evidence, explicit source instances, optional output suggestions, and visible per-file failures without inferring unprinted native geometry.
+
+History records: 1
 
 Covers:
 - feat~ring5.ingestion~1
@@ -392,12 +396,14 @@ Needs: impl, test, uman
 
 Tags: gem5, status_approved, variables, vector
 
-### Distribution statistic parsing
+### Native Distribution statistic parsing
 
-`req~ring5.ingestion.distribution~1`
+`req~ring5.ingestion.distribution~2`
 Status: approved
 
-The gem5 backend shall parse distribution summaries and preserve their configured fields without inventing unavailable values.
+The gem5 backend shall parse summaries without a grid and full native frequencies against explicit full-precision geometry and missing/nozero policy, preserving every allocated slot, both tails and actual repeated observations without fabricating unavailable values.
+
+History records: 1
 
 Covers:
 - feat~ring5.ingestion~1
@@ -496,6 +502,8 @@ Tags: api, async, parsing, status_approved
 Status: approved
 
 Web parsing shall submit immediately, retain bounded progress across reruns and navigation within one browser session, coalesce identical requests, support cooperative job-specific cancellation and explicit retry, publish successful CSVs atomically, and clean transient job data on consumption, acknowledgement, reset, release, shutdown, or orphan recovery.
+
+History records: 1
 
 Covers:
 - feat~ring5.ingestion~1
@@ -616,12 +624,14 @@ Needs: impl, test, uman
 
 Tags: entries, statistics, status_approved, variables
 
-### Deep distribution range discovery
+### Bounded deep source discovery
 
-`req~ring5.ingestion.distribution-range-scan~1`
+`req~ring5.ingestion.distribution-range-scan~2`
 Status: approved
 
-A deep scan shall aggregate the global minimum and maximum distribution bucket range across its bounded sample and make those values available to the variable configuration.
+A deep scan shall retain printed frequency labels and intersect compatible source-contract evidence across its bounded sample. Native grid bounds shall remain explicit request declarations rather than inferred extrema of observed labels.
+
+History records: 1
 
 Covers:
 - feat~ring5.ingestion~1
@@ -872,10 +882,12 @@ Tags: configuration, data, mixer, status_approved
 
 ### Mixer error propagation
 
-`req~ring5.data.error-propagation~1`
+`req~ring5.data.error-propagation~2`
 Status: approved
 
-When source columns have .sd or _stdev companions, numeric mixing shall propagate uncertainty into a companion output standard deviation.
+Numeric mixing shall combine recorded .sd uncertainty for nonmissing source values, treating distinct source columns as independent and repeated selections of one column as correlated weights. Missing contributing SDs and undefined estimates shall keep output uncertainty missing; mean SD shall use the row's nonmissing source count. Sources without SD columns add no recorded variance.
+
+History records: 1
 
 Covers:
 - feat~ring5.data-management~1
@@ -1227,7 +1239,7 @@ Tags: derived_column, shapers, status_approved, transformation
 `req~ring5.shaping.config-import-export~1`
 Status: approved
 
-Users shall import and export versioned saved shaper configurations with validation, conflict handling, and migration support.
+Users shall import and export versioned saved shaper configurations with validation and conflict handling.
 
 Covers:
 - feat~ring5.shaping~1
@@ -1538,10 +1550,12 @@ Tags: heatmap, matrix, plots, status_approved
 
 ### Histogram
 
-`req~ring5.plot.histogram~1`
+`req~ring5.plot.histogram~2`
 Status: approved
 
-RING-5 shall render parsed histogram bucket columns with optional grouping, normalization, and cumulative display.
+RING-5 shall render declared native Distribution storage-cell mass at ordinal positions with literal labels and both tails, and ordinary explicit interval histograms with their existing geometry, supporting grouping and valid count/normalized/cumulative modes without guessing native continuous support.
+
+History records: 1
 
 Covers:
 - feat~ring5.plot-types~1
@@ -1883,6 +1897,8 @@ Status: approved
 
 Grouped figures shall optionally replace or supplement long category labels with numbers and a separately configurable number legend.
 
+History records: 1
+
 Covers:
 - feat~ring5.figure-configuration~1
 
@@ -1911,6 +1927,8 @@ Status: approved
 
 Applicable plots shall expose right-axis mappings, range, title, dot or bar mode, marker and line styling, per-group lines, and unified or separate legends.
 
+History records: 1
+
 Covers:
 - feat~ring5.figure-configuration~1
 
@@ -1934,10 +1952,12 @@ Tags: dual_axis, grouping, layout, status_approved
 
 ### Histogram configuration
 
-`req~ring5.figure.histogram-controls~1`
+`req~ring5.figure.histogram-controls~2`
 Status: approved
 
-Histogram plots shall expose parsed bucket-column selection, optional grouping, count, probability, density, or percent normalization, and cumulative display controls.
+Histogram controls shall select explicit logical native layouts or ordinary interval variables and optional groups, expose supported count/normalized/CDF modes, require finite positive selected mass for normalized views, and reject native continuous rebinning or noncumulative density while retaining generic interval controls.
+
+History records: 1
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -1995,6 +2015,8 @@ Status: approved
 
 Stacked and grouped-stacked plots shall optionally label stack totals with configurable numeric format, threshold, typography, position, anchor, offset, and rotation.
 
+History records: 1
+
 Covers:
 - feat~ring5.figure-configuration~1
 
@@ -2018,10 +2040,12 @@ Tags: heatmap, labels, status_approved, totals
 
 ### Cumulative histogram display
 
-`req~ring5.figure.histogram-cumulative~1`
+`req~ring5.figure.histogram-cumulative~2`
 Status: approved
 
-Histogram plots shall optionally accumulate bins in display order while preserving the selected count, probability, density, or percent normalization semantics.
+Cumulative histograms shall retain observed zero raw counts, require finite accumulated counts, and require finite positive selected mass for normalized cumulative modes; cumulative density shall mean cumulative probability for both native storage cells and generic intervals.
+
+History records: 1
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -2065,6 +2089,8 @@ Status: approved
 
 Grouped and grouped-stacked bar charts shall optionally shade alternating major categories with a selected color while retaining category separators and isolation spacing.
 
+History records: 1
+
 Covers:
 - feat~ring5.figure-configuration~1
 
@@ -2074,10 +2100,12 @@ Tags: grouped_bar, settings, shading, status_approved
 
 ### Per-series visual styling
 
-`req~ring5.figure.series-styling~1`
+`req~ring5.figure.series-styling~2`
 Status: approved
 
-Applicable web plots shall configure per-series override color, display name, bar pattern, marker symbol and size, and line width, while typed renderer styles shall also carry opacity and border settings.
+Applicable web plots shall configure per-series color, bar pattern, marker symbol and size, and line width by original series identity; typed renderer styles shall also carry borders. Both renderers shall preserve omitted source opacity and apply finite zero-to-one overrides by composing intrinsic and family-local alpha, including source-owned labels and error bars, without changing scientific data or compounding on reapplication. Unsupported or unknown affected native channels shall fail before any panel changes. Legend text uses the canonical legend-label mapping, legend glyphs reflect final appearance, and heatmap colorbars retain intrinsic mappings.
+
+History records: 2
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -2398,6 +2426,20 @@ Needs: impl, test, uman
 
 Tags: examples, portfolios, reproducibility, status_approved
 
+### Bundled tutorial portfolio
+
+`req~ring5.portfolio.bundled-example~1`
+Status: approved
+
+Users shall explicitly load an offline, integrity-checked synthetic tutorial portfolio through the web application or public Python API, with an editable example of every registered plot type and without creating or replacing saved portfolio files. The initial web offer shall preserve existing analysis data, authored parser configuration and active background work.
+
+Covers:
+- feat~ring5.reproducibility~1
+
+Needs: impl, test, uman
+
+Tags: examples, portfolios, reproducibility, status_approved
+
 ### Portfolio restore
 
 `req~ring5.portfolio.restore~1`
@@ -2426,19 +2468,19 @@ Needs: impl, test, uman
 
 Tags: errors, portfolios, restore, status_approved
 
-### Portfolio schema migration
+### Current portfolio schema
 
-`req~ring5.portfolio.migration~1`
+`req~ring5.portfolio.schema~1`
 Status: approved
 
-Older supported portfolio schemas shall migrate deterministically before restoration, while newer unknown schemas shall fail with a typed version error.
+Serialized portfolios shall declare the exact current schema, parser provenance, environment metadata, and integrity manifest; unsupported versions shall fail with a typed version error.
 
 Covers:
 - feat~ring5.reproducibility~1
 
 Needs: impl, test, uman
 
-Tags: migration, portfolios, schema, status_approved
+Tags: portfolios, schema, status_approved, validation
 
 ### Portfolio listing and deletion
 
@@ -2467,20 +2509,6 @@ Covers:
 Needs: impl, test, uman
 
 Tags: automation, portfolios, rendering, status_approved
-
-### Safe portfolio upgrade
-
-`req~ring5.portfolio.upgrade-protection~1`
-Status: approved
-
-The CLI shall refuse to re-save a partially restored portfolio because doing so would permanently discard skipped content.
-
-Covers:
-- feat~ring5.reproducibility~1
-
-Needs: impl, test, uman
-
-Tags: cli, migration, portfolios, safety, status_approved
 
 ### Parameterized analysis recipes
 
@@ -2573,7 +2601,7 @@ Tags: api, automation, session, status_approved
 `req~ring5.api.table~1`
 Status: approved
 
-The public Table and read_table surface shall provide immutable loading, selection, transformation, inspection, and export for scripts that do not import pandas.
+Declared Session data methods shall require Table inputs and return owned Table results for analysis data. Table and read_table shall support immutable loading, selection, inspection and export, with explicit pandas conversion through Table(frame) and Table.frame.
 
 Covers:
 - feat~ring5.automation~1
@@ -2587,7 +2615,7 @@ Tags: api, data, scripting, status_approved
 `req~ring5.api.figure-spec~1`
 Status: approved
 
-The public API shall expose typed common figure mappings, layout, axes, grouping, legend, reference-line, and dual-axis configuration with an extra-key escape hatch.
+The public API shall expose immutable typed common figure mappings, layout, axes, grouping, legend, reference-line and dual-axis values, with owned extra keys and fresh canonical editable configuration projection.
 
 Covers:
 - feat~ring5.automation~1
@@ -2595,20 +2623,6 @@ Covers:
 Needs: impl, test, uman
 
 Tags: api, figures, status_approved, typing
-
-### Fluent FigureSpec builder
-
-`req~ring5.api.figure-builder~1`
-Status: approved
-
-Scripts shall build a FigureSpec through cohesive fluent methods for data, size, palettes, axes, grouping, legends, references, and dual-axis options.
-
-Covers:
-- feat~ring5.automation~1
-
-Needs: impl, test, uman
-
-Tags: api, builder, figures, status_approved
 
 ### Scripted coordinates and decorations
 
@@ -2654,10 +2668,12 @@ Tags: api, errors, status_approved, typing
 
 ### Dependency doctor
 
-`req~ring5.api.doctor~1`
+`req~ring5.api.doctor~2`
 Status: approved
 
-The public API and CLI shall report essential Perl and optional browser and XeLaTeX dependency availability without making optional exporters mandatory.
+The public API and CLI shall report essential Perl and optional selected-browser and selected-PGF-compiler executable availability without making optional exporters mandatory. Every present BROWSER_PATH value shall remain the required browser selection, including an unavailable empty value, and unsupported compiler identifiers shall fail explicitly.
+
+History records: 1
 
 Covers:
 - feat~ring5.automation~1
@@ -2665,6 +2681,22 @@ Covers:
 Needs: impl, test, uman
 
 Tags: api, cli, dependencies, status_approved
+
+### Reviewed Chrome installation
+
+`req~ring5.cli.install-chrome~2`
+Status: approved
+
+The ring5 install-chrome command shall use the packaged reviewed Stable Chrome for Testing manifest to install or verify the native Linux artifact with bounded transfer, provider size, checksum and generation facts, project SHA-256 verification, a bounded archive graph that rejects links, and native exclusive cache publication. It shall preserve existing unrelated cache entries on failure, print the absolute executable path for explicit BROWSER_PATH selection, and report expected operational failures as exit code 2 without launching a browser or changing browser selection.
+
+History records: 1
+
+Covers:
+- feat~ring5.automation~1
+
+Needs: impl, test, uman
+
+Tags: cli, dependencies, export, status_approved
 
 ### CLI parsing
 
@@ -2714,6 +2746,8 @@ Tags: api, lifecycle, status_approved, workers
 Status: approved
 
 The public plotting boundary shall reject unknown plot types, missing or mistyped mappings, absent referenced columns, and invalid engine choices before registering or rendering a plot.
+
+History records: 1
 
 Covers:
 - feat~ring5.automation~1
@@ -2982,6 +3016,8 @@ Tags: formatting, latex, security, status_approved
 Status: approved
 
 The repository shall provide repeatable performance checks for representative large-data transformations, caches, rendering, and worker-pool stability, with explicit thresholds where wall-clock regression limits are asserted.
+
+History records: 1
 
 Covers:
 - feat~ring5.extensibility-quality~1

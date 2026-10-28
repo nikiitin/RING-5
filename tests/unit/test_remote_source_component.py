@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from src.core.models import BrowserUpload, HttpSource, RemoteSourcePolicy
+from src.core.models.browser_upload_models import BrowserUpload
+from src.core.models.remote_source_models import HttpSource, RemoteSourcePolicy
 from src.web.components.data_source.data_source_components import DataSourceComponents
 
 

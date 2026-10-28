@@ -5,9 +5,6 @@ parent: Analysis Guides
 grand_parent: User Guide
 nav_order: 2
 permalink: /user-guide/guides/publication-export/
-redirect_from:
-  - /user-guide/tutorials/custom-styling/
-  - /user-guide/tutorials/publication-ready/
 ---
 
 # Prepare publication output
@@ -37,9 +34,11 @@ Covers:
 
 -->
 
-For long grouped-category labels, numbered X-axis mode can replace or supplement ticks with numbers
-and a separately positioned number legend. Category super-groups can label adjacent spans and draw
-their boundary or rule lines.
+For long grouped-category labels, select **Numbers**, **Number legend**, and **Labels** under
+**Axes** independently. Numbers can replace or supplement category text, while the number legend
+provides a separately positioned mapping. An empty selection keeps ordinary tick labels. Configure
+the number legend's available secondary or tertiary tier under **Legends**. Category super-groups
+can label adjacent spans and draw their boundary or rule lines.
 
 Under **Typography**, set title, axis-title, and tick-label sizes for the final printed size. Under
 **Axes**, check tick spacing, label rotation, units, and ranges. A truncated range can change the

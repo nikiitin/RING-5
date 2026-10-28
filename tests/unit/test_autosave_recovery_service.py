@@ -1,20 +1,27 @@
 """Unit coverage for bounded private local workspace recovery drafts."""
 
 from __future__ import annotations
+from src.core.common.typed_table_codec import TypedTableCodec
 
 import hashlib
+from copy import deepcopy
+from pathlib import Path
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
 
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.services import autosave_recovery_service as recovery_module
 from src.core.services.autosave_recovery_service import AutosaveRecoveryService
 from src.core.services.data_services.path_service import PathService
+from src.core.state.repository_state_manager import RepositoryStateManager
+from src.parsing.gem5.types.configuration import Configuration
 
 
 @pytest.fixture
-def recovery_dir(tmp_path, monkeypatch):
+def recovery_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     root = tmp_path / "recovery"
     root.mkdir()
     monkeypatch.setattr(PathService, "get_recovery_drafts_dir", lambda: root)
@@ -24,6 +31,7 @@ def recovery_dir(tmp_path, monkeypatch):
 def _state(value: int = 1) -> MagicMock:
     state = MagicMock()
     state.get_data.return_value = pd.DataFrame({"value": [value]})
+    state.get_loaded_origin.return_value = None
     state.get_plots.return_value = []
     state.get_config.return_value = {"draft_value": value}
     state.get_parse_variables.return_value = []
@@ -32,13 +40,15 @@ def _state(value: int = 1) -> MagicMock:
     state.is_using_parser.return_value = False
     state.get_stats_path.return_value = ""
     state.get_stats_pattern.return_value = "stats.txt"
+    state.get_parser_strategy.return_value = "simple"
+    state.get_simulator.return_value = "gem5"
     state.get_scanned_variables.return_value = []
     state.get_manager_history.return_value = []
     state.get_portfolio_history.return_value = []
     return state
 
 
-def test_capture_deduplicates_lists_loads_and_isolates_owner_namespaces(recovery_dir) -> None:
+def test_capture_deduplicates_lists_loads_and_isolates_owner_namespaces(recovery_dir: Path) -> None:
     # [test->req~ring5.workspace.autosave-recovery~1]
     first = AutosaveRecoveryService.capture(_state(), "browser-secret-a")
     duplicate = AutosaveRecoveryService.capture(_state(), "browser-secret-a")
@@ -47,10 +57,11 @@ def test_capture_deduplicates_lists_loads_and_isolates_owner_namespaces(recovery
     assert duplicate is not None and duplicate.created is False
     assert duplicate.draft.draft_id == first.draft.draft_id
     assert AutosaveRecoveryService.list_drafts("browser-secret-b") == ()
-    assert (
-        AutosaveRecoveryService.load("browser-secret-a", first.draft.draft_id)["data_csv"]
-        == "value\n1\n"
+    restored = TypedTableCodec.decode(
+        AutosaveRecoveryService.load("browser-secret-a", first.draft.draft_id)["data"]
     )
+    assert restored is not None
+    pd.testing.assert_frame_equal(restored, pd.DataFrame({"value": [1]}))
     owner_directory = recovery_dir / hashlib.sha256(b"browser-secret-a").hexdigest()
     assert owner_directory.stat().st_mode & 0o777 == 0o700
     assert next(owner_directory.glob("*.json")).stat().st_mode & 0o777 == 0o600
@@ -58,8 +69,8 @@ def test_capture_deduplicates_lists_loads_and_isolates_owner_namespaces(recovery
 
 
 def test_per_owner_history_is_pruned_by_count_and_can_be_deleted(
-    recovery_dir,
-    monkeypatch,
+    recovery_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(recovery_module, "MAX_RECOVERY_DRAFTS_PER_OWNER", 2)
     captures = [
@@ -75,7 +86,9 @@ def test_per_owner_history_is_pruned_by_count_and_can_be_deleted(
     assert AutosaveRecoveryService.list_drafts("bounded-owner") == ()
 
 
-def test_modified_oversized_and_invalid_drafts_are_refused(recovery_dir, monkeypatch) -> None:
+def test_modified_oversized_and_invalid_drafts_are_refused(
+    recovery_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     captured = AutosaveRecoveryService.capture(_state(), "secure-owner")
     assert captured is not None
     owner_directory = recovery_dir / hashlib.sha256(b"secure-owner").hexdigest()
@@ -97,10 +110,13 @@ def test_modified_oversized_and_invalid_drafts_are_refused(recovery_dir, monkeyp
         AutosaveRecoveryService.capture(_state(2), "oversized-owner")
 
 
-def test_empty_state_and_invalid_owner_keys_do_not_create_drafts(recovery_dir) -> None:
+def test_empty_state_and_invalid_owner_keys_do_not_create_drafts(recovery_dir: Path) -> None:
     state = _state()
     state.get_data.return_value = None
     state.get_config.return_value = {}
+    from src.core.state.repositories.parser_state_repository import ParserStateRepository
+
+    state.get_parse_variables.return_value = ParserStateRepository().get_parse_variables()
 
     assert AutosaveRecoveryService.capture(state, "empty-owner") is None
     with pytest.raises(ValueError, match="non-empty"):
@@ -109,7 +125,66 @@ def test_empty_state_and_invalid_owner_keys_do_not_create_drafts(recovery_dir) -
         AutosaveRecoveryService.list_drafts("bad\nowner")
 
 
-def test_owner_directory_symlinks_are_refused_before_capture(recovery_dir, tmp_path) -> None:
+@pytest.mark.parametrize("fallback", [None, "None"])
+def test_editor_configuration_defaults_leave_the_workspace_empty(
+    recovery_dir: Path, fallback: str | None
+) -> None:
+    configured = StatConfigCodec.from_draft(
+        {
+            "name": "label",
+            "type": "configuration",
+            "params": {"source_type": "configuration", "on_empty": fallback},
+        }
+    )
+    assert Configuration(on_empty=cast(str, configured.params["on_empty"])).on_empty == "None"
+    state = RepositoryStateManager()
+    variables = state.get_parse_variables()
+    for index, variable in enumerate(variables):
+        variable["_id"] = f"editor-identity-{index}"
+        if variable["type"] == "configuration":
+            variable.setdefault("params", {})["on_empty"] = fallback
+    unchanged = deepcopy(variables)
+    state.set_parse_variables(variables)
+
+    assert AutosaveRecoveryService.capture(state, "untouched-editor") is None
+    assert AutosaveRecoveryService.list_drafts("untouched-editor") == ()
+    assert variables == unchanged
+    assert state.get_parse_variables() == unchanged
+
+
+@pytest.mark.parametrize(
+    ("index", "updates"),
+    [
+        (1, {"params": {"on_empty": "missing benchmark"}}),
+        (1, {"params": {"source_type": "configuration", "on_empty": ""}}),
+        (0, {"repeat": 2}),
+        (0, {"name": "ticks", "source_name": "simTicks"}),
+        (0, {"source_name": "otherTicks"}),
+        (0, {"statistics_only": True}),
+        (0, {"type": "vector", "params": {"entries": ["0"]}}),
+    ],
+)
+def test_nondefault_variable_options_remain_meaningful(
+    recovery_dir: Path, index: int, updates: dict[str, Any]
+) -> None:
+    state = RepositoryStateManager()
+    variables = state.get_parse_variables()
+    for variable in variables:
+        if variable["type"] == "configuration":
+            variable.setdefault("params", {})["on_empty"] = "None"
+    cast(dict[str, Any], variables[index]).update(updates)
+    state.set_parse_variables(variables)
+
+    captured = AutosaveRecoveryService.capture(state, "custom-editor")
+
+    assert captured is not None and captured.created
+    saved = AutosaveRecoveryService.load("custom-editor", captured.draft.draft_id)
+    assert saved["parse_variables"] == [StatConfigCodec.to_snapshot(v) for v in variables]
+
+
+def test_owner_directory_symlinks_are_refused_before_capture(
+    recovery_dir: Path, tmp_path: Path
+) -> None:
     outside = tmp_path / "outside"
     outside.mkdir()
     owner = hashlib.sha256(b"linked-owner").hexdigest()
@@ -118,3 +193,21 @@ def test_owner_directory_symlinks_are_refused_before_capture(recovery_dir, tmp_p
     with pytest.raises(ValueError, match="owner storage must not be a symbolic link"):
         AutosaveRecoveryService.capture(_state(), "linked-owner")
     assert not tuple(outside.iterdir())
+
+
+@pytest.mark.parametrize("operation", ["load", "delete"])
+def test_same_owner_draft_symlink_cannot_alias_another_draft(
+    recovery_dir: Path, operation: str
+) -> None:
+    capture = AutosaveRecoveryService.capture(_state(), "owner")
+    assert capture is not None
+    directory = recovery_dir / hashlib.sha256(b"owner").hexdigest()
+    target = directory / f"{capture.draft.draft_id}.json"
+    contents = target.read_bytes()
+    alias_id = "0" * 20 + "-" + "a" * 64
+    alias = directory / f"{alias_id}.json"
+    alias.symlink_to(target.name)
+    with pytest.raises(ValueError, match="drafts must not be symbolic links"):
+        getattr(AutosaveRecoveryService, operation)("owner", alias_id)
+    assert target.read_bytes() == contents
+    assert alias.is_symlink()

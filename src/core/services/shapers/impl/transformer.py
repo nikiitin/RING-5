@@ -25,26 +25,11 @@ class Transformer(UniDfShaper):
                 - target_type (str): 'scalar' or 'factor'.
                 - order (list[str] | None): Specific categorical order for factors.
         """
-        config = cast(TransformerShaperConfig, params)
-        self.column: str = config.get("column", "")
-        self.target_type: str = config.get("target_type", "")
-        self.order: list[str] | None = config.get("order")
         super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Verify parameter presence and value validity."""
-        super()._verify_params()
         config = cast(TransformerShaperConfig, self.params)
-
-        if not isinstance(config.get("column"), str) or not config["column"]:
-            raise ValueError("Transformer requires non-empty string 'column' parameter.")
-
-        target_type = config.get("target_type")
-        if target_type not in ["scalar", "factor"]:
-            raise ValueError("Transformer 'target_type' must be 'scalar' or 'factor'.")
-
-        return True
+        self.column: str = config["column"]
+        self.target_type: str = config["target_type"]
+        self.order: list[str] | None = config.get("order")
 
     @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
@@ -64,16 +49,19 @@ class Transformer(UniDfShaper):
 
         try:
             if self.target_type == "factor":
-                # Convert to string first to ensure clean categorical conversion
-                df[self.column] = df[self.column].astype(str)
+                values = df[self.column].astype("string")
                 if self.order and isinstance(self.order, list):
-                    df[self.column] = pd.Categorical(
-                        df[self.column], categories=self.order, ordered=True
+                    categories = list(dict.fromkeys(self.order))
+                    categories.extend(
+                        value for value in pd.unique(values.dropna()) if value not in categories
                     )
+                    df[self.column] = pd.Categorical(values, categories=categories, ordered=True)
+                else:
+                    df[self.column] = values
             elif self.target_type == "scalar":
                 # Invalid scalar values become missing values.
                 df[self.column] = pd.to_numeric(df[self.column], errors="coerce")
-        except Exception as e:
+        except (TypeError, ValueError) as e:
             raise ValueError(
                 f"TRANSFORMER: Failed to convert '{self.column}' to {self.target_type}: {e}"
             ) from e

@@ -13,12 +13,14 @@ Each repository is tested in isolation with no mocking required
 (except SessionRepository.restore_from_portfolio which needs BasePlot).
 """
 
+from src.core.common.typed_table_codec import TypedTableCodec
 from typing import cast
 from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
 
+from src.core.models.preview_models import PreviewContext
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -285,13 +287,7 @@ class TestConfigRepository:
     def test_update_config_overwrites_existing(self, repo: ConfigRepository) -> None:
         repo.set_config({"a": 1})
         repo.update_config("a", 99)
-        assert repo.get_config_value("a") == 99
-
-    def test_get_config_value_default(self, repo: ConfigRepository) -> None:
-        assert repo.get_config_value("missing", "fallback") == "fallback"
-
-    def test_get_config_value_none_default(self, repo: ConfigRepository) -> None:
-        assert repo.get_config_value("missing") is None
+        assert repo.get_config()["a"] == 99
 
     def test_clear_config(self, repo: ConfigRepository) -> None:
         repo.set_config({"a": 1, "b": 2})
@@ -358,18 +354,6 @@ class TestPlotRepository:
         )
         repo.set_plots(new_plots)
         assert len(repo.get_plots()) == 2
-
-    def test_remove_plot_found(self, repo: PlotRepository) -> None:
-        repo.add_plot(self._make_plot(1))
-        repo.add_plot(self._make_plot(2))
-        assert repo.remove_plot(1) is True
-        assert len(repo.get_plots()) == 1
-        assert repo.get_plots()[0].plot_id == 2
-
-    def test_remove_plot_not_found(self, repo: PlotRepository) -> None:
-        repo.add_plot(self._make_plot(1))
-        assert repo.remove_plot(99) is False
-        assert len(repo.get_plots()) == 1
 
     def test_clear_plots(self, repo: PlotRepository) -> None:
         repo.add_plot(self._make_plot(1))
@@ -526,19 +510,6 @@ class TestParserStateRepository:
         # Should auto-assign _id
         assert "_id" in result[0]
 
-    def test_add_parse_variable(self, repo: ParserStateRepository) -> None:
-        initial_count = len(repo.get_parse_variables())
-        repo.add_parse_variable(cast(ParseVariableConfig, {"name": "new_var", "type": "vector"}))
-        assert len(repo.get_parse_variables()) == initial_count + 1
-
-    def test_remove_parse_variable_found(self, repo: ParserStateRepository) -> None:
-        var_id = repo.get_parse_variables()[0]["_id"]
-        assert repo.remove_parse_variable(var_id) is True
-        assert len(repo.get_parse_variables()) == 2
-
-    def test_remove_parse_variable_not_found(self, repo: ParserStateRepository) -> None:
-        assert repo.remove_parse_variable("nonexistent-id") is False
-
     def test_stats_path_default(self, repo: ParserStateRepository) -> None:
         assert repo.get_stats_path() == "/path/to/stats"
 
@@ -556,7 +527,20 @@ class TestParserStateRepository:
     def test_scanned_variables(self, repo: ParserStateRepository) -> None:
         assert repo.get_scanned_variables() == []
         vars_data: list[ScannedVariableDict] = cast(
-            list[ScannedVariableDict], [{"name": "ipc", "type": "scalar"}]
+            list[ScannedVariableDict],
+            [
+                {
+                    "name": "ipc",
+                    "type": "scalar",
+                    "entries": [],
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "scalar",
+                        "basis": "backend_metadata",
+                    },
+                    "instances": [{"source_name": "ipc", "indices": []}],
+                }
+            ],
         )
         repo.set_scanned_variables(vars_data)
         assert repo.get_scanned_variables() == vars_data
@@ -580,13 +564,66 @@ class TestParserStateRepository:
         assert repo.get_parser_strategy() == "config_aware"
 
     def test_clear_parser_state(self, repo: ParserStateRepository) -> None:
-        repo.set_scanned_variables(cast(list[ScannedVariableDict], [{"name": "x"}]))
+        repo.set_parse_variables([{"name": "authored", "type": "scalar"}])
+        authored = repo.get_parse_variables()
+        repo.set_stats_path("/authored/results")
+        repo.set_stats_pattern("custom.stats")
+        repo.set_parser_strategy("config_aware")
+        repo.set_simulator("authored_backend")
+        repo.set_scanned_variables(
+            cast(
+                list[ScannedVariableDict],
+                [
+                    {
+                        "name": "x",
+                        "type": "scalar",
+                        "entries": [],
+                        "source_evidence": {
+                            "state": "resolved",
+                            "kind": "scalar",
+                            "basis": "backend_metadata",
+                        },
+                        "instances": [{"source_name": "x", "indices": []}],
+                    }
+                ],
+            )
+        )
         repo.set_using_parser(True)
         repo.clear_parser_state()
         assert repo.get_scanned_variables() == []
         assert repo.is_using_parser() is False
-        # Clearing scan results preserves configured parse variables.
-        assert len(repo.get_parse_variables()) == 3
+        assert repo.get_parse_variables() == authored
+        assert repo.get_stats_path() == "/authored/results"
+        assert repo.get_stats_pattern() == "custom.stats"
+        assert repo.get_parser_strategy() == "config_aware"
+        assert repo.get_simulator() == "authored_backend"
+
+    def test_reset_to_defaults_replaces_every_authored_parser_input(
+        self, repo: ParserStateRepository
+    ) -> None:
+        repo.set_parse_variables([{"name": "authored", "type": "scalar"}])
+        retired_ids = {variable["_id"] for variable in repo.get_parse_variables()}
+        repo.set_stats_path("/authored/results")
+        repo.set_stats_pattern("custom.stats")
+        repo.set_parser_strategy("config_aware")
+        repo.set_simulator("authored_backend")
+        repo.set_using_parser(True)
+
+        repo.reset_to_defaults()
+
+        variables = repo.get_parse_variables()
+        assert [variable["name"] for variable in variables] == [
+            "simTicks",
+            "benchmark_name",
+            "config_description",
+        ]
+        assert not retired_ids.intersection(variable["_id"] for variable in variables)
+        assert repo.get_stats_path() == "/path/to/stats"
+        assert repo.get_stats_pattern() == "stats.txt"
+        assert repo.get_parser_strategy() == "simple"
+        assert repo.get_simulator() == "gem5"
+        assert repo.get_scanned_variables() == []
+        assert repo.is_using_parser() is False
 
 
 # PreviewRepository
@@ -604,57 +641,59 @@ class TestPreviewRepository:
         return pd.DataFrame({"result": [1, 2, 3]})
 
     def test_initial_state(self, repo: PreviewRepository) -> None:
-        assert repo.list_active_previews() == []
         assert repo.has_preview("any") is False
 
-    def test_set_and_get_preview(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
-        repo.set_preview("normalize", preview_df)
+    def test_set_and_get_preview(
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context: PreviewContext
+    ) -> None:
+        repo.set_preview("normalize", preview_df, context=preview_context)
         result = repo.get_preview("normalize")
         assert result is not None
         pd.testing.assert_frame_equal(result, preview_df)
 
-    def test_has_preview(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
-        repo.set_preview("op1", preview_df)
+    def test_has_preview(
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context: PreviewContext
+    ) -> None:
+        repo.set_preview("op1", preview_df, context=preview_context)
         assert repo.has_preview("op1") is True
         assert repo.has_preview("op2") is False
 
     def test_set_preview_empty_name_raises(
-        self, repo: PreviewRepository, preview_df: pd.DataFrame
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context: PreviewContext
     ) -> None:
         with pytest.raises(ValueError, match="empty"):
-            repo.set_preview("", preview_df)
+            repo.set_preview("", preview_df, context=preview_context)
 
-    def test_set_preview_none_data_raises(self, repo: PreviewRepository) -> None:
+    def test_set_preview_none_data_raises(
+        self, repo: PreviewRepository, preview_context: PreviewContext
+    ) -> None:
         with pytest.raises(ValueError, match="None"):
-            repo.set_preview("op", None)  # type: ignore[arg-type]
+            repo.set_preview("op", None, context=preview_context)  # type: ignore[arg-type]
 
     def test_get_preview_empty_name(self, repo: PreviewRepository) -> None:
         assert repo.get_preview("") is None
 
-    def test_clear_preview(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
-        repo.set_preview("op1", preview_df)
+    def test_clear_preview(
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context: PreviewContext
+    ) -> None:
+        repo.set_preview("op1", preview_df, context=preview_context)
         repo.clear_preview("op1")
         assert repo.has_preview("op1") is False
 
     def test_clear_preview_not_found(self, repo: PreviewRepository) -> None:
         repo.clear_preview("nonexistent")  # No error
 
-    def test_clear_all_previews(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
-        repo.set_preview("op1", preview_df)
-        repo.set_preview("op2", preview_df)
+    def test_clear_all_previews(
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context: PreviewContext
+    ) -> None:
+        repo.set_preview("op1", preview_df, context=preview_context)
+        repo.set_preview("op2", preview_df, context=preview_context)
         count = repo.clear_all_previews()
         assert count == 2
-        assert repo.list_active_previews() == []
 
     def test_clear_all_previews_empty(self, repo: PreviewRepository) -> None:
         count = repo.clear_all_previews()
         assert count == 0
-
-    def test_list_active_previews(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
-        repo.set_preview("op_a", preview_df)
-        repo.set_preview("op_b", preview_df)
-        active = repo.list_active_previews()
-        assert set(active) == {"op_a", "op_b"}
 
 
 # SessionRepository
@@ -693,6 +732,11 @@ class TestSessionRepository:
         repo.data_repo.set_data(pd.DataFrame({"a": [1]}))
         repo.config_repo.set_config({"key": "val"})
         repo.plot_repo.set_plot_counter(5)
+        repo.parser_repo.set_parse_variables([{"name": "retired", "type": "scalar"}])
+        repo.parser_repo.set_stats_path("/old/results")
+        repo.parser_repo.set_stats_pattern("old.stats")
+        repo.parser_repo.set_parser_strategy("config_aware")
+        repo.parser_repo.set_simulator("retired_backend")
 
         record = OperationRecord(
             source_columns=["a"],
@@ -712,14 +756,38 @@ class TestSessionRepository:
         assert repo.config_repo.get_config() == {}
         assert repo.history_repo.get_manager_history() == []
         assert repo.history_repo.get_portfolio_history() == []
+        assert [variable["name"] for variable in repo.parser_repo.get_parse_variables()] == [
+            "simTicks",
+            "benchmark_name",
+            "config_description",
+        ]
+        assert repo.parser_repo.get_stats_path() == "/path/to/stats"
+        assert repo.parser_repo.get_stats_pattern() == "stats.txt"
+        assert repo.parser_repo.get_parser_strategy() == "simple"
+        assert repo.parser_repo.get_simulator() == "gem5"
 
     def test_restore_from_portfolio_parser_state(self, repo: SessionRepository) -> None:
         """Test restoring parser-related state from portfolio data."""
-        portfolio: dict = {  # type: ignore[type-arg]
+        portfolio: dict = {
+            "parser_strategy": "simple",
+            "loaded_origin": None,
+            "simulator": "gem5",  # type: ignore[type-arg]
             "parse_variables": [{"name": "ipc", "type": "scalar", "_id": "id1"}],
             "stats_path": "/restored/path",
             "stats_pattern": "stats_custom.txt",
-            "scanned_variables": [{"name": "x", "type": "vector"}],
+            "scanned_variables": [
+                {
+                    "name": "x",
+                    "type": "vector",
+                    "entries": ["a"],
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "vector",
+                        "basis": "backend_metadata",
+                    },
+                    "instances": [{"source_name": "x", "indices": []}],
+                }
+            ],
             "use_parser": True,
             "config": {"restored": True},
             "csv_path": "/restored.csv",
@@ -735,13 +803,15 @@ class TestSessionRepository:
         assert repo.config_repo.get_csv_path() == "/restored.csv"
         assert repo.config_repo.get_config() == {"restored": True}
 
-    def test_restore_from_portfolio_with_data_csv(self, repo: SessionRepository) -> None:
-        """Test restoring data from CSV string in portfolio."""
+    def test_restore_from_portfolio_with_typed_data(self, repo: SessionRepository) -> None:
+        """Restore the exact table payload from a portfolio."""
         df = pd.DataFrame({"col": [10, 20, 30]})
-        csv_str = df.to_csv(index=False)
 
-        portfolio: dict = {  # type: ignore[type-arg]
-            "data_csv": csv_str,
+        portfolio: dict = {
+            "parser_strategy": "simple",
+            "loaded_origin": None,
+            "simulator": "gem5",  # type: ignore[type-arg]
+            "data": TypedTableCodec.encode(df),
             "plots": [],
         }
 
@@ -760,7 +830,10 @@ class TestSessionRepository:
             operation="mix",
             timestamp="2026-01-01",
         )
-        portfolio: dict = {  # type: ignore[type-arg]
+        portfolio: dict = {
+            "parser_strategy": "simple",
+            "loaded_origin": None,
+            "simulator": "gem5",  # type: ignore[type-arg]
             "manager_history": [record],
             "portfolio_history": [record, record],
             "plots": [],
@@ -775,8 +848,11 @@ class TestSessionRepository:
         self, repo_with_deserializer: SessionRepository
     ) -> None:
         """Test restoring plots from portfolio data."""
-        portfolio: dict = {  # type: ignore[type-arg]
-            "plots": [{"type": "bar", "id": 1}],
+        portfolio: dict = {
+            "parser_strategy": "simple",
+            "loaded_origin": None,
+            "simulator": "gem5",  # type: ignore[type-arg]
+            "plots": [{"plot_type": "bar", "id": 1}],
             "plot_counter": 5,
         }
 

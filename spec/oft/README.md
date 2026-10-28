@@ -29,6 +29,11 @@ The trace targets download the pinned OFT JAR into `.cache/openfasttrace/` on
 first use. OpenFastTrace requires Java 17 or newer. `oft-check` is also part of
 the repository quality gate and does not require Java or a network connection.
 
+Native tracing and source fingerprints use the same current Python and manual files.
+Playwright artifact directories are diagnostic storage; their ZIPs and extracted source
+snapshots are excluded from evidence. Native reports must contain exact current evidence
+origins, including during the offline check. Retained diagnostics stay available for review.
+
 ## What covered means
 
 <!--

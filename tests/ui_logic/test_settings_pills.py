@@ -62,6 +62,7 @@ class TestRenderSettingsPills:
 
 
 class TestSectionDispatch:
+    # [test->req~ring5.extension.settings-panel~1]
     """Verify render_settings_section dispatches to correct handler."""
 
     def _make_plot(self) -> MagicMock:
@@ -165,6 +166,7 @@ class TestSectionDispatch:
         from src.web.pages.ui.plotting.settings_pills import SETTINGS_SECTIONS
 
         plot = self._make_plot()
+        plot._style_ui = MagicMock()
         # Mock all component classes used by render_settings_section
         comp_patches = [
             "src.web.pages.ui.plotting.plot_config_ui.LayoutSettingsComponent",
@@ -259,7 +261,7 @@ class TestAxesSubPills:
     def test_x_axis_renders_x_axis_settings(self, mock_st: MagicMock) -> None:
         """X-axis sub-pill renders X-axis settings + ordering."""
         comp = self._make_component()
-        mock_st.pills.return_value = "x"
+        mock_st.pills.side_effect = lambda label, **kw: "x" if label == "Axis" else []
         mock_st.checkbox.return_value = True
         mock_st.slider.return_value = -45
         mock_st.columns.side_effect = columns_side_effect

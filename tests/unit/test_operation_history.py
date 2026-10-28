@@ -343,6 +343,9 @@ class TestPortfolioHistoryPersistence:
 
         # Should be valid to construct with history fields
         data: PortfolioData = {
+            "parser_strategy": "simple",
+            "loaded_origin": None,
+            "simulator": "gem5",
             "manager_history": [
                 {
                     "source_columns": ["a"],
@@ -371,6 +374,9 @@ class TestPortfolioHistoryPersistence:
         rsm = RepositoryStateManager()
 
         portfolio: PortfolioData = {
+            "parser_strategy": "simple",
+            "loaded_origin": None,
+            "simulator": "gem5",
             "manager_history": [
                 {
                     "source_columns": ["a"],

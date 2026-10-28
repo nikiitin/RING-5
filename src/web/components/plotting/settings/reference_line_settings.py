@@ -1,10 +1,12 @@
 """Reference line settings component — horizontal reference line controls.
 
-Extracted from ``BasePlot._render_reference_line_ui``.
+Renders reference-line controls for the selected plot.
 """
 
 import pandas as pd
 import streamlit as st
+
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
@@ -13,7 +15,7 @@ from src.web.components.plotting.settings.widget_factory import (
     slider,
     toggle,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class ReferenceLineSettingsComponent:
@@ -54,7 +56,9 @@ class ReferenceLineSettingsComponent:
             saved_config,
             "reference_line_enabled",
             self.plot_id,
-            widget_key=f"ref_line_enabled_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, "widgets.appearance.ref_line_enabled"
+            ),
             help=(
                 "Draw a horizontal dashed line at a specific Y value. "
                 "Useful to highlight a baseline (e.g. Y=1 after "
@@ -72,7 +76,9 @@ class ReferenceLineSettingsComponent:
                         saved_config,
                         "reference_line_y",
                         self.plot_id,
-                        widget_key=f"ref_line_y_{self.plot_id}",
+                        widget_key=WidgetKeyBuilder.plot_key(
+                            self.plot_id, "widgets.appearance.ref_line_y"
+                        ),
                         default=1.0,
                         step=0.1,
                         format="%.2f",
@@ -84,7 +90,9 @@ class ReferenceLineSettingsComponent:
                         saved_config,
                         "reference_line_color",
                         self.plot_id,
-                        widget_key=f"ref_line_color_{self.plot_id}",
+                        widget_key=WidgetKeyBuilder.plot_key(
+                            self.plot_id, "widgets.appearance.ref_line_color"
+                        ),
                         default="#FF0000",
                     )
                 with col5:
@@ -93,7 +101,9 @@ class ReferenceLineSettingsComponent:
                         saved_config,
                         "reference_line_width",
                         self.plot_id,
-                        widget_key=f"ref_line_width_{self.plot_id}",
+                        widget_key=WidgetKeyBuilder.plot_key(
+                            self.plot_id, "widgets.appearance.ref_line_width"
+                        ),
                         default=1.5,
                         min_value=0.5,
                         max_value=4.0,
@@ -106,7 +116,9 @@ class ReferenceLineSettingsComponent:
                     saved_config,
                     "reference_line_style",
                     self.plot_id,
-                    widget_key=f"ref_line_style_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, "widgets.appearance.ref_line_style"
+                    ),
                     default="dash",
                 )
 
@@ -114,13 +126,3 @@ class ReferenceLineSettingsComponent:
                 config["reference_line_color"] = ref_color
                 config["reference_line_width"] = ref_width
                 config["reference_line_style"] = ref_style
-
-
-def render_reference_line_ui(
-    plot_id: int,
-    saved_config: PlotConfig,
-    data: pd.DataFrame | None,
-    config: PlotConfig,
-) -> None:
-    """Deprecated: use ReferenceLineSettingsComponent."""
-    ReferenceLineSettingsComponent(plot_id, "").render(saved_config, data, config)

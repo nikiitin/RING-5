@@ -1,261 +1,97 @@
-"""Tests for gem5 entry processing, summaries, and Perl failures."""
+"""Worker failures and exact concrete-source filters retain their owned provenance."""
 
-from typing import cast
-from unittest.mock import MagicMock, patch
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
-from src.parsing.gem5.impl.strategies.gem5_parse_work import (
-    Gem5ParseWork,
-    VarsDictType,
+from src.core.models.parsed_output_models import ParsedCell
+from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataValueError
+from src.core.models.parsing_models import StatConfig
+from src.parsing.gem5.impl.source_bindings import resolve_sources
+from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+from src.parsing.gem5.types.type_mapper import TypeMapper
+
+
+def _work(path: Path) -> Gem5ParseWork:
+    plan = resolve_sources(
+        [
+            StatConfig(
+                "result", "scalar", source_name="system.cpu0.ipc", params={"source_type": "scalar"}
+            )
+        ],
+        [],
+        file_count=1,
+        metadata_columns=(),
+    )
+    return Gem5ParseWork(str(path), {"result": TypeMapper.create_stat(plan.accumulators[0])}, plan)
+
+
+def test_source_path_and_text_are_exact(tmp_path: Path) -> None:
+    work = _work(tmp_path / "stats.txt")
+    assert work.source_path == str(tmp_path / "stats.txt")
+    assert str(work) == f"Gem5ParseWork({tmp_path / 'stats.txt'})"
+
+
+def test_missing_input_rejects_before_pool(tmp_path: Path) -> None:
+    with patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool") as pool:
+        with pytest.raises(FileNotFoundError):
+            _work(tmp_path / "missing")._run_perl_script()
+        pool.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "exception, message, wrapped",
+    [
+        (TimeoutError("slow"), "Parser timeout", True),
+        (OSError("I/O"), "Worker pool parse failed", True),
+        (ParseDataRuntimeError("failed source"), "Worker pool parse failed", True),
+        (ParseDataValueError("invalid source"), "Worker pool parse failed", True),
+        (RuntimeError("failed"), "failed", False),
+        (ValueError("invalid"), "invalid", False),
+    ],
 )
-
-
-class Scalar:
-    def __init__(self) -> None:
-        self.content = None
-
-
-class Vector:
-    def __init__(self) -> None:
-        self.content = None
-        self.entries: list = []
-
-
-class Distribution:
-    def __init__(self) -> None:
-        self.content = None
-        self.entries: list = []
-
-
-class Histogram:
-    def __init__(self) -> None:
-        self.content = None
-        self.entries: list = []
-
-
-class Configuration:
-    def __init__(self) -> None:
-        self.content = None
-        self.onEmpty = None
-
-
-class Summary:
-    def __init__(self) -> None:
-        self.content = None
-
-
-class TestStr:
-    """Tests for __str__ method."""
-
-    def test_str_representation(self) -> None:
-        work = Gem5ParseWork("path/to/stats.txt", cast(VarsDictType, {"var": Scalar()}))
-        assert str(work) == "Gem5ParseWork(path/to/stats.txt)"
-
-
-class TestProcessEntryTypeResolution:
-    """Tests for _processEntryType type resolution branches."""
-
-    def test_histogram_to_vector_resolution(self) -> None:
-        """When target expects vector but Perl says histogram, resolve to vector."""
-        vars_map = cast(VarsDictType, {"myvar": Vector()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        result = work._processEntryType("Histogram", "myvar::0", "100", vars_map)
-        assert result == "vector"
-
-    def test_histogram_to_distribution_resolution(self) -> None:
-        """When target expects distribution but Perl says histogram, resolve to distribution."""
-        vars_map = cast(VarsDictType, {"myvar": Distribution()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        result = work._processEntryType("Histogram", "myvar::0", "50", vars_map)
-        assert result == "distribution"
-
-    def test_histogram_to_histogram_resolution(self) -> None:
-        """When target expects histogram and Perl says histogram."""
-        vars_map = cast(VarsDictType, {"myvar": Histogram()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        result = work._processEntryType("Histogram", "myvar::0", "50", vars_map)
-        assert result == "histogram"
-
-    def test_vector_to_distribution_resolution(self) -> None:
-        """When target expects distribution but Perl says vector, resolve to distribution."""
-        vars_map = cast(VarsDictType, {"myvar": Distribution()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        result = work._processEntryType("Vector", "myvar::samples", "100", vars_map)
-        assert result == "distribution"
-
-    def test_vector_to_histogram_resolution(self) -> None:
-        """When target expects histogram but Perl says vector, resolve to histogram."""
-        vars_map = cast(VarsDictType, {"myvar": Histogram()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        result = work._processEntryType("Vector", "myvar::samples", "100", vars_map)
-        assert result == "histogram"
-
-    def test_unknown_variable_returns_none(self) -> None:
-        """When baseID not in varsToParse, should return None."""
-        vars_map = cast(VarsDictType, {"known": Vector()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        result = work._processEntryType("Vector", "unknown::0", "10", vars_map)
-        assert result is None
-
-    def test_entry_buffered_after_processing(self) -> None:
-        """Entry should be buffered after type resolution."""
-        vars_map = cast(VarsDictType, {"myvar": Vector()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        work._processEntryType("Vector", "myvar::key1", "42", vars_map)
-        assert "myvar" in work._entryBuffer
-        assert work._entryBuffer["myvar"]["key1"] == ["42"]
-
-
-class TestProcessSummary:
-    """Tests for _processSummary method."""
-
-    def test_standalone_summary(self) -> None:
-        """Standalone summary via __get_summary should populate content."""
-        vars_map = cast(VarsDictType, {"myvar__get_summary": Summary()})
-        work = Gem5ParseWork("f", vars_map)
-
-        work._processSummary("myvar", "42.5", vars_map)
-        assert vars_map["myvar__get_summary"].content == "42.5"
-
-    def test_entry_style_summary(self) -> None:
-        """Entry-style summary (e.g., var::total) should be buffered."""
-        vars_map = cast(VarsDictType, {"myvar": Distribution()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        work._processSummary("myvar::total", "999", vars_map)
-        assert work._entryBuffer["myvar"]["total"] == ["999"]
-
-    def test_summary_unknown_var_no_crash(self) -> None:
-        """Summary for unknown variable should not crash."""
-        vars_map = cast(VarsDictType, {"other": Scalar()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        # Should not raise
-        work._processSummary("unknown_var", "123", vars_map)
-
-    def test_summary_entry_style_non_entry_type(self) -> None:
-        """Summary with :: but target is scalar (not entry type) should try standalone."""
-        vars_map = cast(VarsDictType, {"myvar": Scalar(), "myvar__get_summary": Summary()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        work._processSummary("myvar::total", "999", vars_map)
-        # Scalar is not an entry type, so it should fall through to standalone check
-
-
-class TestProcessLineEdgeCases:
-    """Tests for _processLine edge cases."""
-
-    def test_configuration_type(self) -> None:
-        """Configuration type should set content directly."""
-        vars_map = cast(VarsDictType, {"config_var": Configuration()})
-        work = Gem5ParseWork("f", vars_map)
-
-        work._processLine("Configuration/config_var/my_benchmark", vars_map)
-        assert vars_map["config_var"].content == "my_benchmark"
-
-    def test_unknown_type_raises(self) -> None:
-        """Unknown type in Perl output should raise RuntimeError."""
-        vars_map = cast(VarsDictType, {"var": Scalar()})
-        work = Gem5ParseWork("f", vars_map)
-
-        with pytest.raises(RuntimeError, match="Unknown variable type"):
-            work._processLine("WeirdType/var/123", vars_map)
-
-    def test_scalar_unknown_variable_skipped(self) -> None:
-        """Scalar line with unknown variable ID should be skipped."""
-        vars_map = cast(VarsDictType, {"known": Scalar()})
-        work = Gem5ParseWork("f", vars_map)
-
-        # Should not crash — unknown variable is skipped
-        work._processLine("scalar/unknown_var/100", vars_map)
-        assert vars_map["known"].content is None
-
-    def test_summary_line(self) -> None:
-        """Summary type line should be dispatched to _processSummary."""
-        vars_map = cast(VarsDictType, {"myvar__get_summary": Summary()})
-        work = Gem5ParseWork("f", vars_map)
-
-        work._processLine("Summary/myvar/42", vars_map)
-        assert vars_map["myvar__get_summary"].content == "42"
-
-    def test_entry_type_unknown_variable_skipped(self) -> None:
-        """Entry type with unknown baseID should be skipped silently."""
-        vars_map = cast(VarsDictType, {"known": Vector()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        # Should not crash
-        work._processLine("vector/unknown_var::0/10", vars_map)
-
-
-class TestRunPerlScriptErrors:
-    """Tests for _runPerlScript error handling."""
-
-    @patch("src.core.common.utils.checkFileExistsOrException")
-    def test_empty_variable_map_is_rejected(self, mock_check: MagicMock) -> None:
-        work = Gem5ParseWork("stats.txt", cast(VarsDictType, {"var": Scalar()}))
-        work._varsToParse.clear()
-
-        with pytest.raises(RuntimeError, match="No variable filters"):
-            work._runPerlScript()
-
-    @patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
-    @patch("src.core.common.utils.checkFileExistsOrException")
-    def test_timeout_error(self, mock_check: MagicMock, mock_pool_fn: MagicMock) -> None:
-        """TimeoutError should be wrapped in RuntimeError."""
-        mock_pool = MagicMock()
-        mock_pool.parse_file.side_effect = TimeoutError("timed out")
-        mock_pool_fn.return_value = mock_pool
-
-        work = Gem5ParseWork("stats.txt", cast(VarsDictType, {"var": Scalar()}))
-
-        with pytest.raises(RuntimeError, match="Parser timeout"):
-            work._runPerlScript()
-
-    @patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
-    @patch("src.core.common.utils.checkFileExistsOrException")
-    def test_generic_exception(self, mock_check: MagicMock, mock_pool_fn: MagicMock) -> None:
-        """Generic exception should be wrapped in RuntimeError."""
-        mock_pool = MagicMock()
-        mock_pool.parse_file.side_effect = OSError("connection failed")
-        mock_pool_fn.return_value = mock_pool
-
-        work = Gem5ParseWork("stats.txt", cast(VarsDictType, {"var": Scalar()}))
-
-        with pytest.raises(RuntimeError, match="Worker pool parse failed"):
-            work._runPerlScript()
-
-    @patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
-    @patch("src.core.common.utils.checkFileExistsOrException")
-    def test_unsafe_key_fails_visibly(self, mock_check: MagicMock, mock_pool_fn: MagicMock) -> None:
-        """An unsafe requested key must not produce silently partial output."""
-        mock_pool = MagicMock()
-        mock_pool.parse_file.return_value = []
-        mock_pool_fn.return_value = mock_pool
-
-        # Create a var with a key starting with '-' (flag injection)
-        vars_map = cast(VarsDictType, {"-dangerous_key": Scalar(), "safe_key": Scalar()})
-        work = Gem5ParseWork("stats.txt", vars_map)
-
-        with pytest.raises(RuntimeError, match="Unsafe parser stat filter"):
-            work._runPerlScript()
-
-        mock_pool.parse_file.assert_not_called()
+def test_worker_errors_preserve_original_cause(
+    tmp_path: Path, exception: Exception, message: str, wrapped: bool
+) -> None:
+    path = tmp_path / "stats.txt"
+    path.write_text("system.cpu0.ipc 3\n", encoding="utf-8")
+    with patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool") as pool:
+        pool.return_value.parse_file.side_effect = exception
+        expected = ParseDataRuntimeError if wrapped else type(exception)
+        with pytest.raises(expected, match=message) as caught:
+            _work(path)()
+        if wrapped:
+            assert caught.value.__cause__ is exception
+        else:
+            assert caught.value is exception
+            assert caught.value.__cause__ is None
+
+
+def test_pool_receives_literal_concrete_source_filters_and_result_provenance(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "stats.txt"
+    path.write_text("system.cpu0.ipc 3\n", encoding="utf-8")
+    with patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool") as pool:
+        pool.return_value.parse_file.return_value = [
+            (
+                '{"event":"measurement","name":"system.cpu0.ipc","shape":"sca'
+                'lar","entry":null,"value":"3"}\n{"event":"source","name":"sys'
+                'tem.cpu0.ipc","source_evidence":{"state":"resolved","kind":"'
+                'scalar","basis":"wire_contract"},"entries":[]}'
+            )
+        ]
+        work = _work(path)
+        result = work()
+        pool.return_value.parse_file.assert_called_once_with(
+            str(path), [r"system\.cpu0\.ipc"], timeout=120.0
+        )
+    assert result.source_path == str(path)
+    assert tuple(variable.name for variable in result.variables) == ("result",)
+    variable = result.variables[0]
+    assert variable.kind == "number" and variable.shape == "scalar"
+    assert variable.cells == (ParsedCell("result", "number", 3.0),)
+    assert variable.missing_measurements == 0
+    assert work._accumulators["result"].is_balanced
+    assert work._accumulators["result"].is_reduced

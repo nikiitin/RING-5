@@ -1,10 +1,11 @@
 """Extended tests for ShaperFactory and DataParserFactory registries."""
 
-from typing import Any, cast
+from typing import Any, Literal, Required, TypedDict, cast
 
 import pandas as pd
 import pytest
 
+from src.core.services.shapers.definition import ShaperDefinition
 from src.core.services.shapers.factory import ShaperFactory
 
 
@@ -31,20 +32,24 @@ class TestShaperFactoryRegistry:
         # Message format might vary slightly after transformation
         assert "Available" in str(exc_info.value)
 
-    def test_register_custom_shaper(self) -> None:
+    def test_register_custom_shaper(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test registering a custom shaper type."""
         from src.core.services.shapers.shaper import Shaper
 
         class CustomShaper(Shaper):
-            def _verify_params(self) -> bool:
-                return True
-
             def __call__(self, df: Any) -> pd.DataFrame:
 
                 return df
 
-        # Register custom shaper
-        ShaperFactory.register("customTest", CustomShaper)
+        class CustomConfig(TypedDict):
+            type: Required[Literal["customTest"]]
+
+        monkeypatch.setattr(ShaperFactory, "_definitions", dict(ShaperFactory._definitions))
+        ShaperFactory.register(
+            ShaperDefinition(
+                "customTest", CustomShaper, "Custom test", CustomConfig, lambda config: None
+            )
+        )
 
         # Verify it's available
         assert "customTest" in ShaperFactory.get_available_types()
@@ -52,6 +57,3 @@ class TestShaperFactoryRegistry:
         # Create instance
         shaper = ShaperFactory.create_shaper("customTest", cast(Any, {}))
         assert isinstance(shaper, CustomShaper)
-
-        # Cleanup - remove from registry
-        del ShaperFactory._registry["customTest"]

@@ -5,8 +5,6 @@ parent: Workflows
 grand_parent: User Guide
 nav_order: 2
 permalink: /user-guide/workflows/managing-datasets/
-redirect_from:
-  - /user-guide/pages/data-managers/
 ---
 
 # Manage datasets
@@ -16,6 +14,9 @@ Pipeline** for filtering, normalization, sorting, and reshaping that belongs to 
 
 Keep an unchanged source CSV outside the application. Data-manager confirmations replace the active
 workspace table, while the implementation returns a new DataFrame rather than mutating its input.
+A preview is bound to its source dataset and the operation settings that produced it. Switching
+datasets, changing source data, or editing those settings invalidates the preview; prepare it again
+before confirmation. History records the settings used for the confirmed result.
 
 ## Keep multiple named datasets
 
@@ -43,7 +44,7 @@ Joined and appended results become independent named datasets. Transformations m
 existing data managers update only the active named dataset. Named datasets are held in the current
 session; a portfolio continues to snapshot its active dataset.
 
-The public API supports the same workflow:
+The public API supports the same workflow with `ring5.Table` inputs:
 
 ```python
 session.add_dataset("main", baseline)
@@ -69,8 +70,8 @@ all_runs = session.append_datasets(
 )
 ```
 
-`list_datasets()` returns immutable `DatasetInfo` summaries. `get_dataset()` returns a defensive
-copy, so editing it cannot change the retained source accidentally. Use `select_dataset()` to make
+`list_datasets()` returns immutable `DatasetInfo` summaries. `get_dataset()` returns an owned
+`ring5.Table`, so its explicit frame conversion cannot change the retained source. Use `select_dataset()` to make
 a named table active and `remove_dataset()` to remove it explicitly.
 
 ## Trace and recover dataset changes
@@ -216,8 +217,9 @@ print(session.inspect_semantics(converted).to_frame())
 
 Conversions return a new table and require a declared source unit. Only compatible dimensions are
 accepted: time, frequency, length, data size, power, energy, voltage, current, temperature, and
-ratio/percent. `supported_units()` returns the exact canonical spellings. Temperature conversion
-handles offsets as well as scale; incompatible or non-numeric conversions raise
+ratio/percent. `supported_units()` returns the exact canonical spellings, including ASCII `us` and
+`um` for microseconds and micrometres. Unit names and alternate symbols are unsupported.
+Temperature conversion handles offsets as well as scale; incompatible or non-numeric conversions raise
 `DataValidationError` before changing data.
 
 `Table.to_csv()` keeps the CSV standards-compliant and, when metadata is present, writes a
@@ -347,6 +349,13 @@ Seeds Reducer, Outlier Remover, Preprocessor, Mixer, and Compare calculate into 
 active workspace table changes only after the corresponding confirmation control is selected.
 Discarding or replacing a preview leaves the active table unchanged.
 
+The named-workspace comparison tracks both dataset revisions and its selected keys, metrics,
+direction and tolerance. Replacing, deleting, undoing or restoring either compared source hides
+its old result; compare again to inspect current measurements. Edits to unrelated datasets and
+active-table selection leave an unchanged named comparison available. Reset and portfolio restore
+invalidate captures from the previous workspace, including captures of identically named tables.
+
+
 ## Reduce repeated runs
 
 <!--
@@ -435,7 +444,8 @@ Covers:
 -->
 
 **Mixer** creates a named sum or arithmetic mean from two or more numeric columns. The source
-columns remain in the result.
+columns remain in the result. Both operations skip missing source values. An all-missing row sums
+to zero and has a missing mean. Binary arithmetic propagates missing operands.
 
 ### Configuration label mixing
 
@@ -453,16 +463,26 @@ in selection order with the configured separator. This mode does not calculate u
 ### Uncertainty propagation
 
 <!--
-`uman~ring5.data.error-propagation.documentation~1`
+`uman~ring5.data.error-propagation.documentation~2`
 
 Covers:
-- req~ring5.data.error-propagation~1
+- req~ring5.data.error-propagation~2
 
 -->
 
-For numeric sums and means, Mixer looks for a `.sd` or `_stdev` companion for each source column.
-When at least one is present, it combines variances and writes `<result>.sd`; means divide the
-combined standard deviation by the number of source columns.
+For numeric sums and means, Mixer looks for a `.sd` companion for each source column.
+When at least one is present, it combines recorded variances and writes `<result>.sd`. Only
+nonmissing source values contribute. A missing SD value for a contributing measurement keeps the
+result SD missing; uncertainty attached to a skipped source value is also skipped. Mean SDs divide
+by the number of nonmissing source values in each row.
+
+Distinct source columns are combined as independent measurements. Repeating one column weights
+the same measurement, so its repeated contributions are fully correlated. An undefined result
+estimate, such as a sum of opposing infinities, also keeps its uncertainty missing.
+
+Sources without an `.sd` column add no recorded variance. If no companions exist, Mixer creates no
+result `.sd` column. An all-missing row has zero recorded sum uncertainty and missing mean
+uncertainty when companions are configured.
 
 Name derived columns for the quantity and unit they contain. For example, a division is not
 automatically IPC unless the numerator and denominator have the correct semantics.

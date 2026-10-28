@@ -26,7 +26,9 @@ from src.core.models.portfolio_revision_models import (
     PortfolioRevisionInfo,
 )
 from src.core.services.data_services.path_service import PathService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.common.typed_table_codec import TypedTableCodec
+from src.core.common.semantic_metadata import inspect_semantics, semantics_to_payload
+from src.core.services.data_services.portfolio_validation_service import validate_portfolio_document
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 
 _REVISION_ID = re.compile(r"^[0-9a-f]{64}$")
@@ -77,6 +79,7 @@ class PortfolioRevisionService:
         """Retain *payload* as a revision and atomically make it current."""
         # [impl->req~ring5.portfolio.history-diff~1]
         cls._validate_name(name)
+        cls._load_document(payload)
         if current_path.exists() and not overwrite:
             raise FileExistsError(f"Portfolio {name!r} already exists at {current_path}")
         if current_path.exists():
@@ -103,7 +106,7 @@ class PortfolioRevisionService:
         *,
         history_root: Path | None = None,
     ) -> tuple[PortfolioRevisionInfo, ...]:
-        """Return saved versions in capture order, including a legacy baseline."""
+        """Return saved versions in capture order, including the current saved baseline."""
         # [impl->req~ring5.portfolio.history-diff~1]
         cls._validate_name(name)
         active_revision: str | None = None
@@ -167,7 +170,7 @@ class PortfolioRevisionService:
         *,
         history_root: Path | None = None,
     ) -> PortfolioData:
-        """Load and migrate one checksum-verified immutable revision."""
+        """Load one current checksum-verified immutable revision."""
         cls._validate_name(name)
         path = cls._revision_path(name, revision_id, history_root=history_root)
         if not path.exists():
@@ -236,6 +239,7 @@ class PortfolioRevisionService:
         history_root: Path | None = None,
     ) -> tuple[str, Path, bool]:
         """Store immutable bytes once and report whether this call created them."""
+        cls._load_document(payload)
         revision_id = hashlib.sha256(payload).hexdigest()
         path = cls._revision_path(
             name,
@@ -371,9 +375,10 @@ class PortfolioRevisionService:
         value = json.loads(raw.decode("utf-8"))
         if not isinstance(value, dict):
             raise ValueError("Portfolio revision must contain a JSON object.")
+        validate_portfolio_document(value)
         integrity = PortfolioIntegrityService.verify(value)
         PortfolioIntegrityService.require_restorable(integrity)
-        return cast(PortfolioData, PortfolioMigrator.migrate(value))
+        return cast(PortfolioData, value)
 
     @staticmethod
     def _created_at(data: PortfolioData, modified: float) -> str:
@@ -402,7 +407,7 @@ class PortfolioRevisionService:
             "stats_pattern": data.get("stats_pattern"),
             "parse_variables": copy.deepcopy(data.get("parse_variables", [])),
             "scanned_variables": copy.deepcopy(data.get("scanned_variables", [])),
-            "semantics": copy.deepcopy(data.get("data_semantics", {})),
+            "semantics": cls._table_semantics(data.get("data")),
         }
         pipelines: list[dict[str, Any]] = []
         plot_fields: list[dict[str, Any]] = []
@@ -436,11 +441,7 @@ class PortfolioRevisionService:
                     "name": raw_plot.get("name"),
                     "plot_type": raw_plot.get("plot_type"),
                     "data_bindings": bindings,
-                    "legend_mappings": copy.deepcopy(raw_plot.get("legend_mappings", {})),
-                    "legend_mappings_by_column": copy.deepcopy(
-                        raw_plot.get("legend_mappings_by_column", {})
-                    ),
-                    "semantics": copy.deepcopy(raw_plot.get("processed_semantics", {})),
+                    "semantics": cls._table_semantics(raw_plot.get("processed_data")),
                 }
             )
             figure_settings.append(
@@ -456,6 +457,11 @@ class PortfolioRevisionService:
             "plots": plot_fields,
             "figure_settings": figure_settings,
         }
+
+    @staticmethod
+    def _table_semantics(payload: Any) -> dict[str, Any]:
+        frame = TypedTableCodec.decode(payload)
+        return semantics_to_payload(inspect_semantics(frame)) if frame is not None else {}
 
     @staticmethod
     def _is_data_binding(key: str) -> bool:

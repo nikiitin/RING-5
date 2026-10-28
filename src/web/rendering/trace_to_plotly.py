@@ -1,15 +1,17 @@
 """
-Trace-to-Plotly converter — builds ``go.Figure`` from ``TraceBuildResult``.
+Build native Plotly figures from engine-neutral ``TraceBuildResult`` values.
 
-This module replaces the *reverse* extraction path that used to go
-``go.Figure`` → ``PlotlyTraceExtractor`` → ``List[TraceConfig]``.
-Now plot types produce ``TraceBuildResult`` directly (forward direction)
-and this converter builds the Plotly figure from it.
+Plot types emit concrete neutral trace families. This converter constructs their
+Plotly traces, annotations and layout geometry before figure styling is applied.
 """
 
 from __future__ import annotations
 
 from typing import Any
+from collections.abc import Sequence
+from dataclasses import replace
+
+from src.web.rendering._appearance import seed_sankey_appearance, PlotlyTextAppearance, _css_project
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -20,7 +22,6 @@ from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     BoxTraceConfig,
     HeatmapTraceConfig,
-    HistogramTraceConfig,
     LineTraceConfig,
     ParallelCoordinatesTraceConfig,
     RadarTraceConfig,
@@ -30,7 +31,18 @@ from src.core.models.visualization.trace_config import (
     ViolinTraceConfig,
     WaterfallTraceConfig,
 )
-from src.web.rendering._heatmap_utils import is_dark_cell
+from src.web.rendering._heatmap_utils import heatmap_text_colors
+from src.web.rendering._hatch_utils import plotly_hatch
+from src.web.rendering._render_result import (
+    PlotlyLayoutRole,
+    PlotlyRenderResult,
+    PlotlyTraceBinding,
+)
+from src.web.rendering._connector_protocol import (
+    uses_heatmap_panels,
+    validate_annotation_types,
+    validate_trace_types,
+)
 
 
 def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
@@ -40,9 +52,11 @@ def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
     return {"type": "data", "array": error_y, "visible": True}
 
 
-def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
+def traces_to_plotly(
+    result: TraceBuildResult, *, palette_colors: Sequence[str] = ()
+) -> PlotlyRenderResult:
     # [impl->req~ring5.render.plotly~1]
-    """Convert a ``TraceBuildResult`` into a Plotly ``go.Figure``.
+    """Convert neutral output into an explicitly bound native Plotly result.
 
     The returned figure contains all traces, shapes, annotations,
     barmode, and custom tick overrides from the build result.
@@ -51,19 +65,32 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
 
     Args:
         result: Engine-agnostic output from a plot type.
+        palette_colors: Fallback colors for sources without explicit or semantic colors.
 
     Returns:
-        A fully populated (but unstyled) ``go.Figure``.
+        A populated native figure with original-source and generated-role associations.
+
+    Raises:
+        TypeError: A trace or annotation has no supported concrete family.
     """
-    traces_list = list(result.traces)
-    heatmap_only = (
-        len(traces_list) > 1
-        and all(isinstance(trace, HeatmapTraceConfig) for trace in traces_list)
-        and not result.secondary_y
-    )
+    traces_list = [
+        (
+            replace(trace, color=palette_colors[index % len(palette_colors)])
+            if palette_colors
+            and not trace.color
+            and trace.trace_type not in ("waterfall", "sankey", "parallel_coordinates", "heatmap")
+            else trace
+        )
+        for index, trace in enumerate(result.traces)
+    ]
+    validate_trace_types(traces_list)
+    validate_annotation_types(result.annotations)
+    heatmap_only = uses_heatmap_panels(result)
 
     if heatmap_only:
-        subplot_titles = [trace.name for trace in traces_list]
+        # Nonempty placeholders request every generated title's actual layout geometry.
+        # Raw names and aliases are projected later through explicit role bindings.
+        subplot_titles = [" " for trace in traces_list]
         fig = make_subplots(
             rows=len(traces_list),
             cols=1,
@@ -75,8 +102,32 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
     else:
         fig = go.Figure()
 
+    facet_titles = (
+        [
+            {
+                **annotation.to_plotly_json(),
+                "name": f"ring5-facet-title-{index}",
+                "text": trace.name,
+            }
+            for index, (trace, annotation) in enumerate(
+                zip(traces_list, fig.layout.annotations or (), strict=True)
+            )
+        ]
+        if heatmap_only
+        else []
+    )
+    bindings: list[PlotlyTraceBinding] = []
     for index, trace in enumerate(traces_list, start=1):
         plotly_trace = _convert_trace(trace)
+        if isinstance(trace, BarTraceConfig) and result.barmode == "group":
+            # Keep raw duplicate observations overlapped instead of natively stacked.
+            plotly_trace.update(base=0)
+        if (
+            result.secondary_y
+            and trace.legend_role == "primary"
+            and isinstance(trace, (BarTraceConfig, LineTraceConfig, ScatterTraceConfig))
+        ):
+            plotly_trace.update(legend="legend")
         if heatmap_only:
             fig.add_trace(plotly_trace, row=index, col=1)
         elif result.secondary_y:
@@ -84,6 +135,34 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
             fig.add_trace(plotly_trace, secondary_y=secondary)
         else:
             fig.add_trace(plotly_trace)
+        bindings.append(
+            PlotlyTraceBinding(
+                index - 1,
+                trace.name,
+                fig.data[-1],
+                trace.legend_role,
+                trace.legendgroup,
+                trace.show_in_legend,
+                appearance=(
+                    seed_sankey_appearance(
+                        fig.data[-1],
+                        opacity=trace.opacity,
+                        node_colors=[
+                            trace.node_colors[i] if i < len(trace.node_colors) else "#4c78a8"
+                            for i in range(len(trace.node_labels))
+                        ],
+                        node_line=trace.node_line_color,
+                        link_colors=[
+                            trace.link_colors[i] if i < len(trace.link_colors) else "#7f7f7f"
+                            for i in range(len(trace.values))
+                        ],
+                        link_factor=trace.link_opacity,
+                    )
+                    if isinstance(trace, SankeyTraceConfig)
+                    else None
+                ),
+            )
+        )
 
     # Layout updates
     layout_updates: dict[str, Any] = {"barmode": result.barmode}
@@ -172,23 +251,26 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         # Shades first (drawn under), then separators, then span rules.
         layout_updates["shapes"] = shade_shapes + separator_shapes + rule_shapes
 
-    if result.annotations or result.layout_annotations:
-        all_annotations: list[dict[str, Any]] = []
-        if result.annotations:
-            all_annotations.extend(_convert_annotations(result.annotations))
-        if result.layout_annotations:
-            all_annotations.extend(result.layout_annotations)
-        layout_updates["annotations"] = all_annotations
+    if facet_titles or result.annotations:
+        layout_updates["annotations"] = facet_titles + _convert_annotations(result.annotations)
 
     fig.update_layout(**layout_updates)
 
     # Heatmap cell-value annotations (rendered on top of all traces)
-    _add_heatmap_annotations(fig, traces_list, heatmap_only)
+    label_roles = _add_heatmap_annotations(fig, traces_list, heatmap_only, bindings)
 
     # Heatmap totals separator lines
     _add_heatmap_separator_lines(fig, traces_list, heatmap_only)
 
-    return fig
+    roles = (
+        tuple(
+            PlotlyLayoutRole(f"ring5-facet-title-{index}", binding)
+            for index, binding in enumerate(bindings)
+        )
+        if heatmap_only
+        else ()
+    )
+    return PlotlyRenderResult(fig, (tuple(bindings),), roles + label_roles)
 
 
 # Private helpers
@@ -216,13 +298,17 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
         result = _line_trace(trace)
     elif isinstance(trace, ScatterTraceConfig):
         result = _scatter_trace(trace)
-    elif isinstance(trace, HistogramTraceConfig):
-        result = _histogram_trace(trace)
     elif isinstance(trace, HeatmapTraceConfig):
         result = _heatmap_trace(trace)
     else:
-        # Fallback for base TraceConfig — render as bar
-        result = _bar_trace_from_base(trace)
+        raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
+    if trace.legend_role == "secondary":
+        result.update(legend="legend2")
+    if (
+        isinstance(trace, (BarTraceConfig, LineTraceConfig, ScatterTraceConfig))
+        and "hovertemplate" in trace.custom_data
+    ):
+        result.update(hovertemplate=trace.custom_data["hovertemplate"])
     drilldown = trace.custom_data.get("drilldown")
     if drilldown is not None:
         result.meta = {"ring5_drilldown": drilldown}
@@ -254,7 +340,7 @@ def _bar_trace(trace: BarTraceConfig) -> go.Bar:
     if trace.color:
         marker["color"] = trace.color
     if trace.pattern:
-        marker["pattern"] = {"shape": trace.pattern}
+        marker["pattern"] = plotly_hatch(trace.pattern)
     if trace.border_width > 0:
         marker["line"] = {
             "width": trace.border_width,
@@ -292,11 +378,15 @@ def _box_trace(trace: BoxTraceConfig) -> go.Box:
     """Convert a precomputed ``BoxTraceConfig`` to a Plotly box trace."""
     vertical = trace.orientation == "vertical"
     kwargs: dict[str, Any] = {
-        "x": [trace.position] * len(trace.values) if vertical else trace.values,
-        "y": trace.values if vertical else [trace.position] * len(trace.values),
+        "x": [trace.position] if vertical else [trace.values],
+        "y": [trace.values] if vertical else [trace.position],
         "name": trace.name,
         "orientation": "v" if vertical else "h",
-        "quartilemethod": trace.quartile_method,
+        "q1": [trace.q1],
+        "median": [trace.median],
+        "q3": [trace.q3],
+        "mean": [trace.mean],
+        "notchspan": [(trace.notch_upper - trace.notch_lower) / 2],
         "lowerfence": [trace.lower_whisker],
         "upperfence": [trace.upper_whisker],
         "boxpoints": False if trace.point_mode == "none" else trace.point_mode,
@@ -336,8 +426,12 @@ def _violin_trace(trace: ViolinTraceConfig) -> go.Violin:
         "points": "all" if trace.point_mode == "all" else False,
         "jitter": trace.jitter,
         "width": trace.violin_width,
-        "box": {"visible": trace.show_box},
-        "meanline": {"visible": trace.show_mean},
+        "box": {
+            "visible": trace.show_box,
+            "fillcolor": "rgba(255,255,255,0.8)",
+            "line": {"color": _css_project(trace.color or "#4472C4", 0.8)},
+        },
+        "meanline": {"visible": trace.show_mean, "color": "black"},
         "opacity": trace.opacity,
         "showlegend": trace.show_in_legend,
         "visible": trace.visible,
@@ -372,6 +466,8 @@ def _radar_trace(trace: RadarTraceConfig) -> go.Scatterpolar:
     if trace.color:
         kwargs["line"]["color"] = trace.color
         kwargs["marker"]["color"] = trace.color
+    if trace.fill_area:
+        kwargs["fillcolor"] = _css_project(trace.color or "#4472C4", 0.45)
     return go.Scatterpolar(**{key: value for key, value in kwargs.items() if value is not None})
 
 
@@ -400,17 +496,6 @@ def _waterfall_trace(trace: WaterfallTraceConfig) -> go.Waterfall:
     )
 
 
-def _with_opacity(color: str, opacity: float) -> str:
-    """Bake opacity into palette hex colors for Plotly Sankey links."""
-    if len(color) == 7 and color.startswith("#"):
-        try:
-            red, green, blue = (int(color[index : index + 2], 16) for index in (1, 3, 5))
-        except ValueError:
-            return color
-        return f"rgba({red},{green},{blue},{opacity:.3f})"
-    return color
-
-
 def _sankey_trace(trace: SankeyTraceConfig) -> go.Sankey:
     # [impl->req~ring5.plot.sankey~1]
     """Convert validated nodes and weighted links to a native Plotly Sankey trace."""
@@ -433,7 +518,7 @@ def _sankey_trace(trace: SankeyTraceConfig) -> go.Sankey:
             "target": trace.target_indices,
             "value": trace.values,
             "label": trace.link_labels if trace.show_link_labels else [""] * len(trace.values),
-            "color": [_with_opacity(color, trace.link_opacity) for color in trace.link_colors],
+            "color": trace.link_colors,
         },
     )
 
@@ -522,6 +607,7 @@ def _line_trace(trace: LineTraceConfig) -> go.Scatter:
 
     if trace.fill != "none":
         kwargs["fill"] = trace.fill
+        kwargs["fillcolor"] = trace.color or "#4472C4"
 
     if error_y := _error_y_dict(trace.error_y):
         kwargs["error_y"] = error_y
@@ -566,45 +652,6 @@ def _scatter_trace(trace: ScatterTraceConfig) -> go.Scatter:
     return go.Scatter(**{k: v for k, v in kwargs.items() if v is not None})
 
 
-def _histogram_trace(trace: HistogramTraceConfig) -> go.Histogram:
-    """Convert a ``HistogramTraceConfig`` to ``go.Histogram``."""
-    kwargs: dict[str, Any] = {
-        "x": trace.x,
-        "name": trace.name,
-        "opacity": trace.opacity,
-        "showlegend": trace.show_in_legend,
-        "visible": trace.visible,
-        "legendgroup": trace.legendgroup or trace.name,
-        "nbinsx": trace.nbins,
-    }
-
-    if trace.color:
-        kwargs["marker"] = {"color": trace.color}
-
-    if trace.normalization:
-        kwargs["histnorm"] = trace.normalization
-
-    if trace.cumulative:
-        kwargs["cumulative"] = {"enabled": True}
-
-    return go.Histogram(**{k: v for k, v in kwargs.items() if v is not None})
-
-
-def _bar_trace_from_base(trace: TraceConfig) -> go.Bar:
-    """Fallback: convert a base ``TraceConfig`` to ``go.Bar``."""
-    kwargs: dict[str, Any] = {
-        "x": trace.x,
-        "y": trace.y,
-        "name": trace.name,
-        "opacity": trace.opacity,
-        "showlegend": trace.show_in_legend,
-        "visible": trace.visible,
-    }
-    if trace.color:
-        kwargs["marker"] = {"color": trace.color}
-    return go.Bar(**{k: v for k, v in kwargs.items() if v is not None})
-
-
 def _heatmap_trace(trace: HeatmapTraceConfig) -> go.Heatmap:
     """Convert a ``HeatmapTraceConfig`` to ``go.Heatmap``.
 
@@ -617,6 +664,7 @@ def _heatmap_trace(trace: HeatmapTraceConfig) -> go.Heatmap:
         "y": trace.row_labels,
         "z": trace.z,
         "colorscale": trace.colorscale,
+        "opacity": trace.opacity,
         "name": trace.name,
         "showlegend": False,
     }
@@ -628,7 +676,8 @@ def _add_heatmap_annotations(
     fig: go.Figure,
     traces_list: list[TraceConfig],
     heatmap_only: bool,
-) -> None:
+    bindings: Sequence[PlotlyTraceBinding],
+) -> tuple[PlotlyLayoutRole, ...]:
     """Append per-cell annotations for every heatmap trace that has text.
 
     Using layout annotations (instead of ``texttemplate``) guarantees that
@@ -636,6 +685,7 @@ def _add_heatmap_annotations(
     auto-contrast colouring (white text on dark cells, black on light).
     """
     annotations: list[dict[str, Any]] = []
+    roles: list[PlotlyLayoutRole] = []
     for idx, trace in enumerate(traces_list):
         if not isinstance(trace, HeatmapTraceConfig):
             continue
@@ -650,35 +700,49 @@ def _add_heatmap_annotations(
             xref, yref = "x", "y"
 
         font_size = getattr(trace, "text_font_size", 10)
+        text_colors = heatmap_text_colors(trace.z, trace.colorscale)
 
         for i, text_row in enumerate(trace.text):
             for j, cell_text in enumerate(text_row):
                 if not cell_text:
                     continue
-                is_dark = is_dark_cell(trace.z, i, j)
-
                 # Determine text colour
                 color_mode = getattr(trace, "text_color_mode", "contrast")
                 if color_mode == "custom":
                     text_color = getattr(trace, "text_color", "#000000")
                 else:
-                    text_color = "white" if is_dark else "black"
+                    text_color = text_colors[i][j]
 
+                role_name = f"ring5-source-label-{len(roles)}"
+                roles.append(
+                    PlotlyLayoutRole(
+                        role_name,
+                        bindings[idx],
+                        PlotlyTextAppearance(
+                            text_color, trace.opacity, i, j, color_mode != "custom"
+                        ),
+                    )
+                )
                 annotations.append(
                     {
                         "text": str(cell_text),
+                        "name": role_name,
                         "x": trace.col_labels[j],
                         "y": trace.row_labels[i],
                         "xref": xref,
                         "yref": yref,
                         "showarrow": False,
-                        "font": {"size": font_size, "color": text_color},
+                        "font": {
+                            "size": font_size,
+                            "color": _css_project(text_color, trace.opacity),
+                        },
                     }
                 )
 
     if annotations:
         existing = list(fig.layout.annotations or [])
         fig.update_layout(annotations=existing + annotations)
+    return tuple(roles)
 
 
 def _add_heatmap_separator_lines(
@@ -713,6 +777,7 @@ def _add_heatmap_separator_lines(
             shapes.append(
                 {
                     "type": "line",
+                    "name": "ring5-heatmap-total-right",
                     "x0": x_pos,
                     "x1": x_pos,
                     "y0": -0.5,
@@ -728,6 +793,7 @@ def _add_heatmap_separator_lines(
             shapes.append(
                 {
                     "type": "line",
+                    "name": "ring5-heatmap-total-top",
                     "x0": -0.5,
                     "x1": n_cols - 0.5,
                     "y0": y_pos,
@@ -748,27 +814,33 @@ def _convert_annotations(
 ) -> list[dict[str, Any]]:
     """Convert ``AnnotationConfig`` list to Plotly annotation dicts."""
 
+    validate_annotation_types(annotations)
     result: list[dict[str, Any]] = []
     for ann in annotations:
-        if not isinstance(ann, AnnotationConfig):
-            continue
         d: dict[str, Any] = {
             "text": ann.text,
             "x": ann.x,
             "y": ann.y,
-            "xref": ann.xref,
-            "yref": ann.yref,
+            "xref": "x" if ann.xref == "data" else ann.xref,
+            "yref": "y" if ann.yref == "data" else ann.yref,
             "xanchor": ann.xanchor,
             "yanchor": ann.yanchor,
             "showarrow": ann.show_arrow,
+            "align": ann.align,
             "font": {},
         }
+        if ann.x_shift_pixels:
+            d["xshift"] = ann.x_shift_pixels
+        if ann.y_shift_pixels:
+            d["yshift"] = ann.y_shift_pixels
         if ann.text_angle:
             d["textangle"] = ann.text_angle
         if ann.font_size > 0:
             d["font"]["size"] = ann.font_size
         if ann.font_color:
             d["font"]["color"] = ann.font_color
+        if ann.font_family:
+            d["font"]["family"] = ann.font_family
         if ann.font_bold:
             d["font"]["weight"] = "bold"
         if ann.bgcolor:

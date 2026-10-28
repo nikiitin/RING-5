@@ -117,7 +117,7 @@ class TestAddVariableDialog:
         """Validation errors and successful manual add work correctly.
 
         - Add without name shows error
-        - Successful manual add closes the dialog
+        - A complete scalar declaration persists its source and output types
         """
         ds = DataSourcePage(shared_page)
         ds.goto_and_wait(live_server_url)
@@ -134,9 +134,25 @@ class TestAddVariableDialog:
         expect(ds.dialog_name_error).to_be_visible(timeout=10_000)
         ds.close_dialog()
 
-        # Successful add closes dialog
         ds.open_add_variable_dialog()
         ds.switch_dialog_to_manual()
         ds.fill_dialog_manual_name("system.cpu.numCycles")
+        ds._open_and_select(ds.dialog_raw_source_type_selectbox, "scalar")
+        ds._open_and_select(ds.dialog_manual_type_selectbox, "scalar")
         ds.click_dialog_add()
         ds.assert_dialog_hidden()
+        expected_names = [
+            "simTicks",
+            "benchmark_name",
+            "config_description",
+            "system.cpu.numCycles",
+        ]
+        expect(ds.variable_name_inputs).to_have_count(len(expected_names))
+        for index, name in enumerate(expected_names):
+            expect(ds.variable_name_inputs.nth(index)).to_have_value(name)
+        expect(shared_page.get_by_role("combobox", name="Type 4", exact=True)).to_have_value(
+            "scalar"
+        )
+        expect(
+            shared_page.get_by_role("combobox", name="Raw source type 4", exact=True)
+        ).to_have_value("scalar")

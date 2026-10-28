@@ -15,22 +15,23 @@ from typing import (
 
 import pandas as pd
 
-from src.core.models import (
+from src.core.models.parsed_output_models import ParsedOutput
+from src.core.models.source_context_models import LoadedDataOrigin
+
+from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
-    DatasetSnapshotInfo,
-    PlotProtocol,
-    PortfolioData,
-    PortfolioBundleContents,
-    PortfolioBundleInfo,
-    PortfolioDiff,
-    PortfolioIntegrityReport,
-    PortfolioRevisionInfo,
     RecipeExport,
     RecipeParameter,
     RecipeScalar,
     RecipeSource,
 )
+from src.core.models.dataset_workspace_models import DatasetSnapshotInfo
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData
+from src.core.models.portfolio_bundle_models import PortfolioBundleContents, PortfolioBundleInfo
+from src.core.models.portfolio_revision_models import PortfolioDiff, PortfolioRevisionInfo
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
 from src.core.models.data_models import (
     CacheStatsInfo,
     CsvPoolEntry,
@@ -41,7 +42,6 @@ from src.core.models.data_models import (
     SavedConfigEntry,
     ScannedVariableDict,
 )
-from src.core.models.shaper_models import ShaperStepConfig
 
 
 @runtime_checkable
@@ -62,7 +62,7 @@ class DataServicesAPI(Protocol):
         """Add a CSV file to the pool. Returns pool path."""
         raise NotImplementedError
 
-    def publish_to_csv_pool(self, file_path: str, file_name: str) -> str:
+    def publish_to_csv_pool(self, output: ParsedOutput, file_name: str) -> ParsedOutput:
         """Atomically publish a named background result to the CSV pool."""
         raise NotImplementedError
 
@@ -70,7 +70,9 @@ class DataServicesAPI(Protocol):
         """Delete a CSV file from the pool."""
         raise NotImplementedError
 
-    def load_csv_file(self, file_path: str) -> pd.DataFrame:
+    def load_csv_file(
+        self, file_path: str, *, configuration_columns: tuple[str, ...] = ()
+    ) -> pd.DataFrame:
         """Load a CSV file returning a DataFrame."""
         raise NotImplementedError
 
@@ -80,7 +82,7 @@ class DataServicesAPI(Protocol):
         self,
         name: str,
         description: str,
-        shapers_config: list[ShaperStepConfig],
+        shapers_config: Sequence[Mapping[str, object]],
         csv_path: str | None = None,
     ) -> str:
         """Save a configuration to disk. Returns saved file path."""
@@ -94,7 +96,7 @@ class DataServicesAPI(Protocol):
         self,
         name: str,
         description: str,
-        shapers_config: list[ShaperStepConfig],
+        shapers_config: Sequence[Mapping[str, object]],
         csv_path: str | None = None,
     ) -> bytes:
         """Serialize a validated configuration as portable versioned JSON."""
@@ -106,7 +108,7 @@ class DataServicesAPI(Protocol):
         *,
         conflict: PipelineConfigConflictPolicy = "error",
     ) -> PipelineConfigImportResult:
-        """Validate and save a current or legacy portable configuration."""
+        """Validate and save a current portable configuration."""
         raise NotImplementedError
 
     def load_saved_configs(self) -> list[SavedConfigEntry]:
@@ -192,34 +194,18 @@ class DataServicesAPI(Protocol):
     def filter_internal_stats(
         self,
         entries: list[str],
-        internal_stats: frozenset[str] | None = None,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """Filter out internal simulator statistics from entry list."""
-        raise NotImplementedError
-
-    def find_variable_by_name(
-        self,
-        variables: list[ParseVariableConfig],
-        name: str,
-        exact: bool = True,
-    ) -> ParseVariableConfig | None:
-        """Find a variable by name (exact or regex match)."""
         raise NotImplementedError
 
     def aggregate_discovered_entries(
         self,
         snapshot: list[ScannedVariableDict],
         var_name: str,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """Aggregate entries for a variable across scanned files."""
-        raise NotImplementedError
-
-    def aggregate_distribution_range(
-        self,
-        snapshot: list[ScannedVariableDict],
-        var_name: str,
-    ) -> tuple[float | None, float | None]:
-        """Aggregate min/max range for a distribution variable."""
         raise NotImplementedError
 
     def parse_comma_separated_entries(self, entries_str: str) -> list[str]:
@@ -230,36 +216,12 @@ class DataServicesAPI(Protocol):
         """Format list of entries as comma-separated string."""
         raise NotImplementedError
 
-    def find_entries_for_variable(
-        self,
-        available_variables: list[ScannedVariableDict],
-        var_name: str,
-    ) -> list[str]:
-        """Find all entries for a variable by searching available/scanned variables."""
-        raise NotImplementedError
-
-    def update_scanned_entries(
-        self,
-        scanned_vars: list[ScannedVariableDict],
-        var_name: str,
-        new_entries: list[str],
-    ) -> list[ScannedVariableDict]:
-        """Update or add entries for a variable in the scanned variables list."""
-        raise NotImplementedError
-
     def has_variable_with_name(
         self,
         variables: list[ParseVariableConfig],
         name: str,
     ) -> bool:
         """Check if a variable with the given name already exists."""
-        raise NotImplementedError
-
-    def build_statistics_list(
-        self,
-        selected: dict[str, bool],
-    ) -> list[str]:
-        """Build a list of selected statistics from a boolean mapping."""
         raise NotImplementedError
 
     # -- Portfolio Management --
@@ -283,6 +245,7 @@ class DataServicesAPI(Protocol):
         overwrite: bool = True,
         signing_key: str | bytes | None = None,
         signing_key_id: str = "default",
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         """Serialize and save the current workspace state."""
         raise NotImplementedError
@@ -368,7 +331,7 @@ class DataServicesAPI(Protocol):
         description: str = "",
         parameters: Sequence[RecipeParameter] = (),
         source: RecipeSource | None = None,
-        transformations: Sequence[ShaperStepConfig] = (),
+        transformations: Sequence[Mapping[str, object]] = (),
         exports: Sequence[RecipeExport] = (),
     ) -> AnalysisRecipe:
         """Capture current source provenance, plots, and pipelines as a recipe."""

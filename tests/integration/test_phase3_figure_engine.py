@@ -1,11 +1,4 @@
-"""Integration tests for the ``FigureConfig`` pipeline.
-
-Validates:
-    1. End-to-end: creator + styler inline produces styled figures
-    2. ConfigSpecBuilder round-trip: config → spec → Plotly layout
-    3. last_spec survives the full pipeline
-    4. Export path can consume last_spec for matplotlib rendering
-"""
+"""Registered strategies prepare styling once for native figures and serialization."""
 
 from __future__ import annotations
 
@@ -17,9 +10,13 @@ import pytest
 
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.services.visualization.config_resolver import resolve_config
-from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
+from src.web.pages.ui.plotting.plot_factory import PlotFactory
+from src.web.rendering.plot_renderer import build_render_artifact
+from src.web.rendering.figure_preparation import PreparedFigure
+from src.web.models.render_artifact import RenderArtifact
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
+from src.web.rendering._render_result import PlotlyRenderResult
 
 # Fixtures
 _BASE_CONFIG: dict[str, Any] = {
@@ -41,7 +38,7 @@ _BASE_CONFIG: dict[str, Any] = {
     "xaxis_tickangle": -45,
     "xaxis_tickfont_size": 12,
     "yaxis_tickfont_size": 12,
-    "legend_orientation": "v",
+    "legend_orientation": "vertical",
     "legend_x": 1.02,
     "legend_y": 1.0,
     "legend_font_size": 11,
@@ -72,104 +69,77 @@ def bar_config() -> dict[str, Any]:
     return dict(_BASE_CONFIG)
 
 
-# 1. Creator + Styler inline end-to-end
+def _artifact(data: pd.DataFrame, config: dict[str, Any], plot_type: str = "bar") -> RenderArtifact:
+    plot = PlotFactory.create_plot(plot_type, plot_id=1, name="Measured")
+    plot.processed_data = data
+    return build_render_artifact(plot, config, "plotly")
 
 
 class TestFigureEngineEndToEnd:
-    """Inline creator + styler produces styled figures via the real pipeline."""
+    """Real registered strategies produce measured native figures and owned styling."""
 
-    def test_build_with_real_applicator(
+    def test_build_with_real_artifact(
         self, sample_data: pd.DataFrame, bar_config: dict[str, Any]
     ) -> None:
-        """Build using a real BarPlot-like creator and StyleApplicator inline."""
-
-        class SimpleBarCreator:
-            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
-                return go.Figure(
-                    data=[go.Bar(x=list(data["benchmark"]), y=list(data["ipc"]), name="series1")]
-                )
-
-        creator = SimpleBarCreator()
-        applicator = StyleApplicator("bar")
-
-        fig = creator.create_figure(sample_data, bar_config)
-        fig = applicator.apply_styles(fig, bar_config)
-
-        # Figure should have traces
-        traces = list(fig.data)
-        assert len(traces) == 1
-        assert cast(go.Bar, traces[0]).type == "bar"
-        # Title should be applied
+        artifact = _artifact(sample_data, bar_config)
+        assert isinstance(artifact.figure, go.Figure)
+        fig = artifact.figure
+        assert len(fig.data) == 1
+        assert cast(go.Bar, fig.data[0]).type == "bar"
+        assert list(cast(go.Bar, fig.data[0]).y) == [1.24, 1.58, 0.87, 1.41]
         assert fig.layout.title.text == "IPC by Benchmark"
-        # Dimensions should match config
         assert fig.layout.width == 900
         assert fig.layout.height == 500
 
-    def test_applicator_stores_last_spec_after_build(
+    def test_artifact_retains_exact_spec_after_build(
         self, sample_data: pd.DataFrame, bar_config: dict[str, Any]
     ) -> None:
-        """After apply_styles(), the applicator's last_spec is populated."""
+        artifact = _artifact(sample_data, bar_config)
+        prepared = artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert isinstance(prepared.spec, FigureConfig)
+        assert prepared.spec.title == "IPC by Benchmark"
+        assert prepared.spec.dimensions.width == 900.0
+        assert artifact.preparation is prepared
 
-        class NullCreator:
-            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
-                return go.Figure(data=[go.Bar(x=["A"], y=[1])])
-
-        creator = NullCreator()
-        applicator = StyleApplicator("bar")
-
-        fig = creator.create_figure(sample_data, bar_config)
-        fig = applicator.apply_styles(fig, bar_config)
-
-        assert applicator.last_spec is not None
-        assert applicator.last_spec.title == "IPC by Benchmark"
-        assert applicator.last_spec.dimensions.width == 900.0
-
-    def test_legend_labels_applied_inline(
+    def test_legend_labels_project_without_rewriting_preparation(
         self, sample_data: pd.DataFrame, bar_config: dict[str, Any]
     ) -> None:
-        """Legend labels applied inline after create_figure + apply_styles."""
-
-        class TraceCreator:
-            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
-                return go.Figure(data=[go.Bar(x=["A"], y=[1], name="original")])
-
-        bar_config["legend_labels"] = {"original": "Renamed"}
-        creator = TraceCreator()
-        applicator = StyleApplicator("bar")
-
-        fig = creator.create_figure(sample_data, bar_config)
-        fig = applicator.apply_styles(fig, bar_config)
-        legend_labels: dict[str, str] = bar_config.get("legend_labels", {})
-        if legend_labels:
-            fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
-
-        assert cast(go.Bar, fig.data[0]).name == "Renamed"
+        bar_config["legend_labels"] = {"ipc": "Renamed"}
+        artifact = _artifact(sample_data, bar_config)
+        assert isinstance(artifact.figure, go.Figure)
+        assert cast(go.Bar, artifact.figure.data[0]).name == "Renamed"
+        prepared = artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert prepared.trace_result is not None
+        assert prepared.trace_result.traces[0].name == "ipc"
+        assert isinstance(prepared.spec, FigureConfig)
+        assert prepared.spec.legend_labels == {"ipc": "Renamed"}
 
 
 # 2. ConfigSpecBuilder ↔ Plotly layout agreement
 
 
 class TestConfigSpecRoundTrip:
-    """Verify config → spec → Plotly matches direct StyleApplicator output."""
+    """Direct typed styling agrees with a measured prepared native artifact."""
 
     def _build_spec_fig(self, config: dict[str, Any]) -> go.Figure:
         """Build a figure using ConfigSpecBuilder + FigureSpecToPlotly."""
         spec = resolve_config(ConfigSpecBuilder.from_config(config, "bar"))
         fig = go.Figure()
-        FigureSpecToPlotly.apply(spec, fig)
+        FigureSpecToPlotly.apply(spec, PlotlyRenderResult(fig, ((),)))
         return fig
 
-    def _build_applicator_fig(self, config: dict[str, Any]) -> go.Figure:
-        """Build a figure using direct StyleApplicator."""
-        applicator = StyleApplicator("bar")
-        fig = go.Figure()
-        applicator.apply_styles(fig, config)
-        return fig
+    def _build_artifact_fig(self, config: dict[str, Any]) -> go.Figure:
+        data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 2.0]})
+        artifact = _artifact(data, config)
+        assert isinstance(artifact.figure, go.Figure)
+        return artifact.figure
 
     def test_dimensions_match(self, bar_config: dict[str, Any]) -> None:
         """Width and height agree between both paths."""
         spec_fig = self._build_spec_fig(bar_config)
-        app_fig = self._build_applicator_fig(bar_config)
+        app_fig = self._build_artifact_fig(bar_config)
 
         assert spec_fig.layout.width == app_fig.layout.width
         assert spec_fig.layout.height == app_fig.layout.height
@@ -177,7 +147,7 @@ class TestConfigSpecRoundTrip:
     def test_margins_match(self, bar_config: dict[str, Any]) -> None:
         """Margins agree between both paths."""
         spec_fig = self._build_spec_fig(bar_config)
-        app_fig = self._build_applicator_fig(bar_config)
+        app_fig = self._build_artifact_fig(bar_config)
 
         sm = spec_fig.layout.margin
         am = app_fig.layout.margin
@@ -189,7 +159,7 @@ class TestConfigSpecRoundTrip:
     def test_backgrounds_match(self, bar_config: dict[str, Any]) -> None:
         """Background colors agree."""
         spec_fig = self._build_spec_fig(bar_config)
-        app_fig = self._build_applicator_fig(bar_config)
+        app_fig = self._build_artifact_fig(bar_config)
 
         assert spec_fig.layout.paper_bgcolor == app_fig.layout.paper_bgcolor
         assert spec_fig.layout.plot_bgcolor == app_fig.layout.plot_bgcolor
@@ -197,7 +167,7 @@ class TestConfigSpecRoundTrip:
     def test_title_matches(self, bar_config: dict[str, Any]) -> None:
         """Title text and font size agree."""
         spec_fig = self._build_spec_fig(bar_config)
-        app_fig = self._build_applicator_fig(bar_config)
+        app_fig = self._build_artifact_fig(bar_config)
 
         assert spec_fig.layout.title.text == app_fig.layout.title.text
         assert spec_fig.layout.title.font.size == app_fig.layout.title.font.size
@@ -205,7 +175,7 @@ class TestConfigSpecRoundTrip:
     def test_bargap_matches(self, bar_config: dict[str, Any]) -> None:
         """Bar gap settings agree."""
         spec_fig = self._build_spec_fig(bar_config)
-        app_fig = self._build_applicator_fig(bar_config)
+        app_fig = self._build_artifact_fig(bar_config)
 
         assert spec_fig.layout.bargap == app_fig.layout.bargap
 
@@ -244,35 +214,18 @@ class TestSpecSerialization:
         assert spec.dimensions.bargap == 0.2
 
 
-# 4. Multi-type engine dispatch
-
-
 class TestMultiTypeEngineIntegration:
-    """Inline creator + styler correctly produces different plot types."""
+    """Native trace families come from real registered neutral strategies."""
 
     def test_bar_and_line_produce_different_figures(self, sample_data: pd.DataFrame) -> None:
-        class BarCreator:
-            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
-                return go.Figure(data=[go.Bar(x=["A"], y=[1])])
-
-        class LineCreator:
-            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
-                return go.Figure(data=[go.Scatter(x=[1, 2], y=[3, 4], mode="lines")])
-
         config: dict[str, Any] = dict(_BASE_CONFIG)
-
-        bar_creator = BarCreator()
-        bar_styler = StyleApplicator("bar")
-        bar_fig = bar_creator.create_figure(sample_data, config)
-        bar_fig = bar_styler.apply_styles(bar_fig, config)
-
-        line_creator = LineCreator()
-        line_styler = StyleApplicator("line")
-        line_fig = line_creator.create_figure(sample_data, config)
-        line_fig = line_styler.apply_styles(line_fig, config)
-
+        bar = _artifact(sample_data, config, "bar")
+        line = _artifact(sample_data, config, "line")
+        assert isinstance(bar.figure, go.Figure) and isinstance(line.figure, go.Figure)
+        bar_fig, line_fig = bar.figure, line.figure
         assert cast(go.Bar, bar_fig.data[0]).type == "bar"
         assert cast(go.Scatter, line_fig.data[0]).type == "scatter"
-        # Both should have title applied by their respective StyleApplicators
+        assert list(cast(go.Bar, bar_fig.data[0]).y) == list(cast(go.Scatter, line_fig.data[0]).y)
+        assert list(cast(go.Bar, bar_fig.data[0]).y) == [1.24, 1.58, 0.87, 1.41]
         assert bar_fig.layout.title.text == "IPC by Benchmark"
         assert line_fig.layout.title.text == "IPC by Benchmark"

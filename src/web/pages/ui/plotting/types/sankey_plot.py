@@ -13,7 +13,7 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import SankeyTraceConfig
 from src.core.services.visualization.palette_service import resolve_palette
 from src.web.components.plotting.config import sankey_config
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 Arrangement = Literal["snap", "perpendicular", "freeform", "fixed"]
@@ -243,11 +243,6 @@ class SankeyPlot(BasePlot):
             },
         )
         return TraceBuildResult(traces=[trace])
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Sankey link colors encode endpoint semantics rather than a data column."""
-        return None
 
 
 __all__ = ["SankeyPlot"]

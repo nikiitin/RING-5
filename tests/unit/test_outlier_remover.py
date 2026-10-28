@@ -221,6 +221,11 @@ class TestOutlierRemoverRender:
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.has_preview.return_value = True
         mock_api.get_preview.return_value = filtered
+        mock_api.confirm_preview.return_value = filtered
+        mock_api.get_preview_config.return_value = {
+            "outlier_col": "cycles",
+            "group_by_cols": ["benchmark"],
+        }
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.return_value = "cycles"
         mock_st.multiselect.return_value = ["benchmark"]
@@ -229,11 +234,13 @@ class TestOutlierRemoverRender:
 
         mgr = OutlierRemoverManager(mock_api)
         mgr.render()
-        mock_api.update_selected_dataset.assert_called_once_with(
-            filtered,
+        mock_api.confirm_preview.assert_called_once_with(
+            "outlier_removal",
+            operation_config={"outlier_col": "cycles", "group_by_cols": ["benchmark"]},
             operation="Outlier Removal (IQR)",
         )
-        mock_api.clear_preview.assert_called_once()
+        mock_api.update_selected_dataset.assert_not_called()
+        mock_api.clear_preview.assert_not_called()
         mock_api.add_manager_history_record.assert_called_once()
 
     @patch("src.web.components.data_managers.outlier_remover.UIStateManager")

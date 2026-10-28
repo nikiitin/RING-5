@@ -66,11 +66,7 @@ def _create_and_finalize_bar(
     mp: ManagePlotsPage,
     name: str = "Test Bar",
 ) -> None:
-    """Create a bar plot, add Sort shaper (keeps all columns), finalize.
-
-    After finalize the page is fully reloaded so that the
-    visualization fragment sees ``processed_data``.
-    """
+    """Create a bar plot, retain all columns with Sort, and finalize."""
     mp.create_plot(name, "bar")
     mp.assert_plot_pill_visible(name)
 
@@ -78,13 +74,6 @@ def _create_and_finalize_bar(
     mp.add_shaper("Sort")
     mp.assert_pipeline_step_count(1)
     mp.finalize_pipeline()
-
-    # Navigate away and back to force a full page rerun
-    # so the render fragment sees processed_data.
-    # Do NOT call select_plot() — the plot is auto-selected from
-    # session_state, and re-clicking a selected pill would deselect it.
-    mp.navigate_to("Data Source")
-    mp.navigate()
 
 
 # Tier 1 — No-Data State
@@ -122,7 +111,13 @@ class TestManagePlotsWorkflow:
     """
 
     @pytest.fixture(autouse=True, scope="class")
-    def _load_data(self, shared_page: Page, live_server_url: str) -> None:
+    @classmethod
+    def _load_data(
+        cls,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
         """Parse benchmarks data once for the entire test class."""
         _parse_benchmarks(shared_page, live_server_url)
 
@@ -152,8 +147,6 @@ class TestManagePlotsWorkflow:
         mp.finalize_pipeline()
 
         # Navigate away and back to force a full page rerun.
-        # Do NOT call select_plot() — the pill is auto-selected from
-        # session_state; re-clicking toggles it off.
         mp.navigate_to("Data Source")
         mp.navigate()
 
@@ -202,27 +195,31 @@ class TestManagePlotsWorkflow:
         mp.create_plot("Control Test", "line")
         mp.assert_plot_pill_visible("Control Test")
 
-        # The newly created plot is auto-selected (it is the first/only
-        # plot on this worker).  Do NOT call select_plot() — clicking an
-        # already-selected pill toggles it off and confuses session state.
-
-        # Rename — the pill updates one rerun behind because the selector
-        # renders before the controller sets plot.name.  After rename,
-        # navigate away and back to force a fresh render.
         mp.rename_plot("Renamed Plot")
-        mp.navigate_to("Data Source")
-        mp.navigate()
         mp.assert_plot_pill_visible("Renamed Plot")
+        expect(mp.get_plot_pill("Renamed Plot")).to_be_checked()
 
         # Duplicate
+        plot_count = mp.plot_selector_pills.get_by_role("radio").count()
+        first_surviving_name = (
+            mp.plot_selector_pills.get_by_role("radio").all_text_contents()[0].strip()
+        )
         mp.duplicate_plot()
         mp.page.wait_for_timeout(1000)
         mp.wait_for_streamlit()
+        mp.assert_plot_pill_visible("Renamed Plot")
+        mp.assert_plot_pill_visible("Renamed Plot (copy)")
+        expect(mp.get_plot_pill("Renamed Plot (copy)")).to_be_checked()
+        expect(mp.plot_selector_pills.get_by_role("radio")).to_have_count(plot_count + 1)
 
         # Delete the duplicate (last created is auto-selected)
         mp.delete_plot()
         mp.page.wait_for_timeout(1000)
         mp.wait_for_streamlit()
+        mp.assert_plot_pill_not_visible("Renamed Plot (copy)")
+        mp.assert_plot_pill_visible("Renamed Plot")
+        expect(mp.plot_selector_pills.get_by_role("radio")).to_have_count(plot_count)
+        expect(mp.get_plot_pill(first_surviving_name)).to_be_checked()
 
     # -- Test: Multiple Plot Types ----------------------------------
 
@@ -249,7 +246,13 @@ class TestPipelineManipulation:
     """
 
     @pytest.fixture(autouse=True, scope="class")
-    def _load_data(self, shared_page: Page, live_server_url: str) -> None:
+    @classmethod
+    def _load_data(
+        cls,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
         """Parse benchmarks data once for the entire test class."""
         _parse_benchmarks(shared_page, live_server_url)
 
@@ -283,7 +286,13 @@ class TestAdvancedSettings:
     """
 
     @pytest.fixture(autouse=True, scope="class")
-    def _load_data_and_render(self, shared_page: Page, live_server_url: str) -> None:
+    @classmethod
+    def _load_data_and_render(
+        cls,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
         """Parse data, create a plot, and render a chart."""
         _parse_benchmarks(shared_page, live_server_url)
         mp = ManagePlotsPage(shared_page)
@@ -321,7 +330,13 @@ class TestManagePlotsScreenshots:
     """
 
     @pytest.fixture(autouse=True, scope="class")
-    def _load_data_and_render(self, shared_page: Page, live_server_url: str) -> None:
+    @classmethod
+    def _load_data_and_render(
+        cls,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
         """Parse data and create a plot with a rendered chart."""
         _parse_benchmarks(shared_page, live_server_url)
         mp = ManagePlotsPage(shared_page)

@@ -23,7 +23,7 @@ def mock_api(sample_data: pd.DataFrame) -> MagicMock:
 @pytest.fixture
 def mock_executor() -> MagicMock:
     executor = MagicMock()
-    executor.apply_shapers.side_effect = lambda df, confs: df.copy()
+    executor.apply_shapers.side_effect = lambda df, confs, **kwargs: df.copy()
     executor.configure_shaper.return_value = {}
     return executor
 
@@ -49,10 +49,9 @@ class TestPipelineControllerRender:
 
         api = MagicMock()
         api.state_manager.get_data.return_value = None
-        ui = MagicMock()
         executor = MagicMock()
 
-        ctrl = PipelineController(api, ui, executor)
+        ctrl = PipelineController(api, executor)
         plot = MagicMock()
         plot.pipeline = []
 
@@ -78,7 +77,7 @@ class TestPipelineControllerRender:
         }
         mock_presenter.render_finalize_button.return_value = False
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         assert len(mock_plot.pipeline) == 1
@@ -104,18 +103,19 @@ class TestPipelineControllerRender:
             shapers=({"type": "columnSelector", "columns": ["x"]},),
             csv_path=None,
             schema_version=1,
-            migrated=True,
             conflict_resolution="renamed",
         )
-        mock_api.import_configuration.return_value = result
-        controller = PipelineController(mock_api, MagicMock(), mock_executor)
+        mock_api.data_services.import_configuration.return_value = result
+        controller = PipelineController(mock_api, mock_executor)
 
         imported = controller._handle_exchange_import(
             mock_plot,
             {"import_clicked": True, "payload": b"{}", "conflict": "rename"},
         )
 
-        mock_api.import_configuration.assert_called_once_with(b"{}", conflict="rename")
+        mock_api.data_services.import_configuration.assert_called_once_with(
+            b"{}", conflict="rename"
+        )
         assert mock_plot.pipeline == [
             {
                 "id": 7,
@@ -141,12 +141,14 @@ class TestPipelineControllerRender:
         # [test->req~ring5.shaping.pipeline-editor~1]
         from src.web.controllers.plot.pipeline_controller import PipelineController
 
-        mock_plot.pipeline = [{"id": 0, "type": "rename", "config": {"mapping": {"x": "X"}}}]
+        mock_plot.pipeline = [
+            {"id": 0, "type": "rename", "config": {"type": "rename", "mapping": {"x": "X"}}}
+        ]
 
         mock_presenter.render_add_shaper.return_value = {"add_clicked": False}
         mock_presenter.render_finalize_button.return_value = True
         mock_step.render_step.return_value = {
-            "new_config": {"mapping": {"x": "X"}},
+            "new_config": {"type": "rename", "mapping": {"x": "X"}},
             "move_up": False,
             "move_down": False,
             "delete": False,
@@ -154,10 +156,22 @@ class TestPipelineControllerRender:
             "preview_error": None,
         }
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
-        mock_plot.replace_processed_data.assert_called_once()
+        mock_executor.apply_shapers.assert_called_once_with(
+            mock_api.state_manager.get_data.return_value,
+            [mock_plot.pipeline[0]["config"]],
+            track_source_rows=True,
+        )
+        mock_plot.replace_pipeline_data.assert_called_once()
+        published_source, published_output = mock_plot.replace_pipeline_data.call_args.args
+        pd.testing.assert_frame_equal(
+            published_source, mock_api.state_manager.get_data.return_value
+        )
+        pd.testing.assert_frame_equal(published_output, published_source)
+        mock_plot.replace_source_data.assert_not_called()
+        mock_plot.replace_processed_data.assert_not_called()
         mock_step.render_finalize_result.assert_called_once()
         mock_st.rerun.assert_called_once()
 
@@ -196,7 +210,7 @@ class TestPipelineControllerRender:
             },
         ]
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         mock_st.exception.assert_called()
@@ -228,7 +242,7 @@ class TestPipelineControllerRender:
             "preview_error": None,
         }
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         assert len(mock_plot.pipeline) == 0
@@ -264,10 +278,11 @@ class TestPipelineControllerRender:
         # Make apply_shapers raise
         mock_executor.apply_shapers.side_effect = ValueError("bad config")
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         mock_step.render_finalize_error.assert_called_once()
+        mock_plot.replace_pipeline_data.assert_not_called()
 
     @patch("src.web.controllers.plot.pipeline_controller.PipelineStepComponent")
     @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
@@ -311,7 +326,7 @@ class TestPipelineControllerRender:
             },
         ]
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         # After swap: rename should be first
@@ -345,7 +360,7 @@ class TestPipelineControllerRender:
             "preview_error": "Something went wrong in preview",
         }
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         # Should have completed without crashing

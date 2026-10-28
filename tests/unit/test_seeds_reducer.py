@@ -253,6 +253,12 @@ class TestSeedsReducerRender:
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.has_preview.return_value = True
         mock_api.get_preview.return_value = reduced
+        mock_api.confirm_preview.return_value = reduced
+        mock_api.get_preview_config.return_value = {
+            "reduce_over": "random_seed",
+            "categorical_cols": ["benchmark"],
+            "statistic_cols": ["cycles"],
+        }
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.return_value = "random_seed"
         mock_st.multiselect.side_effect = [["benchmark"], ["cycles"]]
@@ -261,11 +267,17 @@ class TestSeedsReducerRender:
 
         mgr = SeedsReducerManager(mock_api)
         mgr.render()
-        mock_api.update_selected_dataset.assert_called_once_with(
-            reduced,
+        mock_api.confirm_preview.assert_called_once_with(
+            "seeds_reduction",
+            operation_config={
+                "reduce_over": "random_seed",
+                "categorical_cols": ["benchmark"],
+                "statistic_cols": ["cycles"],
+            },
             operation="Seeds Reduction (mean + stdev)",
         )
-        mock_api.clear_preview.assert_called_once()
+        mock_api.update_selected_dataset.assert_not_called()
+        mock_api.clear_preview.assert_not_called()
         mock_api.add_manager_history_record.assert_called_once()
 
     @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
@@ -279,6 +291,7 @@ class TestSeedsReducerRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.has_preview.return_value = True
+        mock_api.preview_matches.return_value = False
         mock_api.get_preview.return_value = None
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.return_value = "random_seed"

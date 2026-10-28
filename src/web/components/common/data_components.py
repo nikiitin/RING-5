@@ -1,9 +1,4 @@
-"""
-Data Components for RING-5.
-Handles data visualization, inspection, and export.
-"""
-
-import tempfile
+"""DataFrame classification and inspection components."""
 
 import pandas as pd
 import streamlit as st
@@ -21,7 +16,7 @@ def detect_column_types(data: pd.DataFrame) -> tuple[list[str], list[str]]:
 
 
 class DataComponents:
-    """Reusable components for data visualization and export."""
+    """Reusable components for inspecting data and missing measurements."""
 
     @staticmethod
     def show_data_preview(data: pd.DataFrame, title: str = "Data Preview", rows: int = 20) -> None:
@@ -99,54 +94,3 @@ class DataComponents:
                 }
             )
             st.dataframe(col_info, width="stretch")
-
-    @staticmethod
-    def download_buttons(data: pd.DataFrame, prefix: str = "processed_data") -> None:
-        """
-        Display download buttons for different formats.
-
-        Args:
-            data: DataFrame to download
-            prefix: Filename prefix
-        """
-        st.markdown("### Download Data")
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            csv_data = data.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                label="Download CSV",
-                data=csv_data,
-                file_name=f"{prefix}.csv",
-                mime="text/csv",
-                width="stretch",
-                on_click="ignore",
-            )
-
-        with col2:
-            json_str = data.to_json(orient="records", indent=2) or ""
-            json_data = json_str.encode("utf-8")
-            st.download_button(
-                label="Download JSON",
-                data=json_data,
-                file_name=f"{prefix}.json",
-                mime="application/json",
-                width="stretch",
-                on_click="ignore",
-            )
-
-        with col3:
-            excel_buffer = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            data.to_excel(excel_buffer.name, index=False, engine="openpyxl")
-            with open(excel_buffer.name, "rb") as f:
-                excel_data = f.read()
-
-            st.download_button(
-                label="Download Excel",
-                data=excel_data,
-                file_name=f"{prefix}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                width="stretch",
-                on_click="ignore",
-            )

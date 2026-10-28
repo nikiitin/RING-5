@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, override
+from typing import Literal, override
 
 import numpy as np
 import pandas as pd
@@ -11,26 +11,13 @@ from src.core.common.safe_format import safe_format_number
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import WaterfallTraceConfig
 from src.web.components.plotting.config import waterfall_config
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.utils.ordering import observed_order
+from src.web.pages.ui.plotting.types._trace_helpers import group_mask
 
 WaterfallKind = Literal["relative", "absolute", "subtotal", "total"]
 WaterfallMeasure = Literal["relative", "absolute", "total"]
-
-
-def _ordered_values(series: pd.Series, configured: object = None) -> list[Any]:
-    """Keep source order unless the user supplied an explicit category order."""
-    available = list(series.drop_duplicates())
-    if not isinstance(configured, list):
-        return available
-    by_label = {str(value): value for value in available}
-    labels = [str(label) for label in configured]
-    ordered = [by_label[label] for label in labels if label in by_label]
-    return ordered + [value for value in available if str(value) not in labels]
-
-
-def _mask(series: pd.Series, value: Any) -> pd.Series:
-    return series.isna() if pd.isna(value) else series == value
 
 
 def _label_set(value: object, field_name: str) -> set[str]:
@@ -60,7 +47,7 @@ class WaterfallPlot(BasePlot):
         if x_col not in data or y_col not in data:
             raise ValueError("Waterfall chart columns must exist in the processed data.")
 
-        categories = _ordered_values(data[x_col], config.get("xaxis_order"))
+        categories = observed_order(data[x_col], config.get("xaxis_order"))
         absolute_labels = _label_set(config.get("waterfall_absolute"), "absolute steps")
         subtotal_labels = _label_set(config.get("waterfall_subtotals"), "subtotals")
         overlap = absolute_labels & subtotal_labels
@@ -89,7 +76,7 @@ class WaterfallPlot(BasePlot):
         numeric = pd.to_numeric(data[y_col], errors="coerce")
         for category in categories:
             category_label = str(category)
-            matching_mask = _mask(data[x_col], category)
+            matching_mask = group_mask(data[x_col], category)
             matching = numeric.loc[matching_mask]
             if category_label in subtotal_labels:
                 start, end, value = 0.0, current, 0.0
@@ -168,11 +155,6 @@ class WaterfallPlot(BasePlot):
             },
         )
         return TraceBuildResult(traces=[trace])
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Waterfall bar meaning is encoded by fixed semantic colors."""
-        return None
 
 
 __all__ = ["WaterfallPlot"]

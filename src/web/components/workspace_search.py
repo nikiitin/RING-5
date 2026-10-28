@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
+
 from src.core.application_api import ApplicationAPI
-from src.core.models import WorkspaceSearchResult
+from src.core.models.workspace_search_models import WorkspaceSearchResult
 
 _NAVIGATION_PAGES = frozenset(
     {"Data Source", "Data Managers", "Manage Plots", "Save/Load Portfolio"}
@@ -103,8 +105,8 @@ class WorkspaceSearchComponent:
             if not any(plot.plot_id == plot_id for plot in api.state_manager.get_plots()):
                 raise KeyError(f"Plot {plot_id} is no longer available.")
             api.state_manager.set_current_plot_id(plot_id)
-            st.session_state.pop("plot_selector", None)
         elif result.kind == "variable":
-            st.session_state["var_search_box__search"] = result.identifier
+            search_key = f"{WidgetKeyBuilder.data_source_key('var_search_box')}__search"
+            st.session_state[search_key] = result.identifier
 
-        st.session_state["_nav_page"] = result.location
+        UIStateManager().nav.set_current_page(result.location)

@@ -5,8 +5,6 @@ parent: Reference
 grand_parent: User Guide
 nav_order: 3
 permalink: /user-guide/reference/settings/
-redirect_from:
-  - /user-guide/features/settings/
 ---
 
 # Figure settings
@@ -17,12 +15,12 @@ Settings change figure presentation after a plot maps processed columns. **Layou
 
 | Section | Use it for |
 | --- | --- |
-| Layout | Physical or preview dimensions and automatic margins |
+| Layout | Physical or preview dimensions, automatic margins, and grouped-bar spacing |
 | Themes | Coherent built-ins plus customized theme import and export |
 | Typography | Title, axis-title, and tick-label sizes and colors |
 | Legends | Visibility, placement, orientation, labels, and spacing |
 | Axes | Ranges, scales, ticks, grids, label rotation, and axis-specific controls |
-| Data Labels | Values drawn on marks, numeric format, placement, and thresholds |
+| Data Labels | Values drawn on marks, stack or heatmap totals, placement, and thresholds |
 | Colors | Palettes, per-series overrides, backgrounds, grid styling, and supported patterns |
 | Advanced | Reference shapes, error bars, default download configuration, and engine controls |
 
@@ -56,7 +54,15 @@ Covers:
 -->
 
 Choose a single-column, double-column, or custom publication width and set the height in inches.
-RING-5 derives the Plotly preview dimensions at 100 pixels per inch and uses automatic zero margins.
+RING-5 derives preview dimensions at 100 pixels per inch. Existing pixel dimensions, margins, and
+automatic-margin choices remain intact when opening Layout. New figures use automatic zero margins.
+
+Grouped and grouped-stacked bars also expose category separators, alternating shading, and the
+optional extra gap before the last category here.
+
+Secondary axis fonts inherit the corresponding primary axis font. Secondary legend text inherits
+the primary legend text size; every legend title follows its own legend text size. Disable
+**Inherit** to choose an independent size.
 
 ### Reuse a figure theme
 
@@ -123,7 +129,9 @@ Covers:
 
 The web controls set title, axis-title, and tick-label sizes and tick colors. The typed Python figure
 configuration additionally carries a global font family; legend and data-label typography are set
-in their own sections.
+in their own sections. Applicable dual-axis plots expose independent right-axis sizes with an
+**Inherit** choice. Grouped-stacked bars also set their major category-label font here; label
+placement remains under **Axes**.
 
 ### Axes
 
@@ -137,6 +145,11 @@ Covers:
 
 Configure axis titles, explicit ranges, tick steps and angles, tick marks, grids, axis lines, and
 axis-title placement. Applicable dual-axis plots expose the same controls for the right axis.
+Tick-label angles are clockwise in both engines; set the angle to 0 to restore horizontal labels.
+Grouped-stacked bars offer **Numbers**, **Number legend**, and **Labels** as independent X-axis
+modes. Clear the selection to use ordinary axis labels. Selecting only **Number legend** hides the
+tick text and retains the mapping box. Right-axis dots and connecting lines are configured under
+**Y-Right**.
 
 ### Legends
 
@@ -151,6 +164,9 @@ Covers:
 Primary, secondary, and numbered legends have independent visibility, position, orientation,
 anchors, column sizing, font, background, border, marker, and spacing settings when the plot type
 provides those legend tiers.
+Grouped-stacked dual-axis figures can use a unified trace legend or separate left/right legends.
+The number legend uses the secondary tier when it is free and the tertiary tier when both trace
+legends are shown.
 
 ### Colors
 
@@ -163,7 +179,14 @@ Covers:
 -->
 
 Choose a named palette or explicit per-series colors. Colorblind-safe palettes are identified in
-the selector. Background, grid, axis, and transparent paper or plot colors are stored with the plot.
+the selector. A saved custom palette remains a color sequence until you explicitly select a named
+palette. Area outlines and fills use the same supported RGB/RGBA and HSL/HSLA color forms.
+Background, grid, axis, and transparent paper or plot colors are stored with the plot.
+
+Opening a color picker preserves the saved CSS spelling and alpha until you change its RGB value.
+Colors without a static RGB picker projection appear as editable CSS text; the selected native
+engine reports unsupported color spaces when rendering. **Transparent Background** changes the
+rendered paper and plot surfaces while retaining their saved colors for when transparency is off.
 
 ### Accessible figure themes
 
@@ -249,6 +272,10 @@ and heatmap facets under **Axes**. Legend entries and stack series are ordered a
 **Legends**, independently for each visible legend tier. These settings do not rewrite processed
 data.
 
+`legend_labels` is the series-name-to-display-text mapping. Series ordering, color and pattern
+overrides keep using the original series name after a rename. Empty, numeric-looking and repeated
+display labels are preserved; they do not identify or merge distinct series.
+
 ### Stack totals
 
 <!--
@@ -259,8 +286,9 @@ Covers:
 
 -->
 
-Stacked plots can label stack totals with a format, visibility threshold, position, anchor,
-typography, offset, and rotation.
+Under **Data Labels**, stacked and grouped-stacked plots can label stack totals with a format,
+visibility threshold, position, anchor, typography, offset, and rotation. **Show Stack Totals** is
+independent of **Show Values**; hiding individual values does not turn off totals.
 
 ### Heatmap summaries
 
@@ -286,7 +314,22 @@ Covers:
 -->
 
 Plotly relayout events persist supported zoom and pan ranges, legend positions and anchors, and an
-edited primary legend title into plot configuration.
+edited primary legend title into plot configuration. Native `legend.xanchor`/`legend.yanchor`
+events (and their `legend2`/`legend3` equivalents) are stored as `anchor_x`/`anchor_y` in the
+corresponding legend tier. Explicit anchors win when the same event also moves a legend;
+position-only changes use left/top anchors. Saved configuration uses those canonical keys.
+
+### Edit shapes
+
+Under **Advanced**, add a line, circle, or rectangle and edit its existing coordinates. Select
+**Text** for an exact category label or date string, including labels such as `001`; clear it for a
+finite number. Opening the editor preserves each coordinate's type and value. Native shapes with
+omitted coordinates, explicit defaults, or SVG paths retain those fields; unavailable coordinate
+controls show **Default** without adding a value.
+
+With **Auto-refresh** disabled, additions, deletions, resizing, and number/text changes remain
+pending across settings navigation. **Refresh Plot** applies them together. Invalid numeric edits
+leave the published plot unchanged, and the affected shape can still be deleted.
 
 ### Alternate category shading
 
@@ -299,22 +342,39 @@ Covers:
 -->
 
 Grouped and grouped-stacked bars can shade alternating major categories with a chosen background
-color. This works alongside vertical separators and the optional extra gap before an isolated final
-category.
+color under **Layout**. This works alongside vertical separators and the optional extra gap before
+an isolated final category.
 
 ### Series styling
 
 <!--
-`uman~ring5.figure.series-styling.documentation~1`
+`uman~ring5.figure.series-styling.documentation~2`
 
 Covers:
-- req~ring5.figure.series-styling~1
+- req~ring5.figure.series-styling~2
 
 -->
 
-Where a plot type supports them, per-series overrides set color, display name, bar pattern, marker
-symbol and size, line width, opacity, and borders. **Rewind** returns a series to its current palette
-color.
+Under **Colors**, applicable plots expose per-series color, bar pattern, marker symbol and size,
+and line width. Display names are edited under **Legends**. Typed renderer styles also carry opacity
+and borders. **Rewind** returns a series to its current palette color.
+
+Programmatic `series_styles` use original text series names and style mappings. Display text uses
+`legend_labels`. A bar `pattern` is a string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`. Both engines render all
+forms; Plotly projects circle/star forms through native SVG pattern paths. **Default (trace/theme)**
+omits the override and preserves intrinsic hatching. **Solid** explicitly clears it. Explicit
+series choices take precedence over default stripe patterns and appear on legend swatches.
+
+
+A programmatic series `opacity` is a finite number from `0` through `1`. Omitting it preserves
+the source opacity; `0` is transparent and `1` removes source attenuation while retaining the
+source colors' intrinsic alpha and declared family factors.
+For example, `{"series_styles": {"ipc": {"opacity": 0.5}}}` multiplies each source-owned color's
+embedded alpha by `0.5`, including its data labels and error bars. Reapplying the same settings
+does not accumulate attenuation. Axes, titles, legend text and general annotations remain
+independent. Colorbars retain their intrinsic color mapping; legend swatches show the final marks.
+Parallel coordinates require selected opacity `1` and opaque selected colors/scales in both
+engines. Their independent unselected opacity can be `0` without removing any data rows.
 
 ## Working method
 

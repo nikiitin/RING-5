@@ -286,3 +286,73 @@ def test_non_oft_html_is_rejected(small_inventory: dict[str, Any]) -> None:
     # [test->req~ring5.trace.human-html-report~1]
     with pytest.raises(OftHtmlReportError, match="missing artifact sections"):
         enhance_oft_html("<html><body></body></html>", small_inventory)
+
+
+@pytest.mark.parametrize(
+    "origin",
+    ["tests/visual/artifacts/previous.trace.zip!src/old.py:24", "tests/test_example.py:999"],
+)
+def test_extra_archive_or_stale_origins_are_rejected_despite_green_coverage(
+    native_oft_html: str,
+    small_inventory: dict[str, Any],
+    source_markers: list[EvidenceMarker],
+    origin: str,
+) -> None:
+    """Complete current links cannot mask an additional foreign native item."""
+    extra = (
+        '<section class="sitem" id="test~ring5.workspace.covered-999~0">'
+        f'<p class="origin">{origin}</p>'
+        '<a href="#req~ring5.workspace.covered~1">covers</a></section>'
+    )
+    polluted = native_oft_html.replace("</main>", extra + "</main>")
+    assert extract_oft_coverage(polluted, small_inventory)["workspace.covered"]
+    with pytest.raises(OftHtmlReportError, match="unexpected evidence origins"):
+        enhance_oft_html(polluted, small_inventory, source_markers)
+
+
+@pytest.mark.parametrize(
+    "removed",
+    [
+        '<p class="origin">src/example.py:12</p>',
+        '<a href="#req~ring5.workspace.covered~1">covers</a>',
+    ],
+)
+def test_native_evidence_cannot_hide_a_missing_origin_or_cover(
+    native_oft_html: str,
+    small_inventory: dict[str, Any],
+    source_markers: list[EvidenceMarker],
+    removed: str,
+) -> None:
+    malformed = native_oft_html.replace(removed, "", 1)
+    with pytest.raises(OftHtmlReportError, match="requires one origin and a requirement cover"):
+        enhance_oft_html(malformed, small_inventory, source_markers)
+
+
+def test_every_native_cover_is_checked(
+    native_oft_html: str,
+    small_inventory: dict[str, Any],
+    source_markers: list[EvidenceMarker],
+) -> None:
+    current = '<a href="#req~ring5.workspace.covered~1">covers</a>'
+    extra = '<a href="#req~ring5.workspace.future~1">another cover</a>'
+    polluted = native_oft_html.replace(current, current + extra, 1)
+    with pytest.raises(OftHtmlReportError, match="unexpected evidence origins"):
+        enhance_oft_html(polluted, small_inventory, source_markers)
+
+
+def test_duplicate_current_native_origin_is_rejected(
+    native_oft_html: str,
+    small_inventory: dict[str, Any],
+    source_markers: list[EvidenceMarker],
+) -> None:
+    duplicate = (
+        '<section class="sitem" id="test~ring5.workspace.covered-999~0">'
+        '<p class="origin">tests/test_example.py:24</p>'
+        '<a href="#req~ring5.workspace.covered~1">covers</a></section>'
+    )
+    with pytest.raises(OftHtmlReportError, match="duplicate evidence origin"):
+        enhance_oft_html(
+            native_oft_html.replace("</main>", duplicate + "</main>"),
+            small_inventory,
+            source_markers,
+        )

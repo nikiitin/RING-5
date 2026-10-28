@@ -18,7 +18,6 @@ def test_auto_refresh_config_detection() -> None:
         "height": 600,
         "legend_title": "",
         "show_error_bars": False,
-        "download_format": "html",
         "legend_labels": None,
     }
 
@@ -88,7 +87,6 @@ def test_auto_refresh_triggers() -> None:
         "height": 600,
         "legend_title": "",
         "show_error_bars": False,
-        "download_format": "html",
         "legend_labels": None,
     }
 

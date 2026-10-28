@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from src.core.models.history_models import OperationRecord
 from src.web.components.common.history_components import HistoryComponents
+from tests.conftest import columns_side_effect
 
 
 def _make_record(
@@ -19,17 +20,6 @@ def _make_record(
         "dest_columns": dst or ["col_c"],
         "timestamp": ts,
     }
-
-
-def _columns_side_effect(n: "int | list[int]") -> "list[MagicMock]":
-    count = len(n) if isinstance(n, list) else n
-    cols = []
-    for _ in range(count):
-        m = MagicMock()
-        m.__enter__ = MagicMock(return_value=m)
-        m.__exit__ = MagicMock(return_value=False)
-        cols.append(m)
-    return cols
 
 
 class TestRenderHistoryTable:
@@ -67,66 +57,6 @@ class TestRenderHistoryTable:
         assert df.iloc[0]["Timestamp"] == "2024-01-02 00:00:00"
 
 
-class TestRenderGlobalHistory:
-    """Test render_global_history."""
-
-    @patch("src.web.components.common.history_components.st")
-    def test_empty_records_noop(self, mock_st: MagicMock) -> None:
-        HistoryComponents.render_global_history([], MagicMock())
-        mock_st.expander.assert_not_called()
-
-    @patch("src.web.components.common.history_components.st")
-    def test_renders_expander_with_records(self, mock_st: MagicMock) -> None:
-        records = [_make_record(op="Preprocessor: Division")]
-        exp = MagicMock()
-        exp.__enter__ = MagicMock(return_value=exp)
-        exp.__exit__ = MagicMock(return_value=False)
-        mock_st.expander.return_value = exp
-        mock_st.columns.side_effect = _columns_side_effect
-        mock_st.button.return_value = False
-
-        HistoryComponents.render_global_history(records, MagicMock())
-        mock_st.expander.assert_called_once()
-
-    @patch("src.web.components.common.history_components.st")
-    def test_shows_max_10_records(self, mock_st: MagicMock) -> None:
-        records = [_make_record(op=f"Op {i}") for i in range(15)]
-        exp = MagicMock()
-        exp.__enter__ = MagicMock(return_value=exp)
-        exp.__exit__ = MagicMock(return_value=False)
-        mock_st.expander.return_value = exp
-        mock_st.columns.side_effect = _columns_side_effect
-        mock_st.button.return_value = False
-
-        HistoryComponents.render_global_history(records, MagicMock())
-        # columns should be called 10 times (once per displayed record)
-        assert mock_st.columns.call_count == 10
-
-    @patch("src.web.components.common.history_components.st")
-    def test_delete_button_calls_callback(self, mock_st: MagicMock) -> None:
-        record = _make_record()
-        exp = MagicMock()
-        exp.__enter__ = MagicMock(return_value=exp)
-        exp.__exit__ = MagicMock(return_value=False)
-        mock_st.expander.return_value = exp
-        mock_st.columns.side_effect = _columns_side_effect
-
-        delete_cb = MagicMock()
-
-        def button_side_effect(label: Any, on_click: Any = None, **kwargs: Any) -> int:
-
-            if label == "🗑️":
-                if on_click:
-                    on_click()
-                return True
-            return False
-
-        mock_st.button.side_effect = button_side_effect
-
-        HistoryComponents.render_global_history([record], delete_cb)
-        delete_cb.assert_called_once_with(record)
-
-
 class TestRenderManagerHistory:
     """Test render_manager_history."""
 
@@ -143,7 +73,7 @@ class TestRenderManagerHistory:
         exp.__enter__ = MagicMock(return_value=exp)
         exp.__exit__ = MagicMock(return_value=False)
         mock_st.expander.return_value = exp
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.button.return_value = False
 
         HistoryComponents.render_manager_history(records, "Preprocessor", "_load_key", MagicMock())
@@ -156,7 +86,7 @@ class TestRenderManagerHistory:
         exp.__enter__ = MagicMock(return_value=exp)
         exp.__exit__ = MagicMock(return_value=False)
         mock_st.expander.return_value = exp
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.button.return_value = False
 
         HistoryComponents.render_manager_history(records, "Preprocessor", "_load_key", MagicMock())
@@ -171,7 +101,7 @@ class TestRenderManagerHistory:
         exp.__enter__ = MagicMock(return_value=exp)
         exp.__exit__ = MagicMock(return_value=False)
         mock_st.expander.return_value = exp
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
 
         def button_side_effect(label: Any, on_click: Any = None, **kwargs: Any) -> int:
 
@@ -196,7 +126,7 @@ class TestRenderManagerHistory:
         exp.__enter__ = MagicMock(return_value=exp)
         exp.__exit__ = MagicMock(return_value=False)
         mock_st.expander.return_value = exp
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
 
         delete_cb = MagicMock()
 

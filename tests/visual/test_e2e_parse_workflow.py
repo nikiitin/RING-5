@@ -24,6 +24,7 @@ IMPORTANT -- Streamlit segmented-control toggle behaviour:
 
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 
 import pytest
@@ -96,6 +97,11 @@ class TestScanWorkflow:
         count = ds.get_scan_result_count()
         assert count > 0, f"Expected scanner to find variables, got {count}"
 
+        # Identical results must still come from a new completed scan attempt.
+        ds.scan_and_wait(timeout=_E2E_TIMEOUT)
+        ds.assert_scan_success()
+        assert ds.get_scan_result_count() == count
+
     def test_scan_histogram_stats(self, shared_page: Page, live_server_url: str) -> None:
         """Quick Scan on histogram/stats.txt discovers histogram variables."""
         ds = _setup_data_source(shared_page, live_server_url)
@@ -158,9 +164,11 @@ class TestVariableAndParse:
         ds.scan_and_wait(timeout=_E2E_TIMEOUT)
         ds.assert_scan_success()
 
-        # Add from scan results
-        ds.add_variable_from_scan(index=0)
+        # Add a discovered configuration variable outside the current defaults.
+        configured_before = ds.get_variable_count()
+        ds.add_variable_from_scan("random_seed")
         ds.assert_dialog_hidden()
+        expect(ds.variable_name_inputs).to_have_count(configured_before + 1, timeout=_E2E_TIMEOUT)
 
         # Add manual scalar
         ds.add_manual_variable("system.cpu.ipc", "scalar")
@@ -189,8 +197,29 @@ class TestVariableAndParse:
         - data_managers_visualization_tab_has_dataframe
         - data_managers_history_is_empty_initially
         """
+        # [test->req~ring5.ingestion.session-background-parse~1]
         ds = _setup_data_source(shared_page, live_server_url)
         _scan_add_parse(ds, _BENCHMARKS_STATS, ["system.cpu.ipc"])
+        expect(ds.data_rows_metric.get_by_test_id("stMetricValue")).to_have_text("12")
+        columns = shared_page.get_by_test_id("stMetric").filter(has_text="Columns").first
+        expect(columns.get_by_test_id("stMetricValue")).to_have_text("4")
+
+        # A session cache hit reuses its CSV but consumes a new job identity.
+        previous_completion = ds.get_parse_completion_id()
+        source = shared_page.get_by_test_id("stMetric").filter(has_text="Source").first
+        previous_source = source.get_by_test_id("stMetricValue").inner_text()
+        ds.parse_and_wait(timeout=_E2E_TIMEOUT)
+        assert ds.get_parse_completion_id() != previous_completion
+        expect(ds.parse_completion_notice).to_contain_text(
+            "Last parse: Reused parsed CSV from Recent"
+        )
+        expect(source.get_by_test_id("stMetricValue")).to_have_text(previous_source)
+        expect(ds.data_rows_metric.get_by_test_id("stMetricValue")).to_have_text("12")
+
+        # Neither retained rows nor the persistent notice arms another wait.
+        expect(ds.parse_completion_notice).to_be_visible()
+        with pytest.raises(AssertionError, match="No parse submission is pending"):
+            ds.wait_for_parse_completion(timeout=500)
 
         # Navigate to Data Managers
         dm = DataManagersPage(shared_page)
@@ -206,6 +235,26 @@ class TestVariableAndParse:
         # Data Visualization tab has a dataframe
         dm.select_tab("Data Visualization")
         dm.assert_dataframe_visible()
+        download = dm.download_current_view()
+        with Path(download.path()).open(newline="", encoding="utf-8") as table:
+            rows = list(csv.DictReader(table))
+        assert len(rows) == 12
+        assert set(rows[0]) == {
+            "simTicks",
+            "benchmark_name",
+            "config_description",
+            "system.cpu.ipc",
+        }
+        expected_ipc = [
+            float(line.split()[1])
+            for stats in sorted(_BENCHMARKS_STATS.rglob("stats.txt"))
+            for line in stats.read_text(encoding="utf-8").splitlines()
+            if line.split() and line.split()[0] == "system.cpu.ipc"
+        ]
+        assert len(expected_ipc) == 12
+        assert sorted(float(row["system.cpu.ipc"]) for row in rows) == pytest.approx(
+            sorted(expected_ipc)
+        )
 
         # Operations History is empty initially
         dm.select_tab("Operations History")
@@ -356,7 +405,7 @@ class TestE2EScreenshots:
 
         # Very small fixtures can finish before an intermediate progress frame.
         ds.click_parse()
-        parse_activity = ds.parse_job_heading.or_(ds.parse_completion_message).first
+        parse_activity = ds.parse_job_heading.or_(ds.pending_parse_completion).first
         expect(parse_activity).to_be_visible(timeout=_E2E_TIMEOUT)
         ds.screenshot(shared_screenshot_dir / "e2e_parse_background.png")
         ds.wait_for_parse_completion(timeout=_E2E_TIMEOUT)

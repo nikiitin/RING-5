@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-import os
+from copy import deepcopy
 import platform
 import shutil
 import subprocess
 from collections.abc import Mapping, Sequence
 from functools import lru_cache
 from importlib.metadata import PackageNotFoundError, version as distribution_version
-from pathlib import Path
 from typing import Any
 
+from src.core.common.browser_selection import select_browser
+from src.core.models.visualization.export_options import TEX_SYSTEMS
 from src.core.models.environment_models import (
     EnvironmentComparison,
     EnvironmentDifference,
@@ -22,12 +23,13 @@ from src.core.models.environment_models import (
 _RUNTIME_DEPENDENCIES = (
     "choreographer",
     "click",
-    "gitpython",
     "kaleido",
     "matplotlib",
     "numpy",
     "openpyxl",
     "pandas",
+    "packaging",
+    "platformdirs",
     "pillow",
     "plotly",
     "python-multipart",
@@ -35,7 +37,6 @@ _RUNTIME_DEPENDENCIES = (
     "scipy",
     "starlette",
     "streamlit",
-    "tornado",
 )
 _RENDERERS = ("matplotlib", "plotly")
 
@@ -69,31 +70,20 @@ def _run_version(executable: str | None, arguments: Sequence[str]) -> str | None
             text=True,
             timeout=2,
         )
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, UnicodeError):
         return None
     return _first_line(result.stdout) or _first_line(result.stderr)
-
-
-def _chrome_path() -> str | None:
-    """Resolve a configured or PATH-visible Chrome-family executable."""
-    configured = os.environ.get("BROWSER_PATH")
-    if configured:
-        candidate = Path(configured)
-        if candidate.is_file():
-            return str(candidate)
-    for name in ("chrome", "chromium", "chromium-browser", "google-chrome"):
-        found = shutil.which(name)
-        if found:
-            return found
-    return None
 
 
 def _external_tool_versions() -> dict[str, str | None]:
     """Return version strings for every external tool RING-5 can use."""
     return {
-        "chrome": _run_version(_chrome_path(), ("--version",)),
+        "chrome": _run_version(select_browser().executable_path, ("--version",)),
         "perl": _run_version(shutil.which("perl"), ("-e", "print $^V")),
-        "xelatex": _run_version(shutil.which("xelatex"), ("--version",)),
+        **{
+            compiler: _run_version(shutil.which(compiler), ("--version",))
+            for compiler in TEX_SYSTEMS
+        },
     }
 
 
@@ -144,30 +134,28 @@ class EnvironmentMetadataService:
         """
         if refresh:
             _capture_environment.cache_clear()
-        return _capture_environment()
+        return deepcopy(_capture_environment())
 
     @staticmethod
-    def from_payload(value: object) -> EnvironmentMetadata | None:
-        """Validate optional environment metadata from portfolio JSON.
+    def from_payload(value: object) -> EnvironmentMetadata:
+        """Validate current environment metadata from portfolio JSON.
 
         Args:
             value: Raw ``environment_metadata`` portfolio value.
 
         Returns:
-            Validated metadata, or ``None`` for an older portfolio.
+            Validated current environment metadata.
 
         Raises:
-            ValueError: A present payload is malformed.
+            ValueError: The payload is absent or malformed.
         """
-        if value is None:
-            return None
         if not isinstance(value, Mapping):
-            raise ValueError("Portfolio environment metadata must be an object or null.")
+            raise ValueError("Portfolio environment metadata must be an object.")
         return EnvironmentMetadata.from_dict(value)
 
     @staticmethod
     def compare(
-        recorded: EnvironmentMetadata | Mapping[str, Any] | None,
+        recorded: EnvironmentMetadata | Mapping[str, Any],
         *,
         current: EnvironmentMetadata | None = None,
     ) -> EnvironmentComparison:
@@ -175,7 +163,7 @@ class EnvironmentMetadataService:
         """Compare recorded portfolio metadata with the current runtime.
 
         Args:
-            recorded: Validated metadata, raw portfolio mapping, or ``None``.
+            recorded: Validated metadata or its raw portfolio mapping.
             current: Optional deterministic current-runtime value for callers/tests.
 
         Returns:
@@ -189,7 +177,7 @@ class EnvironmentMetadataService:
         )
         live = current or EnvironmentMetadataService.capture()
         live_rows = _metadata_rows(live)
-        saved_rows = _metadata_rows(saved) if saved is not None else {}
+        saved_rows = _metadata_rows(saved)
         differences: list[EnvironmentDifference] = []
         for section, component in sorted(set(live_rows) | set(saved_rows)):
             key = (section, component)

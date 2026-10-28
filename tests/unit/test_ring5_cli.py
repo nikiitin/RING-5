@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from unittest.mock import patch
 from xml.etree import ElementTree as ET
@@ -23,6 +24,16 @@ class TestParserStructure:
         parser = build_parser()
         args = parser.parse_args(["doctor"])
         assert args.command == "doctor"
+        assert args.tex_system == "xelatex"
+
+    @pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+    def test_doctor_compiler_choice(self, compiler: str) -> None:
+        args = build_parser().parse_args(["doctor", "--tex-system", compiler])
+        assert args.tex_system == compiler
+
+    def test_doctor_rejects_noncanonical_compiler(self) -> None:
+        with pytest.raises(SystemExit):
+            build_parser().parse_args(["doctor", "--tex-system", "XeLaTeX"])
 
     def test_parse_requires_variable_and_output(self) -> None:
         with pytest.raises(SystemExit):
@@ -67,7 +78,7 @@ class TestParserStructure:
 
 
 class TestDoctorCommand:
-    # [test->req~ring5.api.doctor~1]
+    # [test->req~ring5.api.doctor~2]
     def test_doctor_runs(self, capsys: pytest.CaptureFixture[str]) -> None:
         code = main(["doctor"])
         out = capsys.readouterr().out
@@ -125,7 +136,7 @@ class TestRenderCommand:
 
         df = pd.DataFrame({"x": ["a", "b"], "y": [1.0, 2.0]})
         with ring5.Session() as s:
-            s.create_plot("bar", data=df, config={"x": "x", "y": "y"}, name="cli_test")
+            s.create_plot("bar", data=ring5.Table(df), config={"x": "x", "y": "y"}, name="cli_test")
             s.save_portfolio("cli_probe")
 
         code = main(["render", "cli_probe", "-o", str(tmp_path / "figs"), "--format", "pdf"])
@@ -147,74 +158,13 @@ class TestRenderCommand:
         (portfolios_dir / "future.json").write_text(json.dumps({"schema_version": 99}))
         code = main(["render", "future", "-o", str(tmp_path / "figs")])
         assert code == 2
-        assert "newer than this RING-5" in capsys.readouterr().err
+        assert "Unsupported portfolio schema_version" in capsys.readouterr().err
 
 
-class TestUpgradeCommand:
-    # [test->req~ring5.portfolio.upgrade-protection~1]
-    def test_upgrade_persists_current_schema(
-        self, portfolios_dir: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        # V1 on disk: no schema_version, export_* keys
-        v1 = {
-            "data_csv": "x,y\na,1\n",
-            "plots": [
-                {
-                    "id": 0,
-                    "name": "p",
-                    "plot_type": "bar",
-                    "config": {"x": "x", "y": "y", "export_format": "png"},
-                    "processed_data": "x,y\na,1\n",
-                }
-            ],
-            "plot_counter": 1,
-            "config": {},
-            "parse_variables": [],
-        }
-        (portfolios_dir / "old.json").write_text(json.dumps(v1))
-
-        code = main(["upgrade", "old"])
-        assert code == 0
-
-        upgraded = json.loads((portfolios_dir / "old.json").read_text())
-        assert upgraded["schema_version"] == 4
-        assert upgraded["environment_metadata"] is not None
-        assert "export_format" not in upgraded["plots"][0]["config"]
-
-
-class TestUpgradeRefusal:
-    # [test->req~ring5.portfolio.upgrade-protection~1]
-    def test_upgrade_refuses_incomplete_restore(
-        self, portfolios_dir: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        """Re-saving a partial restore would permanently destroy what could
-        not be loaded — upgrade must refuse and leave the file untouched."""
-        bad = {
-            "data_csv": "x,y\na,1\n",
-            "plots": [
-                {
-                    "id": 0,
-                    "name": "future_plot",
-                    "plot_type": "no_such_plot_type",
-                    "config": {},
-                    "processed_data": "x,y\na,1\n",
-                }
-            ],
-            "plot_counter": 1,
-            "config": {},
-            "parse_variables": [],
-        }
-        target = portfolios_dir / "bad.json"
-        target.write_text(json.dumps(bad))
-        before = target.read_bytes()
-
-        code = main(["upgrade", "bad"])
-
-        assert code == 2
-        assert target.read_bytes() == before, "upgrade modified a file it refused"
-        err = capsys.readouterr().err
-        assert "refusing to upgrade" in err
-        assert "future_plot" in err
+def test_upgrade_is_not_a_supported_command() -> None:
+    with pytest.raises(SystemExit) as error:
+        build_parser().parse_args(["upgrade", "old"])
+    assert error.value.code == 2
 
 
 class TestRecipeMatrixCommand:
@@ -547,7 +497,9 @@ class TestRegressionGateCommand:
             )
             == 2
         )
-        assert "Could not load CSV" in capsys.readouterr().err
+        message = capsys.readouterr().err
+        assert "Could not load data" in message
+        assert "CSV file not found" in message
 
         blocked_parent = tmp_path / "not-a-directory"
         blocked_parent.write_text("blocked")
@@ -662,7 +614,8 @@ class TestReportScheduleCommand:
         self._write_recipe(recipe)
         parameters.write_text(json.dumps({"input_csv": str(source)}))
 
-        with patch("ring5.cli.time.sleep") as sleep:
+        with patch("ring5.cli.time", wraps=time, spec=time) as watch_time:
+            watch_time.sleep.return_value = None
             code = main(
                 [
                     "report-schedule",
@@ -684,7 +637,7 @@ class TestReportScheduleCommand:
 
         assert code == 0
         assert [result["outcome"] for result in results] == ["generated", "unchanged"]
-        sleep.assert_called_once_with(0.1)
+        watch_time.sleep.assert_called_once_with(0.1)
 
     def test_first_scheduled_observation_waits_for_stability(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]

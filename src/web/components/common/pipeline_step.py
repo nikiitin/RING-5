@@ -1,19 +1,18 @@
 """Pipeline step component — renders a single shaper step in the pipeline."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from typing import TypedDict
 
 import pandas as pd
 import streamlit as st
 
-from src.core.models.shaper_models import ShaperStepConfig
 from src.web.components.common.pipeline import PipelineComponent
 
 
 class PipelineStepResult(TypedDict):
     """Result of rendering a single pipeline step."""
 
-    new_config: ShaperStepConfig
+    new_config: Mapping[str, object]
     move_up: bool
     move_down: bool
     delete: bool
@@ -30,17 +29,18 @@ class PipelineStepComponent:
         plot_id: int,
         idx: int,
         shaper_type: str,
+        display_name: str,
         shaper_id: int,
         step_input: pd.DataFrame,
-        current_config: ShaperStepConfig,
+        current_config: Mapping[str, object],
         is_first: bool,
         is_last: bool,
         configure_fn: Callable[
-            [str, pd.DataFrame, int, ShaperStepConfig | None, int | None],
-            ShaperStepConfig,
+            [str, pd.DataFrame, int, Mapping[str, object] | None, int],
+            Mapping[str, object],
         ],
         apply_fn: Callable[
-            [pd.DataFrame, list[ShaperStepConfig]],
+            [pd.DataFrame, Sequence[Mapping[str, object]]],
             pd.DataFrame,
         ],
     ) -> PipelineStepResult:
@@ -50,6 +50,7 @@ class PipelineStepComponent:
             plot_id: Plot ID for widget key uniqueness.
             idx: Step index in the pipeline.
             shaper_type: Internal shaper type key.
+            display_name: Current facade-provided label for the step.
             shaper_id: Unique shaper instance ID.
             step_input: DataFrame input for this step.
             current_config: Current shaper configuration.
@@ -61,7 +62,6 @@ class PipelineStepComponent:
         Returns:
             PipelineStepResult with config, actions, and preview data.
         """
-        display_name: str = PipelineComponent.REVERSE_MAP.get(shaper_type, shaper_type)
 
         result: PipelineStepResult = {
             "new_config": current_config,
@@ -78,7 +78,7 @@ class PipelineStepComponent:
 
             with c1:
                 try:
-                    new_config: ShaperStepConfig = configure_fn(
+                    new_config: Mapping[str, object] = configure_fn(
                         shaper_type,
                         step_input,
                         shaper_id,
@@ -94,7 +94,6 @@ class PipelineStepComponent:
                 controls: dict[str, bool] = PipelineComponent.render_shaper_controls(
                     plot_id=plot_id,
                     idx=idx,
-                    shaper_type=shaper_type,
                     is_first=is_first,
                     is_last=is_last,
                 )

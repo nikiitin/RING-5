@@ -12,12 +12,23 @@ Data Injection Pattern:
 """
 
 from pathlib import Path
+from unittest.mock import patch
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from streamlit.testing.v1 import AppTest
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 _APP_PATH: str = str(Path(__file__).parents[2] / "app.py")
+
+
+def plot_widget_key(app: AppTest, plot_id: int, suffix: str) -> str:
+    """Resolve the current identity against this AppTest session's actual reset state."""
+    with patch("src.web.state.ui_state_manager.st") as state:
+        state.session_state = app.session_state
+        return WidgetKeyBuilder.plot_key(plot_id, suffix)
+
 
 # Rich e2e sample data
 
@@ -204,8 +215,10 @@ def navigate_to(at: AppTest, page_name: str) -> AppTest:
     Returns:
         The same AppTest instance after navigation and re-run.
     """
-    at.session_state["_nav_page"] = page_name
-    at.run()
+    at.sidebar.button(key=f"nav_{page_name}").click().run()
+    assert not at.exception, f"Navigation to {page_name!r} raised an exception."
+    selected = at.session_state["nav.current_page"]
+    assert selected == page_name, f"Navigation selected {selected!r}, expected {page_name!r}."
     return at
 
 

@@ -36,7 +36,7 @@ def test_public_box_plot_renders_both_engines_with_series_style() -> None:
     }
 
     with ring5.Session() as session:
-        plot = session.create_plot("box", data=data, config=config, name="IPC spread")
+        plot = session.create_plot("box", data=ring5.Table(data), config=config, name="IPC spread")
         plotly_figure = session.render(plot, engine="plotly")
         matplotlib_figure = session.render(plot, engine="matplotlib")
 

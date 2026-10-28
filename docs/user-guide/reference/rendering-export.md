@@ -5,9 +5,6 @@ parent: Reference
 grand_parent: User Guide
 nav_order: 4
 permalink: /user-guide/reference/rendering-export/
-redirect_from:
-  - /user-guide/features/dual-engine/
-  - /user-guide/reference/supported-formats/
 ---
 
 # Rendering and export
@@ -25,7 +22,7 @@ rendering preference and does not change the mapped data. Its mode-bar image con
 | Plotly | HTML | None | Interactive, self-contained figure |
 | Plotly | PNG, SVG, PDF | Chrome-family browser through Kaleido | Static export of interactive rendering |
 | Matplotlib | PDF, PNG, SVG | None | Static vector or raster figure |
-| Matplotlib | PGF | XeLaTeX | LaTeX-native inclusion |
+| Matplotlib | PGF | Selected TeX compiler | LaTeX-native inclusion |
 
 EPS is not supported. PGF does not support raster graphics; the web application falls back to PDF
 when a PGF download contains raster content.
@@ -114,6 +111,10 @@ HTML downloaded from the web workspace also includes the processed dataframe tha
 figure. The table works without a server or network connection and supports whole-table search,
 column sorting, pagination, and a client-side CSV download. This is the post-pipeline dataframe:
 it therefore shows the exact rows and columns available to the plot, not the unprocessed input.
+The CSV downloads the complete dataframe in its original row order, regardless of table filtering,
+sorting or pagination. It uses the dataframe's CSV serialization, preserving numeric precision,
+large integer identifiers and timestamp precision. Missing cells are empty CSV fields; the table's
+visual missing-value marker does not become source data.
 
 ### Plotly static formats
 
@@ -127,6 +128,9 @@ Covers:
 
 PNG, SVG, and PDF export use Kaleido and a Chrome-family browser. Transient browser failures use a
 bounded retry; a missing browser is reported immediately as a dependency failure.
+Run `ring5 install-chrome` and set `BROWSER_PATH` to its printed executable path before starting
+the application or an export process. The CLI uses the same packaged manifest in checkouts and
+installed wheels; see [installation]({{site.baseurl}}/user-guide/getting-started/installation/#install-chrome-for-plotly-static-exports).
 
 ### Matplotlib standard formats
 
@@ -154,6 +158,11 @@ Covers:
 PGF export preserves physical size for LaTeX inclusion and uses the selected TeX system. The web
 download reports a visible PDF fallback when raster content prevents PGF serialization.
 
+Omitted primary legend coordinates use automatic placement. Matplotlib places the legend inside
+the axes; Plotly uses its automatic legend layout. The legend controls retain `-1` for automatic
+coordinates. Explicit positions and anchors remain as configured, including outside positions;
+allow enough space for them when using PGF's fixed figure canvas.
+
 For multi-item analysis documents rather than individual figures, use the
 [analysis report workflow]({{site.baseurl}}/user-guide/workflows/batch-reports/). Report HTML embeds every asset;
 report PDF uses the dependency-free Matplotlib path and includes the same provenance metadata.
@@ -170,9 +179,25 @@ Covers:
 
 -->
 
-Matplotlib advanced settings select XeLaTeX, pdfLaTeX, or LuaLaTeX for PGF output. The web
-application fixes the additional preamble to an empty value because a TeX preamble is executable
-input.
+Matplotlib advanced settings select `xelatex`, `pdflatex`, or `lualatex` for PGF output.
+Python exports use the `tex_system` argument, which defaults to `xelatex`:
+
+```python
+session.export(figure, "figure.pgf", tex_system="lualatex")
+```
+
+The same option applies to `export_bytes` and `export_submit`. Each export uses an empty custom
+preamble and escapes literal figure text. Compiler names are exact identifiers; executable paths
+and command options are not accepted. XeLaTeX and LuaLaTeX support installed Unicode fonts;
+pdfLaTeX uses its TeX font support. See the
+[Matplotlib PGF guide](https://matplotlib.org/stable/users/explain/text/pgf.html#choosing-the-tex-system)
+for compiler and font requirements.
+
+Use `ring5.doctor(tex_system="lualatex")` to check the selected compiler without running it.
+Saved environment metadata records the versions of all three supported compilers when available.
+
+Recipe exports and `render_portfolio` use each saved plot's `tex_system` setting. Direct exports of
+a native figure take this option on the export call; they do not read hidden figure metadata.
 
 ### Plotly hover mode
 
@@ -222,7 +247,8 @@ file.
 
 Plotly uses configured pixel dimensions. Matplotlib uses configured physical dimensions; PDF, PNG,
 and SVG apply tight bounding boxes, while PGF preserves the configured figure size for LaTeX input.
-Matplotlib advanced settings select XeLaTeX, pdfLaTeX, or LuaLaTeX for supported text rendering.
+The `tex_system` option selects the compiler for PGF only. PDF, PNG, and SVG exports use
+Matplotlib's standard renderers without invoking TeX.
 
 ### Safe numeric and TeX formatting
 
@@ -237,3 +263,14 @@ Covers:
 The web interface does not accept an arbitrary TeX preamble, and RING-5 escapes user-controlled
 figure text before TeX-backed export. User-provided number formats are also bounded before they are
 applied to labels.
+
+The interactive chart loads the JavaScript bundle shipped with the installed Python
+Plotly package. It supports Plotly's binary numeric arrays and renders without a CDN
+connection. Dashboards and small multiples support Cartesian, polar, and domain
+panels; a single panel must use one coordinate family.
+
+Matplotlib exports preserve category alignment, primary and secondary axis stacking,
+and configured error bars. Rendering failures raise an error identifying the failed
+series. Heatmap cell labels use the mapped palette color and resolved color bounds
+to select contrasting text. The configured figure width and height describe the
+complete figure, including all heatmap facets.

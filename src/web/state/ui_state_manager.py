@@ -1,8 +1,32 @@
 """Typed access to namespaced, transient Streamlit session state."""
 
+from dataclasses import dataclass
 from typing import Any
 
 import streamlit as st
+
+
+@dataclass(frozen=True, slots=True)
+class _WidgetGenerations:
+    """Track the latest reset of each logical widget scope within one plot."""
+
+    counter: int = 0
+    scopes: tuple[tuple[str, int], ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class ParseCompletionNotice:
+    """Remember one consumed parse result within its browser session.
+
+    Attributes:
+        job_id: Identity of the successfully consumed attempt.
+        message: Human-readable description of the loaded or reused result.
+        partial: Whether the user explicitly loaded incomplete output.
+    """
+
+    job_id: str
+    message: str
+    partial: bool = False
 
 
 class WidgetKeyBuilder:
@@ -13,25 +37,48 @@ class WidgetKeyBuilder:
 
     Examples::
 
-        WidgetKeyBuilder.plot_key(1, "auto_refresh")  # "plot.1.auto_refresh"
+        WidgetKeyBuilder.plot_key(1, "widgets.auto_refresh")  # "plot.1.widgets.auto_refresh"
         WidgetKeyBuilder.manager_key("mixer", "mode")  # "manager.mixer.mode"
-        WidgetKeyBuilder.global_key("theme")            # "g.theme"
     """
 
     @staticmethod
     def plot_key(plot_id: int, *parts: str) -> str:
-        """Build a namespaced key for plot-level state."""
-        return f"plot.{plot_id}.{'_'.join(parts)}"
+        """Build a plot key whose widget identity changes only after a scoped reset."""
+        suffix = "_".join(parts)
+        key = f"plot.{plot_id}.{suffix}"
+        if suffix.startswith("widgets."):
+            generations = st.session_state.get(f"plot.{plot_id}.widget_generations")
+            if isinstance(generations, _WidgetGenerations):
+                widget = suffix.removeprefix("widgets.")
+                generation = max(
+                    (
+                        value
+                        for scope, value in generations.scopes
+                        if not scope or widget == scope or widget.startswith(scope + ".")
+                    ),
+                    default=0,
+                )
+                if generation:
+                    key += f".__reset_{generation}"
+        return key
+
+    @staticmethod
+    def data_source_key(key: str) -> str:
+        """Keep a Data Source widget stable until its workspace projection is retired."""
+        generation = st.session_state.get("data_source.widget_generation", 0)
+        return f"{key}.__reset_{generation}" if generation else key
 
     @staticmethod
     def manager_key(manager: str, *parts: str) -> str:
         """Build a namespaced key for a data manager."""
         return f"manager.{manager}.{'_'.join(parts)}"
 
-    @staticmethod
-    def global_key(*parts: str) -> str:
-        """Build a namespaced key for global UI state."""
-        return f"g.{'_'.join(parts)}"
+
+def _clear_keys(prefixes: tuple[str, ...]) -> None:
+    """Remove only text keys within the given ownership boundaries."""
+    for key in list(st.session_state):
+        if isinstance(key, str) and key.startswith(prefixes):
+            del st.session_state[key]
 
 
 class _PlotUIState:
@@ -41,94 +88,52 @@ class _PlotUIState:
     Namespaced under ``plot.{plot_id}.*``.
     """
 
-    # Key Builders
-    @staticmethod
-    def _key(plot_id: int, suffix: str) -> str:
-        """Build a namespaced session_state key for a plot."""
-        return WidgetKeyBuilder.plot_key(plot_id, suffix)
-
-    # Auto Refresh
     def get_auto_refresh(self, plot_id: int) -> bool:
         """Get whether auto-refresh is enabled for a plot."""
-        return bool(st.session_state.get(self._key(plot_id, "auto_refresh"), True))
+        return bool(
+            st.session_state.get(WidgetKeyBuilder.plot_key(plot_id, "widgets.auto_refresh"), True)
+        )
 
-    def set_auto_refresh(self, plot_id: int, value: bool) -> None:
-        """Set auto-refresh state for a plot."""
-        st.session_state[self._key(plot_id, "auto_refresh")] = value
+    def reset_widgets(self, plot_id: int, *sections: str) -> None:
+        """Discard scoped values and give their next widgets fresh browser identities.
 
-    # Dialog Visibility
-    def is_dialog_visible(self, plot_id: int, dialog: str) -> bool:
-        """Check if a dialog (save/load) is visible for a plot."""
-        return bool(st.session_state.get(self._key(plot_id, f"dialog.{dialog}"), False))
+        Native artifacts and transfer notices have separate ownership and remain intact.
+        A nested reset preserves sibling controls and the surrounding editor's draft.
+        """
+        scope = ".".join(sections)
+        prefix = WidgetKeyBuilder.plot_key(plot_id, "widgets") + "."
+        if scope:
+            prefix += scope + "."
+        _clear_keys((prefix,))
 
-    def set_dialog_visible(self, plot_id: int, dialog: str, visible: bool) -> None:
-        """Show/hide a dialog for a plot."""
-        st.session_state[self._key(plot_id, f"dialog.{dialog}")] = visible
+        state_key = WidgetKeyBuilder.plot_key(plot_id, "widget_generations")
+        previous = st.session_state.get(state_key)
+        if not isinstance(previous, _WidgetGenerations):
+            previous = _WidgetGenerations()
+        generation = previous.counter + 1
+        # Parent resets supersede child scopes; later child resets remain monotonic.
+        scopes = {
+            name: value
+            for name, value in previous.scopes
+            if scope and name != scope and not name.startswith(scope + ".")
+        }
+        scopes[scope] = generation
+        st.session_state[state_key] = _WidgetGenerations(generation, tuple(sorted(scopes.items())))
 
-    def hide_all_dialogs(self, plot_id: int) -> None:
-        """Hide all dialogs for a plot."""
-        for dialog in ("save", "load"):
-            self.set_dialog_visible(plot_id, dialog, False)
+    def prepare_selector(self, plot_id: int) -> str:
+        """Seed a missing plot selector so its current value reaches the browser."""
+        key = WidgetKeyBuilder.plot_key(plot_id, "selector")
+        if key not in st.session_state:
+            st.session_state[key] = plot_id
+        return key
 
-    # Ordering State
-    def get_order(self, plot_id: int, order_type: str) -> list[Any] | None:
-        """Get custom ordering for a dimension (xaxis, group, legend)."""
-        key: str = self._key(plot_id, f"order.{order_type}")
-        result: list[Any] | None = st.session_state.get(key)
-        return result
+    def forget_selector(self, plot_id: int) -> None:
+        """Retire only the previous selector after a user changes the active plot."""
+        st.session_state.pop(WidgetKeyBuilder.plot_key(plot_id, "selector"), None)
 
-    def set_order(self, plot_id: int, order_type: str, order: list[Any]) -> None:
-        """Set custom ordering for a dimension."""
-        st.session_state[self._key(plot_id, f"order.{order_type}")] = order
-
-    # Shape Editing
-    def is_editing_shapes(self, plot_id: int) -> bool:
-        """Check if shape editing mode is active for a plot."""
-        return bool(st.session_state.get(self._key(plot_id, "edit_shapes"), False))
-
-    def set_editing_shapes(self, plot_id: int, editing: bool) -> None:
-        """Toggle shape editing mode for a plot."""
-        st.session_state[self._key(plot_id, "edit_shapes")] = editing
-
-    # Pending Relayout Updates
-    def get_pending_updates(self) -> dict[str, Any] | None:
-        """Get pending widget updates from a previous relayout event."""
-        result: dict[str, Any] | None = st.session_state.get("plot.pending_updates")
-        return result
-
-    def set_pending_updates(self, updates: dict[str, Any]) -> None:
-        """Store pending widget updates for the next rerun."""
-        st.session_state["plot.pending_updates"] = updates
-
-    def consume_pending_updates(self) -> dict[str, Any] | None:
-        """Get and clear pending updates (atomic pop)."""
-        result: dict[str, Any] | None = st.session_state.pop("plot.pending_updates", None)
-        return result
-
-    # Scoped Cleanup
     def cleanup(self, plot_id: int) -> None:
-        """
-        Remove ALL session_state keys associated with a plot.
-
-        Must be called when a plot is deleted to prevent state leaks.
-        Cleans both new namespaced keys and legacy keys for backward compat.
-        """
-        prefix: str = f"plot.{plot_id}."
-        legacy_prefixes: list[str] = [
-            f"auto_{plot_id}",
-            f"show_save_for_plot_{plot_id}",
-            f"show_load_for_plot_{plot_id}",
-            f"edit_shapes_{plot_id}",
-            f"auto_t_{plot_id}",
-        ]
-
-        keys_to_remove: list[str] = []
-        for key in list(st.session_state.keys()):
-            if isinstance(key, str) and (key.startswith(prefix) or key in legacy_prefixes):
-                keys_to_remove.append(key)
-
-        for key in keys_to_remove:
-            del st.session_state[key]
+        """Remove this plot's transient state without touching another plot."""
+        _clear_keys((f"plot.{plot_id}.",))
 
 
 class _ManagerUIState:
@@ -138,50 +143,23 @@ class _ManagerUIState:
     Namespaced under ``manager.{manager_name}.*``.
     """
 
-    @staticmethod
-    def _key(manager_name: str, suffix: str) -> str:
-        """Build a namespaced key for a data manager."""
-        return WidgetKeyBuilder.manager_key(manager_name, suffix)
+    def set_success_notice(self, manager_name: str, message: str) -> None:
+        """Retain a successful publication message across its app refresh."""
+        st.session_state[WidgetKeyBuilder.manager_key(manager_name, "success_notice")] = message
 
-    # Load Triggers
-    def get_load_trigger(self, manager_name: str) -> dict[str, Any] | None:
-        """Get a pending load-from-history trigger for a manager."""
-        result: dict[str, Any] | None = st.session_state.get(
-            self._key(manager_name, "load_trigger")
+    def consume_success_notice(self, manager_name: str) -> str | None:
+        """Take this manager's publication message once after the refresh."""
+        result: str | None = st.session_state.pop(
+            WidgetKeyBuilder.manager_key(manager_name, "success_notice"), None
         )
         return result
-
-    def set_load_trigger(self, manager_name: str, record: dict[str, Any]) -> None:
-        """Set a load-from-history trigger for a manager."""
-        st.session_state[self._key(manager_name, "load_trigger")] = record
 
     def consume_load_trigger(self, manager_name: str) -> dict[str, Any] | None:
         """Get and clear a load trigger (atomic pop)."""
         result: dict[str, Any] | None = st.session_state.pop(
-            self._key(manager_name, "load_trigger"), None
+            WidgetKeyBuilder.manager_key(manager_name, "load_trigger"), None
         )
         return result
-
-    # Form Values
-    def set_form_value(self, manager_name: str, field: str, value: Any) -> None:
-        """Set a form field value for a manager."""
-        st.session_state[self._key(manager_name, f"form.{field}")] = value
-
-    def get_form_value(self, manager_name: str, field: str) -> Any | None:
-        """Get a form field value for a manager."""
-        return st.session_state.get(self._key(manager_name, f"form.{field}"))
-
-    # Scoped Cleanup
-    def cleanup(self, manager_name: str) -> None:
-        """Remove all session_state keys for a manager."""
-        prefix: str = f"manager.{manager_name}."
-        keys_to_remove: list[str] = [
-            key
-            for key in st.session_state.keys()
-            if isinstance(key, str) and key.startswith(prefix)
-        ]
-        for key in keys_to_remove:
-            del st.session_state[key]
 
 
 class _NavUIState:
@@ -200,69 +178,98 @@ class _NavUIState:
         """Set the current page."""
         st.session_state["nav.current_page"] = page
 
-    def get_current_tab(self) -> str | None:
-        """Get the current tab within a page."""
-        result: str | None = st.session_state.get("nav.current_tab")
-        return result
 
-    def set_current_tab(self, tab: str) -> None:
-        """Set the current tab."""
-        st.session_state["nav.current_tab"] = tab
+class _ParseUIState:
+    """Own the active parse identity and last consumed notice under ``parse.*``."""
+
+    def get_job_id(self) -> str | None:
+        """Return the attempt exposed for progress or acknowledgement."""
+        value = st.session_state.get("parse.active_job_id")
+        return value if isinstance(value, str) else None
+
+    def remember_job(self, job_id: str) -> None:
+        """Expose accepted work and clear the previous completion notice."""
+        st.session_state["parse.active_job_id"] = job_id
+        st.session_state.pop("parse.completion", None)
+
+    def forget_job(self, job_id: str) -> None:
+        """Forget only the matching attempt, preserving independently exposed work."""
+        if self.get_job_id() == job_id:
+            st.session_state.pop("parse.active_job_id", None)
+
+    def get_completion(self) -> ParseCompletionNotice | None:
+        """Return the last consumed notice without consuming it on rerender."""
+        value = st.session_state.get("parse.completion")
+        return value if isinstance(value, ParseCompletionNotice) else None
+
+    def complete_job(self, notice: ParseCompletionNotice) -> None:
+        """Retain a consumed result and retire its matching progress identity."""
+        self.forget_job(notice.job_id)
+        st.session_state["parse.completion"] = notice
 
 
-class _ExportUIState:
-    """
-    Typed accessors for export-related UI state.
+class _DataSourceUIState:
+    """Retire parser and import widget projections before a workspace is replaced."""
 
-    Namespaced under ``export.*``.
-    """
+    _PREFIXES = (
+        "data_source.",
+        "var_",
+        "delete_var_",
+        "use_pattern_filter_",
+        "pattern_entries_",
+        "keep_source_indices_",
+        "hist_parse_mode_",
+        "hist_rebin_",
+        "hist_bins_",
+        "hist_max_range_",
+        "hist_entry_mode_",
+        "vec_parse_mode_",
+        "entry_mode_",
+        "deep_scan_",
+        "finish_",
+        "vector_entries_",
+        "stat_",
+        "dist_",
+        "config_onempty_",
+        "dialog_",
+    )
+    _KEYS = (
+        "data_source_choice",
+        "simulator_selector",
+        "stats_path_input",
+        "stats_pattern_input",
+        "parser_strategy_selector",
+        "parser_incremental_enabled",
+        "parser_test_configuration",
+        "add_selected_var",
+        "add_manual_var",
+        "adv_repeat",
+    )
 
-    def get_last_export_path(self) -> str:
-        """Get the last used export path."""
-        result: str = st.session_state.get("export.last_path", "")
-        return result
-
-    def set_last_export_path(self, path: str) -> None:
-        """Set the last used export path."""
-        st.session_state["export.last_path"] = path
+    def cleanup(self) -> None:
+        """Retire owned values and browser identities before projecting current core state."""
+        generation = st.session_state.get("data_source.widget_generation", 0)
+        _clear_keys(self._PREFIXES)
+        for key in list(st.session_state):
+            if isinstance(key, str) and any(
+                key == logical or key.startswith(f"{logical}.__reset_") for logical in self._KEYS
+            ):
+                del st.session_state[key]
+        st.session_state["data_source.widget_generation"] = generation + 1
 
 
 class UIStateManager:
-    """Expose typed sub-managers for plot, manager, navigation, and export state."""
+    """Own transient presentation state for this browser session."""
 
     def __init__(self) -> None:
         """Initialize sub-managers."""
         self.plot: _PlotUIState = _PlotUIState()
         self.manager: _ManagerUIState = _ManagerUIState()
         self.nav: _NavUIState = _NavUIState()
-        self.export: _ExportUIState = _ExportUIState()
+        self.parse: _ParseUIState = _ParseUIState()
+        self.data_source: _DataSourceUIState = _DataSourceUIState()
 
     def cleanup_all(self) -> None:
-        """
-        Remove all UI state keys (full reset).
-
-        Removes all namespaced keys (``plot.*``, ``manager.*``, ``nav.*``,
-        ``export.*``) from session_state.
-        """
-        prefixes: list[str] = ["plot.", "manager.", "nav.", "export."]
-        keys_to_remove: list[str] = [
-            key
-            for key in list(st.session_state.keys())
-            if isinstance(key, str) and any(key.startswith(p) for p in prefixes)
-        ]
-        for key in keys_to_remove:
-            del st.session_state[key]
-
-    def get_all_keys(self) -> list[str]:
-        """
-        Get all namespaced UI state keys (for debugging).
-
-        Returns:
-            List of all session_state keys managed by UIStateManager.
-        """
-        prefixes: list[str] = ["plot.", "manager.", "nav.", "export."]
-        return [
-            key
-            for key in st.session_state.keys()
-            if isinstance(key, str) and any(key.startswith(p) for p in prefixes)
-        ]
+        """Clear workspace widget state, retaining global preferences and browser identity."""
+        _clear_keys(("plot.", "manager.", "nav.", "parse."))
+        self.data_source.cleanup()

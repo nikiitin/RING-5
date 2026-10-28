@@ -59,7 +59,7 @@
     {
       "id": "reproducibility",
       "title": "Reproducibility and Portfolios",
-      "description": "RING-5 snapshots, migrates, restores, and replays complete figure portfolios.",
+      "description": "RING-5 snapshots, validates, restores, and replays complete figure portfolios.",
       "tags": ["portfolios", "reproducibility"]
     },
     {
@@ -143,7 +143,10 @@
       "tags": ["data", "metrics", "web"],
       "evidence": {
         "implementation": ["app.py::run_app._data_preview_fragment"],
-        "tests": ["tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_data_preview_metrics_shown"],
+        "tests": [
+          "tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_data_preview_metrics_shown",
+          "tests/e2e/test_example_portfolio.py::TestFirstAnalysisTutorial.test_csv_tutorial_exports_and_restores_exact_observations"
+        ],
         "documentation": ["docs/user-guide/getting-started/first-analysis.md#first-analysis"]
       }
     },
@@ -157,7 +160,13 @@
       "tags": ["reset", "state", "web"],
       "evidence": {
         "implementation": ["app.py::run_app", "src/core/state/repository_state_manager.py::RepositoryStateManager.clear_data"],
-        "tests": ["tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state"],
+        "tests": [
+          "tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_reset_all_clears_state",
+          "tests/ui/test_plot_widget_ownership.py::test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners",
+          "tests/ui/test_plot_selector_identity.py::test_workspace_replacement_reuses_id_and_pushes_its_new_label",
+          "tests/e2e/test_data_journeys.py::TestParserResetDefaults.test_reset_all_removes_authored_parser_settings_data_and_widget_values",
+          "tests/ui/test_data_source_reset.py::test_reset_all_rebuilds_default_parser_inputs_and_retires_authored_widgets"
+        ],
         "documentation": ["docs/user-guide/getting-started/concepts.md#core-concepts"]
       }
     },
@@ -215,14 +224,23 @@
     {
       "id": "ingestion.csv-contract",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "Generic CSV contract",
-      "description": "CSV input shall have a header and at least one data row, remain simulator-independent, and report malformed or empty input explicitly.",
+      "title": "Typed parser output contract",
+      "description": "Parser output shall declare simulator-independent logical variable kinds and physical column ownership, contain at least one exact typed source row, and reject malformed schema, CSV encoding, row shape or content-integrity mismatches explicitly.",
       "tags": ["csv", "validation"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Generic CSV contract",
+          "description": "CSV input shall have a header and at least one data row, remain simulator-independent, and report malformed or empty input explicitly.",
+          "reason": "Define explicit typed parser schema, physical ownership, exact row encoding and schema-bound content integrity; genuine CSV ingestion retains its separate inference contract."
+        }
+      ],
       "evidence": {
-        "implementation": ["src/core/models/csv_contract.py::validate_parser_csv"],
-        "tests": ["tests/unit/test_csv_contract.py::TestValidateParserCsv"],
+        "implementation": ["src/core/common/parsed_output.py::ParsedOutputIO.read"],
+        "tests": ["tests/unit/test_typed_csv_admission.py::TestTypedCsvAdmission"],
         "documentation": ["docs/user-guide/reference/troubleshooting.md#a-csv-does-not-load"]
       }
     },
@@ -278,21 +296,31 @@
       "tags": ["discovery", "files", "parsing"],
       "evidence": {
         "implementation": ["src/parsing/framework/file_discovery.py::find_stats_files"],
-        "tests": ["tests/unit/test_file_discovery.py::test_sorted_limit_selects_lexical_paths", "tests/unit/test_file_discovery.py::test_empty_and_missing_paths", "tests/unit/test_file_discovery.py::test_entry_walk_is_bounded"],
+        "tests": ["tests/unit/test_file_discovery.py::test_sorted_limit_selects_lexical_paths", "tests/unit/test_file_discovery.py::test_empty_and_missing_paths", "tests/unit/test_file_discovery.py::test_entry_walk_is_bounded", "tests/unit/test_file_discovery.py::test_invalid_pattern_cannot_select_the_default_file"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
       "id": "ingestion.variable-scan",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "Statistics variable scan",
-      "description": "RING-5 shall scan selected simulator files and aggregate discovered variable names, types, metadata, ranges, and visible per-file failures.",
+      "title": "Statistics source evidence scan",
+      "description": "RING-5 shall scan selected simulator files and aggregate observed names, literal entry labels, compatible source-contract evidence, explicit source instances, optional output suggestions, and visible per-file failures without inferring unprinted native geometry.",
       "tags": ["parsing", "scan", "variables"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Statistics variable scan",
+          "description": "RING-5 shall scan selected simulator files and aggregate discovered variable names, types, metadata, ranges, and visible per-file failures.",
+          "reason": "Replace priority-based physical-kind guesses and inferred extrema with shared decoder evidence and explicit request geometry."
+        }
+      ],
       "evidence": {
         "implementation": ["src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.aggregate_scan_results", "src/parsing/gem5/impl/scanning/scanner.py::Gem5StatsScanner.scan_file"],
-        "tests": ["tests/integration/test_scanner_functional.py::TestScannerFunctional.test_scan_real_stats"],
+        "tests": ["tests/integration/test_scanner_functional.py::TestScannerFunctional.test_scan_real_stats",
+          "tests/integration/test_gem5_classifier_contract.py::test_semantic_records_preserve_source_values_labels_and_summary_roles"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -362,23 +390,45 @@
       "tags": ["gem5", "vector", "variables"],
       "evidence": {
         "implementation": ["src/parsing/gem5/types/vector.py::Vector"],
-        "tests": ["tests/unit/test_vector_type.py::TestVectorReduceDuplicates"],
+        "tests": ["tests/unit/test_vector_type.py::TestVectorReduceDuplicates", "tests/integration/test_facade_reduction.py::TestFacadeReduction.test_vector_reduction"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
       "id": "ingestion.distribution",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "Distribution statistic parsing",
-      "description": "The gem5 backend shall parse distribution summaries and preserve their configured fields without inventing unavailable values.",
-      "tags": ["distribution", "gem5", "variables"],
+      "title": "Native Distribution statistic parsing",
+      "description": "The gem5 backend shall parse summaries without a grid and full native frequencies against explicit full-precision geometry and missing/nozero policy, preserving every allocated slot, both tails and actual repeated observations without fabricating unavailable values.",
+      "tags": [
+        "distribution",
+        "gem5",
+        "variables"
+      ],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/distribution.py::Distribution"],
-        "tests": ["tests/unit/test_distribution_type.py::TestDistributionReduceDuplicates"],
-        "documentation": ["docs/user-guide/reference/plot-types.md#selection-guide"]
-      }
+        "implementation": [
+          "src/parsing/gem5/types/distribution.py::Distribution",
+          "src/parsing/gem5/impl/source_bindings.py::resolve_sources"
+        ],
+        "tests": [
+          "tests/unit/test_distribution_type.py::TestDistributionReduceDuplicates",
+          "tests/unit/test_native_distribution_runtime.py::test_pinned_native_text_uses_full_precision_declared_cells",
+          "tests/unit/test_native_distribution_runtime.py::test_sparse_actual_observation_applies_only_explicit_omission_policy"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"
+        ]
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Distribution statistic parsing",
+          "description": "The gem5 backend shall parse distribution summaries and preserve their configured fields without inventing unavailable values.",
+          "reason": "Full native frequency parsing now requires explicit geometry and omission guarantees; summaries remain grid-free."
+        }
+      ]
     },
     {
       "id": "ingestion.histogram",
@@ -390,7 +440,8 @@
       "tags": ["gem5", "histogram", "variables"],
       "evidence": {
         "implementation": ["src/parsing/gem5/types/histogram.py::Histogram"],
-        "tests": ["tests/unit/test_histogram_type.py::TestHistogramRangeParser", "tests/unit/test_histogram_type.py::TestHistogramReduceDuplicates"],
+        "tests": ["tests/unit/test_histogram_type.py::TestHistogramRangeParser", "tests/unit/test_histogram_type.py::TestHistogramReduceDuplicates",
+          "tests/integration/test_gem5_classifier_contract.py::test_zero_total_histograms_preserve_measured_zero_without_percentages"],
         "documentation": ["docs/user-guide/reference/plot-types.md#selection-guide"]
       }
     },
@@ -419,7 +470,7 @@
       "evidence": {
         "implementation": ["src/parsing/gem5/types/base.py::StatType.reduce_duplicates"],
         "tests": ["tests/integration/test_pattern_aggregation_integration.py::TestScannerPatternAggregation"],
-        "documentation": ["docs/developer-guide/subsystems/parsing.md#variable-types-and-csv"]
+        "documentation": ["docs/developer-guide/subsystems/parsing.md#variable-types-and-typed-output"]
       }
     },
     {
@@ -473,13 +524,34 @@
       "description": "Web parsing shall submit immediately, retain bounded progress across reruns and navigation within one browser session, coalesce identical requests, support cooperative job-specific cancellation and explicit retry, publish successful CSVs atomically, and clean transient job data on consumption, acknowledgement, reset, release, shutdown, or orphan recovery.",
       "tags": ["async", "parsing", "sessions"],
       "evidence": {
-        "implementation": ["src/core/services/parse_job_service.py::ParseJobService"],
+        "implementation": [
+          "src/core/services/parse_job_service.py::ParseJobService",
+          "src/web/components/data_source/parse_job_status.py::render_parse_completion",
+          "src/web/components/data_source/parse_job_status.py::_complete_job"
+        ],
         "tests": [
           "tests/unit/test_parse_jobs.py::TestParseJobFlow",
-          "tests/e2e/test_background_jobs.py::TestBackgroundParseJob.test_parse_loads_without_a_blocking_dialog"
+          "tests/e2e/test_background_jobs.py::TestBackgroundParseJob.test_parse_loads_without_a_blocking_dialog",
+          "tests/ui_unit/test_parse_job_status.py::test_completion_notice_survives_rerenders_and_labels_the_last_parse",
+          "tests/ui_unit/test_parse_job_status.py::test_reused_csv_is_announced_under_its_new_consumed_job_identity",
+          "tests/ui_unit/test_parse_job_status.py::test_retry_clears_a_previous_completion_notice",
+          "tests/unit/test_ui_state_manager.py::test_parse_completion_is_shared_but_not_consumed_by_another_accessor",
+          "tests/unit/test_ui_state_manager.py::test_workspace_restore_discards_a_previous_parse_notice",
+          "tests/unit/test_visual_page_objects.py::test_parse_wait_without_submission_rejects_retained_data_and_notices",
+          "tests/integration/test_typed_parse_jobs.py::test_real_background_full_incremental_consume_and_cache_preserve_literal_cells",
+          "tests/visual/test_e2e_parse_workflow.py::TestVariableAndParse.test_parse_success_and_data_managers",
+          "tests/e2e/test_data_journeys.py::TestParserEvidence.test_playground_parse_and_repeated_attempt_preserve_their_boundaries",
+          "tests/e2e/test_data_journeys.py::TestParserRecovery.test_partial_result_requires_explicit_loading_before_replacing_data"
         ],
         "documentation": ["docs/user-guide/workflows/loading-data.md#session-background-parsing"]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "evidence",
+          "reason": "Bind consumed-result notices, fresh cache receipt identities, retry/reset ownership and repeated UI parsing workflows."
+        }
+      ]
     },
     {
       "id": "ingestion.parse-integrity",
@@ -490,8 +562,13 @@
       "description": "Parsing shall expose failed files and missing statistics and represent unavailable simulator values as NaN rather than fabricating zeroes.",
       "tags": ["errors", "integrity", "parsing"],
       "evidence": {
-        "implementation": ["ring5/_parse.py::ParseJob.finalize", "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_parsing", "ring5/errors.py::ParseError"],
-        "tests": ["tests/unit/test_missing_data_integrity.py::TestMissingScalarBecomesNaN"],
+        "implementation": ["ring5/_parse.py::ParseJob.finalize", "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_parsing", "ring5/errors.py::ParseError",
+          "src/parsing/gem5/types/base.py::population_mean"],
+        "tests": ["tests/unit/test_missing_data_integrity.py::TestMissingScalarBecomesNaN",
+          "tests/unit/test_stat_observation_presence.py::test_worker_diagnostics_distinguish_absence_from_measured_nan_and_text_policy",
+          "tests/unit/test_stat_population_mean.py::test_each_numeric_kind_uses_the_same_range_safe_population_mean",
+          "tests/integration/test_gem5_classifier_contract.py::test_semantic_records_preserve_source_values_labels_and_summary_roles",
+          "tests/integration/test_gem5_summary_contract.py::test_literal_summary_suffix_names_keep_their_source_identity"],
         "documentation": ["docs/user-guide/reference/troubleshooting.md#parsing-finds-no-files-or-variables"]
       }
     },
@@ -545,7 +622,8 @@
           "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_search_specific",
           "tests/ui_unit/test_data_manager_components.py::test_render_visualization_search_is_literal",
           "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_pagination",
-          "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_download"
+          "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_download",
+          "tests/e2e/test_data_journeys.py::TestDataInspectionResults.test_filtered_view_download_has_exact_rows_and_selected_columns"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#inspect-the-table"
@@ -572,7 +650,11 @@
           "tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_confirm_applies_data",
           "tests/unit/test_outlier_remover.py::TestOutlierRemoverRender.test_confirm_applies_data",
           "tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data",
-          "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data"
+          "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data",
+          "tests/unit/test_preview_input_scopes.py::test_pre_reset_named_inputs_cannot_publish_against_reused_names_and_revision_ids",
+          "tests/unit/test_preview_input_scopes.py::test_inflight_named_result_rejects_change_and_revert_to_its_captured_revision",
+          "tests/ui/test_preview_input_scopes.py::test_changed_comparison_controls_hide_stale_results_until_recomputed",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_arithmetic_preview_invalidation_numeric_and_configuration_mixing"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#preview-and-confirm-changes"
@@ -594,7 +676,8 @@
         ],
         "tests": [
           "tests/unit/test_parser_data_source_services.py::TestReductionService.test_reduce_seeds_basic",
-          "tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_confirm_applies_data"
+          "tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_confirm_applies_data",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_seed_reduction_preserves_group_means_and_sample_standard_deviation"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#reduce-repeated-runs"
@@ -616,7 +699,8 @@
         ],
         "tests": [
           "tests/unit/test_outlier_service.py::TestRemoveOutliers.test_with_group_by_uses_group_iqr",
-          "tests/unit/test_outlier_remover.py::TestOutlierRemoverRender.test_confirm_applies_data"
+          "tests/unit/test_outlier_remover.py::TestOutlierRemoverRender.test_confirm_applies_data",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_outlier_preview_then_confirmation_removes_only_the_extreme_row"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#remove-outliers"
@@ -634,11 +718,15 @@
       "evidence": {
         "implementation": [
           "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation",
-          "src/web/components/data_managers/preprocessor.py::PreprocessorManager.render"
+          "src/web/components/data_managers/preprocessor.py::PreprocessorManager.render",
+          "src/core/common/numerical_operations.py::apply_binary",
+          "src/core/common/numerical_operations.py::divide_columns"
         ],
         "tests": [
           "tests/unit/test_parser_data_source_services.py::TestArithmeticService",
-          "tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data"
+          "tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data",
+          "tests/unit/test_numerical_operation_contracts.py::test_binary_manager_and_scalar_shaper_share_elementwise_values",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_arithmetic_preview_invalidation_numeric_and_configuration_mixing"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#binary-arithmetic"
@@ -656,12 +744,15 @@
       "evidence": {
         "implementation": [
           "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer",
-          "src/web/components/data_managers/mixer.py::MixerManager.render"
+          "src/web/components/data_managers/mixer.py::MixerManager.render",
+          "src/core/common/numerical_operations.py::aggregate_rows"
         ],
         "tests": [
           "tests/unit/test_mixer.py::TestApplyMixerSumOperation",
           "tests/unit/test_mixer.py::TestApplyMixerMeanOperation",
-          "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data"
+          "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data",
+          "tests/unit/test_numerical_operation_contracts.py::test_row_sums_skip_missing_while_binary_addition_propagates_it",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_arithmetic_preview_invalidation_numeric_and_configuration_mixing"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#numeric-column-mixing"
@@ -683,7 +774,8 @@
         ],
         "tests": [
           "tests/unit/test_mixer.py::TestApplyMixerConcatenateOperation",
-          "tests/unit/test_mixer_manager.py::TestMixerRender.test_history_load_concatenate"
+          "tests/unit/test_mixer_manager.py::TestMixerRender.test_history_load_concatenate",
+          "tests/e2e/test_data_journeys.py::TestManagerDataResults.test_arithmetic_preview_invalidation_numeric_and_configuration_mixing"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#configuration-label-mixing"
@@ -693,18 +785,33 @@
     {
       "id": "data.error-propagation",
       "group": "data-management",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Mixer error propagation",
-      "description": "When source columns have .sd or _stdev companions, numeric mixing shall propagate uncertainty into a companion output standard deviation.",
+      "description": "Numeric mixing shall combine recorded .sd uncertainty for nonmissing source values, treating distinct source columns as independent and repeated selections of one column as correlated weights. Missing contributing SDs and undefined estimates shall keep output uncertainty missing; mean SD shall use the row's nonmissing source count. Sources without SD columns add no recorded variance.",
       "tags": ["data", "mixer", "statistics"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Mixer error propagation",
+          "description": "When source columns have .sd or _stdev companions, numeric mixing shall propagate uncertainty into a companion output standard deviation.",
+          "reason": "Define canonical SD propagation for missing contributors, weighted repeated sources, mean scaling, and undefined estimates."
+        }
+      ],
       "evidence": {
         "implementation": [
-          "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer"
+          "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer",
+          "src/core/services/managers/arithmetic_service.py::ArithmeticService._mixer_deviation"
         ],
         "tests": [
           "tests/unit/test_mixer.py::TestApplyMixerSumOperation.test_sum_with_sd_propagation",
-          "tests/unit/test_mixer.py::TestApplyMixerMeanOperation.test_mean_with_sd_propagation"
+          "tests/unit/test_mixer.py::TestApplyMixerMeanOperation.test_mean_with_sd_propagation",
+          "tests/unit/test_numerical_operation_contracts.py::test_mixer_uncertainty_uses_only_contributing_values_and_keeps_unknown_sd",
+          "tests/unit/test_numerical_operation_contracts.py::test_mixer_extreme_sd_scales_do_not_overflow_or_underflow",
+          "tests/unit/test_numerical_operation_contracts.py::test_mean_preserves_the_smallest_representable_sd",
+          "tests/unit/test_numerical_operation_contracts.py::test_repeated_source_weights_are_fully_correlated",
+          "tests/unit/test_numerical_operation_contracts.py::test_an_undefined_estimate_keeps_its_uncertainty_missing"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#uncertainty-propagation"
@@ -743,7 +850,7 @@
       "tags": ["pipeline", "plots", "shapers"],
       "evidence": {
         "implementation": [
-          "src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline",
+          "src/core/services/shapers/pipeline_service.py::PipelineService._execute",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__",
           "src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_finalize"
         ],
@@ -794,7 +901,8 @@
         "tests": [
           "tests/unit/test_processing_regressions.py::TestMeanNaNHandling.test_arithmean_with_nan_values",
           "tests/unit/test_shapers_extended.py::TestMeanExtended.test_geometric_mean",
-          "tests/unit/test_shapers_extended.py::TestMeanExtended.test_harmonic_mean"
+          "tests/unit/test_shapers_extended.py::TestMeanExtended.test_harmonic_mean",
+          "tests/e2e/test_shaper_semantics.py::TestIndependentColumnGroups.test_transform_mean_and_split_apply_preserve_independent_measurements"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#mean"
@@ -815,7 +923,8 @@
         ],
         "tests": [
           "tests/unit/test_selectors.py::TestColumnSelector.test_select_multiple_columns",
-          "tests/unit/test_selectors.py::TestColumnSelector.test_column_order_preserved"
+          "tests/unit/test_selectors.py::TestColumnSelector.test_column_order_preserved",
+          "tests/e2e/test_shaper_semantics.py::TestReshapingEditors.test_reshape_filter_and_order_publish_exact_csv"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#column-selector"
@@ -832,10 +941,11 @@
       "tags": ["filter", "selection", "shapers"],
       "evidence": {
         "implementation": [
-          "src/core/services/shapers/impl/selector_algorithms/condition_selector.py::ConditionSelector._apply"
+          "src/core/services/shapers/impl/selector_algorithms/condition_selector.py::ConditionSelector.__call__"
         ],
         "tests": [
-          "tests/unit/test_condition_selector.py::TestConditionSelectorModes"
+          "tests/unit/test_condition_selector.py::TestConditionSelectorModes",
+          "tests/e2e/test_shaper_semantics.py::TestReshapingEditors.test_reshape_filter_and_order_publish_exact_csv"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#condition-selector"
@@ -856,7 +966,8 @@
         ],
         "tests": [
           "tests/unit/test_selectors.py::TestItemSelector.test_select_multiple_items",
-          "tests/unit/test_selectors.py::TestItemSelector.test_partial_match_contains_mode"
+          "tests/unit/test_selectors.py::TestItemSelector.test_partial_match_contains_mode",
+          "tests/e2e/test_shaper_semantics.py::TestGroupAndDerivedEditors.test_group_filters_derive_normalize_and_select_exact_rows"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#item-selector"
@@ -877,7 +988,8 @@
         ],
         "tests": [
           "tests/unit/test_derive_and_group_shapers.py::test_group_cardinality_eq_keeps_complete_groups",
-          "tests/unit/test_derive_and_group_shapers.py::test_group_cardinality_modes_and_validation"
+          "tests/unit/test_derive_and_group_shapers.py::test_group_cardinality_modes_and_validation",
+          "tests/e2e/test_shaper_semantics.py::TestGroupAndDerivedEditors.test_group_filters_derive_normalize_and_select_exact_rows"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#group-cardinality-selector"
@@ -898,7 +1010,8 @@
         ],
         "tests": [
           "tests/unit/test_derive_and_group_shapers.py::test_group_predicate_drops_zero_baseline_group",
-          "tests/unit/test_derive_and_group_shapers.py::test_group_predicate_keep_action_and_validation"
+          "tests/unit/test_derive_and_group_shapers.py::test_group_predicate_keep_action_and_validation",
+          "tests/e2e/test_shaper_semantics.py::TestGroupAndDerivedEditors.test_group_filters_derive_normalize_and_select_exact_rows"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#group-predicate-selector"
@@ -920,7 +1033,8 @@
         "tests": [
           "tests/unit/test_shaper_normalize.py::test_normalization_logic",
           "tests/unit/test_shaper_normalize.py::test_normalization_sd",
-          "tests/unit/test_shaper_normalize.py::test_zero_division"
+          "tests/unit/test_shaper_normalize.py::test_zero_division",
+          "tests/e2e/test_shaper_semantics.py::TestGroupAndDerivedEditors.test_group_filters_derive_normalize_and_select_exact_rows"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#normalize"
@@ -942,7 +1056,8 @@
         "tests": [
           "tests/unit/test_pivot_selective.py::test_pivot_longer_selective_discard",
           "tests/unit/test_pivot_selective.py::test_pivot_longer_selective_merge",
-          "tests/unit/test_pivot_selective.py::test_pivot_longer_multi_group_extraction"
+          "tests/unit/test_pivot_selective.py::test_pivot_longer_multi_group_extraction",
+          "tests/e2e/test_shaper_semantics.py::TestReshapingEditors.test_reshape_filter_and_order_publish_exact_csv"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#pivot-longer"
@@ -962,7 +1077,8 @@
           "src/core/services/shapers/impl/pivot.py::PivotWider.__call__"
         ],
         "tests": [
-          "tests/unit/test_pivot_selective.py::test_pivot_wider_reshapes_long_table"
+          "tests/unit/test_pivot_selective.py::test_pivot_wider_reshapes_long_table",
+          "tests/e2e/test_shaper_semantics.py::TestReshapingEditors.test_reshape_filter_and_order_publish_exact_csv"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#pivot-wider"
@@ -982,7 +1098,8 @@
           "src/core/services/shapers/impl/sort.py::Sort.__call__"
         ],
         "tests": [
-          "tests/unit/test_shapers_extended.py::TestSortShaper.test_reorders_rows_by_each_configured_category_order"
+          "tests/unit/test_shapers_extended.py::TestSortShaper.test_reorders_rows_by_each_configured_category_order",
+          "tests/e2e/test_shaper_semantics.py::TestReshapingEditors.test_reshape_filter_and_order_publish_exact_csv"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#sort"
@@ -1004,7 +1121,8 @@
         ],
         "tests": [
           "tests/unit/test_split_apply.py::TestSplitApplyMean.test_mean_values_are_correct_per_axis",
-          "tests/unit/test_split_apply.py::TestSplitApplyFourGroups.test_four_groups_with_mean"
+          "tests/unit/test_split_apply.py::TestSplitApplyFourGroups.test_four_groups_with_mean",
+          "tests/e2e/test_shaper_semantics.py::TestIndependentColumnGroups.test_transform_mean_and_split_apply_preserve_independent_measurements"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#split-apply"
@@ -1024,7 +1142,8 @@
           "src/core/services/shapers/impl/transformer.py::Transformer.__call__"
         ],
         "tests": [
-          "tests/unit/test_shapers_extended.py::TestTransformer"
+          "tests/unit/test_shapers_extended.py::TestTransformer",
+          "tests/e2e/test_shaper_semantics.py::TestIndependentColumnGroups.test_transform_mean_and_split_apply_preserve_independent_measurements"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#transformer"
@@ -1041,12 +1160,18 @@
       "tags": ["derived_column", "shapers", "transformation"],
       "evidence": {
         "implementation": [
-          "src/core/services/shapers/impl/derive_column.py::DeriveColumn.__call__"
+          "src/core/services/shapers/impl/derive_column.py::DeriveColumn.__call__",
+          "src/core/common/numerical_operations.py::apply_binary",
+          "src/core/common/numerical_operations.py::aggregate_rows",
+          "src/core/common/numerical_operations.py::divide_columns"
         ],
         "tests": [
           "tests/unit/test_derive_and_group_shapers.py::test_derive_sum_skips_nan_like_pandas",
           "tests/unit/test_derive_and_group_shapers.py::test_derive_ratio_zero_denominator_becomes_nan",
-          "tests/unit/test_derive_and_group_shapers.py::test_derive_scalar_and_concat_and_map"
+          "tests/unit/test_derive_and_group_shapers.py::test_derive_scalar_and_concat_and_map",
+          "tests/unit/test_numerical_operation_contracts.py::test_binary_manager_and_scalar_shaper_share_elementwise_values",
+          "tests/unit/test_numerical_operation_contracts.py::test_row_sums_skip_missing_while_binary_addition_propagates_it",
+          "tests/e2e/test_shaper_semantics.py::TestGroupAndDerivedEditors.test_group_filters_derive_normalize_and_select_exact_rows"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#derive-column"
@@ -1069,7 +1194,10 @@
         ],
         "tests": [
           "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_create_plot",
-          "tests/ui/test_e2e_manage_plots.py::TestPlotCreation.test_create_multiple_plots_unique_ids"
+          "tests/ui/test_e2e_manage_plots.py::TestPlotCreation.test_create_multiple_plots_unique_ids",
+          "tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection",
+          "tests/ui/test_plot_selector_identity.py::test_user_selection_retires_only_old_key_before_workspace_activation",
+          "tests/ui/test_plot_selector_identity.py::test_duplicate_labels_and_renaming_preserve_integer_identity"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#create-a-plot"
@@ -1089,7 +1217,9 @@
           "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
         ],
         "tests": [
-          "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_rename_updates_plot_name"
+          "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_rename_updates_plot_name",
+          "tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection",
+          "tests/ui/test_plot_selector_identity.py::test_duplicate_labels_and_renaming_preserve_integer_identity"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#create-a-plot"
@@ -1110,8 +1240,11 @@
           "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
         ],
         "tests": [
+          "tests/ui/test_duplicate_plot_style_identity.py::test_duplicate_colors_use_the_new_strategy_instance_id_and_preserve_source_custom_state",
+          "tests/integration/test_native_artifact_lifecycle.py::test_duplicate_detaches_native_state_before_copy_and_preserves_private_domain_values",
           "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_duplicate_plot",
-          "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy"
+          "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy",
+          "tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#create-a-plot"
@@ -1128,12 +1261,18 @@
       "tags": ["delete", "lifecycle", "plots"],
       "evidence": {
         "implementation": [
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.invalidate_figure",
+          "src/core/state/repositories/plot_repository.py::PlotRepository.removed_bindings",
           "src/web/pages/ui/plotting/plot_service.py::PlotService.delete_plot",
           "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_plot_retirement_is_identity_scoped_and_borrowed_figures_stay_exportable",
+          "tests/unit/test_plot_retirement_transactions.py::test_retirement_callbacks_can_wait_for_foreign_source_and_slot_publication",
+          "tests/integration/test_native_artifact_lifecycle.py::test_real_native_retirement_cannot_clear_a_new_publication_or_readmitted_plot",
           "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_delete_plot",
-          "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_delete_calls_lifecycle_and_cleanup"
+          "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_delete_calls_lifecycle_and_cleanup",
+          "tests/ui/test_plot_selector_identity.py::test_creation_rename_duplicate_and_delete_keep_exact_selection"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#create-a-plot"
@@ -1150,13 +1289,16 @@
       "tags": ["isolation", "plots", "state"],
       "evidence": {
         "implementation": [
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.publish_render_artifact",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__",
           "src/web/controllers/plot/render_controller.py::PlotRenderController._compute_figure_cache_key"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_public_native_publication_binds_the_exact_preparation_and_replaces_only_owned_manager",
           "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy",
           "tests/ui_logic/test_render_controller.py::TestFigureIdentity.test_engine_change_regenerates_figure",
-          "tests/unit/test_ui_state_manager.py::TestPlotUIState.test_auto_refresh_per_plot_isolation"
+          "tests/unit/test_ui_state_manager.py::TestPlotUIState.test_auto_refresh_per_plot_isolation",
+          "tests/ui/test_plot_widget_ownership.py::test_delete_then_reuse_plot_id_discards_rename_control"
         ],
         "documentation": [
           "docs/user-guide/getting-started/concepts.md#plot-and-shaper-pipeline"
@@ -1178,8 +1320,11 @@
           "src/web/components/common/chart_display.py::ChartDisplayComponent.render_refresh_controls"
         ],
         "tests": [
+          "tests/ui/test_native_render_artifact_contract.py::test_actual_widgets_cache_one_native_generation_and_manual_refresh_builds_once",
           "tests/integration/test_controller_presenter.py::TestChartDisplayComponentIntegration",
-          "tests/ui_logic/test_render_controller.py::TestFigureIdentity"
+          "tests/ui_logic/test_render_controller.py::TestFigureIdentity",
+          "tests/ui/test_plot_widget_ownership.py::test_shape_draft_survives_manual_refresh_and_settings_navigation",
+          "tests/ui/test_shape_coordinate_contract.py::test_manual_refresh_preserves_intentional_kind_changes_across_sections"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#map-columns-and-configure-the-figure"
@@ -1220,7 +1365,8 @@
         ],
         "tests": [
           "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure",
-          "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization"
+          "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization",
+          "tests/visual/test_dual_axis_engines.py::TestDualAxisEngines.test_01_plotly_screenshot"
         ],
         "documentation": [
           "docs/user-guide/reference/plot-types.md#selection-guide"
@@ -1295,23 +1441,42 @@
     {
       "id": "plot.histogram",
       "group": "plot-types",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Histogram",
-      "description": "RING-5 shall render parsed histogram bucket columns with optional grouping, normalization, and cumulative display.",
-      "tags": ["distribution", "histogram", "plots"],
+      "description": "RING-5 shall render declared native Distribution storage-cell mass at ordinal positions with literal labels and both tails, and ordinary explicit interval histograms with their existing geometry, supporting grouping and valid count/normalized/cumulative modes without guessing native continuous support.",
+      "tags": [
+        "distribution",
+        "histogram",
+        "plots"
+      ],
       "evidence": {
         "implementation": [
           "src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot.create_traces",
-          "src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot._extract_bucket_data"
+          "src/web/pages/ui/plotting/utils/histogram_bins.py::parse_histogram_bins",
+          "src/web/pages/ui/plotting/utils/histogram_bins.py::histogram_mass_ratio"
         ],
         "tests": [
-          "tests/unit/test_histogram_plot.py::TestHistogramPlotFigureCreation"
+          "tests/unit/test_histogram_plot.py::TestHistogramPlotFigureCreation",
+          "tests/unit/test_native_distribution_plot.py::test_native_cells_keep_literal_labels_and_ordinal_positions",
+          "tests/integration/test_native_distribution_persistence.py::test_real_parser_table_portfolio_snapshot_recovery_and_recipe_preserve_native_cells",
+          "tests/unit/test_histogram_finite_mass.py::test_overlap_rebin_preserves_representable_tiny_mass_beside_a_large_interval",
+          "tests/unit/test_histogram_finite_mass.py::test_overlap_contribution_matches_one_final_exact_ratio_rounding",
+          "tests/unit/test_histogram_finite_mass.py::test_cumulative_counts_match_exact_represented_prefixes"
         ],
         "documentation": [
           "docs/user-guide/reference/plot-types.md#selection-guide"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Histogram",
+          "description": "RING-5 shall render parsed histogram bucket columns with optional grouping, normalization, and cumulative display.",
+          "reason": "Native storage cells have discrete mass semantics and explicit bindings rather than inferred continuous interval widths."
+        }
+      ]
     },
     {
       "id": "plot.line",
@@ -1437,7 +1602,11 @@
           "tests/ui_logic/test_settings_pills_e2e.py::TestAxesAxisLineControls",
           "tests/unit/core/visualization/test_axis_spec.py::TestAxisSpecRoundTrip",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorTickSide",
-          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorYTickAngle"
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorYTickAngle",
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAxisTickRotation.test_signed_tick_rotation_and_zero_reset",
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAxisTickRotation.test_full_apply_rotates_and_clears_automatic_labels",
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAxisTickRotation.test_secondary_signed_rotation_and_zero_reset",
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorSignedTickRotation.test_signed_angles_and_zero_reset"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#axes"
@@ -1456,15 +1625,22 @@
         "implementation": [
           "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent.render",
           "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_legends",
-          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_legends"
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_legends",
+          "src/web/rendering/_color_utils.py::color_with_alpha"
         ],
         "tests": [
+          "tests/integration/test_prepared_native_rendering.py::test_native_legend_opacity_preserves_embedded_alpha_and_explicit_override",
+          "tests/integration/test_native_rendering_review_regressions.py::test_plotly_opacity_preserves_current_static_css_function_admission",
+          "tests/integration/test_native_rendering_review_regressions.py::test_registered_legend_roles_keep_owned_styles_on_one_panel_or_twin",
+          "tests/integration/test_prepared_native_rendering.py::test_dashboard_owns_each_child_legend_role_and_preserves_numbered_annotation_style",
           "tests/ui_logic/test_settings_pills_e2e.py::TestSecondaryLegendConfig",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendSizingControls",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
           "tests/ui_logic/test_settings_pills.py::TestSectionDispatch.test_legend_tiers_match_the_legends_that_are_actually_visible",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorLegendAnchor",
-          "tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation"
+          "tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation",
+          "tests/unit/test_figure_preparation.py::test_numbered_annotation_does_not_create_a_trace_legend_on_another_panel",
+          "tests/integration/test_default_legend_bounds.py::test_default_public_legend_fits_fixed_canvas_and_survives_replay"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#legends"
@@ -1481,6 +1657,7 @@
       "tags": ["colors", "palette", "styling"],
       "evidence": {
         "implementation": [
+          "src/web/rendering/_color_utils.py::picker_hex_color",
           "src/web/components/plotting/settings/colors_settings.py::ColorsSettingsComponent.render",
           "src/core/services/visualization/palette_service.py::resolve_palette",
           "src/core/services/visualization/palette_service.py::get_palette_names",
@@ -1488,6 +1665,14 @@
           "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_backgrounds"
         ],
         "tests": [
+          "tests/integration/test_area_css_colors_public_api.py::test_area_css_colors_preserve_measured_outline_and_fill_geometry",
+          "tests/ui/test_figure_color_contracts.py::test_swatch_markup_uses_projected_rgba_and_preserves_unsupported_literals_as_text",
+          "tests/ui/test_figure_color_contracts.py::test_explicit_picker_edit_changes_only_the_selected_color",
+          "tests/ui/test_figure_color_contracts.py::test_unavailable_named_palette_is_preserved_until_explicit_replacement",
+          "tests/ui/test_figure_color_contracts.py::test_untouched_custom_palette_css_and_alpha_survive_reruns_and_navigation",
+          "tests/ui/test_figure_color_contracts.py::test_custom_palette_remains_a_sequence_until_a_named_palette_is_selected",
+          "tests/ui/test_figure_color_contracts.py::test_transparency_toggle_preserves_underlying_css_and_roundtrips_native_backgrounds",
+          "tests/ui/test_figure_color_contracts.py::test_unprojectable_css_is_visible_editable_and_never_repaired_to_a_picker_color",
           "tests/unit/test_colorblind_palettes.py::TestPaletteSelector",
           "tests/unit/test_palettes.py::TestIsColorblindSafe",
           "tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly.test_apply_backgrounds",
@@ -1601,14 +1786,23 @@
       "tags": ["annotations", "shapes", "styling"],
       "evidence": {
         "implementation": [
+          "src/web/rendering/plotly_figure_builder.py::build_plotly_figure",
           "src/web/components/plotting/settings/shapes_settings.py::ShapesSettingsComponent.render",
-          "src/web/pages/ui/plotting/styles/applicator.py::StyleApplicator.apply_styles",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_annotations"
         ],
         "tests": [
           "tests/ui_unit/test_shapes_settings.py::test_render_does_not_mutate_saved_config",
           "tests/ui_unit/test_shapes_settings.py::test_add_shape_returns_new_list_without_mutating",
-          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAnnotations"
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAnnotations",
+          "tests/ui/test_plot_widget_ownership.py::test_shape_rows_edit_and_delete_without_an_unreachable_edit_mode",
+          "tests/ui/test_plot_widget_ownership.py::test_shape_draft_survives_manual_refresh_and_settings_navigation",
+          "tests/ui/test_shape_coordinate_contract.py::test_untouched_literal_coordinates_and_explicit_text_numeric_edits_reach_native",
+          "tests/ui/test_shape_coordinate_contract.py::test_add_numeric_looking_literal_coordinates_has_one_explicit_kind",
+          "tests/ui/test_shape_coordinate_contract.py::test_native_partial_path_and_default_shapes_roundtrip_without_invented_fields",
+          "tests/ui/test_shape_coordinate_contract.py::test_deleting_the_invalid_row_skips_its_decoder_and_retains_manual_refresh_contract",
+          "tests/unit/test_annotation_pixel_contract.py::test_pixel_shifts_translate_complete_native_annotation_at_export_dpi",
+          "tests/unit/test_annotation_pixel_contract.py::test_typed_annotations_preserve_native_metadata_and_serialization",
+          "tests/integration/test_prepared_native_rendering.py::test_native_plotly_appends_user_shapes_once_without_replacing_neutral_geometry"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#annotations-and-web-shapes"
@@ -1636,12 +1830,19 @@
         "implementation": [
           "src/web/components/plotting/settings/ordering_settings.py::OrderingSettingsComponent.render",
           "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent._render_legend_items",
-          "src/web/pages/ui/plotting/base_plot.py::_relabel_traces",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._project_labels",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_legends",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._project_shared_legends",
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._apply_renames",
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._order_unified_legend_traces"
         ],
         "tests": [
-          "tests/unit/test_persistent_labels.py::test_multiple_column_persistence",
+          "tests/unit/test_rendering_correctness_regressions.py::test_computed_group_ticks_keep_minor_renames_when_major_aliases_are_configured",
+          "tests/integration/test_canonical_legend_state.py::test_legend_labels_survive_configuration_copy_and_portfolio_replay",
+          "tests/integration/test_canonical_source_legend_rendering.py::test_public_aliases_preserve_original_style_order_values_and_direct_reapply",
+          "tests/integration/test_canonical_source_legend_rendering.py::test_current_documents_replay_original_style_identity_and_reject_retired_versions",
+          "tests/integration/test_canonical_source_legend_rendering.py::test_real_dashboard_keeps_colliding_labels_and_reprojects_shared_entries",
+          "tests/ui/test_canonical_legend_labels.py::test_real_reorder_preserves_raw_identity_and_value_keyed_rename_widgets",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_xaxis_order",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_group_order",
@@ -1682,19 +1883,35 @@
       "status": "approved",
       "title": "Numbered X-axis labels",
       "description": "Grouped figures shall optionally replace or supplement long category labels with numbers and a separately configurable number legend.",
-      "tags": ["labels", "numbered_axis", "styling"],
+      "tags": [
+        "labels",
+        "numbered_axis",
+        "styling"
+      ],
       "evidence": {
         "implementation": [
-          "src/web/pages/ui/plotting/utils/grouped_stacked_bar_helpers.py::apply_numbered_xaxis"
+          "src/web/pages/ui/plotting/utils/grouped_stacked_bar_helpers.py::apply_numbered_xaxis",
+          "src/core/common/numbered_axis.py::numbered_axis_modes"
         ],
         "tests": [
+          "tests/integration/test_prepared_native_rendering.py::test_public_fractional_numbered_and_right_legend_fonts_survive_typed_roundtrip",
           "tests/unit/test_numbered_xaxis.py::TestApplyNumberedXaxis",
-          "tests/unit/test_numbered_xaxis.py::TestCreateFigureNumberedXaxis"
+          "tests/unit/test_numbered_xaxis.py::TestCreateFigureNumberedXaxis",
+          "tests/unit/test_numbered_axis_contract.py::test_every_mode_subset_keeps_measurements_and_numbering_consistent",
+          "tests/ui/test_plot_settings_contracts.py::test_numbered_axes_widget_has_three_modes_and_empty_is_current_off",
+          "tests/unit/test_figure_preparation.py::test_numbered_font_role_resolves_for_real_public_native_renders"
         ],
         "documentation": [
           "docs/user-guide/guides/publication-export.md#check-typography-and-axes"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
+          "change_type": "evidence"
+        }
+      ]
     },
     {
       "id": "figure.category-groups",
@@ -1727,10 +1944,14 @@
       "status": "approved",
       "title": "Dual-axis configuration",
       "description": "Applicable plots shall expose right-axis mappings, range, title, dot or bar mode, marker and line styling, per-group lines, and unified or separate legends.",
-      "tags": ["dual_axis", "settings", "styling"],
+      "tags": [
+        "dual_axis",
+        "settings",
+        "styling"
+      ],
       "evidence": {
         "implementation": [
-          "src/web/components/plotting/config/dual_axis_settings.py::render_dual_axis_display_settings",
+          "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent.render",
           "src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings",
           "src/web/components/plotting/config/dual_axis_config.py::_sync_auto_labels",
           "src/web/rendering/config_builder.py::ConfigSpecBuilder.from_config",
@@ -1738,17 +1959,26 @@
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces"
         ],
         "tests": [
+          "tests/integration/test_prepared_native_rendering.py::test_native_routes_prepare_once_and_preserve_axis_roles",
           "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure",
           "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization",
           "tests/unit/test_grouped_dual_config.py::TestDualAxisRenderConfigUI.test_generated_labels_follow_explicit_axis_changes",
           "tests/unit/core/visualization/test_config_spec_builder.py::TestConfigSpecAxes.test_dual_axis_maps_right_label_range_and_grid",
           "tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure",
-          "tests/e2e/test_dual_axis.py::TestDualAxisRendering"
+          "tests/e2e/test_dual_axis.py::TestDualAxisRendering",
+          "tests/ui/test_plot_settings_contracts.py::test_right_axis_fonts_trace_controls_and_legend_tiers_use_active_pills"
         ],
         "documentation": [
           "docs/user-guide/reference/plot-types.md#dual-axis-controls"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
+          "change_type": "evidence"
+        }
+      ]
     },
     {
       "id": "figure.dual-axis-dot-layout",
@@ -1775,11 +2005,14 @@
     {
       "id": "figure.histogram-controls",
       "group": "figure-configuration",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Histogram configuration",
-      "description": "Histogram plots shall expose parsed bucket-column selection, optional grouping, count, probability, density, or percent normalization, and cumulative display controls.",
-      "tags": ["histogram", "settings"],
+      "description": "Histogram controls shall select explicit logical native layouts or ordinary interval variables and optional groups, expose supported count/normalized/CDF modes, require finite positive selected mass for normalized views, and reject native continuous rebinning or noncumulative density while retaining generic interval controls.",
+      "tags": [
+        "histogram",
+        "settings"
+      ],
       "evidence": {
         "implementation": [
           "src/web/components/plotting/config/histogram_config.py::render",
@@ -1787,12 +2020,25 @@
         ],
         "tests": [
           "tests/unit/test_stacked_histogram_config.py::TestHistogramRenderConfigUI",
-          "tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure"
+          "tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure",
+          "tests/unit/test_native_distribution_ui.py::test_native_controls_offer_only_supported_mass_or_cdf_modes",
+          "tests/unit/test_native_distribution_ui.py::test_discovery_uses_logical_keys_without_physical_prefix_aliases",
+          "tests/unit/test_native_distribution_ui.py::test_unbound_auxiliary_columns_cannot_reintroduce_a_native_prefix_alias",
+          "tests/unit/test_native_distribution_ui.py::test_real_native_controls_preserve_labels_and_cdf_without_rebin"
         ],
         "documentation": [
           "docs/user-guide/reference/plot-types.md#histogram-controls"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Histogram configuration",
+          "description": "Histogram plots shall expose parsed bucket-column selection, optional grouping, count, probability, density, or percent normalization, and cumulative display controls.",
+          "reason": "Native layouts require distinct truthful controls and zero-mass normalized views must fail visibly."
+        }
+      ]
     },
     {
       "id": "figure.heatmap-controls",
@@ -1808,6 +2054,7 @@
           "src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces"
         ],
         "tests": [
+          "tests/integration/test_prepared_native_rendering.py::test_public_heatmap_facets_use_bottom_only_explicit_tick_visibility",
           "tests/unit/test_heatmap_plot.py::test_heatmap_generated_xlabel_follows_x_mapping",
           "tests/unit/test_heatmap_plot.py::test_faceted_heatmap_labels_only_bottom_x_axis",
           "tests/unit/test_heatmap_plot.py::test_multiple_heatmap_traces_render_as_subplots",
@@ -1836,7 +2083,8 @@
         ],
         "tests": [
           "tests/ui_logic/test_interactive_plot.py::TestInteractivePlotlyChart",
-          "tests/unit/test_relayout.py::TestUpdateConfigFromRelayout"
+          "tests/unit/test_relayout.py::TestUpdateConfigFromRelayout",
+          "tests/integration/test_legend_relayout_contract.py::test_real_legend_wire_events_rerender_and_replay_with_canonical_owned_config"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#interactive-editing"
@@ -1854,11 +2102,23 @@
       "evidence": {
         "implementation": [
           "src/core/models/visualization/trace_build_result.py::TraceBuildResult",
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure"
+          "src/web/rendering/figure_preparation.py::prepare_figure",
+          "src/web/rendering/_connector_protocol.py::validate_trace_types",
+          "src/web/rendering/_connector_protocol.py::validate_annotation_types"
         ],
         "tests": [
           "tests/unit/test_trace_to_plotly.py::TestTracesToPlotly",
-          "tests/unit/test_trace_to_plotly.py::TestConvertTrace"
+          "tests/unit/test_trace_to_plotly.py::TestConvertTrace",
+          "tests/integration/test_neutral_trace_contract.py::test_both_converters_reject_unknown_families_before_drawing",
+          "tests/integration/test_neutral_trace_contract.py::test_public_render_exposes_unknown_trace_as_typed_error",
+          "tests/integration/test_neutral_trace_contract.py::test_supported_trace_subclasses_preserve_data_in_both_engines",
+          "tests/unit/test_figure_preparation.py::test_all_registered_examples_prepare_once_without_constructing_native_figures",
+          "tests/unit/test_figure_preparation.py::test_preparation_owns_callback_config_and_reusable_trace_metadata",
+          "tests/integration/test_annotation_admission.py::test_unknown_annotations_reject_before_native_allocation",
+          "tests/integration/test_annotation_admission.py::test_public_annotation_failures_preserve_the_published_native_figure",
+          "tests/integration/test_annotation_admission.py::test_supported_annotation_subclass_survives_public_native_render",
+          "tests/integration/test_prepared_native_rendering.py::test_native_routes_prepare_once_and_preserve_axis_roles",
+          "tests/integration/test_prepared_native_rendering.py::test_matplotlib_facets_never_discard_a_supported_mixed_trace"
         ],
         "documentation": [
           "docs/developer-guide/subsystems/visualization.md#engine-independent-traces"
@@ -1876,11 +2136,13 @@
       "evidence": {
         "implementation": [
           "src/web/rendering/trace_to_plotly.py::traces_to_plotly",
-          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly.apply"
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly.apply",
+          "src/web/rendering/plotly_figure_builder.py::build_plotly_figure"
         ],
         "tests": [
           "tests/unit/test_trace_to_plotly.py::TestTracesToPlotly",
-          "tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly"
+          "tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly",
+          "tests/unit/test_duplicate_bar_geometry.py::test_plotly_exported_svg_duplicate_bar_geometry"
         ],
         "documentation": [
           "docs/user-guide/reference/rendering-export.md#plotly-rendering"
@@ -1897,12 +2159,13 @@
       "tags": ["matplotlib", "rendering"],
       "evidence": {
         "implementation": [
-          "src/web/rendering/matplotlib_figure_builder.py::build_matplotlib_figure_from_traces",
+          "src/web/rendering/matplotlib_figure_builder.py::build_matplotlib_figure_from_prepared",
           "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer.render"
         ],
         "tests": [
           "tests/integration/test_matplotlib_rendering.py::TestMatplotlibTraceRenderer",
-          "tests/integration/test_matplotlib_rendering.py::TestMatplotlibFullPipeline"
+          "tests/integration/test_matplotlib_rendering.py::TestMatplotlibFullPipeline",
+          "tests/unit/test_duplicate_bar_geometry.py::test_matplotlib_duplicate_bar_rectangles"
         ],
         "documentation": [
           "docs/user-guide/reference/rendering-export.md#matplotlib-rendering"
@@ -1989,7 +2252,8 @@
           "tests/unit/test_plotly_download.py::TestPlotlyPNG",
           "tests/unit/test_plotly_download.py::TestPlotlySVG",
           "tests/unit/test_plotly_download.py::TestPlotlyPDF",
-          "tests/unit/test_plotly_download.py::TestChromeNotFound"
+          "tests/unit/test_plotly_download.py::TestChromeNotFound",
+          "tests/unit/test_duplicate_bar_geometry.py::test_plotly_exported_svg_duplicate_bar_geometry"
         ],
         "documentation": [
           "docs/user-guide/reference/rendering-export.md#plotly-static-formats"
@@ -2102,6 +2366,7 @@
         ],
         "tests": [
           "tests/unit/test_ring5_coverage_edges.py::test_export_error_normalization",
+          "tests/integration/test_ring5_public_api.py::test_measured_native_figure_uses_explicit_pgf_compiler",
           "tests/unit/test_plot_service.py::TestRing5ExportFile"
         ],
         "documentation": [
@@ -2160,13 +2425,42 @@
       "tags": ["examples", "portfolios", "reproducibility"],
       "evidence": {
         "implementation": [
-          "scripts/generate_example_portfolio.py::generate_example_portfolio"
+          "scripts/generate_example_portfolio.py::build_example_portfolio"
         ],
         "tests": [
-          "tests/unit/test_generate_example_portfolio.py::test_every_registered_plot_example_renders"
+          "tests/unit/test_generate_example_portfolio.py::test_each_example_replays_from_the_full_shared_source",
+          "tests/unit/test_generate_example_portfolio.py::test_every_registered_plot_example_renders",
+          "tests/unit/test_generate_example_portfolio.py::test_explicit_output_round_trips_without_revision_side_effects",
+          "tests/integration/test_ring5_public_api.py::TestBundledExamplePortfolio.test_load_render_and_save_a_tutorial_copy"
         ],
         "documentation": [
-          "docs/user-guide/workflows/portfolios.md#generate-the-example-portfolio"
+          "docs/user-guide/workflows/portfolios.md#load-the-bundled-examples"
+        ]
+      }
+    },
+    {
+      "id": "portfolio.bundled-example",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Bundled tutorial portfolio",
+      "description": "Users shall explicitly load an offline, integrity-checked synthetic tutorial portfolio through the web application or public Python API, with an editable example of every registered plot type and without creating or replacing saved portfolio files. The initial web offer shall preserve existing analysis data, authored parser configuration and active background work.",
+      "tags": ["examples", "portfolios", "reproducibility"],
+      "evidence": {
+        "implementation": [
+          "src/core/services/example_portfolio_service.py::load_example_portfolio",
+          "src/core/application_api.py::ApplicationAPI.load_example_portfolio",
+          "ring5/_session.py::Session.load_example_portfolio",
+          "src/web/components/example_portfolio.py::render_example_portfolio"
+        ],
+        "tests": [
+          "tests/integration/test_ring5_public_api.py::TestBundledExamplePortfolio.test_load_render_and_save_a_tutorial_copy",
+          "tests/ui/test_example_portfolio.py::test_default_offer_loads_complete_editable_tutorial",
+          "tests/unit/test_example_portfolio_component.py::test_existing_work_hides_the_example_action",
+          "tests/e2e/test_example_portfolio.py::TestBundledExampleTour.test_gallery_loads_renders_and_preserves_shared_source"
+        ],
+        "documentation": [
+          "docs/user-guide/getting-started/showcase.md#explore-the-example-portfolio"
         ]
       }
     },
@@ -2184,8 +2478,10 @@
           "src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_rejected_restore_releases_only_new_candidate_artifacts",
           "tests/unit/test_repository_state_manager.py::TestRestoreSession",
-          "tests/integration/test_portfolio_service_integration.py::test_restore_report_complete_with_deserializer"
+          "tests/integration/test_portfolio_service_integration.py::test_restore_report_complete_with_deserializer",
+          "tests/ui/test_data_source_reset.py::test_loading_a_configured_portfolio_rebuilds_saved_parser_controls"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#save-and-restore-in-the-web-application"
@@ -2217,24 +2513,30 @@
       }
     },
     {
-      "id": "portfolio.migration",
+      "id": "portfolio.schema",
       "group": "reproducibility",
       "revision": 1,
       "status": "approved",
-      "title": "Portfolio schema migration",
-      "description": "Older supported portfolio schemas shall migrate deterministically before restoration, while newer unknown schemas shall fail with a typed version error.",
-      "tags": ["migration", "portfolios", "schema"],
+      "title": "Current portfolio schema",
+      "description": "Serialized portfolios shall declare the exact current schema, parser provenance, environment metadata, and integrity manifest; unsupported versions shall fail with a typed version error.",
+      "tags": ["validation", "portfolios", "schema"],
       "evidence": {
         "implementation": [
-          "src/core/services/portfolio_migrator.py::PortfolioMigrator.migrate"
+          "src/core/models/portfolio_contract.py::validate_portfolio_schema",
+          "src/core/common/plot_payload.py::validate_plot_fields",
+          "src/core/common/plot_payload.py::validate_plot_config_keys"
         ],
         "tests": [
-          "tests/integration/test_portfolio_migration.py::TestV1LoadAndMigrate",
-          "tests/integration/test_portfolio_migration.py::TestV2Migration",
-          "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused"
+          "tests/integration/test_canonical_source_legend_rendering.py::test_current_documents_replay_original_style_identity_and_reject_retired_versions",
+          "tests/integration/test_portfolio_schema.py::test_obsolete_schema_is_rejected_before_state_changes",
+          "tests/unit/test_portfolio_contract.py::test_unsupported_schema_is_rejected",
+          "tests/integration/test_canonical_legend_state.py::test_unsupported_plot_state_fails_before_restoration_or_upload",
+          "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused",
+          "tests/integration/test_figure_config_key_contract.py::test_public_plot_rejects_retired_legend_keys_before_retaining_state",
+          "tests/integration/test_figure_value_admission.py::test_restore_capture_and_recipe_reject_heatmap_keys_before_effects"
         ],
         "documentation": [
-          "docs/developer-guide/subsystems/portfolios.md#compatibility-rules"
+          "docs/developer-guide/subsystems/portfolios.md#schema-contract"
         ]
       }
     },
@@ -2285,28 +2587,6 @@
       }
     },
     {
-      "id": "portfolio.upgrade-protection",
-      "group": "reproducibility",
-      "revision": 1,
-      "status": "approved",
-      "title": "Safe portfolio upgrade",
-      "description": "The CLI shall refuse to re-save a partially restored portfolio because doing so would permanently discard skipped content.",
-      "tags": ["cli", "migration", "portfolios", "safety"],
-      "evidence": {
-        "implementation": [
-          "ring5/cli.py::_cmd_upgrade",
-          "src/core/models/portfolio_models.py::RestoreReport.complete"
-        ],
-        "tests": [
-          "tests/unit/test_ring5_cli.py::TestUpgradeCommand",
-          "tests/unit/test_ring5_cli.py::TestUpgradeRefusal"
-        ],
-        "documentation": [
-          "docs/user-guide/workflows/portfolios.md#upgrade-a-saved-portfolio"
-        ]
-      }
-    },
-    {
       "id": "api.session",
       "group": "automation",
       "revision": 1,
@@ -2335,7 +2615,7 @@
       "revision": 1,
       "status": "approved",
       "title": "Pandas-independent Table scripts",
-      "description": "The public Table and read_table surface shall provide immutable loading, selection, transformation, inspection, and export for scripts that do not import pandas.",
+      "description": "Declared Session data methods shall require Table inputs and return owned Table results for analysis data. Table and read_table shall support immutable loading, selection, inspection and export, with explicit pandas conversion through Table(frame) and Table.frame.",
       "tags": ["api", "data", "scripting"],
       "evidence": {
         "implementation": [
@@ -2343,7 +2623,8 @@
           "ring5/data.py::read_table"
         ],
         "tests": [
-          "tests/unit/test_ring5_convenience_api.py::TestTable"
+          "tests/unit/test_ring5_convenience_api.py::TestTable",
+          "tests/integration/test_public_value_contracts.py::test_session_declared_data_methods_do_not_advertise_raw_frames"
         ],
         "documentation": [
           "docs/user-guide/workflows/scripting.md#use-portable-table-scripts"
@@ -2356,34 +2637,19 @@
       "revision": 1,
       "status": "approved",
       "title": "Typed FigureSpec",
-      "description": "The public API shall expose typed common figure mappings, layout, axes, grouping, legend, reference-line, and dual-axis configuration with an extra-key escape hatch.",
+      "description": "The public API shall expose immutable typed common figure mappings, layout, axes, grouping, legend, reference-line and dual-axis values, with owned extra keys and fresh canonical editable configuration projection.",
       "tags": ["api", "figures", "typing"],
       "evidence": {
         "implementation": ["ring5/figure_spec.py::FigureSpec"],
         "tests": [
           "tests/unit/test_figure_spec.py::TestFigureSpecToConfig",
-          "tests/unit/test_figure_spec.py::TestFigureSpecValidation"
+          "tests/unit/test_figure_spec.py::TestFigureSpecValidation",
+          "tests/unit/test_figure_spec_values.py::TestFigureSpecValues",
+          "tests/integration/test_immutable_numpy_figure_values.py::test_computed_pandas_range_renders_through_both_engines",
+          "tests/integration/test_immutable_numpy_figure_values.py::test_numpy_real_bool_and_text_leaves_remain_exact_in_owned_projections"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#typed-figurespec"
-        ]
-      }
-    },
-    {
-      "id": "api.figure-builder",
-      "group": "automation",
-      "revision": 1,
-      "status": "approved",
-      "title": "Fluent FigureSpec builder",
-      "description": "Scripts shall build a FigureSpec through cohesive fluent methods for data, size, palettes, axes, grouping, legends, references, and dual-axis options.",
-      "tags": ["api", "builder", "figures"],
-      "evidence": {
-        "implementation": ["ring5/figure_spec.py::FigureSpecBuilder"],
-        "tests": [
-          "tests/unit/test_figure_builder.py::TestFigureSpecBuilder"
-        ],
-        "documentation": [
-          "docs/developer-guide/api-reference/public-python-api.md#fluent-figurespec-builder"
         ]
       }
     },
@@ -2421,7 +2687,8 @@
         "implementation": ["ring5/_session.py::available_plot_types", "ring5/shapers.py::available_shaper_types"],
         "tests": [
           "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_available_plot_types_are_public",
-          "tests/integration/test_ring5_api_completeness.py::test_public_registries_are_complete"
+          "tests/integration/test_ring5_api_completeness.py::test_public_registries_are_complete",
+          "tests/integration/test_ring5_shaper_registration.py::test_public_definition_registration_and_typed_rejection"
         ],
         "documentation": [
           "docs/user-guide/workflows/scripting.md#discover-and-handle-errors"
@@ -2454,7 +2721,8 @@
         ],
         "tests": [
           "tests/integration/test_ring5_public_api.py::TestErrorSurface",
-          "tests/unit/test_ring5_coverage_edges.py::test_error_payloads_and_complete_figure_spec"
+          "tests/unit/test_ring5_coverage_edges.py::test_error_payloads_and_complete_figure_spec",
+          "tests/integration/test_global_parser_shutdown.py::test_global_shutdown_failure_is_typed_and_keeps_dependencies_open"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#errors"
@@ -2464,22 +2732,75 @@
     {
       "id": "api.doctor",
       "group": "automation",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Dependency doctor",
-      "description": "The public API and CLI shall report essential Perl and optional browser and XeLaTeX dependency availability without making optional exporters mandatory.",
+      "description": "The public API and CLI shall report essential Perl and optional selected-browser and selected-PGF-compiler executable availability without making optional exporters mandatory. Every present BROWSER_PATH value shall remain the required browser selection, including an unavailable empty value, and unsupported compiler identifiers shall fail explicitly.",
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Dependency doctor",
+          "description": "The public API and CLI shall report essential Perl and optional browser and XeLaTeX dependency availability without making optional exporters mandatory.",
+          "reason": "Describe the shared authoritative browser selection and selected compiler preflight contract."
+        }
+      ],
       "tags": ["api", "cli", "dependencies"],
       "evidence": {
         "implementation": [
           "ring5/_doctor.py::doctor",
+          "src/core/common/browser_selection.py::select_browser",
           "ring5/_doctor.py::DoctorReport.essential_found"
         ],
         "tests": [
-          "tests/unit/test_ring5_coverage_edges.py::test_doctor_report_and_browser_fallbacks",
+          "tests/unit/test_ring5_coverage_edges.py::test_doctor_report_and_browser_selection",
+          "tests/integration/test_export_tool_selection.py::test_actual_public_routes_agree_without_launching_browser_or_compiler",
+          "tests/integration/test_ring5_public_api.py::test_public_doctor_checks_the_selected_compiler_without_running_tools",
+          "tests/integration/test_ring5_public_api.py::test_public_doctor_rejects_invalid_compiler_choices_with_typed_error",
           "tests/unit/test_ring5_cli.py::TestDoctorCommand"
         ],
         "documentation": [
           "docs/user-guide/getting-started/installation.md#check-external-dependencies"
+        ]
+      }
+    },
+    {
+      "id": "cli.install-chrome",
+      "group": "automation",
+      "revision": 2,
+      "status": "approved",
+      "title": "Reviewed Chrome installation",
+      "description": "The ring5 install-chrome command shall use the packaged reviewed Stable Chrome for Testing manifest to install or verify the native Linux artifact with bounded transfer, provider size, checksum and generation facts, project SHA-256 verification, a bounded archive graph that rejects links, and native exclusive cache publication. It shall preserve existing unrelated cache entries on failure, print the absolute executable path for explicit BROWSER_PATH selection, and report expected operational failures as exit code 2 without launching a browser or changing browser selection.",
+      "tags": [
+        "cli",
+        "dependencies",
+        "export"
+      ],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Reviewed Chrome installation",
+          "description": "The ring5 install-chrome command shall use the packaged reviewed Stable Chrome for Testing manifest to install or verify the native artifact with bounded transfer, provider size, checksum and generation facts, project SHA-256 verification, a bounded archive graph and internal-link policy, and native exclusive cache publication. It shall preserve existing unrelated cache entries on failure, print the absolute executable path for explicit BROWSER_PATH selection, and report expected operational failures as exit code 2 without launching a browser or changing browser selection.",
+          "reason": "Restricts native installation to Linux and rejects archive and installed-tree links."
+        }
+      ],
+      "evidence": {
+        "implementation": [
+          "ring5/cli.py::_cmd_install_chrome",
+          "ring5/_chrome_install.py::install_chrome"
+        ],
+        "tests": [
+          "tests/unit/test_chrome_install.py::test_all_platforms_install_inert_observed_layout_and_verify_reuse",
+          "tests/unit/test_chrome_install.py::test_download_rejects_changed_truncated_or_unbounded_input",
+          "tests/unit/test_chrome_install.py::test_invalid_archive_graph_rejected_before_any_member_is_extracted",
+          "tests/unit/test_chrome_install.py::test_cached_tree_rejects_symlinks_without_following_or_replacing_files",
+          "tests/unit/test_chrome_install_review.py::test_empty_foreign_directory_created_at_native_boundary_survives_install",
+          "tests/unit/test_chrome_install.py::test_cli_emits_only_absolute_executable_and_preserves_browser_selection",
+          "tests/unit/test_chrome_cache_expansion.py::test_actual_unknown_user_console_is_typed_before_cache_creation"
+        ],
+        "documentation": [
+          "docs/user-guide/getting-started/installation.md#install-chrome-for-plotly-static-exports"
         ]
       }
     },
@@ -2495,7 +2816,7 @@
         "implementation": ["ring5/cli.py::_cmd_parse"],
         "tests": [
           "tests/unit/test_ring5_cli.py::TestParseCommand",
-          "tests/unit/test_ring5_coverage_edges.py::test_cli_warning_restore_details_file_error_and_module_entry"
+          "tests/unit/test_ring5_coverage_edges.py::test_cli_warning_file_error_and_module_entry"
         ],
         "documentation": [
           "docs/user-guide/workflows/scripting.md#parse-statistics-to-csv"
@@ -2533,12 +2854,16 @@
           "ring5/__init__.py::shutdown",
           "src/parsing/framework/work_pool.py::WorkPool.submit",
           "src/parsing/framework/work_pool.py::WorkPool.shutdown",
+          "src/parsing/framework/work_pool.py::WorkPool.shutdown_scope",
           "src/parsing/gem5/impl/strategies/perl_worker_pool.py::get_worker_pool",
           "src/parsing/gem5/impl/strategies/perl_worker_pool.py::shutdown_worker_pool"
         ],
         "tests": [
           "tests/unit/test_ring5_coverage_edges.py::test_lazy_module_fallback_directory_and_shutdown",
-          "tests/unit/test_parser_data_source_services.py::TestWorkPool",
+          "tests/unit/test_work_pool_lifecycle.py::TestWorkPoolLifecycle",
+          "tests/integration/test_global_parser_shutdown.py::test_global_shutdown_closes_perl_only_after_accepted_work_settles",
+          "tests/integration/test_global_parser_shutdown.py::test_real_parse_survives_global_shutdown_and_recreates_both_pools",
+          "tests/integration/test_global_parser_shutdown.py::test_global_shutdown_rejects_real_parse_through_perl_teardown",
           "tests/unit/test_perl_worker_pool.py::TestWorkerPoolIntegration.test_singleton_pool",
           "tests/integration/test_worker_pool_integration.py::TestWorkerPoolIntegration.test_worker_pool_reused_across_multiple_parses"
         ],
@@ -2557,7 +2882,9 @@
       "tags": ["extensibility", "plots", "registry"],
       "evidence": {
         "implementation": ["src/web/pages/ui/plotting/plot_factory.py::PlotFactory.get_plot_metadata", "src/web/pages/ui/plotting/plot_factory.py::PlotFactory.register_plot_type"],
-        "tests": ["tests/unit/test_plot_factory.py::TestPlotFactoryRegistration", "tests/unit/test_plot_factory.py::TestPlotFactoryMetadata"],
+        "tests": ["tests/unit/test_plot_factory.py::TestPlotFactoryRegistration", "tests/unit/test_plot_factory.py::TestPlotFactoryMetadata",
+          "tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot"
+        ],
         "documentation": ["docs/developer-guide/extension-guides/adding-a-plot-type.md#implement-and-register"]
       }
     },
@@ -2571,7 +2898,7 @@
       "tags": ["extensibility", "registry", "shapers"],
       "evidence": {
         "implementation": ["src/core/services/shapers/factory.py::ShaperFactory.register", "src/core/services/shapers/factory.py::ShaperFactory.get_display_name_map", "src/core/services/shapers/factory.py::ShaperFactory.create_shaper"],
-        "tests": ["tests/unit/test_factory_registries.py::TestShaperFactoryRegistry", "tests/unit/test_shaper_factory_display.py::TestShaperFactoryDisplayNames"],
+        "tests": ["tests/unit/test_factory_registries.py::TestShaperFactoryRegistry", "tests/unit/test_shaper_factory_display.py::TestShaperFactoryDisplayNames", "tests/integration/test_ring5_shaper_registration.py::test_public_definition_registration_and_typed_rejection"],
         "documentation": ["docs/developer-guide/extension-guides/adding-a-shaper.md#implement-and-register"]
       }
     },
@@ -2584,7 +2911,7 @@
       "description": "Additional simulators shall integrate through the SimulationParser protocol and simulator registry without adding simulator-specific logic to core services.",
       "tags": ["extensibility", "parsing", "protocol"],
       "evidence": {
-        "implementation": ["src/parsing/parser_protocol.py::SimulationParser", "src/parsing/registry.py::SimulatorRegistry.register", "src/parsing/registry.py::SimulatorRegistry.get_parser"],
+        "implementation": ["src/parsing/parser_protocol.py::SimulationParser", "src/parsing/registry.py::SimulatorRegistry.register", "src/parsing/registry.py::SimulatorRegistry.get_parser", "ring5/_parsed_output.py::resolve_parsed_output", "ring5/_parsed_output.py::publish_parsed_output"],
         "tests": ["tests/unit/test_simulator_registry.py::TestSimulatorRegistry"],
         "documentation": ["docs/developer-guide/extension-guides/adding-a-parser.md#implement-the-backend"]
       }
@@ -2612,7 +2939,11 @@
       "description": "Core managers, shapers, and public table operations shall return new data objects and preserve caller-owned inputs.",
       "tags": ["data", "immutability", "quality"],
       "evidence": {
-        "implementation": ["src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation", "src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline", "ring5/data.py::Table.apply"],
+        "implementation": [
+          "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation",
+          "src/core/services/shapers/pipeline_service.py::PipelineService._execute",
+          "ring5/data.py::Table.with_scalar_op"
+        ],
         "tests": ["tests/integration/test_ring5_api_completeness.py::test_manager_operations_preserve_dataframe_and_table", "tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data", "tests/unit/test_ring5_convenience_api.py::TestTable"],
         "documentation": ["docs/developer-guide/architecture/design-patterns.md#immutable-data-operations"]
       }
@@ -2640,7 +2971,7 @@
       "description": "Untrusted file names, paths, glob and regular-expression patterns, option lists, and text-search inputs shall be sanitized, contained, or bounded before filesystem or matching work.",
       "tags": ["limits", "security", "validation"],
       "evidence": {
-        "implementation": ["src/core/common/utils.py::sanitize_filename", "src/core/common/utils.py::sanitize_glob_pattern", "src/core/common/utils.py::validate_web_stats_path", "src/core/common/safe_regex.py::compile_bounded_regex", "src/core/common/safe_regex.py::search_bounded_regex", "src/web/components/common/bounded_options.py::bounded_unique_strings"],
+        "implementation": ["src/core/common/utils.py::sanitize_filename", "src/core/common/utils.py::validate_stats_pattern", "src/core/common/utils.py::validate_web_stats_path", "src/core/common/safe_regex.py::compile_bounded_regex", "src/core/common/safe_regex.py::search_bounded_regex", "src/web/components/common/bounded_options.py::bounded_unique_strings"],
         "tests": ["tests/unit/test_utils.py::TestSanitizeFilename", "tests/unit/test_utils.py::TestValidateWebStatsPath", "tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_pattern", "tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_input", "tests/unit/test_bounded_options.py::test_unique_options_are_capped", "tests/unit/test_bounded_options.py::test_oversized_values_are_omitted"],
         "documentation": ["docs/user-guide/reference/troubleshooting.md#input-bounds-and-path-containment"]
       }
@@ -2655,7 +2986,7 @@
       "tags": ["async", "lifecycle", "quality"],
       "evidence": {
         "implementation": ["ring5/_scan.py::ScanJob.cancel", "ring5/_parse.py::ParseJob.cancel", "ring5/_session.py::Session.close"],
-        "tests": ["tests/unit/test_pool_future_leak.py::TestScanWorkPoolStateless", "tests/unit/test_pool_future_leak.py::TestParseWorkPoolStateless", "tests/unit/test_pool_future_leak.py::TestSessionScopedCancellation", "tests/integration/test_ring5_api_completeness.py::test_session_close_defers_cleanup_for_running_parse"],
+        "tests": ["tests/unit/test_pool_future_leak.py::TestWorkPoolOwnership", "tests/unit/test_pool_future_leak.py::TestSessionScopedCancellation", "tests/integration/test_ring5_api_completeness.py::test_session_close_defers_cleanup_for_running_parse"],
         "documentation": ["docs/developer-guide/architecture/data-flow.md#parse-and-load"]
       }
     },
@@ -2711,7 +3042,7 @@
       "tags": ["progress", "scan", "web"],
       "evidence": {
         "implementation": ["src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config", "src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog"],
-        "tests": ["tests/visual/test_ds_parser_config.py::TestParserConfig.test_variables_section", "tests/visual/test_e2e_parse_workflow.py::TestScanWorkflow.test_scan_single_stats", "tests/integration/test_scanner_fix.py::TestScannerFix.test_variable_editor_deep_scan_calls_api_directly"],
+        "tests": ["tests/visual/test_ds_parser_config.py::TestParserConfig.test_variables_section", "tests/visual/test_e2e_parse_workflow.py::TestScanWorkflow.test_scan_single_stats", "tests/ui_unit/test_variable_editor.py::test_variable_editor_deep_scan_submits_through_facade"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -2724,8 +3055,8 @@
       "description": "For statistics containing one or more numeric pattern positions, users shall filter discovered index values and optionally preserve each selected concrete instance as an independent output column.",
       "tags": ["patterns", "selection", "variables"],
       "evidence": {
-        "implementation": ["src/core/models/pattern_index_service.py::PatternIndexService", "src/web/components/data_source/pattern_index_selector.py::PatternIndexSelector.render_selector", "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.construct_final_csv"],
-        "tests": ["tests/unit/test_keep_indices.py::TestKeepIndicesUserFiltered", "tests/unit/test_pattern_index_service.py::TestFilterEntries"],
+        "implementation": ["src/core/models/pattern_index_service.py::PatternIndexService", "src/web/components/data_source/pattern_index_selector.py::PatternIndexSelector.render_selector", "src/parsing/gem5/impl/source_bindings.py::resolve_sources"],
+        "tests": ["tests/unit/test_keep_indices.py::test_correlated_concrete_selection_is_preserved_without_cartesian_expansion", "tests/unit/test_pattern_index_selector_logic.py::test_selection_uses_source_names_and_never_reconstructs_numeric_coordinates"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -2739,7 +3070,9 @@
       "tags": ["parsing", "statistics", "variables"],
       "evidence": {
         "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor", "src/parsing/gem5/types/type_mapper.py::TypeMapper.create_stat"],
-        "tests": ["tests/unit/test_statistics_only_mode.py::TestStatisticsOnlyMode", "tests/integration/test_statistics_only_integration.py::TestStatisticsOnlyIntegration"],
+        "tests": ["tests/unit/test_statistics_only_mode.py::TestStatisticsOnlyMode", "tests/integration/test_statistics_only_integration.py::TestStatisticsOnlyIntegration",
+          "tests/integration/test_gem5_summary_contract.py::test_source_summaries_use_named_entries_and_keep_missing_measurements",
+          "tests/unit/test_distribution_summary_only_contract.py::test_summary_only_ignores_unrequested_fractional_cells_and_owns_no_layout"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -2760,14 +3093,23 @@
     {
       "id": "ingestion.distribution-range-scan",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "Deep distribution range discovery",
-      "description": "A deep scan shall aggregate the global minimum and maximum distribution bucket range across its bounded sample and make those values available to the variable configuration.",
+      "title": "Bounded deep source discovery",
+      "description": "A deep scan shall retain printed frequency labels and intersect compatible source-contract evidence across its bounded sample. Native grid bounds shall remain explicit request declarations rather than inferred extrema of observed labels.",
       "tags": ["distribution", "range", "scan"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Deep distribution range discovery",
+          "description": "A deep scan shall aggregate the global minimum and maximum distribution bucket range across its bounded sample and make those values available to the variable configuration.",
+          "reason": "Observed labels do not establish hidden native grid bounds or uniquely identify a physical producer class."
+        }
+      ],
       "evidence": {
-        "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog", "src/core/services/data_services/variable_service.py::VariableService.aggregate_distribution_range"],
-        "tests": ["tests/unit/test_deep_scan_min_max.py::TestDeepScanMinMax"],
+        "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog"],
+        "tests": ["tests/unit/test_observed_source_aggregation.py::TestObservedSourceAggregation"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -2822,8 +3164,8 @@
       "description": "Configuration variables shall accept an explicit onEmpty value and use it when path-derived metadata is absent while preserving the first extracted value when content exists.",
       "tags": ["configuration", "fallback", "parser"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/configuration.py::Configuration", "src/parsing/gem5/impl/strategies/gem5_parse_work.py::Gem5ParseWork._scalar_pattern_entry", "src/web/components/data_source/variable_editor.py::VariableEditor.render_configuration_config"],
-        "tests": ["tests/unit/test_configuration_type.py::TestConfigurationOnEmptyProperty", "tests/unit/test_gem5_parse_work.py::test_validate_vars_config_default"],
+        "implementation": ["src/parsing/gem5/types/configuration.py::Configuration", "src/parsing/gem5/impl/strategies/gem5_parse_work.py::Gem5ParseWork._validate_variables", "src/web/components/data_source/variable_editor.py::VariableEditor.render_configuration_config"],
+        "tests": ["tests/unit/test_configuration_type.py::TestConfigurationOnEmptyProperty", "tests/unit/test_gem5_parse_work.py::test_configuration_fallback_comes_from_declared_params"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -2883,21 +3225,34 @@
       "status": "approved",
       "title": "Stack total annotations",
       "description": "Stacked and grouped-stacked plots shall optionally label stack totals with configurable numeric format, threshold, typography, position, anchor, offset, and rotation.",
-      "tags": ["annotations", "stacked", "totals"],
+      "tags": [
+        "annotations",
+        "stacked",
+        "totals"
+      ],
       "evidence": {
         "implementation": [
-          "src/web/components/plotting/config/grouped_stacked_bar_theme.py::render_stack_total_options",
+          "src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent._render_totals",
           "src/web/pages/ui/plotting/types/stacked_bar_plot.py::StackedBarPlot._build_totals_annotations"
         ],
         "tests": [
           "tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_show_totals_annotations",
           "tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_totals_threshold_skips_small",
-          "tests/unit/test_grouped_stacked_options.py::TestRenderStackTotalOptions"
+          "tests/ui/test_plot_settings_contracts.py::test_bar_totals_survive_value_label_toggles_and_render_real_values",
+          "tests/unit/test_categorical_total_annotations.py::test_stack_total_values_and_coordinates_survive_reorder_and_duplicate_display_names",
+          "tests/unit/test_annotation_pixel_contract.py::test_public_stack_totals_preserve_pixel_offset_and_raw_categories"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#stack-totals"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
+          "change_type": "evidence"
+        }
+      ]
     },
     {
       "id": "figure.heatmap-summary-controls",
@@ -2906,11 +3261,16 @@
       "status": "approved",
       "title": "Heatmap totals and threshold labels",
       "description": "Heatmaps shall optionally add a total row, reverse their color scale, and show all, above-threshold, or below-threshold formatted cell labels with configurable missing-cell text.",
-      "tags": ["heatmap", "labels", "totals"],
+      "tags": [
+        "heatmap",
+        "labels",
+        "totals"
+      ],
       "evidence": {
         "implementation": [
           "src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces",
-          "src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent.render"
+          "src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent.render",
+          "src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent._render_totals"
         ],
         "tests": [
           "tests/unit/test_heatmap_plot.py::test_heatmap_totals_right_adds_column",
@@ -2926,11 +3286,15 @@
     {
       "id": "figure.histogram-cumulative",
       "group": "figure-configuration",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Cumulative histogram display",
-      "description": "Histogram plots shall optionally accumulate bins in display order while preserving the selected count, probability, density, or percent normalization semantics.",
-      "tags": ["cumulative", "histogram", "statistics"],
+      "description": "Cumulative histograms shall retain observed zero raw counts, require finite accumulated counts, and require finite positive selected mass for normalized cumulative modes; cumulative density shall mean cumulative probability for both native storage cells and generic intervals.",
+      "tags": [
+        "cumulative",
+        "histogram",
+        "statistics"
+      ],
       "evidence": {
         "implementation": [
           "src/web/components/plotting/config/histogram_config.py::render",
@@ -2938,12 +3302,26 @@
         ],
         "tests": [
           "tests/integration/test_histogram_plot_integration.py::TestHistogramPlotIntegration.test_histogram_cumulative_distribution",
-          "tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure.test_normalization_cumulative"
+          "tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure.test_normalization_cumulative",
+          "tests/unit/test_native_distribution_plot.py::test_native_mass_modes",
+          "tests/unit/test_histogram_finite_mass.py::test_public_generic_zero_mass_normalization_rejects_visibly",
+          "tests/unit/test_histogram_finite_mass.py::test_distinct_finite_large_counts_need_no_global_total_for_raw_count",
+          "tests/unit/test_native_distribution_ui.py::test_native_controls_offer_only_supported_mass_or_cdf_modes",
+          "tests/unit/test_native_distribution_ui.py::test_real_native_controls_preserve_labels_and_cdf_without_rebin"
         ],
         "documentation": [
           "docs/user-guide/reference/plot-types.md#cumulative-histograms"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Cumulative histogram display",
+          "description": "Histogram plots shall optionally accumulate bins in display order while preserving the selected count, probability, density, or percent normalization semantics.",
+          "reason": "Normalized cumulative views cannot fabricate probabilities from zero or unrepresentable selected totals."
+        }
+      ]
     },
     {
       "id": "figure.matplotlib-tex-system",
@@ -2955,11 +3333,15 @@
       "tags": ["latex", "matplotlib", "settings"],
       "evidence": {
         "implementation": [
-          "src/web/components/plotting/settings/engine_settings.py::EngineSettingsComponent.render"
+          "src/web/components/plotting/settings/engine_settings.py::EngineSettingsComponent.render",
+          "src/core/models/visualization/export_options.py::validate_tex_system",
+          "src/web/rendering/figure_export.py::matplotlib_download_bytes"
         ],
         "tests": [
           "tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_matplotlib_disables_latex_preamble",
-          "tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_matplotlib_no_hovermode"
+          "tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_matplotlib_no_hovermode",
+          "tests/ui/test_export_request_contract.py::test_compiler_widget_reaches_actual_pgf_request_without_inert_controls",
+          "tests/unit/test_pgf_export_policy.py::test_pgf_savefig_receives_safe_request_and_restores_state"
         ],
         "documentation": [
           "docs/user-guide/reference/rendering-export.md#matplotlib-tex-system"
@@ -3005,7 +3387,8 @@
         "tests": [
           "tests/unit/test_plot_service.py::TestChangePlotType.test_different_type_replaces",
           "tests/ui/test_e2e_manage_plots.py::TestPlotTypeChange.test_change_plot_type",
-          "tests/ui/test_e2e_manage_plots.py::TestPlotTypeChange.test_type_change_preserves_pipeline"
+          "tests/ui/test_e2e_manage_plots.py::TestPlotTypeChange.test_type_change_preserves_pipeline",
+          "tests/ui/test_plot_widget_ownership.py::test_type_change_resets_old_controls_and_preserves_measured_data"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#create-a-plot"
@@ -3019,50 +3402,108 @@
       "status": "approved",
       "title": "Alternate category shading",
       "description": "Grouped and grouped-stacked bar charts shall optionally shade alternating major categories with a selected color while retaining category separators and isolation spacing.",
-      "tags": ["grouped_bar", "shading", "settings"],
+      "tags": [
+        "grouped_bar",
+        "shading",
+        "settings"
+      ],
       "evidence": {
         "implementation": [
           "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.create_shade_shape",
           "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.calculate_grouped_coordinates",
           "src/web/pages/ui/plotting/types/grouped_bar_plot.py::GroupedBarPlot.create_traces",
-          "src/web/components/plotting/config/grouped_stacked_bar_theme.py::render_grouped_theme_extras"
+          "src/web/components/plotting/settings/layout_settings.py::LayoutSettingsComponent._render_grouped_bars"
         ],
         "tests": [
           "tests/unit/test_grouped_bar_utils.py::TestGroupedBarUtils.test_calculate_grouped_coordinates_shade_alternate",
-          "tests/unit/test_grouped_stacked_options.py::TestRenderThemeOptions.test_adds_major_group_styling"
+          "tests/ui/test_plot_settings_contracts.py::test_group_layout_controls_change_existing_geometry"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#alternate-category-shading"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
+          "change_type": "evidence"
+        }
+      ]
     },
     {
       "id": "figure.series-styling",
       "group": "figure-configuration",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Per-series visual styling",
-      "description": "Applicable web plots shall configure per-series override color, display name, bar pattern, marker symbol and size, and line width, while typed renderer styles shall also carry opacity and border settings.",
-      "tags": ["markers", "series", "styles"],
+      "description": "Applicable web plots shall configure per-series color, bar pattern, marker symbol and size, and line width by original series identity; typed renderer styles shall also carry borders. Both renderers shall preserve omitted source opacity and apply finite zero-to-one overrides by composing intrinsic and family-local alpha, including source-owned labels and error bars, without changing scientific data or compounding on reapplication. Unsupported or unknown affected native channels shall fail before any panel changes. Legend text uses the canonical legend-label mapping, legend glyphs reflect final appearance, and heatmap colorbars retain intrinsic mappings.",
+      "tags": [
+        "markers",
+        "series",
+        "styles"
+      ],
       "evidence": {
         "implementation": [
-          "src/web/pages/ui/plotting/styles/base_ui.py::BaseStyleUI._render_series_item",
+          "src/web/rendering/_hatch_utils.py::plotly_hatch",
+          "src/web/pages/ui/plotting/styles/base_ui.py::BaseStyleUI.render_series_visuals",
           "src/web/pages/ui/plotting/styles/bar_ui.py::BarStyleUI._render_specific_series_visuals",
           "src/web/pages/ui/plotting/styles/line_ui.py::LineStyleUI._render_specific_series_visuals",
           "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_series_styling",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_series_styling",
-          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_trace_overrides"
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_trace_overrides",
+          "src/core/common/opacity.py::require_opacity",
+          "src/web/rendering/_appearance.py::prepare_matplotlib_appearance",
+          "src/web/rendering/_appearance.py::prepare_plotly_appearance",
+          "src/web/rendering/_appearance.py::validate_parallel_appearance",
+          "src/web/rendering/matplotlib_colorbar.py::prepare_colorbars"
         ],
         "tests": [
+          "tests/unit/test_hatch_value_contracts.py::test_public_series_override_renders_every_current_pattern",
+          "tests/unit/test_hatch_value_contracts.py::test_reapplication_clears_incompatible_paths_and_preserves_absent_pattern",
+          "tests/unit/test_hatch_value_contracts.py::test_pattern_absence_and_solid_remain_distinct_through_typed_roundtrip",
+          "tests/unit/test_shared_legend_swatch_contract.py::test_shared_scatter_mode_is_part_of_native_glyph_identity",
+          "tests/unit/test_shared_legend_swatch_contract.py::test_native_collection_legend_stroke_preserves_scalar_distinctions_and_unknown_vectors",
+          "tests/ui/test_figure_color_contracts.py::test_every_current_pattern_is_selected_as_an_actual_widget_value_and_renders",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorSeriesStyling",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestTraceOverrides",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestSeriesStyling",
-          "tests/unit/test_style_applicator.py::TestApplyStyles.test_full_pipeline"
+          "tests/unit/test_prepared_figure_styling.py::TestPreparedFigureStyling.test_full_pipeline",
+          "tests/ui/test_plot_settings_contracts.py::test_live_colors_preserve_type_specific_patterns_and_markers",
+          "tests/unit/test_source_opacity_contract.py::test_typed_inheritance_and_editable_presence_have_one_contract",
+          "tests/unit/test_source_opacity_contract.py::test_all_families_preserve_science_and_reapply_explicit_zero",
+          "tests/unit/test_source_opacity_contract.py::test_intrinsic_companion_channels_and_family_factors",
+          "tests/unit/test_source_opacity_contract.py::test_width_only_config_preserves_source_opacity_and_named_wins",
+          "tests/unit/test_source_opacity_contract.py::test_source_labels_reuse_ownership_and_copy_without_touching_live_outputs",
+          "tests/unit/test_source_opacity_contract.py::test_later_panel_unknown_channel_preflight_preserves_earlier_panel",
+          "tests/unit/test_source_opacity_contract.py::test_later_sankey_hover_preflight_preserves_earlier_plotly_source",
+          "tests/unit/test_source_opacity_contract.py::test_new_unsupported_colorbar_rejects_before_any_native_change",
+          "tests/unit/test_source_opacity_contract.py::test_parallel_selected_transparency_rejects_before_any_figure",
+          "tests/unit/test_source_opacity_contract.py::test_zero_unselected_opacity_keeps_every_parallel_row",
+          "tests/unit/test_source_opacity_contract.py::test_unmanaged_appearance_preserves_native_alpha_arrays_and_blocks_updates",
+          "tests/unit/test_source_opacity_contract.py::test_intrinsic_bad_under_over_mapping_and_visible_manual_mutator_boundary",
+          "tests/unit/test_source_opacity_contract.py::test_errorbar_and_area_colors_compose_intrinsic_alpha",
+          "tests/integration/test_figure_value_admission.py::test_source_opacity_portfolio_replay_preserves_embedded_alpha_and_values",
+          "tests/integration/test_figure_value_admission.py::test_opacity_recipe_template_retains_type_until_materialization",
+          "tests/integration/test_figure_value_admission.py::test_invalid_style_value_rejects_at_public_restore_and_capture_boundaries"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#series-styling"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
+          "change_type": "evidence"
+        },
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Per-series visual styling",
+          "description": "Applicable web plots shall configure per-series override color, bar pattern, marker symbol and size, and line width by original series name, while typed renderer styles shall also carry opacity and border settings. Legend display text uses the canonical legend-label mapping.",
+          "reason": "Define explicit source-opacity presence, intrinsic and family alpha composition, source-owned companion behavior and atomic native capability failures across both engines."
+        }
+      ]
     },
     {
       "id": "export.plotly-scale",
@@ -3078,6 +3519,8 @@
           "src/web/components/common/chart_display.py::ChartDisplayComponent.render_plotly_chart"
         ],
         "tests": [
+          "tests/unit/test_plot_presenters.py::test_modebar_uses_actual_multi_panel_native_dimensions_with_the_published_export_scale",
+          "tests/unit/test_download_section_ui.py::test_deferred_download_uses_the_same_published_figure_source_rows_and_scale",
           "tests/ui_unit/test_advanced_settings.py::TestAdvancedSettingsComponent.test_export_scale_caption",
           "tests/unit/test_plot_presenters.py::TestChartDisplayComponent.test_plotly_modebar_uses_configured_export_scale"
         ],
@@ -3097,6 +3540,7 @@
       "evidence": {
         "implementation": [
           "ring5/_plot_validation.py::validate_plot_config",
+          "src/core/common/plot_payload.py::validate_plot_config_values",
           "ring5/_session.py::Session.create_plot",
           "ring5/_session.py::Session.render"
         ],
@@ -3105,12 +3549,25 @@
           "tests/integration/test_ring5_api_completeness.py::test_every_registered_plot_accepts_validated_config",
           "tests/integration/test_ring5_api_completeness.py::test_invalid_plot_config_does_not_register_and_render_errors_are_typed",
           "tests/integration/test_ring5_public_api.py::TestErrorSurface.test_invalid_engine_lists_choices",
-          "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices"
+          "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices",
+          "tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot",
+          "tests/integration/test_native_rendering_review_regressions.py::test_noncanonical_orientation_rejects_before_public_or_restore_publication",
+          "tests/integration/test_native_rendering_review_regressions.py::test_canonical_orientation_values_reach_both_native_models",
+          "tests/integration/test_figure_value_admission.py::test_public_heatmap_context_rejects_before_registering_plot",
+          "tests/integration/test_figure_value_admission.py::test_invalid_style_value_rejects_at_public_restore_and_capture_boundaries",
+          "tests/integration/test_ring5_public_api.py::test_public_bar_families_keep_duplicate_rows_in_current_config_replay"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#workspace"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "evidence",
+          "reason": "Bind public plot validation to the live style-value admission regression covering pattern and opacity."
+        }
+      ]
     },
     {
       "id": "extension.data-manager",
@@ -3133,11 +3590,26 @@
       "status": "approved",
       "title": "Figure-settings extension contract",
       "description": "Top-level figure-settings sections shall use stable keys and progressive-disclosure metadata; option widgets shall derive per-plot keys and safe persisted defaults through the shared widget factory.",
-      "tags": ["extension", "settings", "visualization"],
+      "tags": [
+        "extension",
+        "settings",
+        "visualization"
+      ],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/settings_pills.py::SettingsSection", "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills", "src/web/components/plotting/settings/widget_factory.py::select_option"],
-        "tests": ["tests/unit/test_settings_pills.py::TestSettingsSection", "tests/unit/test_settings_pills.py::TestRenderSettingsPills", "tests/unit/test_widget_sections.py::TestExtendedSections", "tests/unit/test_widget_sections.py::TestSpecPathWiring"],
-        "documentation": ["docs/developer-guide/extension-guides/adding-a-settings-panel.md#implement-a-visual-setting"]
+        "implementation": [
+          "src/web/pages/ui/plotting/settings_pills.py::SettingsSection",
+          "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills",
+          "src/web/components/plotting/settings/widget_factory.py::select_option"
+        ],
+        "tests": [
+          "tests/unit/test_settings_pills.py::TestSettingsSection",
+          "tests/unit/test_settings_pills.py::TestRenderSettingsPills",
+          "tests/ui_logic/test_settings_pills.py::TestSectionDispatch",
+          "tests/ui/test_plot_settings_contracts.py::test_every_family_navigates_every_real_settings_pill"
+        ],
+        "documentation": [
+          "docs/developer-guide/extension-guides/adding-a-settings-panel.md#implement-a-visual-setting"
+        ]
       }
     },
     {
@@ -3150,7 +3622,7 @@
       "tags": ["architecture", "facade", "services"],
       "evidence": {
         "implementation": ["src/core/application_api.py::ApplicationAPI", "src/core/services/services_impl.py::DefaultServicesAPI"],
-        "tests": ["tests/unit/test_application_api_delegation.py::TestPropertyAccess", "tests/unit/test_application_api_delegation.py::TestShapersDelegation", "tests/unit/test_application_api_delegation.py::TestPreviewDelegation"],
+        "tests": ["tests/unit/test_application_api_delegation.py::TestPropertyAccess", "tests/unit/test_application_api_delegation.py::TestPreviewDelegation"],
         "documentation": ["docs/developer-guide/api-reference/application-api.md#application-api"]
       }
     },
@@ -3164,7 +3636,7 @@
       "tags": ["caching", "performance", "quality"],
       "evidence": {
         "implementation": ["src/core/performance.py::SimpleCache", "src/core/performance.py::compute_data_fingerprint", "src/core/services/data_services/csv_pool_service.py::CsvPoolService.load_csv_file", "src/core/services/data_services/csv_pool_service.py::CsvPoolService.clear_caches", "src/core/services/data_services/csv_pool_service.py::CsvPoolService.get_cache_stats", "src/core/services/shapers/impl/mean.py::Mean._calculate_mean_with_cache", "src/core/services/shapers/impl/normalize.py::Normalize._normalize_with_cache"],
-        "tests": ["tests/unit/test_simple_cache.py::TestComputeDataFingerprint", "tests/unit/test_simple_cache.py::TestBasicOperations", "tests/unit/test_simple_cache.py::TestConcurrency", "tests/unit/test_csv_pool_service.py::TestCSVLoading", "tests/unit/test_csv_pool_service.py::TestCacheManagement"],
+        "tests": ["tests/unit/test_simple_cache.py::TestComputeDataFingerprint", "tests/unit/test_simple_cache.py::TestBasicOperations", "tests/unit/test_simple_cache.py::TestConcurrency", "tests/unit/test_csv_pool_service.py::TestCSVLoading", "tests/unit/test_csv_pool_service.py::TestCacheManagement", "tests/unit/test_content_identity.py::test_retained_scientific_differences_reach_every_identity_consumer"],
         "documentation": ["docs/developer-guide/development/code-quality.md#cache-requirements"]
       }
     },
@@ -3178,7 +3650,7 @@
       "tags": ["formatting", "latex", "security"],
       "evidence": {
         "implementation": ["src/core/common/safe_format.py::normalize_numeric_format", "src/core/common/safe_format.py::safe_format_number", "src/core/common/safe_format.py::plotly_numeric_template", "src/web/rendering/latex_security.py::escape_latex_text", "src/web/rendering/latex_security.py::escaped_figure_text", "src/web/rendering/latex_security.py::disabled_figure_usetex"],
-        "tests": ["tests/unit/test_safe_format.py::test_normal_formats_are_preserved", "tests/unit/test_safe_format.py::test_huge_width_falls_back_without_allocating", "tests/unit/test_safe_format.py::test_huge_plotly_template_falls_back", "tests/unit/test_safe_format.py::test_arbitrary_template_is_not_forwarded", "tests/unit/test_latex_security.py::test_latex_commands_are_neutralized", "tests/unit/test_latex_security.py::test_figure_text_is_escaped_temporarily", "tests/unit/test_latex_security.py::test_figure_usetex_is_disabled_temporarily"],
+        "tests": ["tests/unit/test_safe_format.py::test_normal_formats_are_preserved", "tests/unit/test_safe_format.py::test_huge_width_falls_back_without_allocating", "tests/unit/test_safe_format.py::test_huge_plotly_template_falls_back", "tests/unit/test_safe_format.py::test_arbitrary_template_is_not_forwarded", "tests/unit/test_latex_security.py::test_latex_commands_are_neutralized", "tests/unit/test_latex_security.py::test_figure_text_is_escaped_temporarily", "tests/unit/test_latex_security.py::test_figure_usetex_is_disabled_temporarily", "tests/unit/test_latex_security.py::test_literal_text_and_math_settings_are_restored", "tests/unit/test_pgf_export_policy.py::test_pgf_savefig_receives_safe_request_and_restores_state"],
         "documentation": ["docs/user-guide/reference/rendering-export.md#safe-numeric-and-tex-formatting"]
       }
     },
@@ -3191,10 +3663,17 @@
       "description": "The repository shall provide repeatable performance checks for representative large-data transformations, caches, rendering, and worker-pool stability, with explicit thresholds where wall-clock regression limits are asserted.",
       "tags": ["benchmarks", "performance", "quality"],
       "evidence": {
-        "implementation": ["tests/helpers/benchmark.py::BenchmarkSuite", "src/core/performance.py::timed"],
+        "implementation": ["tests/helpers/benchmark.py::BenchmarkSuite"],
         "tests": ["tests/performance/test_performance_regression.py::TestPlotPerformance", "tests/performance/test_performance_regression.py::TestShaperPerformance", "tests/performance/test_performance_regression.py::TestCsvPoolPerformance", "tests/performance/test_performance_regression.py::TestDataLoadingPerformance", "tests/performance/test_worker_pool_performance.py::test_worker_pool_performance_vs_subprocess", "tests/performance/test_worker_pool_performance.py::test_worker_pool_memory_efficiency"],
         "documentation": ["docs/developer-guide/development/testing.md#performance-regression-checks"]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "evidence",
+          "reason": "Retain live benchmark evidence after removing the unused timing decorator."
+        }
+      ]
     },
     {
       "id": "trace.inventory-generator",
@@ -3282,8 +3761,9 @@
         ],
         "tests": [
           "tests/unit/test_comparison_service.py::test_compare_calculates_changes_and_directional_outcomes",
-          "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_dataframe_comparison",
-          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview"
+          "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_explicit_frame_interoperability_comparison",
+          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview",
+          "tests/e2e/test_data_journeys.py::TestComparisonArtifacts.test_threshold_results_download_as_exact_csv_json_junit_and_confirm"
         ],
         "documentation": ["docs/user-guide/guides/compare-configurations.md#calculate-regressions"]
       }
@@ -3305,7 +3785,8 @@
         "tests": [
           "tests/unit/test_statistical_comparison_service.py::test_statistics_include_intervals_effect_bootstrap_and_significance",
           "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_repeated_sample_statistics",
-          "tests/e2e/test_data_managers.py::TestStatisticalComparison.test_statistical_preview"
+          "tests/e2e/test_data_managers.py::TestStatisticalComparison.test_statistical_preview",
+          "tests/e2e/test_data_journeys.py::TestComparisonArtifacts.test_statistical_download_preserves_sample_counts_means_and_warnings"
         ],
         "documentation": ["docs/user-guide/guides/compare-configurations.md#estimate-statistical-evidence"]
       }
@@ -3360,7 +3841,8 @@
         "tests": [
           "tests/unit/test_state_repositories.py::TestDataRepository.test_lineage_undo_redo_inspect_and_restore",
           "tests/integration/test_ring5_public_api.py::TestDatasetLineageAndRecovery.test_lineage_undo_redo_and_restore",
-          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_lineage_inspection_undo_and_redo"
+          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_lineage_inspection_undo_and_redo",
+          "tests/e2e/test_data_journeys.py::TestNamedWorkspaceResults.test_undo_redo_revision_restore_and_snapshot_preserve_exact_contents"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#trace-and-recover-dataset-changes"
@@ -3402,7 +3884,8 @@
         "tests": [
           "tests/unit/test_dataset_workspace_service.py::test_append_and_join_create_results_without_mutating_sources",
           "tests/integration/test_ring5_public_api.py::TestNamedDatasetWorkspace.test_workspace_retains_selects_compares_joins_and_appends",
-          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_retain_current_dataset"
+          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_retain_current_dataset",
+          "tests/e2e/test_data_journeys.py::TestNamedWorkspaceResults.test_append_creates_an_independent_table_and_keeps_both_sources"
         ],
         "documentation": ["docs/user-guide/workflows/managing-datasets.md#keep-multiple-named-datasets"]
       }
@@ -3426,7 +3909,8 @@
         "tests": [
           "tests/unit/test_quality_profile_service.py::test_profile_reports_dataset_and_column_issues",
           "tests/integration/test_ring5_public_api.py::TestDataQuality.test_profile_table",
-          "tests/e2e/test_data_managers.py::TestDataQualityProfile.test_profile_dataset"
+          "tests/e2e/test_data_managers.py::TestDataQualityProfile.test_profile_dataset",
+          "tests/e2e/test_data_journeys.py::TestDataInspectionResults.test_quality_profile_download_counts_missing_and_duplicate_data_without_mutation"
         ],
         "documentation": ["docs/user-guide/workflows/managing-datasets.md#profile-data-quality"]
       }
@@ -3453,7 +3937,8 @@
         "tests": [
           "tests/unit/test_dataset_workspace_service.py::test_validated_join_reports_duplicates_unmatched_rows_and_cardinality",
           "tests/integration/test_ring5_public_api.py::TestValidatedDatasetJoins.test_diagnose_and_execute_validated_join",
-          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_join_cardinality_diagnostics_gate_output"
+          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_join_cardinality_diagnostics_gate_output",
+          "tests/e2e/test_data_journeys.py::TestNamedWorkspaceResults.test_join_conflict_blocks_publication_and_the_declared_relationship_is_exact"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#validate-joins-before-creating-output"
@@ -3480,7 +3965,8 @@
         "tests": [
           "tests/unit/test_schema_contract_service.py::test_contract_reports_required_type_null_range_category_and_extra_rules",
           "tests/integration/test_ring5_public_api.py::TestDatasetSchemaContracts.test_infer_define_and_validate_schema_contract",
-          "tests/e2e/test_data_managers.py::TestDatasetSchemaContract.test_validate_inferred_contract"
+          "tests/e2e/test_data_managers.py::TestDatasetSchemaContract.test_validate_inferred_contract",
+          "tests/e2e/test_data_journeys.py::TestSchemaContractSemantics.test_schema_rejection_semantic_conversion_failure_and_undo_preserve_exact_values"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#define-and-validate-a-schema-contract"
@@ -3505,8 +3991,8 @@
           "src/core/models/schema_contract_models.py::ColumnContract",
           "src/core/models/semantic_metadata_models.py::ColumnSemantics",
           "src/core/models/semantic_metadata_models.py::DatasetSemantics",
-          "src/core/services/data_services/dataset_snapshot_service.py::DatasetSnapshotService._encode_frame",
-          "src/core/services/data_services/dataset_snapshot_service.py::DatasetSnapshotService._decode_frame",
+          "src/core/common/typed_table_codec.py::TypedTableCodec._encode_frame",
+          "src/core/common/typed_table_codec.py::TypedTableCodec.decode",
           "src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio",
           "src/core/services/managers/semantic_metadata_service.py::SemanticMetadataService.attach",
           "src/core/services/managers/semantic_metadata_service.py::SemanticMetadataService.convert",
@@ -3514,7 +4000,7 @@
           "src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio",
           "src/web/components/data_managers/schema_contract.py::SchemaContractManager.render",
           "src/web/components/data_managers/schema_contract.py::SchemaContractManager._render_conversion",
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
+          "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict",
           "src/web/pages/ui/plotting/plot_factory.py::PlotFactory.from_dict"
         ],
@@ -3530,7 +4016,8 @@
           "tests/unit/test_semantic_metadata_service.py::test_conversion_rejects_invalid_requests",
           "tests/unit/test_semantic_metadata_service.py::test_figure_labels_are_inferred_but_explicit_labels_win",
           "tests/unit/test_semantic_metadata_service.py::test_parallel_dimensions_receive_semantic_labels",
-          "tests/unit/test_semantic_metadata_service.py::test_schema_inference_retains_existing_semantic_metadata"
+          "tests/unit/test_semantic_metadata_service.py::test_schema_inference_retains_existing_semantic_metadata",
+          "tests/e2e/test_data_journeys.py::TestSchemaContractSemantics.test_schema_rejection_semantic_conversion_failure_and_undo_preserve_exact_values"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#retain-semantic-labels-and-units"
@@ -3548,7 +4035,7 @@
       "evidence": {
         "implementation": [
           "src/core/models/dataset_workspace_models.py::DatasetSnapshotInfo",
-          "src/core/services/data_services/dataset_fingerprint.py::fingerprint_dataset",
+          "src/core/common/content_identity.py::frame_signature",
           "src/core/services/data_services/path_service.py::PathService.get_dataset_snapshots_dir",
           "src/core/services/data_services/dataset_snapshot_service.py::DatasetSnapshotService.list_snapshots",
           "src/core/services/data_services/dataset_snapshot_service.py::DatasetSnapshotService.save_snapshot",
@@ -3563,10 +4050,13 @@
         ],
         "tests": [
           "tests/unit/test_dataset_snapshot_service.py::test_save_list_load_overwrite_and_delete_exact_snapshot",
+          "tests/unit/test_dataset_snapshot_service.py::test_snapshot_preserves_range_axes_and_canonical_lineage_identity",
+          "tests/unit/test_typed_table_codec.py::test_json_round_trip_preserves_scientific_identity",
           "tests/unit/test_dataset_snapshot_service.py::test_load_rejects_checksum_and_fingerprint_tampering",
           "tests/unit/test_parsing_services.py::TestPathService.test_get_dataset_snapshots_dir_creates_directory",
           "tests/integration/test_ring5_public_api.py::TestReusableDatasetSnapshots.test_save_list_reload_overwrite_and_delete",
-          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_save_and_reload_verified_dataset_snapshot"
+          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_save_and_reload_verified_dataset_snapshot",
+          "tests/e2e/test_data_journeys.py::TestNamedWorkspaceResults.test_undo_redo_revision_restore_and_snapshot_preserve_exact_contents"
         ],
         "documentation": [
           "docs/user-guide/workflows/dataset-snapshots.md#reuse-dataset-snapshots"
@@ -3594,7 +4084,7 @@
         "tests": [
           "tests/integration/test_dashboard_public_api.py::test_public_dashboard_renders_both_engines_and_exports_whole_figure",
           "tests/ui_logic/test_dashboard_composer.py::test_composer_builds_previews_and_exports_selected_panels",
-          "tests/e2e/test_dashboard_composer.py::test_build_and_offer_whole_dashboard_export"
+          "tests/e2e/test_dashboard_composer.py::test_build_export_and_link_dashboard_without_changing_source"
         ],
         "documentation": [
           "docs/user-guide/workflows/multi-panel-dashboards.md#build-multi-panel-dashboards"
@@ -3623,7 +4113,7 @@
           "tests/unit/test_linked_selection.py::test_highlight_links_matching_values_without_mutating_figure",
           "tests/integration/test_linked_selection_public_api.py::test_public_linked_selection_highlights_dashboard_copy",
           "tests/ui_logic/test_dashboard_composer.py::test_linked_preview_consumes_selection_and_keeps_base_figure",
-          "tests/e2e/test_dashboard_composer.py::test_build_and_offer_whole_dashboard_export"
+          "tests/e2e/test_dashboard_composer.py::test_build_export_and_link_dashboard_without_changing_source"
         ],
         "documentation": [
           "docs/user-guide/workflows/linked-selections.md#link-dashboard-selections"
@@ -3641,6 +4131,7 @@
       "evidence": {
         "implementation": [
           "src/core/models/visualization/drill_down_result.py::DrillDownResult",
+          "ring5/data.py::DrillDownResult",
           "src/core/services/visualization/drill_down_service.py::drill_down_rows",
           "src/core/application_api.py::ApplicationAPI.drill_down_plot",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.replace_source_data",
@@ -3656,8 +4147,12 @@
           "tests/unit/test_drill_down_service.py::test_drill_down_matches_grouped_source_rows_and_returns_defensive_copies",
           "tests/unit/test_drill_down_metadata.py::test_every_plot_family_embeds_source_filters_without_mutating_data",
           "tests/integration/test_drill_down_public_api.py::test_public_drill_down_recovers_aggregate_source_rows_without_mutation",
+          "tests/integration/test_public_value_contracts.py::test_drill_down_and_report_tables_use_owned_public_values",
           "tests/ui_logic/test_render_controller.py::TestDrillDownInteraction.test_click_resolves_rows_and_preserves_config",
-          "tests/e2e/test_plot_drill_down.py::test_point_drill_down_shows_source_rows_and_returns_with_config"
+          "tests/e2e/test_plot_drill_down.py::test_point_drill_down_returns_exact_clicked_category_and_color",
+          "tests/e2e/test_plot_drill_down.py::test_gallery_drill_down_excludes_rows_outside_its_pipeline",
+          "tests/unit/test_source_contribution_adversarial.py::test_multikey_mean_matches_original_rows_after_missing_and_category_sorting",
+          "tests/unit/test_source_contributions.py::test_all_builtin_shapers_preserve_exact_original_contributors"
         ],
         "documentation": [
           "docs/user-guide/workflows/plot-drill-down.md#explore-rows-behind-a-plot"
@@ -3685,10 +4180,11 @@
           "ring5/_small_multiples.py::render_small_multiples"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_facet_views_drop_borrowed_artifacts_without_touching_source_or_domain_payloads",
           "tests/unit/test_small_multiples_service.py::test_discovers_multicolumn_panels_in_stable_order_with_labels",
           "tests/integration/test_small_multiples_public_api.py::test_small_multiples_render_both_engines_in_order_without_mutation",
           "tests/ui_logic/test_small_multiples_settings.py::test_enabled_controls_report_panel_count_and_shared_scales",
-          "tests/ui_logic/test_render_controller.py::TestSmallMultiplesRendering.test_matplotlib_facets_build_plotly_preview_and_native_grid",
+          "tests/ui_logic/test_render_controller.py::TestSmallMultiplesRendering.test_matplotlib_facets_build_only_native_grid",
           "tests/e2e/test_plot_small_multiples.py::test_small_multiples_keep_configuration_across_both_engines"
         ],
         "documentation": [
@@ -3716,7 +4212,8 @@
           "tests/unit/test_plot_transfer_service.py::test_selected_settings_copy_only_requested_presentation_values",
           "tests/integration/test_plot_transfer_public_api.py::test_public_copy_supports_sections_configuration_and_pipeline",
           "tests/ui_logic/test_plot_transfer_panel.py::test_selected_sections_copy_into_current_plot",
-          "tests/e2e/test_plot_transfer.py::test_copy_selected_settings_reloads_destination_widgets"
+          "tests/e2e/test_plot_transfer.py::test_copy_selected_settings_reloads_destination_widgets",
+          "tests/ui/test_plot_widget_ownership.py::test_copy_target_preserves_another_plots_shaper_with_matching_numeric_id"
         ],
         "documentation": [
           "docs/user-guide/workflows/copy-plot-settings.md#copy-plot-settings-and-pipelines"
@@ -3849,6 +4346,7 @@
           "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_line"
         ],
         "tests": [
+          "tests/integration/test_area_css_colors_public_api.py::test_area_css_colors_preserve_measured_outline_and_fill_geometry",
           "tests/unit/test_area_plot.py::test_normalized_area_precomputes_cumulative_baselines_without_mutation",
           "tests/unit/test_trace_to_plotly.py::TestAreaLineTrace.test_area_fill_and_step_interpolation_are_preserved",
           "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_area_line_fills_against_precomputed_baseline",
@@ -3992,7 +4490,7 @@
           "src/core/services/visualization/accessibility_service.py::AccessibilityService.apply_non_color_encodings",
           "src/core/services/visualization/accessibility_service.py::AccessibilityService.audit",
           "src/web/components/plotting/settings/colors_settings.py::ColorsSettingsComponent.render",
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
+          "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/rendering/dashboard_builder.py::_render_matplotlib_dashboard",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_hatching",
           "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_bar"
@@ -4042,7 +4540,7 @@
           "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills"
         ],
         "tests": [
-          "tests/e2e/test_settings.py::TestFigureThemePreset.test_apply_dark_theme_keeps_plot_and_exposes_import_export",
+          "tests/e2e/test_settings.py::TestFigureThemePreset.test_theme_json_round_trip_changes_appearance_and_rejects_data_bindings",
           "tests/integration/test_figure_theme_public_api.py::test_public_theme_round_trip_preserves_data_and_renders_dark_bars_in_both_engines",
           "tests/integration/test_figure_theme_public_api.py::test_public_theme_errors_are_typed_and_do_not_accept_data_bindings",
           "tests/ui_logic/test_render_controller.py::TestRefreshLogic.test_theme_apply_requests_one_refresh_even_when_auto_refresh_is_off",
@@ -4054,7 +4552,8 @@
           "tests/unit/test_figure_theme_service.py::test_theme_import_rejects_unbounded_invalid_or_unsafe_documents",
           "tests/unit/test_theme_presets_settings.py::test_apply_dark_theme_refreshes_and_clears_only_stale_appearance_widgets",
           "tests/unit/test_theme_presets_settings.py::test_imported_theme_can_be_reviewed_and_applied",
-          "tests/unit/test_theme_presets_settings.py::test_invalid_import_is_explained_without_changing_the_plot"
+          "tests/unit/test_theme_presets_settings.py::test_invalid_import_is_explained_without_changing_the_plot",
+          "tests/ui/test_plot_widget_ownership.py::test_theme_apply_preserves_another_plots_pending_series_color"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#reuse-a-figure-theme"
@@ -4080,8 +4579,9 @@
         "tests": [
           "tests/unit/core/visualization/test_dashboard_spec.py::test_publication_fields_align_panels_and_resolve_legacy_spacing",
           "tests/integration/test_dashboard_public_api.py::test_publication_panel_composition_is_consistent_across_engines",
+          "tests/integration/test_prepared_native_rendering.py::test_dashboard_owns_each_child_legend_role_and_preserves_numbered_annotation_style",
           "tests/ui_logic/test_dashboard_composer.py::test_composer_exposes_publication_labels_captions_and_spacing",
-          "tests/e2e/test_dashboard_composer.py::test_build_and_offer_whole_dashboard_export"
+          "tests/e2e/test_dashboard_composer.py::test_build_export_and_link_dashboard_without_changing_source"
         ],
         "documentation": [
           "docs/user-guide/workflows/publication-panel-composition.md#compose-publication-panels"
@@ -4099,7 +4599,6 @@
       "evidence": {
         "implementation": [
           "src/core/models/visualization/trace_config.py::LineTraceConfig",
-          "src/web/models/plot_models.py::PlotDisplayConfig",
           "ring5/_plot_validation.py::_validate_line_style",
           "src/web/pages/ui/plotting/types/line_plot.py::LinePlot.render_specific_advanced_options",
           "src/web/pages/ui/plotting/types/line_plot.py::LinePlot.create_traces",
@@ -4140,7 +4639,8 @@
           "tests/unit/test_report_service.py::test_report_service_captures_stable_provenance_and_bounded_tables",
           "tests/integration/test_batch_reports_public_api.py::test_report_contains_every_content_type_and_is_byte_stable",
           "tests/unit/test_report_composer.py::test_report_composer_builds_panel_table_narrative_and_download",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_03_generate_batch_report"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_03_generate_batch_report",
+          "tests/e2e/test_portfolio_lifecycle.py::TestPublicationReportArtifacts.test_report_modes_have_real_content_and_changed_settings_hide_stale_downloads"
         ],
         "documentation": [
           "docs/user-guide/workflows/batch-reports.md#build-analysis-reports"
@@ -4167,7 +4667,8 @@
         "tests": [
           "tests/integration/test_batch_reports_public_api.py::test_interactive_gallery_contains_live_plots_and_each_processed_dataframe",
           "tests/unit/test_report_composer.py::test_report_composer_builds_interactive_gallery_as_individual_cards",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_03_generate_batch_report"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_03_generate_batch_report",
+          "tests/e2e/test_portfolio_lifecycle.py::TestPublicationReportArtifacts.test_report_modes_have_real_content_and_changed_settings_hide_stale_downloads"
         ],
         "documentation": [
           "docs/user-guide/workflows/batch-reports.md#export-an-interactive-gallery"
@@ -4195,7 +4696,9 @@
           "tests/unit/test_browser_upload_service.py::test_csv_json_and_excel_uploads_become_reviewable_tables",
           "tests/integration/test_browser_upload_application_api.py::test_upload_is_non_mutating_until_confirmed_load_or_restore",
           "tests/unit/test_browser_upload_component.py::test_dataset_upload_routes_to_import_review",
-          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_load_loads_data"
+          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_load_loads_data",
+          "tests/ui/test_plot_widget_ownership.py::test_browser_portfolio_restore_discards_widgets_for_reused_plot_ids",
+          "tests/e2e/test_data_journeys.py::TestTabularImportJourneys.test_json_and_excel_are_reviewed_before_loading_exact_values"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#upload-data-or-a-portfolio-from-your-browser"
@@ -4224,7 +4727,8 @@
           "tests/unit/test_remote_source_service.py::test_http_ssh_and_s3_adapters_fetch_bounded_credential_safe_sources",
           "tests/integration/test_remote_source_application_api.py::test_remote_download_is_staged_for_review_before_load",
           "tests/unit/test_remote_source_component.py::test_remote_source_fetches_into_existing_import_review",
-          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_remote_source_controls_show_the_authorization_boundary"
+          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_remote_source_controls_show_the_authorization_boundary",
+          "tests/e2e/test_data_journeys.py::TestRemoteSourceBoundary.test_unauthorized_remote_adapters_cannot_fetch"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#fetch-an-authorized-remote-source"
@@ -4242,7 +4746,7 @@
       "evidence": {
         "implementation": [
           "src/core/models/parsing_models.py::IncrementalParseBatchResult",
-          "src/parsing/framework/incremental_cache.py::fingerprint_inputs",
+          "src/core/common/input_identity.py::fingerprint_inputs",
           "src/parsing/framework/incremental_cache.py::write_cache",
           "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.submit_incremental_parse_async",
           "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_incremental_parsing",
@@ -4256,7 +4760,8 @@
           "tests/integration/test_incremental_parsing.py::test_incremental_parse_reuses_updates_and_removes_exact_source_rows",
           "tests/unit/test_incremental_parse_component.py::test_incremental_background_job_finalizes_an_all_reused_batch",
           "tests/unit/test_application_api_delegation.py::TestIncrementalParsing.test_submit_and_finalize_delegate_to_parser",
-          "tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_incremental_parse_control_is_visible_and_enabled"
+          "tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_incremental_parse_control_is_visible_and_enabled",
+          "tests/e2e/test_data_journeys.py::TestParserRecovery.test_incremental_updates_and_removed_files_rebuild_the_exact_current_table"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#reuse-unchanged-simulator-files"
@@ -4294,7 +4799,9 @@
           "tests/unit/test_parser_playground_component.py::test_playground_dialog_shows_evidence_without_loading_workspace",
           "tests/ui_unit/test_data_source_components.py::test_render_parser_config_submits_the_bounded_playground",
           "tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_parser_playground_action_is_visible",
-          "tests/visual/test_ds_parser_config.py::TestParserConfig.test_parse_button_behaviour"
+          "tests/visual/test_ds_parser_config.py::TestParserConfig.test_parse_button_behaviour",
+          "tests/e2e/test_data_journeys.py::TestParserEvidence.test_playground_parse_and_repeated_attempt_preserve_their_boundaries",
+          "tests/e2e/test_data_journeys.py::TestParserRecovery.test_missing_measurements_remain_visible_in_preview_and_empty_in_parsed_csv"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#test-parser-settings-before-a-full-run"
@@ -4325,7 +4832,8 @@
           "tests/unit/test_import_preview_service.py::test_preview_detects_structure_types_and_explains_rejected_rows",
           "tests/integration/test_import_preview_public_api.py::test_preview_is_non_mutating_and_loads_only_reviewed_rows",
           "tests/unit/test_import_preview_component.py::test_review_applies_type_correction_and_loads_only_after_confirmation",
-          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_review_detects_format_before_loading"
+          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_review_detects_format_before_loading",
+          "tests/e2e/test_data_journeys.py::TestTabularImportJourneys.test_rejected_rows_are_explicit_and_an_empty_result_cannot_replace_data"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#review-a-tabular-import-before-loading"
@@ -4354,14 +4862,18 @@
           "src/web/components/analysis_recipe_component.py::AnalysisRecipeComponent.render"
         ],
         "tests": [
+          "tests/integration/test_native_rendering_review_regressions.py::test_recipe_orientation_is_checked_only_after_parameter_materialization",
+          "tests/integration/test_figure_value_admission.py::test_pattern_recipe_values_validate_after_parameter_materialization",
           "tests/unit/test_analysis_recipe_service.py::test_recipe_json_is_deterministic_versioned_and_materializes_typed_values",
           "tests/unit/test_analysis_recipe_service.py::test_recipe_storage_protects_names_and_lists_valid_records",
           "tests/unit/test_analysis_recipe_service.py::test_capture_retains_parser_variables_plot_configs_and_pipelines",
           "tests/integration/test_analysis_recipe_public_api.py::test_parameterized_recipe_round_trip_executes_plots_and_exports",
           "tests/integration/test_analysis_recipe_public_api.py::test_recipe_capture_and_errors_use_the_public_contract",
           "tests/integration/test_analysis_recipe_public_api.py::test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typed",
+          "tests/integration/test_analysis_recipe_public_api.py::test_saved_parser_recipe_replays_complete_catalog_without_rescanning",
           "tests/unit/test_analysis_recipe_component.py::test_capture_parameterizes_source_and_saves_without_overwrite",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_04_save_and_download_analysis_recipe"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_04_save_and_download_analysis_recipe",
+          "tests/e2e/test_portfolio_lifecycle.py::TestAnalysisRecipeExchange.test_recipe_download_import_conflict_replace_version_rejection_and_delete"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#save-a-reusable-analysis-recipe"
@@ -4438,7 +4950,9 @@
           "tests/integration/test_browser_upload_application_api.py::test_portable_bundle_upload_is_non_mutating_until_confirmed",
           "tests/integration/test_portfolio_bundle_public_api.py::test_export_inspect_read_and_restore_portable_bundle",
           "tests/integration/test_portfolio_bundle_public_api.py::test_portable_bundle_errors_use_public_portfolio_error",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio",
+          "tests/ui/test_plot_widget_ownership.py::test_browser_portfolio_restore_discards_widgets_for_reused_plot_ids",
+          "tests/e2e/test_portfolio_lifecycle.py::TestPortableBundleLifecycle.test_bundle_review_tamper_rejection_and_exact_restore"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#share-a-portable-analysis-bundle"
@@ -4464,7 +4978,6 @@
           "src/core/services/data_services/portfolio_service.py::PortfolioService.verify_portfolio",
           "src/core/services/data_services/portfolio_service.py::PortfolioService.load_portfolio",
           "src/core/services/browser_upload_service.py::BrowserUploadService.load_portfolio",
-          "src/core/services/portfolio_migrator.py::PortfolioMigrator._migrate_v3_to_v4",
           "ring5/_session.py::Session.verify_portfolio",
           "ring5/_session.py::Session.load_portfolio",
           "src/web/pages/portfolio.py::_render_integrity_review"
@@ -4480,7 +4993,8 @@
           "tests/integration/test_signed_portfolio_public_api.py::test_public_api_distinguishes_checksums_and_verified_signatures",
           "tests/integration/test_signed_portfolio_public_api.py::test_modified_portfolio_is_reported_and_never_restored",
           "tests/integration/test_signed_portfolio_public_api.py::test_integrity_public_errors_remain_portfolio_errors",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio",
+          "tests/e2e/test_portfolio_lifecycle.py::TestSignedPortfolioLifecycle.test_signed_save_wrong_secret_rejection_then_exact_authenticated_restore"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#check-integrity-and-authenticate-a-portfolio"
@@ -4501,13 +5015,14 @@
           "src/core/services/environment_metadata_service.py::EnvironmentMetadataService.capture",
           "src/core/services/environment_metadata_service.py::EnvironmentMetadataService.compare",
           "src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio",
-          "src/core/services/portfolio_migrator.py::PortfolioMigrator._migrate_v2_to_v3",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.serialize_workspace",
           "ring5/_session.py::Session.environment_metadata",
           "ring5/_session.py::Session.compare_portfolio_environment",
           "src/web/pages/portfolio.py::_render_environment_comparison"
         ],
         "tests": [
           "tests/unit/test_environment_metadata_service.py::test_capture_is_complete_stable_and_privacy_conscious",
+          "tests/integration/test_export_tool_selection.py::test_actual_public_routes_agree_without_launching_browser_or_compiler",
           "tests/integration/test_portfolio_service_integration.py::test_save_and_load_portfolio",
           "tests/integration/test_environment_metadata_public_api.py::test_saved_environment_is_public_and_matches_same_runtime",
           "tests/unit/test_portfolio_page.py::TestPortfolioEnvironment.test_environment_comparison_is_human_first",
@@ -4540,7 +5055,8 @@
           "tests/unit/test_analysis_recipe_automation_service.py::test_notebook_is_deterministic_safe_and_uses_standard_v4_cells",
           "tests/unit/test_analysis_recipe_component.py::test_saved_recipe_shows_counts_and_portable_automation_downloads",
           "tests/integration/test_analysis_recipe_public_api.py::test_recipe_exports_execute_through_only_the_public_api",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_04_save_and_download_analysis_recipe"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_04_save_and_download_analysis_recipe",
+          "tests/e2e/test_portfolio_lifecycle.py::TestDownloadedRecipeExecution.test_downloaded_python_runs_typed_source_and_output_arguments"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#take-a-recipe-into-python-or-jupyter"
@@ -4598,7 +5114,8 @@
           "tests/unit/test_regression_result_export_service.py::test_json_is_versioned_deterministic_and_retains_result_semantics",
           "tests/unit/test_regression_result_export_service.py::test_junit_maps_regressions_to_failures_and_incomplete_rows_to_skips",
           "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_machine_readable_results_support_tables_and_typed_errors",
-          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview"
+          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview",
+          "tests/e2e/test_data_journeys.py::TestComparisonArtifacts.test_threshold_results_download_as_exact_csv_json_junit_and_confirm"
         ],
         "documentation": [
           "docs/user-guide/guides/compare-configurations.md#export-regression-results-for-automation"
@@ -4691,6 +5208,7 @@
           "tests/unit/test_background_job_center.py::test_center_shows_progress_errors_and_lifecycle_actions",
           "tests/e2e/test_background_jobs.py::TestBackgroundJobCenter.test_scan_job_progress_and_cleanup",
           "tests/integration/test_background_jobs_public_api.py::test_background_transformations_and_export_are_non_blocking",
+          "tests/integration/test_background_jobs_public_api.py::test_background_export_retains_requested_pgf_compiler",
           "tests/integration/test_background_jobs_public_api.py::test_failed_background_job_has_bounded_error_and_retries",
           "tests/integration/test_background_jobs_public_api.py::test_cancellation_is_honest_and_public_errors_are_typed"
         ],
@@ -4890,7 +5408,7 @@
       "revision": 1,
       "status": "approved",
       "title": "Pipeline configuration exchange",
-      "description": "Users shall import and export versioned saved shaper configurations with validation, conflict handling, and migration support.",
+      "description": "Users shall import and export versioned saved shaper configurations with validation and conflict handling.",
       "tags": ["configuration", "shapers", "versioning"],
       "evidence": {
         "implementation": [
@@ -4905,7 +5423,7 @@
         ],
         "tests": [
           "tests/unit/test_pipeline_config_exchange.py::test_export_is_deterministic_versioned_and_validated",
-          "tests/unit/test_pipeline_config_exchange.py::test_import_migrates_legacy_record_and_preserves_content",
+          "tests/unit/test_pipeline_config_exchange.py::test_import_rejects_unversioned_records_without_writes",
           "tests/unit/test_pipeline_config_exchange.py::test_import_conflicts_can_stop_rename_or_replace",
           "tests/integration/test_ring5_public_api.py::TestPipelineConfigurationExchange.test_versioned_round_trip_and_typed_conflict",
           "tests/e2e/test_shaper_pipeline.py::TestPipelineConfigurationExchange.test_download_then_import_and_use"
@@ -5075,18 +5593,20 @@
       "gem5:vector": "ingestion.vector"
     },
     "variable_type_params": {
-      "configuration:onEmpty": "ingestion.configuration-fallbacks",
+      "configuration:on_empty": "ingestion.configuration-fallbacks",
+      "distribution:bucket_size": "ingestion.distribution",
       "distribution:maximum": "ingestion.distribution",
       "distribution:minimum": "ingestion.distribution",
+      "distribution:zero_policy": "ingestion.distribution",
       "vector:entries": "ingestion.vector"
     },
     "simulator_internal_stats": {
       "gem5:gmean": "ingestion.variable-entry-selection",
       "gem5:max_bucket": "ingestion.variable-entry-selection",
-      "gem5:max_val": "ingestion.variable-entry-selection",
+      "gem5:max_value": "ingestion.variable-entry-selection",
       "gem5:mean": "ingestion.variable-entry-selection",
       "gem5:min_bucket": "ingestion.variable-entry-selection",
-      "gem5:min_val": "ingestion.variable-entry-selection",
+      "gem5:min_value": "ingestion.variable-entry-selection",
       "gem5:num_buckets": "ingestion.variable-entry-selection",
       "gem5:overflows": "ingestion.variable-entry-selection",
       "gem5:sample_period": "ingestion.variable-entry-selection",
@@ -5100,7 +5620,7 @@
     },
     "shaper_config_fields": {
       "ColumnSelectorConfig:columns,id,type": "shaping.column-selector",
-      "ConditionSelectorConfig:column,id,mode,range,threshold,type,values": "shaping.condition-selector",
+      "ConditionSelectorConfig:column,id,mode,range,threshold,type,value,values": "shaping.condition-selector",
       "DeriveColumnShaperConfig:dest,id,mapping,op,scalar,scalar_op,separator,sources,type,zero_denominator": "shaping.derive-column",
       "GroupCardinalitySelectorConfig:count,countColumn,groupBy,id,mode,type": "shaping.group-cardinality-selector",
       "GroupPredicateSelectorConfig:action,baselineColumn,baselineValue,drop_when,groupBy,id,predicateColumn,type": "shaping.group-predicate-selector",
@@ -5140,6 +5660,29 @@
       "typography": "figure.typography"
     },
     "public_exports": {
+      "IncrementalParseBatchResult": "extension.parser-protocol",
+      "IncrementalParseResult": "extension.parser-protocol",
+      "InferredCsvPolicy": "portfolio.analysis-recipes",
+      "ParseBatchResult": "extension.parser-protocol",
+      "ParsedCell": "ingestion.csv-contract",
+      "ParsedColumn": "ingestion.csv-contract",
+      "ParsedFileResult": "ingestion.csv-contract",
+      "ParsedOutput": "ingestion.csv-contract",
+      "ParsedSchema": "ingestion.csv-contract",
+      "DistributionGeometry": "ingestion.distribution",
+      "DistributionColumn": "ingestion.csv-contract",
+      "NativeDistributionLayout": "ingestion.csv-contract",
+      "OpaqueDistributionLayout": "ingestion.csv-contract",
+      "ParsedVariableResult": "ingestion.csv-contract",
+      "ParsedVariableSchema": "ingestion.csv-contract",
+      "ParserPlaygroundBatchResult": "extension.parser-protocol",
+      "ParserSourceContext": "ingestion.parse-output-provenance",
+      "ResolvedParsedRows": "ingestion.csv-contract",
+      "ReviewedCsvPolicy": "portfolio.analysis-recipes",
+      "ScanFileResult": "extension.parser-protocol",
+      "SimulationParser": "extension.parser-protocol",
+      "publish_parsed_output": "extension.parser-protocol",
+      "resolve_parsed_output": "extension.parser-protocol",
       "AccessibilityFinding": "figure.accessible-themes",
       "AccessibilityReport": "figure.accessible-themes",
       "AnalysisReport": "export.batch-reports",
@@ -5175,7 +5718,6 @@
       "ExportError": "api.typed-errors",
       "FigureDecorations": "api.figure-decorations",
       "FigureSpec": "api.figure-spec",
-      "FigureSpecBuilder": "api.figure-builder",
       "FigureTheme": "figure.theme-presets",
       "ImportColumn": "ingestion.import-preview",
       "ImportColumnCorrection": "ingestion.import-preview",
@@ -5228,6 +5770,9 @@
       "ScanJob": "ingestion.async-scan",
       "ScanResult": "ingestion.async-scan",
       "ScannedVariable": "ingestion.variable-scan",
+      "ResolvedSourceKind": "ingestion.variable-scan",
+      "AmbiguousSourceKind": "ingestion.variable-scan",
+      "SourceInstance": "ingestion.pattern-index-selection",
       "ScheduledReportResult": "automation.scheduled-reporting",
       "SchemaValidationReport": "data.schema-contracts",
       "SchemaViolation": "data.schema-contracts",
@@ -5331,6 +5876,7 @@
       "load_analysis_recipe": "portfolio.analysis-recipes",
       "load_import": "ingestion.import-preview",
       "load_dataset_snapshot": "data.dataset-snapshots",
+      "load_example_portfolio": "portfolio.bundled-example",
       "load_portfolio": "portfolio.restore",
       "mix_columns": "data.numeric-mixer",
       "materialize_analysis_recipe": "portfolio.analysis-recipes",
@@ -5384,15 +5930,17 @@
       "verify_portfolio": "portfolio.signed-manifests"
     },
     "cli_commands": {
+      "install-chrome": "cli.install-chrome",
       "doctor": "api.doctor",
       "parse": "cli.parse",
       "recipe-matrix": "automation.batch-matrices",
       "regression-gate": "automation.ci-regression-gates",
       "report-schedule": "automation.scheduled-reporting",
-      "render": "cli.render",
-      "upgrade": "portfolio.upgrade-protection"
+      "render": "cli.render"
     },
     "cli_options": {
+      "install-chrome:cache_dir": "cli.install-chrome",
+      "doctor:tex_system": "api.doctor",
       "parse:lenient": "ingestion.parse-integrity",
       "parse:output": "ingestion.parse-output-provenance",
       "parse:pattern": "ingestion.file-discovery",
@@ -5429,25 +5977,25 @@
       "render:format": "export.web-download",
       "render:no_deterministic": "export.deterministic",
       "render:out_dir": "cli.render",
-      "render:portfolio": "cli.render",
-      "upgrade:portfolio": "portfolio.upgrade-protection"
+      "render:portfolio": "cli.render"
     },
     "application_api_members": {
       "add_current_dataset": "data.multi-dataset-workspace",
       "add_dataset": "data.multi-dataset-workspace",
       "add_manager_history_record": "data.operation-history",
-      "add_to_csv_pool": "ingestion.csv-pool",
-      "apply_shapers": "shaping.independent-pipelines",
       "append_datasets": "data.multi-dataset-workspace",
       "available_simulator_info": "ingestion.simulator-registry",
       "available_simulators": "ingestion.simulator-registry",
+      "can_load_example_portfolio": "portfolio.bundled-example",
       "cancel_background_job": "workspace.background-jobs",
       "cancel_parse_job": "ingestion.session-background-parse",
       "cancel_pending_scans": "ingestion.async-scan",
       "close": "ingestion.session-background-parse",
-      "close_background_jobs": "workspace.background-jobs",
       "clear_preview": "data.preview-confirm",
       "compare_plot_configurations": "plots.configuration-comparison",
+      "confirm_preview": "data.preview-confirm",
+      "compile_parse_variables": "ingestion.variable-editor",
+      "draft_from_scanned_variable": "ingestion.variable-editor",
       "consume_parse_job": "ingestion.session-background-parse",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
@@ -5455,13 +6003,9 @@
       "create_small_multiples": "plots.small-multiples",
       "compare_datasets": "data.multi-dataset-workspace",
       "data_services": "quality.application-facade",
-      "delete_configuration": "data.saved-pipeline-configurations",
-      "delete_from_csv_pool": "ingestion.csv-pool",
-      "delete_from_pool": "ingestion.csv-pool",
       "delete_dataset_snapshot": "data.dataset-snapshots",
       "dismiss_finished_background_jobs": "workspace.background-jobs",
       "dismiss_parse_job": "ingestion.session-background-parse",
-      "export_configuration": "shaping.config-import-export",
       "finalize_parsing": "ingestion.async-parse",
       "finalize_scan": "ingestion.async-scan",
       "find_stats_files": "ingestion.file-discovery",
@@ -5476,11 +6020,10 @@
       "get_dataset_lineage": "data.lineage-undo-redo",
       "get_dataset_revision": "data.lineage-undo-redo",
       "get_manager_history": "data.operation-history",
-      "get_parse_status": "ingestion.scan-presets-progress",
       "get_parse_job": "ingestion.session-background-parse",
       "get_portfolio_history": "data.operation-history",
       "get_preview": "data.preview-confirm",
-      "get_scanner_status": "ingestion.scan-presets-progress",
+      "get_preview_config": "data.preview-confirm",
       "get_simulator_info": "ingestion.simulator-registry",
       "get_visualization_config": "plots.independent-state",
       "has_preview": "data.preview-confirm",
@@ -5491,18 +6034,17 @@
       "list_background_jobs": "workspace.background-jobs",
       "list_datasets": "data.multi-dataset-workspace",
       "list_dataset_snapshots": "data.dataset-snapshots",
-      "load_configuration": "data.saved-pipeline-configurations",
-      "load_csv_file": "ingestion.csv-load",
-      "load_csv_pool": "ingestion.csv-pool",
+      "load_example_portfolio": "portfolio.bundled-example",
       "load_data": "ingestion.csv-load",
-      "load_from_pool": "ingestion.csv-pool",
       "load_import_preview": "ingestion.import-preview",
       "load_dataset_snapshot": "data.dataset-snapshots",
-      "load_saved_configs": "data.saved-pipeline-configurations",
       "managers": "quality.application-facade",
+      "portfolio_bundle_signature": "portfolio.portable-bundles",
       "preview_import": "ingestion.import-preview",
       "inspect_browser_upload": "ingestion.browser-upload",
-      "import_configuration": "shaping.config-import-export",
+      "capture_preview_inputs": "data.preview-confirm",
+      "preview_matches": "data.preview-confirm",
+      "report_input_signature": "export.batch-reports",
       "restore_browser_portfolio": "ingestion.browser-upload",
       "restore_browser_portfolio_bundle": "portfolio.portable-bundles",
       "release_settled_scans": "ingestion.scan-presets-progress",
@@ -5513,7 +6055,6 @@
       "reset_session": "workspace.reset",
       "retry_background_job": "workspace.background-jobs",
       "retry_parse_job": "ingestion.session-background-parse",
-      "save_configuration": "data.saved-pipeline-configurations",
       "save_dataset_snapshot": "data.dataset-snapshots",
       "search_workspace": "workspace.global-search",
       "search_workspace_commands": "workspace.command-palette",
@@ -5571,8 +6112,6 @@
       "publish_to_csv_pool": "ingestion.session-background-parse",
       "add_variable": "ingestion.variable-editor",
       "aggregate_discovered_entries": "ingestion.variable-entry-selection",
-      "aggregate_distribution_range": "ingestion.distribution-range-scan",
-      "build_statistics_list": "ingestion.variable-entry-selection",
       "capture_analysis_recipe": "portfolio.analysis-recipes",
       "clear_caches": "quality.bounded-caching",
       "compare_portfolio_revisions": "portfolio.history-diff",
@@ -5590,8 +6129,6 @@
       "delete_variable": "ingestion.variable-editor",
       "ensure_variable_ids": "ingestion.variable-editor",
       "filter_internal_stats": "ingestion.variable-entry-selection",
-      "find_entries_for_variable": "ingestion.variable-entry-selection",
-      "find_variable_by_name": "ingestion.variable-editor",
       "format_entries_as_string": "ingestion.variable-entry-selection",
       "generate_variable_id": "ingestion.variable-editor",
       "get_cache_stats": "quality.bounded-caching",
@@ -5618,17 +6155,17 @@
       "save_analysis_recipe": "portfolio.analysis-recipes",
       "save_dataset_snapshot": "data.dataset-snapshots",
       "save_portfolio": "portfolio.save",
-      "update_scanned_entries": "ingestion.variable-entry-selection",
       "update_variable": "ingestion.variable-editor",
       "verify_portfolio": "portfolio.signed-manifests"
     },
     "shapers_api_members": {
       "create_shaper": "extension.shaper-registry",
+      "get_shaper_display_names": "extension.shaper-registry",
+      "validate_pipeline": "extension.shaper-registry",
       "get_available_shaper_types": "api.registry-discovery",
       "process_pipeline": "shaping.independent-pipelines"
     },
     "table_members": {
-      "apply": "api.table",
       "columns": "api.table",
       "concat": "api.table",
       "filter_eq": "api.table",
@@ -5642,26 +6179,6 @@
       "to_csv": "api.table",
       "value_map": "api.table",
       "with_scalar_op": "api.table"
-    },
-    "figure_builder_members": {
-      "axes": "api.figure-builder",
-      "bars": "api.figure-builder",
-      "build": "api.figure-builder",
-      "category_groups": "api.figure-builder",
-      "category_labels": "api.figure-builder",
-      "data": "api.figure-builder",
-      "dual_axis": "api.figure-builder",
-      "extra": "api.figure-builder",
-      "grid": "api.figure-builder",
-      "legend": "api.figure-builder",
-      "number_legend": "api.figure-builder",
-      "numbered_xaxis": "api.figure-builder",
-      "palette": "api.figure-builder",
-      "reference_line": "api.figure-builder",
-      "separators": "api.figure-builder",
-      "size": "api.figure-builder",
-      "tick_marks": "api.figure-builder",
-      "title": "api.figure-builder"
     },
     "figure_decoration_members": {
       "axis_below": "api.figure-decorations",
@@ -5678,6 +6195,8 @@
       "tighten_y_ticks": "api.figure-decorations"
     },
     "parse_job_members": {
+      "futures": "ingestion.async-parse",
+      "output_dir": "ingestion.async-parse",
       "cancel": "ingestion.async-parse",
       "finalize": "ingestion.async-parse"
     },
@@ -5747,23 +6266,14 @@
     },
     "parse_variable_fields": {
       "_id": "ingestion.variable-editor",
-      "alias": "ingestion.output-aliases",
-      "bins": "ingestion.histogram-rebinning",
-      "enableRebin": "ingestion.histogram-rebinning",
-      "keepIndices": "ingestion.pattern-index-selection",
-      "max_range": "ingestion.histogram-rebinning",
-      "maximum": "ingestion.distribution-range-scan",
-      "minimum": "ingestion.distribution-range-scan",
+      "is_regex": "ingestion.pattern-aggregation",
+      "keep_indices": "ingestion.pattern-index-selection",
       "name": "ingestion.variable-editor",
-      "onEmpty": "ingestion.configuration-fallbacks",
-      "parsed_ids": "ingestion.pattern-index-selection",
-      "patternSelection": "ingestion.pattern-index-selection",
+      "params": "ingestion.variable-editor",
       "repeat": "ingestion.pattern-aggregation",
-      "statistics": "ingestion.variable-entry-selection",
-      "statisticsOnly": "ingestion.statistics-only",
-      "type": "ingestion.variable-editor",
-      "useSpecialMembers": "ingestion.variable-entry-selection",
-      "vectorEntries": "ingestion.variable-entry-selection"
+      "source_name": "ingestion.output-aliases",
+      "statistics_only": "ingestion.statistics-only",
+      "type": "ingestion.variable-editor"
     },
     "stat_config_fields": {
       "is_regex": "ingestion.pattern-aggregation",
@@ -5778,7 +6288,8 @@
     "scanned_variable_fields": {
       "entries": "ingestion.variable-entry-selection",
       "name": "ingestion.variable-scan",
-      "pattern_indices": "ingestion.pattern-index-selection",
+      "instances": "ingestion.pattern-index-selection",
+      "source_evidence": "ingestion.variable-scan",
       "type": "ingestion.variable-scan"
     },
     "scan_result_fields": {
@@ -5804,7 +6315,7 @@
       "font_family": "figure.typography",
       "hatching_sequence": "figure.colors",
       "hovermode": "figure.plotly-hovermode",
-      "latex_extra_preamble": "quality.safe-output-formatting",
+      "legend_labels": "figure.ordering-renaming",
       "legends": "figure.legends",
       "metadata": "render.engine-independent-traces",
       "paper_bgcolor": "figure.colors",
@@ -5864,6 +6375,7 @@
       "tick_side": "figure.axes",
       "tick_text": "figure.axes",
       "tick_values": "figure.axes",
+      "title_angle": "figure.dual-axis-controls",
       "title_vshift": "figure.axes"
     },
     "axes_config_fields": {
@@ -5949,7 +6461,6 @@
       "bar_border_color": "figure.series-styling",
       "bar_border_width": "figure.series-styling",
       "color": "figure.series-styling",
-      "display_name": "figure.series-styling",
       "hatching_pattern": "figure.series-styling",
       "line_width": "figure.series-styling",
       "marker_size": "figure.series-styling",
@@ -5973,20 +6484,9 @@
       "font_size_yticks": "figure.typography"
     },
     "public_shaper_exports": {
-      "ColumnSelector": "shaping.column-selector",
-      "ConditionSelector": "shaping.condition-selector",
-      "DeriveColumn": "shaping.derive-column",
-      "GroupCardinalitySelector": "shaping.group-cardinality-selector",
-      "GroupPredicateSelector": "shaping.group-predicate-selector",
-      "ItemSelector": "shaping.item-selector",
-      "Mean": "shaping.mean",
-      "Normalize": "shaping.normalize",
-      "PivotLonger": "shaping.pivot-longer",
-      "PivotWider": "shaping.pivot-wider",
-      "Selector": "extension.shaper-registry",
-      "Sort": "shaping.sort",
-      "SplitApply": "shaping.split-apply",
-      "Transformer": "shaping.transformer",
+      "Shaper": "extension.shaper-registry",
+      "ShaperDefinition": "extension.shaper-registry",
+      "register_shaper": "extension.shaper-registry",
       "available_shaper_types": "api.registry-discovery"
     }
   }

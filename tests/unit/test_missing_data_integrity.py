@@ -8,16 +8,41 @@ which a researcher could not distinguish from a genuine measured 0.
 import csv
 from pathlib import Path
 
-from src.core.models.csv_contract import MISSING_VALUE
-from src.parsing.gem5.impl.gem5_parser import Gem5Parser, _render_value
+import pytest
+
+from src.core.common.parsed_output_codec import MISSING_VALUE, render_parsed_value
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult, ParsedVariableResult
 from src.parsing.gem5.types.scalar import Scalar
 
 
-def _make_scalar(values: list[float], repeat: int) -> Scalar:
-    s = Scalar(repeat=repeat)
-    for v in values:
-        s.content = v
-    return s
+def _make_result(source: str, values: list[float], repeat: int) -> ParsedFileResult:
+    scalar = Scalar(repeat=repeat)
+    for value in values:
+        scalar.add_observation(value)
+    missing = scalar.missing_measurement_count
+    scalar.balance_content()
+    scalar.reduce_duplicates()
+    return ParsedFileResult(
+        source,
+        (
+            ParsedVariableResult(
+                "ipc",
+                "number",
+                "scalar",
+                (ParsedCell("ipc", "number", scalar.reduced_content),),
+                missing,
+                layout=None,
+            ),
+        ),
+    )
+
+
+def _publish(tmp_path: Path, results: list[ParsedFileResult]) -> None:
+    table = ParsedOutputIO.resolve(
+        results, ["ipc"], tuple(result.source_path for result in results)
+    )
+    ParsedOutputIO.publish(tmp_path / "results.csv", table)
 
 
 def _read_rows(tmp_path: Path) -> list[list[str]]:
@@ -26,18 +51,20 @@ def _read_rows(tmp_path: Path) -> list[list[str]]:
 
 
 class TestRenderValue:
-    def test_none_is_missing(self) -> None:
-        assert _render_value(None) == MISSING_VALUE
+    def test_untyped_none_is_rejected_before_publication(self) -> None:
+        with pytest.raises(TypeError, match="exact float"):
+            ParsedCell("ipc", "number", None)
 
     def test_nan_is_missing(self) -> None:
-        assert _render_value(float("nan")) == MISSING_VALUE
+        assert render_parsed_value("number", float("nan")) == MISSING_VALUE
 
-    def test_legacy_na_sentinel_is_missing(self) -> None:
-        assert _render_value("NA") == MISSING_VALUE
+    @pytest.mark.parametrize("text", ["NA", "nan", "", "001"])
+    def test_literal_configuration_text_is_preserved(self, text: str) -> None:
+        assert render_parsed_value("text", text) == text
 
     def test_real_value_is_rendered(self) -> None:
-        assert _render_value(3.5) == "3.5"
-        assert _render_value(0.0) == "0.0"  # a genuine 0 is preserved, not hidden
+        assert render_parsed_value("number", 3.5) == "3.5"
+        assert render_parsed_value("number", 0.0) == "0.0"  # a genuine 0 is preserved, not hidden
 
 
 class TestMissingScalarBecomesNaN:
@@ -45,10 +72,10 @@ class TestMissingScalarBecomesNaN:
     def test_absent_scalar_is_nan_not_zero(self, tmp_path: Path) -> None:
         # File A measured ipc; file B is missing it entirely.
         results = [
-            {"ipc": _make_scalar([2.0], repeat=1)},
-            {"ipc": _make_scalar([], repeat=1)},
+            _make_result("a", [2.0], repeat=1),
+            _make_result("b", [], repeat=1),
         ]
-        Gem5Parser.construct_final_csv(str(tmp_path), results, var_names=["ipc"])
+        _publish(tmp_path, results)
         rows = _read_rows(tmp_path)
         assert rows[0] == ["ipc"]
         assert rows[1] == ["2.0"]
@@ -56,14 +83,14 @@ class TestMissingScalarBecomesNaN:
 
     def test_incomplete_scalar_is_nan(self, tmp_path: Path) -> None:
         # Two dumps expected, only one present -> incomplete -> NaN.
-        results = [{"ipc": _make_scalar([2.0], repeat=2)}]
-        Gem5Parser.construct_final_csv(str(tmp_path), results, var_names=["ipc"])
+        results = [_make_result("a", [2.0], repeat=2)]
+        _publish(tmp_path, results)
         rows = _read_rows(tmp_path)
         assert rows[1] == [MISSING_VALUE]
 
     def test_genuine_zero_is_preserved(self, tmp_path: Path) -> None:
         # A measured 0 must stay 0 — only *missing* values become NaN.
-        results = [{"ipc": _make_scalar([0.0], repeat=1)}]
-        Gem5Parser.construct_final_csv(str(tmp_path), results, var_names=["ipc"])
+        results = [_make_result("a", [0.0], repeat=1)]
+        _publish(tmp_path, results)
         rows = _read_rows(tmp_path)
         assert rows[1] == ["0.0"]

@@ -5,9 +5,6 @@ parent: Stable Interfaces
 grand_parent: Developer Guide
 nav_order: 3
 permalink: /developer-guide/api-reference/services-api/
-redirect_from:
-  - /developer-guide/core/services-reference/
-  - /engineering-reference/reference/services-catalog/
 ---
 
 # Service protocols
@@ -66,9 +63,9 @@ reading or writing.
 Saved shaper configurations contain a name, description, ordered shaper configuration, and optional
 CSV path. The service supports saving, listing, loading, and deleting these path-backed records.
 `export_configuration` emits the deterministic `ring5.pipeline-configuration` schema.
-`import_configuration` accepts that current schema or the legacy unversioned record, validates
-registered shapers without executing them, and saves with explicit `error`, `rename`, or `replace`
-name-conflict behavior. `ApplicationAPI` exposes both operations to the web editor; the supported
+`import_configuration` accepts the current versioned schema, rejects missing or unsupported
+versions, validates registered shapers without executing them, and saves with explicit `error`,
+`rename`, or `replace` name-conflict behavior. `ApplicationAPI` exposes both operations to the web editor; the supported
 Python surface is `Session.export_pipeline_configuration` and
 `Session.import_pipeline_configuration`.
 

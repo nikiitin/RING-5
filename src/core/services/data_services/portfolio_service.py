@@ -1,4 +1,4 @@
-"""Save, migrate, and restore application portfolios."""
+"""Save, validate, and restore application portfolios."""
 
 import json
 import logging
@@ -8,24 +8,30 @@ from typing import Any, cast
 
 import pandas as pd
 
+from src.core.models.source_context_models import LoadedDataOrigin
+from src.core.common.source_context_codec import SourceContextCodec
+
 from src.core.common.utils import sanitize_filename, validate_path_within
-from src.core.models import (
-    ParseVariableConfig,
-    PlotProtocol,
-    PortfolioData,
-    PortfolioDiff,
-    PortfolioIntegrityReport,
-    PortfolioRevisionInfo,
-)
+from src.core.common.plot_payload import validate_plot_fields
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models.data_models import ParseVariableConfig
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData
+from src.core.models.portfolio_revision_models import PortfolioDiff, PortfolioRevisionInfo
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_revision_service import (
     PortfolioRevisionService,
 )
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.services.data_services.portfolio_validation_service import validate_portfolio_document
+from src.core.models.portfolio_contract import (
+    CURRENT_PORTFOLIO_SCHEMA_VERSION,
+    CURRENT_PORTFOLIO_VERSION,
+)
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 from src.core.state.state_manager import StateManager
-from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
+from src.core.common.typed_table_codec import TypedTableCodec
 
 
 class PortfolioService:
@@ -89,6 +95,7 @@ class PortfolioService:
         overwrite: bool = True,
         signing_key: str | bytes | None = None,
         signing_key_id: str = "default",
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         # [impl->req~ring5.portfolio.save~1]
         # [impl->req~ring5.data.semantic-units~1]
@@ -114,6 +121,7 @@ class PortfolioService:
                 by name alone — the default silently overwrites).
             signing_key: Optional shared secret for an HMAC-SHA-256 signature.
             signing_key_id: Non-secret label stored with a signature.
+            origin: Replay facts captured atomically with data, or None for arbitrary frames.
         """
         save_path = self._portfolio_path(name)
         payload = self.serialize_workspace(
@@ -126,6 +134,7 @@ class PortfolioService:
             figure_spec_enricher=figure_spec_enricher,
             signing_key=signing_key,
             signing_key_id=signing_key_id,
+            origin=origin,
         )
 
         try:
@@ -153,13 +162,18 @@ class PortfolioService:
         ) = None,
         signing_key: str | bytes | None = None,
         signing_key_id: str = "default",
+        origin: LoadedDataOrigin | None = None,
     ) -> bytes:
         """Serialize current state into the integrity-checked portfolio format."""
+        # [impl->req~ring5.portfolio.environment-metadata~1]
         # [impl->req~ring5.workspace.autosave-recovery~1]
+        if origin is not None:
+            SourceContextCodec.encode(origin.source)
         logger = logging.getLogger(__name__)
         serialized_plots: list[dict[str, Any]] = []
         for plot in plots:
             plot_dict: dict[str, Any] = plot.to_dict()
+            validate_plot_fields(plot_dict)
             plot_config: dict[str, Any] = plot_dict.get("config", {})
             if figure_spec_enricher is not None:
                 try:
@@ -176,27 +190,25 @@ class PortfolioService:
                     )
             serialized_plots.append(plot_dict)
 
-        data_csv = data.to_csv(index=False) if data is not None and not data.empty else ""
-        data_semantics = (
-            SemanticMetadataService.to_payload(SemanticMetadataService.inspect(data))
-            if data is not None
-            else {}
-        )
         portfolio_data: dict[str, Any] = {
-            "schema_version": PortfolioMigrator.CURRENT_VERSION,
-            "version": "4.0",
+            "schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION,
+            "version": CURRENT_PORTFOLIO_VERSION,
             "timestamp": pd.Timestamp.now().isoformat(),
             "environment_metadata": EnvironmentMetadataService.capture().to_dict(),
-            "data_csv": data_csv,
-            "data_semantics": data_semantics,
+            "data": TypedTableCodec.encode(data),
+            "loaded_origin": SourceContextCodec.origin_payload(origin),
             "csv_path": str(csv_path) if csv_path else None,
             "plots": serialized_plots,
             "plot_counter": plot_counter,
             "config": config,
-            "parse_variables": parse_variables or [],
+            "parse_variables": [
+                StatConfigCodec.to_snapshot(draft) for draft in (parse_variables or [])
+            ],
             "use_parser": self.state_manager.is_using_parser(),
             "stats_path": self.state_manager.get_stats_path(),
             "stats_pattern": self.state_manager.get_stats_pattern(),
+            "parser_strategy": self.state_manager.get_parser_strategy(),
+            "simulator": self.state_manager.get_simulator(),
             "scanned_variables": self.state_manager.get_scanned_variables(),
             "manager_history": self.state_manager.get_manager_history(),
             "portfolio_history": self.state_manager.get_portfolio_history(),
@@ -206,7 +218,8 @@ class PortfolioService:
             signing_key=signing_key,
             key_id=signing_key_id,
         )
-        return json.dumps(portfolio_data, indent=2).encode("utf-8")
+        validate_portfolio_document(portfolio_data)
+        return json.dumps(portfolio_data, indent=2, allow_nan=False).encode("utf-8")
 
     def load_portfolio(
         self,
@@ -218,8 +231,7 @@ class PortfolioService:
         # [impl->req~ring5.portfolio.signed-manifests~1]
         """Load a portfolio JSON by name.
 
-        Runs schema migration via :class:`PortfolioMigrator` to ensure
-        backward compatibility with older portfolio formats.
+        Requires the current schema and a valid integrity manifest.
         """
         load_path = self._portfolio_path(name)
         if not load_path.exists():
@@ -231,12 +243,13 @@ class PortfolioService:
             raise ValueError("Portfolio JSON must contain one top-level object.")
         raw: dict[str, Any] = value
 
+        validate_portfolio_document(raw)
         report = PortfolioIntegrityService.verify(raw, signing_key=signing_key)
         PortfolioIntegrityService.require_restorable(
             report,
             require_signature=require_signature,
         )
-        return cast(PortfolioData, PortfolioMigrator.migrate(raw))
+        return cast(PortfolioData, raw)
 
     def verify_portfolio(
         self,
@@ -261,6 +274,7 @@ class PortfolioService:
             raw = json.load(handle)
         if not isinstance(raw, dict):
             raise ValueError("Portfolio JSON must contain one top-level object.")
+        validate_portfolio_document(raw)
         return PortfolioIntegrityService.verify(raw, signing_key=signing_key)
 
     def export_portfolio_bytes(self, name: str) -> bytes:
@@ -282,9 +296,9 @@ class PortfolioService:
             raise ValueError(f"Portfolio '{name}' is not valid UTF-8 JSON.") from exc
         if not isinstance(value, dict):
             raise ValueError("Portfolio JSON must contain one top-level object.")
+        validate_portfolio_document(value)
         report = PortfolioIntegrityService.verify(value)
         PortfolioIntegrityService.require_restorable(report)
-        PortfolioMigrator.migrate(value)
         return payload
 
     def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:

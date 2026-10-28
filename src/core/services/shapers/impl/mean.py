@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import gmean, hmean
 
+from src.core.common.dataframe_copy import copy_dataframe
 from src.core.models.shaper_models import MeanShaperConfig
 from src.core.performance import cached, compute_data_fingerprint
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
@@ -45,47 +46,18 @@ class Mean(UniDfShaper):
                 - replacingColumn (str): Column where the algorithm name
                   will be stored in the new rows.
         """
-        # Use cast for type-safe access to params
-        config = cast(MeanShaperConfig, params)
-
-        # Assigning attributes before super().__init__
-        self.mean_vars: list[str] = config.get("meanVars", [])
-        self.mean_algorithm: str = config.get("meanAlgorithm", "")
-        self.replacing_column: str = config.get("replacingColumn", "")
-
-        # Support both new 'groupingColumns' and legacy 'groupingColumn'
-        if "groupingColumns" in config:
-            self.grouping_columns: list[str] = config["groupingColumns"]
-        elif "groupingColumn" in config:
-            # Legacy configurations used a singular groupingColumn field.
-            self.grouping_columns = [config["groupingColumn"]]  # type: ignore[typeddict-item]
-        else:
-            self.grouping_columns = []
-
-        # Store params for fingerprinting
-        self._params = params
-
         super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Validate parameter structure and algorithm choice."""
-        super()._verify_params()
+        # Use cast for type-safe access to params
         config = cast(MeanShaperConfig, self.params)
 
-        if "meanAlgorithm" not in config or config["meanAlgorithm"] not in [
-            "arithmean",
-            "geomean",
-            "hmean",
-        ]:
-            raise ValueError(
-                "Mean: 'meanAlgorithm' must be one of 'arithmean', 'geomean', or 'hmean'."
-            )
+        self.mean_vars: list[str] = config["meanVars"]
+        self.mean_algorithm: str = config["meanAlgorithm"]
+        self.replacing_column: str = config["replacingColumn"]
 
-        if not isinstance(config.get("meanVars"), list):
-            raise TypeError("Mean: 'meanVars' must be a list.")
+        self.grouping_columns: list[str] = config["groupingColumns"]
 
-        return True
+        # Store params for fingerprinting
+        self._params = self.params
 
     @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
@@ -105,7 +77,7 @@ class Mean(UniDfShaper):
 
     @cached(ttl=300, maxsize=16, key_func=lambda self, df, fp: fp)
     def _calculate_mean_with_cache(
-        self, data_frame: pd.DataFrame, fingerprint: str
+        self, data_frame: pd.DataFrame, fingerprint: str | None
     ) -> pd.DataFrame:
         """
         Execute mean calculation with fingerprint-based caching.
@@ -122,8 +94,8 @@ class Mean(UniDfShaper):
         """
         # [impl->req~ring5.shaping.mean~1]
         # [impl->req~ring5.quality.bounded-caching~1]
-        result = data_frame.copy()
-        grouped = result.groupby(self.grouping_columns)
+        result = copy_dataframe(data_frame)
+        grouped = result.groupby(self.grouping_columns, dropna=False)
 
         # Apply appropriate mean aggregation
         if self.mean_algorithm == "arithmean":
@@ -164,19 +136,26 @@ class Mean(UniDfShaper):
         # fabricate.
         for sd in sd_cols:
             if self.mean_algorithm == "arithmean":
-                se = grouped[sd].agg(
-                    lambda s: (
-                        float(np.sqrt(np.square(s.astype(float)).sum()) / len(s))
-                        if len(s)
-                        else np.nan
-                    )
-                )
+                variable = sd.removesuffix(".sd")
+
+                def _standard_error(group: pd.DataFrame) -> float:
+                    values = group.loc[group[variable].notna(), sd].astype(float)
+                    if values.empty or values.isna().any():
+                        return float("nan")
+                    if not np.isfinite(values.to_numpy()).all() or (values < 0).any():
+                        raise ValueError(f"Mean: {sd!r} must contain non-negative finite errors.")
+                    return float(np.sqrt(np.square(values).sum()) / len(values))
+
+                se = grouped[[variable, sd]].apply(_standard_error).rename(sd)
                 mean_df = mean_df.merge(se.reset_index(), on=self.grouping_columns, how="left")
             else:
                 mean_df[sd] = np.nan
 
         # Append to the original data
-        return pd.concat([result, mean_df], ignore_index=True)
+        combined = pd.concat([result, mean_df], ignore_index=True)
+        combined.attrs = data_frame.attrs.copy()
+        combined.columns.name = data_frame.columns.name
+        return combined
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
@@ -195,6 +174,8 @@ class Mean(UniDfShaper):
         relevant_cols = self.mean_vars + self.grouping_columns + [self.replacing_column]
         fingerprint = compute_data_fingerprint(data_frame, self._params, relevant_cols)
 
-        # Use cached calculation. Shallow copy (CoW) so callers can never
-        # mutate the cache-resident frame in place and poison later hits.
-        return self._calculate_mean_with_cache(data_frame, fingerprint).copy(deep=False)
+        result = copy_dataframe(self._calculate_mean_with_cache(data_frame, fingerprint))
+        if self._source_tracker is not None:
+            groups = data_frame.groupby(self.grouping_columns, dropna=False).indices.values()
+            self._source_tracker.append_groups(groups)
+        return result

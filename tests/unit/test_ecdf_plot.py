@@ -47,7 +47,6 @@ def test_grouped_ecdf_aggregates_duplicates_and_preserves_source() -> None:
     assert base.show_markers and base.marker_size == 8
     assert base.color == "#336699"
     assert len(base.custom_data["drilldown"]) == 2
-    assert EcdfPlot(1, "ECDF").get_legend_column({"color": "variant"}) == "variant"
     pd.testing.assert_frame_equal(data, original)
 
 
@@ -69,7 +68,6 @@ def test_complementary_proportion_is_remaining_fraction_after_threshold() -> Non
     assert trace.x == [1.0, 2.0, 3.0, 5.0]
     assert trace.y == pytest.approx([5 / 6, 1 / 3, 1 / 6, 0.0])
     assert not trace.show_markers
-    assert EcdfPlot(2, "ECDF").get_legend_column({}) is None
 
 
 @pytest.mark.parametrize(

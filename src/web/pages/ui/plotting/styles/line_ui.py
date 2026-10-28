@@ -13,9 +13,12 @@ class LineStyleUI(BaseStyleUI):
     def _render_specific_series_visuals(
         self, current_style: dict[str, Any], key_suffix: str, key_prefix: str = ""
     ) -> None:
-        # [impl->req~ring5.figure.series-styling~1]
+        # [impl->req~ring5.figure.series-styling~2]
         with st.expander("Marker & Line", expanded=False):
             symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "triangle-down"]
+            saved_symbol = current_style.get("symbol", "circle")
+            if isinstance(saved_symbol, str) and saved_symbol and saved_symbol not in symbols:
+                symbols = [saved_symbol, *symbols]
             new_symbol = st.selectbox(
                 "Marker Symbol",
                 options=symbols,
@@ -24,25 +27,24 @@ class LineStyleUI(BaseStyleUI):
                     if current_style.get("symbol") in symbols
                     else 0
                 ),
-                key=f"{key_prefix}sym_{self.plot_id}_{key_suffix}",
+                key=f"{key_prefix}sym_{key_suffix}",
             )
             current_style["symbol"] = new_symbol
 
             marker_size = st.number_input(
                 "Marker Size",
                 min_value=0,
-                max_value=50,
-                value=current_style.get("marker_size", 8),
-                key=f"{key_prefix}msize_{self.plot_id}_{key_suffix}",
+                value=int(current_style.get("marker_size", 8)),
+                key=f"{key_prefix}msize_{key_suffix}",
             )
             current_style["marker_size"] = marker_size
 
             line_width = st.number_input(
                 "Line Width",
-                min_value=1,
-                max_value=20,
-                value=current_style.get("line_width", 2),
-                key=f"{key_prefix}lwidth_{self.plot_id}_{key_suffix}",
+                min_value=0.0,
+                value=float(current_style.get("line_width", 2.0)),
+                step=0.5,
+                key=f"{key_prefix}lwidth_{key_suffix}",
             )
             current_style["line_width"] = line_width
 

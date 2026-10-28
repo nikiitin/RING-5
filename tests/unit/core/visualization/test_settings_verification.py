@@ -1,9 +1,9 @@
 """
-Tests verifying UI settings wiring — legend gaps, tertiary conditional,
+Tests verifying UI settings wiring — legend gaps, vertical shift,
 config_builder legend fields, and connector application.
 
 Covers:
-  - C5: Tertiary legend conditional visibility (requires dual-axis)
+  - Legend vertical shifts use valid figure dimensions
   - C6: Legend valign/col_width wiring through config_builder
   - C6: Plotly connector applies valign to legend dict
   - C6: Matplotlib connector applies legend title + title_font_color
@@ -30,20 +30,22 @@ from src.web.rendering.config_builder import (
     _build_legend_from_config,
 )
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
+from src.web.rendering._appearance import seed_matplotlib_appearance  # noqa: E402
+from src.web.rendering._render_result import (
+    MatplotlibRenderResult,
+    MatplotlibTraceBinding,
+    PlotlyRenderResult,
+    PlotlyTraceBinding,
+)
 
 # Helper: config_builder legend builder (module-level function)
 
 
 class TestLegendValignWiring:
-    """C6: valign uses model default — no longer exposed in UI."""
+    """Editable legend configuration uses the model's vertical-alignment default."""
 
     def test_config_builder_valign_always_default(self) -> None:
-        """valign is no longer read from config; always model default ('middle').
-
-        The valign selectbox was removed from the legend UI (dead field).
-        The model retains the field with default='middle' for backward
-        compat, but _build_legend_from_config no longer reads it.
-        """
+        """The editable configuration does not override typed vertical alignment."""
         config: dict[str, Any] = {
             "legend_valign": "top",  # present in config but ignored
             "legend_font_size": 10,
@@ -167,8 +169,6 @@ class TestMatplotlibLegendTitle:
 
     def test_legend_title_in_kwargs(self) -> None:
         """Legend title should be passed to matplotlib legend()."""
-        # We test the logic by creating a minimal matplotlib figure
-        # and verifying title is passed (via mock or direct check)
         import matplotlib
 
         matplotlib.use("Agg")
@@ -177,7 +177,7 @@ class TestMatplotlibLegendTitle:
         from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 
         fig, ax = plt.subplots()
-        ax.bar(["A", "B"], [1, 2], label="test")
+        bars = ax.bar(["A", "B"], [1, 2], label="test")
 
         legend = LegendConfig(
             role="primary",
@@ -188,7 +188,29 @@ class TestMatplotlibLegendTitle:
         spec = FigureConfig(legends=[legend])
         resolved = resolve_config(spec)
 
-        FigureSpecToMatplotlib._apply_legends(resolved, ax)
+        panel = MatplotlibRenderResult(
+            ax,
+            bindings=(
+                MatplotlibTraceBinding(
+                    0,
+                    "test",
+                    ax,
+                    "primary",
+                    "",
+                    True,
+                    "bar",
+                    (bars,),
+                    (bars,),
+                    bars,
+                    appearance=seed_matplotlib_appearance(
+                        (bars,),
+                        opacity=1.0,
+                        series_channels=tuple((patch, "face") for patch in bars.patches),
+                    ),
+                ),
+            ),
+        )
+        FigureSpecToMatplotlib._apply_legends(resolved, panel)
 
         mpl_legend = ax.get_legend()
         assert mpl_legend is not None
@@ -205,13 +227,35 @@ class TestMatplotlibLegendTitle:
         from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 
         fig, ax = plt.subplots()
-        ax.bar(["A", "B"], [1, 2], label="test")
+        bars = ax.bar(["A", "B"], [1, 2], label="test")
 
         legend = LegendConfig(role="primary", title="")
         spec = FigureConfig(legends=[legend])
         resolved = resolve_config(spec)
 
-        FigureSpecToMatplotlib._apply_legends(resolved, ax)
+        panel = MatplotlibRenderResult(
+            ax,
+            bindings=(
+                MatplotlibTraceBinding(
+                    0,
+                    "test",
+                    ax,
+                    "primary",
+                    "",
+                    True,
+                    "bar",
+                    (bars,),
+                    (bars,),
+                    bars,
+                    appearance=seed_matplotlib_appearance(
+                        (bars,),
+                        opacity=1.0,
+                        series_channels=tuple((patch, "face") for patch in bars.patches),
+                    ),
+                ),
+            ),
+        )
+        FigureSpecToMatplotlib._apply_legends(resolved, panel)
 
         mpl_legend = ax.get_legend()
         assert mpl_legend is not None
@@ -235,52 +279,20 @@ class TestStandoffDefault:
         spec = FigureConfig(axes=axes)
         resolved = resolve_config(spec)
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
-        FigureSpecToPlotly.apply(resolved, fig)
+        rendered = PlotlyRenderResult(
+            fig, ((PlotlyTraceBinding(0, "", fig.data[0], "primary", "", True),),)
+        )
+        FigureSpecToPlotly.apply(resolved, rendered)
         # When standoff is -1, it should not be set on the layout
         layout = cast(Any, fig.layout)
         assert layout.xaxis.title.standoff is None
 
 
-class TestTertiaryLegendConditional:
-    """C5: Tertiary legend pill should require dual-axis to be active."""
+class TestPlotlyLegendShift:
+    """Legend vertical shifts use the resolved native figure dimensions."""
 
-    def test_tertiary_requires_dual_axis_in_section_legends(self) -> None:
-        """Verify the gating logic: tertiary needs both
-        _supports_tertiary_legend() AND has_dual_axis AND
-        (show_group_labels OR numbered_xaxis).
-        """
-        # We test the logic from base_plot._section_legends indirectly
-        # by checking the condition structure.
-        #
-        # Without dual_axis, even with show_group_labels=True and
-        # _supports_tertiary_legend()=True, has_tertiary should be False.
-
-        # Simulate the condition from base_plot.py
-        def compute_has_tertiary(
-            supports_tertiary: bool,
-            has_dual_axis: bool,
-            show_group_labels: bool,
-            numbered_xaxis: bool,
-        ) -> bool:
-            return supports_tertiary and has_dual_axis and bool(show_group_labels or numbered_xaxis)
-
-        # Case 1: grouped stacked bar + group labels but NO dual axis
-        assert compute_has_tertiary(True, False, True, False) is False
-
-        # Case 2: grouped stacked bar + dual axis + group labels
-        assert compute_has_tertiary(True, True, True, False) is True
-
-        # Case 3: grouped stacked bar + dual axis + numbered xaxis
-        assert compute_has_tertiary(True, True, False, True) is True
-
-        # Case 4: grouped stacked bar + dual axis but no labels/xaxis
-        assert compute_has_tertiary(True, True, False, False) is False
-
-        # Case 5: non-grouped plot (supports_tertiary=False)
-        assert compute_has_tertiary(False, True, True, True) is False
-
-    def test_plotly_connector_vshift_zero_height_guard(self) -> None:
-        """C2: vshift should not crash when dimensions height is zero."""
+    def test_plotly_connector_vshift_handles_short_figure(self) -> None:
+        """Vertical label shifts support the configured positive short figure height."""
         axis = AxisConfig(label_standoff=50)
         axes = AxesConfig(y=axis)
         spec = FigureConfig(
@@ -289,5 +301,7 @@ class TestTertiaryLegendConditional:
         )
         resolved = resolve_config(spec)
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
-        # This should not raise ZeroDivisionError
-        FigureSpecToPlotly.apply(resolved, fig)
+        rendered = PlotlyRenderResult(
+            fig, ((PlotlyTraceBinding(0, "", fig.data[0], "primary", "", True),),)
+        )
+        FigureSpecToPlotly.apply(resolved, rendered)

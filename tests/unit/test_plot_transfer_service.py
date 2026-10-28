@@ -19,8 +19,6 @@ class _Plot:
         self.config: dict[str, Any] = {}
         self.pipeline: list[Any] = []
         self.pipeline_counter = 0
-        self.legend_mappings: dict[str, str] = {}
-        self.legend_mappings_by_column: dict[str, dict[str, str]] = {}
         self.source_data: pd.DataFrame | None = None
         self.processed_data: pd.DataFrame | None = None
         self.invalidated = False
@@ -62,15 +60,19 @@ def test_complete_configuration_is_defensive_and_requires_compatible_plot() -> N
     source, target = _Plot(1), _Plot(2)
     source.processed_data = pd.DataFrame({"x": ["A"], "y": [1.0]})
     target.processed_data = source.processed_data.copy()
-    source.config = {"x": "x", "y": "y", "series_styles": {"y": {"color": "red"}}}
-    source.legend_mappings = {"A": "Alpha"}
+    source.config = {
+        "x": "x",
+        "y": "y",
+        "series_styles": {"y": {"color": "red"}},
+        "legend_labels": {"A": "Alpha"},
+    }
 
     result = copy_plot_content(source, target, "configuration")
     source.config["series_styles"]["y"]["color"] = "blue"
 
     assert target.config["series_styles"]["y"]["color"] == "red"
-    assert target.legend_mappings == {"A": "Alpha"}
-    assert result.copied_keys == ("series_styles", "x", "y")
+    assert target.config["legend_labels"] == {"A": "Alpha"}
+    assert result.copied_keys == ("legend_labels", "series_styles", "x", "y")
 
     incompatible = _Plot(3, "scatter")
     incompatible.processed_data = target.processed_data
@@ -123,3 +125,15 @@ def test_rejects_copy_to_self_without_mutation() -> None:
         copy_plot_content(plot, plot, "settings", sections=["labels"])
 
     assert plot.config == snapshot
+
+
+def test_settings_transfer_uses_canonical_tick_and_legend_anchor_keys() -> None:
+    source, target = _Plot(1), _Plot(2)
+    source.config = {
+        "show_xtick_marks": False,
+        "show_ytick_marks": False,
+        "legend_anchor_x": "right",
+        "legend_anchor_y": "bottom",
+    }
+    copy_plot_content(source, target, "settings", sections=["axes", "legends"])
+    assert target.config == source.config

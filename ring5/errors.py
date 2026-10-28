@@ -2,9 +2,10 @@
 
 Scripts need exceptions they can catch by meaning, not by scraping mixed
 ``FileNotFoundError``/``ValueError``/``KeyError`` messages out of the core
-layers. Everything raised by the public surface derives from
-:class:`Ring5Error` (core-raised built-ins are re-wrapped at the Session
-boundary with the original as ``__cause__``).
+layers. Session operations translate expected domain failures to
+:class:`Ring5Error`, preserving the original exception as ``__cause__``.
+Python value constructors retain ordinary ``TypeError`` and ``ValueError``
+validation; ``Session.shape`` reports typed pipeline failures.
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ __all__ = [
 
 class Ring5Error(Exception):
     # [impl->req~ring5.api.typed-errors~1]
-    """Base class for every error the public ring5 API raises."""
+    """Base class for expected failures reported by public Session operations."""
 
 
 class ScanError(Ring5Error):
@@ -88,7 +89,7 @@ class PipelineError(Ring5Error):
 
 class ColumnNotFoundError(Ring5Error):
     # [impl->req~ring5.api.typed-errors~1]
-    """A named column is absent from the DataFrame.
+    """A named column is absent from the input table.
 
     Attributes:
         column: The missing column name.
@@ -128,12 +129,7 @@ class PortfolioError(Ring5Error):
 
 class PortfolioVersionError(PortfolioError):
     # [impl->req~ring5.api.typed-errors~1]
-    """The portfolio was written by a newer RING-5 schema.
-
-    Mirrors the core migrator's guard (raised at the Session boundary so it
-    belongs to the :class:`Ring5Error` hierarchy): loading anyway would
-    silently downgrade the file and destroy the newer data on re-save.
-    """
+    """The portfolio does not declare the supported current schema version."""
 
 
 class RecipeError(PortfolioError):

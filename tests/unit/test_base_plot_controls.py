@@ -6,6 +6,8 @@ import pytest
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.components.common.reorderable_list import render_reorderable_list
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 
 class ConcretePlot(BasePlot):
@@ -21,17 +23,16 @@ class ConcretePlot(BasePlot):
 
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config: Any) -> None:
-
-        return None
-
 
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.plotting.plot_config_ui.st") as mock_st,
+        patch("src.web.components.plotting.settings.advanced_settings.st", mock_st),
+        patch("src.web.components.plotting.settings.engine_settings.st", mock_st),
         patch("src.web.components.common.reorderable_list.st", mock_st),
         patch("src.web.components.plotting.settings.shapes_settings.st", mock_st),
+        patch("src.web.state.ui_state_manager.st", mock_st),
         patch("src.web.components.plotting.settings.reference_line_settings.st", mock_st),
         patch("src.web.components.plotting.settings.ordering_settings.st", mock_st),
     ):
@@ -39,11 +40,12 @@ def mock_streamlit() -> Generator[None, None, None]:
             [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]
         )
         mock_st.session_state = {}
+        mock_st.checkbox.side_effect = lambda _label, **kwargs: kwargs.get("value", False)
         mock_st.expander.return_value.__enter__.return_value = MagicMock()
         yield mock_st
 
 
-def test_render_advanced_options_shapes_add(mock_streamlit: Any) -> None:
+def test_advanced_section_shapes_add(mock_streamlit: Any) -> None:
 
     plot = ConcretePlot(1, "Test Plot", "scatter")
     config = {"shapes": []}
@@ -54,15 +56,15 @@ def test_render_advanced_options_shapes_add(mock_streamlit: Any) -> None:
     mock_streamlit.color_picker.return_value = "#000000"
     mock_streamlit.number_input.return_value = 2
 
-    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> bool:
 
-        if key == "add_shape_1":
+        if key == "plot.1.widgets.appearance.add_shape":
             return True
         return False
 
     mock_streamlit.button.side_effect = button_side_effect
 
-    result = plot.render_advanced_options(config, None)
+    result = plot.render_settings_section("advanced", config, None)
 
     # Rendering leaves the input configuration unchanged.
     assert config["shapes"] == []
@@ -73,18 +75,16 @@ def test_render_advanced_options_shapes_add(mock_streamlit: Any) -> None:
     assert shape_cfg["y0"] == 0.0
 
 
-def test_render_advanced_options_shapes_edit_delete(mock_streamlit: Any) -> None:
+def test_advanced_section_shapes_edit_delete(mock_streamlit: Any) -> None:
 
     plot = ConcretePlot(1, "Test Plot", "scatter")
     config = {
         "shapes": [{"type": "line", "x0": 0, "y0": 0, "x1": 1, "y1": 1, "line": {"color": "red"}}]
     }
 
-    mock_streamlit.session_state["edit_shapes_1"] = True
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> bool:
 
-    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
-
-        if key == "del_shape_0_1":
+        if key == WidgetKeyBuilder.plot_key(1, "widgets.appearance.shape_rows.del_shape_0"):
             return True
         return False
 
@@ -104,7 +104,7 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit: Any) -> None
 
     mock_streamlit.rerun = MagicMock()
 
-    result = plot.render_advanced_options(config, None)
+    result = plot.render_settings_section("advanced", config, None)
 
     # Deletion leaves the input configuration unchanged.
     assert len(config["shapes"]) == 1
@@ -116,19 +116,19 @@ def test_render_reorderable_list(mock_streamlit: Any) -> None:
     plot = ConcretePlot(1, "Test Plot", "bar")
     items = ["A", "B", "C"]
 
-    result = plot.render_reorderable_list("List", items, "test")
+    result = render_reorderable_list("List", items, "test", plot_id=plot.plot_id)
     assert result == items
-    assert mock_streamlit.session_state["test_order_1"] == items
+    assert mock_streamlit.session_state["plot.1.widgets.appearance.test_order"] == items
 
-    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> bool:
 
-        if key == "test_down_0_1":
+        if key == "plot.1.widgets.appearance.test_down_0":
             return True
         return False
 
     mock_streamlit.button.side_effect = button_side_effect
 
     # The second render moves the first item down once.
-    plot.render_reorderable_list("List", items, "test")
+    render_reorderable_list("List", items, "test", plot_id=plot.plot_id)
     expected = ["B", "A", "C"]
-    assert mock_streamlit.session_state["test_order_1"] == expected
+    assert mock_streamlit.session_state["plot.1.widgets.appearance.test_order"] == expected

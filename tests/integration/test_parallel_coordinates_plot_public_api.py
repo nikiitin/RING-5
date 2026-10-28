@@ -34,7 +34,7 @@ def test_public_parallel_coordinates_render_order_encoding_brushes_and_colors() 
 
     with ring5.Session() as session:
         plot = session.create_plot(
-            "parallel_coordinates", data=data, config=config, name="Profiles"
+            "parallel_coordinates", data=ring5.Table(data), config=config, name="Profiles"
         )
         plotly_figure = session.render(plot, engine="plotly")
         matplotlib_figure = session.render(plot, engine="matplotlib")

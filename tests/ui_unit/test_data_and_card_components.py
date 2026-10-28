@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.core.models.data_models import CsvPoolEntry, SavedConfigEntry
+from src.core.models.data_models import CsvPoolEntry
 from src.web.components.common.card_components import CardComponents
 from src.web.components.common.data_components import DataComponents
 from tests.conftest import columns_side_effect
@@ -25,7 +25,6 @@ def mock_streamlit() -> Generator[MagicMock, None, None]:
         mock_st_data.dataframe = mock_st.dataframe
         mock_st_data.metric = mock_st.metric
         mock_st_data.expander = mock_st.expander
-        mock_st_data.download_button = mock_st.download_button
         mock_st_data.columns = mock_st.columns
 
         mock_st_card.expander = mock_st.expander
@@ -81,51 +80,3 @@ def test_file_info_card(mock_streamlit: Any) -> None:
 
     mock_streamlit.expander.assert_called()
     assert "test.csv" in mock_streamlit.expander.call_args[0][0]
-
-
-def test_config_info_card(mock_streamlit: Any) -> None:
-
-    info = cast(
-        SavedConfigEntry, {"name": "conf1", "description": "desc", "modified": 1678886400.0}
-    )
-
-    # Mock buttons: Load, Delete
-    mock_streamlit.button.side_effect = [False, True]  # Delete clicked
-
-    load, delete = CardComponents.config_info_card(info, 1)
-
-    assert load is False
-    assert delete is True
-
-    mock_streamlit.expander.assert_called()
-
-
-def test_download_buttons(mock_streamlit: Any) -> None:
-
-    df = pd.DataFrame({"A": [1, 2]})
-
-    # Mock NamedTemporaryFile
-    with patch("tempfile.NamedTemporaryFile") as mock_tmp:
-        import os
-        import tempfile
-
-        mock_tmp.return_value.name = os.path.join(tempfile.gettempdir(), "test.xlsx")
-
-        # Mock pandas to_excel to avoid openpyxl/fs logic.
-        with patch("pandas.DataFrame.to_excel") as mock_to_excel:
-
-            # Mock open to return bytes
-            from unittest.mock import mock_open
-
-            with patch("builtins.open", mock_open(read_data=b"dummy_excel_data")):
-
-                DataComponents.download_buttons(df, "test_prefix")
-
-                # Validate to_excel and download_button calls.
-                assert mock_to_excel.called
-                assert mock_streamlit.download_button.call_count == 3
-
-                # Verify Excel button specifically.
-                _, kwargs = mock_streamlit.download_button.call_args
-                assert kwargs["file_name"] == "test_prefix.xlsx"
-                assert kwargs["data"] == b"dummy_excel_data"

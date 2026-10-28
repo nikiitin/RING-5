@@ -7,9 +7,12 @@ Tests:
     - Missing columns in data → early validation errors
     - Empty DataFrame through pipeline
     - Invalid plot type in PlotFactory
-    - Malformed config in create_figure
+    - Malformed configuration during public rendering
     - Export with invalid format
 """
+
+from ring5 import Session
+from ring5.errors import RenderError
 
 from typing import Any, cast
 
@@ -37,7 +40,7 @@ class TestShaperPipelineErrors:
 
     def test_column_selector_missing_params_raises(self) -> None:
         """ColumnSelector without 'columns' param raises ValueError."""
-        with pytest.raises(ValueError, match="requires 'columns'"):
+        with pytest.raises(ValueError, match="columns"):
             ShaperFactory.create_shaper("columnSelector", cast(Any, {}))
 
     def test_column_selector_missing_column_raises(self, rich_sample_data: pd.DataFrame) -> None:
@@ -104,7 +107,7 @@ class TestShaperPipelineErrors:
         ]
 
         with pytest.raises(ValueError):
-            loaded_facade.apply_shapers(data, pipeline)
+            loaded_facade.shapers.process_pipeline(data, pipeline)
 
         # Original data should be unchanged
         assert data.shape == original_shape
@@ -124,7 +127,7 @@ class TestEmptyDataEdgeCases:
         with pytest.raises(ValueError, match="empty dataframe"):
             shaper(empty_df)
 
-    def test_single_row_dataframe_bar_plot(self) -> None:
+    def test_single_row_dataframe_bar_plot(self, plot_session: Session) -> None:
         """Bar plot with single-row DataFrame generates valid figure."""
         single_row = pd.DataFrame(
             {
@@ -141,7 +144,9 @@ class TestEmptyDataEdgeCases:
         }
 
         plot = PlotFactory.create_plot("bar", plot_id=1, name="SingleRow")
-        fig: go.Figure = plot.create_figure(single_row, config)
+        plot.processed_data = single_row
+        plot.config = config
+        fig: go.Figure = cast(go.Figure, plot_session.render(plot))
 
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) > 0
@@ -175,7 +180,9 @@ class TestPlotCreationErrors:
         with pytest.raises(ValueError):
             PlotFactory.create_plot("invalid_type", plot_id=1, name="Bad")
 
-    def test_bar_plot_missing_y_column(self, rich_sample_data: pd.DataFrame) -> None:
+    def test_bar_plot_missing_y_column(
+        self, rich_sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         """Bar plot with non-existent y column raises error."""
         plot = PlotFactory.create_plot("bar", plot_id=1, name="MissingY")
         config: dict[str, Any] = {
@@ -185,8 +192,10 @@ class TestPlotCreationErrors:
             "xlabel": "X",
             "ylabel": "Y",
         }
-        with pytest.raises((ValueError, KeyError)):
-            plot.create_figure(rich_sample_data, config)
+        with pytest.raises(RenderError, match="nonexistent_column"):
+            plot.processed_data = rich_sample_data
+            plot.config = config
+            cast(go.Figure, plot_session.render(plot))
 
 
 # Test Class 4: State consistency after errors

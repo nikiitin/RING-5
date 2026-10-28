@@ -1,7 +1,4 @@
-"""Advanced settings component — export, interactivity, annotations.
-
-Extracted from ``BasePlot._section_advanced()`` and related methods as a
-standalone component following the component-only architecture (P1, P9).
+"""Advanced settings component — export, interactivity and annotations.
 
 Plot-specific rendering (reference lines, shapes, engine controls) is
 injected via optional callables so the component stays decoupled from
@@ -26,8 +23,10 @@ from typing import Protocol
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.models.plot_config import ShapeConfig
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class ReferenceLineRenderer(Protocol):
@@ -119,42 +118,20 @@ class AdvancedSettingsComponent:
             config["show_error_bars"] = st.checkbox(
                 "Show Error Bars (if .sd columns exist)",
                 value=saved_config.get("show_error_bars", False),
-                key=f"error_bars_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.error_bars"),
             )
         with col_exp2:
-            download_formats: list[str] = ["html", "png", "pdf", "svg"]
-            default_fmt_idx: int = 0
-            if saved_config.get("download_format") in download_formats:
-                default_fmt_idx = download_formats.index(saved_config["download_format"])
-            config["download_format"] = st.selectbox(
-                "Default Download Format",
-                options=download_formats,
-                index=default_fmt_idx,
-                key=f"download_fmt_{self.plot_id}",
-            )
             config["export_scale"] = st.selectbox(
                 "Download Scale (Resolution)",
                 options=[1, 2, 3],
                 index=[1, 2, 3].index(saved_config.get("export_scale", 1)),
-                key=f"exp_scale_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.exp_scale"),
                 help="1x = Screen. 3x = High Res (Publication).",
             )
             w: int = saved_config.get("width", 800)
             h: int = saved_config.get("height", 500)
             s: int = config["export_scale"]
             st.caption(f"Download Size: {w * s} x {h * s} px")
-
-        # Legend & Interactivity
-        st.markdown("#### Legend & Interactivity")
-        config["enable_editable"] = st.checkbox(
-            "Enable Interactive Editing",
-            value=saved_config.get("enable_editable", False),
-            key=f"editable_{self.plot_id}",
-            help=(
-                "Allows you to drag the legend/title and click"
-                " to edit text directly on the plot."
-            ),
-        )
 
         # Preserve existing series styles
         if "series_styles" not in config:

@@ -1,0 +1,4 @@
+---------- Begin Simulation Statistics ----------
+system.cpu00.vector::a inf
+system.cpu00.vector::b 1.250000 0.00%
+---------- End Simulation Statistics   ----------

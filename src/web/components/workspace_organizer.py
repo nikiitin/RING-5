@@ -6,8 +6,10 @@ import hashlib
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
+
 from src.core.application_api import ApplicationAPI
-from src.core.models import WorkspaceArtifact, WorkspaceArtifactKind
+from src.core.models.workspace_metadata_models import WorkspaceArtifact, WorkspaceArtifactKind
 
 _KIND_OPTIONS: dict[str, WorkspaceArtifactKind | None] = {
     "Everything": None,
@@ -137,12 +139,13 @@ class WorkspaceOrganizerComponent:
         if not isinstance(artifact, WorkspaceArtifact):
             raise TypeError("Workspace organizer targets must be WorkspaceArtifact instances.")
         if artifact.kind == "variable":
-            st.session_state["var_search_box__search"] = artifact.identifier
-            st.session_state["_nav_page"] = "Data Source"
+            search_key = f"{WidgetKeyBuilder.data_source_key('var_search_box')}__search"
+            st.session_state[search_key] = artifact.identifier
+            UIStateManager().nav.set_current_page("Data Source")
             return
         if artifact.kind == "dataset":
             api.select_dataset(artifact.identifier)
-            st.session_state["_nav_page"] = "Data Managers"
+            UIStateManager().nav.set_current_page("Data Managers")
             return
         if artifact.kind in {"plot", "pipeline"}:
             try:
@@ -152,11 +155,10 @@ class WorkspaceOrganizerComponent:
             if not any(plot.plot_id == plot_id for plot in api.state_manager.get_plots()):
                 raise KeyError(f"Plot {plot_id} is no longer available.")
             api.state_manager.set_current_plot_id(plot_id)
-            st.session_state.pop("plot_selector", None)
-            st.session_state["_nav_page"] = "Manage Plots"
+            UIStateManager().nav.set_current_page("Manage Plots")
             return
         if artifact.kind == "portfolio":
-            st.session_state["_nav_page"] = "Save/Load Portfolio"
+            UIStateManager().nav.set_current_page("Save/Load Portfolio")
             return
         raise ValueError(f"Unsupported workspace artifact kind {artifact.kind!r}.")
 

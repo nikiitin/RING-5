@@ -6,7 +6,7 @@ from typing import Any, TypedDict
 
 import streamlit as st
 
-from src.core.services.shapers.factory import ShaperFactory
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 
 class PipelineExchangeResult(TypedDict):
@@ -27,10 +27,6 @@ class PipelineComponent:
 
     Does NOT apply shapers, modify pipeline state, or trigger reruns.
     """
-
-    # Single source of truth: delegate to ShaperFactory
-    SHAPER_DISPLAY_MAP: dict[str, str] = ShaperFactory.get_display_name_map()
-    REVERSE_MAP: dict[str, str] = {v: k for k, v in SHAPER_DISPLAY_MAP.items()}
 
     @staticmethod
     def render_section_header() -> None:
@@ -74,13 +70,13 @@ class PipelineComponent:
                 "Configuration name",
                 value=default_name,
                 max_chars=80,
-                key=f"pipeline_export_name_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.pipeline_export_name"),
             )
             description = st.text_area(
                 "Description",
                 value="",
                 max_chars=500,
-                key=f"pipeline_export_description_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.pipeline_export_description"),
             )
             try:
                 payload = export_fn(export_name, description)
@@ -89,7 +85,8 @@ class PipelineComponent:
                     data=payload,
                     file_name=PipelineComponent._download_name(export_name),
                     mime="application/json",
-                    key=f"pipeline_export_{plot_id}",
+                    key=WidgetKeyBuilder.plot_key(plot_id, "widgets.pipeline_export"),
+                    on_click="ignore",
                 )
             except (TypeError, ValueError) as exc:
                 st.info(f"Complete the pipeline before exporting it: {exc}")
@@ -98,11 +95,8 @@ class PipelineComponent:
             uploaded = st.file_uploader(
                 "Pipeline configuration JSON",
                 type=["json"],
-                key=f"pipeline_import_{plot_id}",
-                help=(
-                    "Accepts RING-5 versioned files and legacy saved configurations "
-                    "up to 256 KiB."
-                ),
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.pipeline_import"),
+                help=("Accepts current RING-5 pipeline configurations " "up to 256 KiB."),
             )
             conflict_options: list[str] = ["error", "rename", "replace"]
             conflict_labels = {
@@ -114,13 +108,13 @@ class PipelineComponent:
                 "If that name already exists",
                 conflict_options,
                 format_func=lambda value: conflict_labels[value],
-                key=f"pipeline_import_conflict_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.pipeline_import_conflict"),
             )
             import_clicked = st.button(
                 "Import, save, and use",
                 disabled=uploaded is None,
                 type="primary",
-                key=f"pipeline_import_apply_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.pipeline_import_apply"),
             )
         return {
             "import_clicked": import_clicked,
@@ -129,11 +123,9 @@ class PipelineComponent:
         }
 
     @staticmethod
-    def render_import_success(name: str, *, migrated: bool, resolution: str) -> None:
-        """Show a concise import result with migration and conflict details."""
+    def render_import_success(name: str, *, resolution: str) -> None:
+        """Show a concise import result with conflict details."""
         details: list[str] = []
-        if migrated:
-            details.append("legacy format migrated")
         if resolution != "none":
             details.append(f"name conflict {resolution}")
         suffix = f" ({'; '.join(details)})" if details else ""
@@ -151,11 +143,12 @@ class PipelineComponent:
         return f"{stem or 'pipeline'}.ring5-pipeline.json"
 
     @staticmethod
-    def render_add_shaper(plot_id: int) -> dict[str, Any]:
+    def render_add_shaper(plot_id: int, display_names: dict[str, str]) -> dict[str, Any]:
         """Render the 'Add transformation' selector and Add button.
 
         Args:
             plot_id: Plot ID for widget key uniqueness.
+            display_names: Current facade-provided labels in editor order.
 
         Returns:
             Dict with ``add_clicked`` and ``shaper_type``.
@@ -164,26 +157,23 @@ class PipelineComponent:
         with col1:
             display_type: str | None = st.selectbox(
                 "Add transformation",
-                list(PipelineComponent.SHAPER_DISPLAY_MAP.keys()),
-                key=f"shaper_add_{plot_id}",
+                list(display_names),
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.shaper_add"),
             )
         with col2:
             add_clicked: bool = st.button(
                 "Add to Pipeline",
                 width="stretch",
-                key=f"add_shaper_btn_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.add_shaper_btn"),
             )
 
-        shaper_type: str = PipelineComponent.SHAPER_DISPLAY_MAP.get(
-            display_type or "", "columnSelector"
-        )
+        shaper_type: str = display_names.get(display_type or "", "columnSelector")
         return {"add_clicked": add_clicked, "shaper_type": shaper_type}
 
     @staticmethod
     def render_shaper_controls(
         plot_id: int,
         idx: int,
-        shaper_type: str,
         is_first: bool,
         is_last: bool,
     ) -> dict[str, bool]:
@@ -192,7 +182,6 @@ class PipelineComponent:
         Args:
             plot_id: Plot ID for key uniqueness.
             idx: Step index in the pipeline.
-            shaper_type: Internal shaper type key.
             is_first: Whether this is the first step.
             is_last: Whether this is the last step.
 
@@ -208,14 +197,22 @@ class PipelineComponent:
         c2, c3, c4 = st.columns([1, 1, 1])
         with c2:
             if not is_first:
-                result["move_up"] = st.button("Up", key=f"up_{plot_id}_{idx}", type="tertiary")
+                result["move_up"] = st.button(
+                    "Up",
+                    key=WidgetKeyBuilder.plot_key(plot_id, f"widgets.up_{idx}"),
+                    type="tertiary",
+                )
         with c3:
             if not is_last:
                 result["move_down"] = st.button(
-                    "Down", key=f"down_{plot_id}_{idx}", type="tertiary"
+                    "Down",
+                    key=WidgetKeyBuilder.plot_key(plot_id, f"widgets.down_{idx}"),
+                    type="tertiary",
                 )
         with c4:
-            result["delete"] = st.button("Del", key=f"del_{plot_id}_{idx}", type="tertiary")
+            result["delete"] = st.button(
+                "Del", key=WidgetKeyBuilder.plot_key(plot_id, f"widgets.del_{idx}"), type="tertiary"
+            )
 
         return result
 
@@ -233,6 +230,6 @@ class PipelineComponent:
             "Finalize Pipeline for Plotting",
             type="primary",
             width="stretch",
-            key=f"finalize_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.finalize"),
         )
         return clicked

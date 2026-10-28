@@ -1,69 +1,48 @@
-"""Scalar stat type for single numeric values."""
+"""Scalar accumulator for numeric point measurements."""
 
 import math
-from typing import Any, override
+from typing import cast, override
 
-from src.parsing.gem5.types.base import StatType, register_type
+from src.core.models.parse_failure_models import ParseDataRuntimeError
+from src.parsing.gem5.types.base import Observation, StatType, population_mean, register_type
 
 
 @register_type("scalar")
-class Scalar(StatType):
-    """
-    Represents a single scalar value (e.g., simTicks, IPC).
-
-    Content is stored as a list for repeat support.
-    Values must be convertible to int or float.
-
-    Validation:
-    - All values MUST be numeric (int or float)
-    - Content length must match repeat count after balancing
-    - Raises TypeError on non-numeric input
-    """
+class Scalar(StatType[list[float], float]):
+    """Average expected point observations while preserving missing values."""
 
     # [impl->req~ring5.ingestion.scalar~1]
+    __slots__ = ("_values",)
 
-    required_params = []
+    def __init__(self, repeat: int = 1) -> None:
+        super().__init__(repeat)
+        self._values: list[float] = []
 
-    @override
-    def _validate_content(self, value: Any) -> None:
-        """Ensure value can be converted to numeric (int or float)."""
-        try:
-            int(value)
-            return  # Valid as int
-        except (TypeError, ValueError):
-            pass
-
-        try:
-            float(value)
-            return  # Valid as float
-        except (TypeError, ValueError) as e:
-            raise TypeError(
-                f"SCALAR: Variable non-convertible to float or int. "
-                f"Value: {value}, Type: {type(value).__name__}"
-            ) from e
+    @property
+    def content(self) -> list[float]:
+        """Return a defensive snapshot of numeric observations."""
+        return list(self._values)
 
     @override
-    def _set_content(self, value: Any) -> None:
-        """Convert to numeric and append to content list (preserve precision)."""
-        # float() first so fractional values are NOT truncated; fall back to
-        # int() only for inputs that float() rejects (same acceptance set).
-        try:
-            numeric_value: float = float(value)
-        except (TypeError, ValueError):
-            numeric_value = float(int(value))
-        self._content.append(numeric_value)
+    def _add_observation(self, value: Observation) -> None:
+        if type(value) not in (int, float):
+            raise TypeError("SCALAR: Observation must be one numeric measurement.")
+        self._values.append(float(cast(float, value)))
 
     @override
-    def reduce_duplicates(self) -> None:
-        """Reduce content via arithmetic mean (sum / repeat)."""
-        object.__setattr__(self, "_reduced", True)
+    def _missing_count(self) -> int:
+        return max(self.repeat - len(self._values), 0)
 
-        if not self._content:
-            object.__setattr__(self, "_reduced_content", math.nan)
-            return
+    @override
+    def _balance(self) -> int:
+        if len(self._values) > self.repeat:
+            raise ParseDataRuntimeError(
+                f"SCALAR: More values ({len(self._values)}) than expected ({self.repeat})."
+            )
+        return self.missing_measurement_count
 
-        # Sum and divide using float to preserve decimal precision
-        total = 0.0
-        for i in range(self._repeat):
-            total += float(self._content[i])
-        object.__setattr__(self, "_reduced_content", total / self._repeat)
+    @override
+    def _reduce(self) -> float:
+        if len(self._values) < self.repeat:
+            return math.nan
+        return population_mean(self._values)

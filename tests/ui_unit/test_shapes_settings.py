@@ -21,12 +21,16 @@ from tests.conftest import columns_side_effect
 @pytest.fixture
 def mock_st() -> Generator[MagicMock]:
     """Mock Streamlit for shapes_settings."""
-    with patch("src.web.components.plotting.settings.shapes_settings.st") as m_st:
+    with (
+        patch("src.web.components.plotting.settings.shapes_settings.st") as m_st,
+        patch("src.web.state.ui_state_manager.st", m_st),
+    ):
         m_st.columns.side_effect = columns_side_effect
         m_st.button.return_value = False
-        m_st.session_state.get.return_value = False  # edit mode off
+        m_st.checkbox.side_effect = lambda _label, **kwargs: kwargs.get("value", False)
+        m_st.session_state = {}
         m_st.selectbox.return_value = "line"
-        m_st.text_input.return_value = "1.0"
+        m_st.text_input.side_effect = lambda _label, **kwargs: kwargs.get("value", "1.0")
         m_st.color_picker.return_value = "#000000"
         m_st.number_input.return_value = 2
         yield m_st
@@ -67,7 +71,9 @@ def test_render_does_not_mutate_saved_config(mock_st: MagicMock) -> None:
 def test_add_shape_returns_new_list_without_mutating(mock_st: MagicMock) -> None:
     """Clicking 'Add Shape' yields a longer list, leaving saved_config intact."""
     # [test->req~ring5.figure.shapes-annotations~1]
-    mock_st.button.return_value = True  # 'Add Shape' clicked
+    mock_st.button.side_effect = (
+        lambda label, **_kwargs: label == "Add Shape"
+    )  # 'Add Shape' clicked
     saved_config = _config_with_shapes()
     snapshot = deepcopy(saved_config)
 

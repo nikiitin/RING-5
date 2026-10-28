@@ -1,14 +1,20 @@
 """Immutable portfolio revision storage and comparison tests."""
 
 from __future__ import annotations
+from src.core.common.typed_table_codec import TypedTableCodec
+import pandas as pd
 
 import json
 from pathlib import Path
 from typing import Any
+from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
 
+from tests.helpers.portfolios import portfolio_document
+
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_revision_service import (
     PortfolioRevisionService,
@@ -16,7 +22,7 @@ from src.core.services.data_services.portfolio_revision_service import (
 
 
 @pytest.fixture
-def revision_storage(tmp_path: Path) -> tuple[Path, Path]:
+def revision_storage(tmp_path: Path) -> Generator[tuple[Path, Path], None, None]:
     current = tmp_path / "portfolios" / "Study.json"
     current.parent.mkdir()
     revisions = tmp_path / "portfolio_revisions"
@@ -34,40 +40,67 @@ def _payload(
     step: str = "sort",
     data_value: int = 1,
 ) -> bytes:
-    document: dict[str, Any] = {
-        "schema_version": 3,
-        "version": "3.0",
+    fields: dict[str, Any] = {
         "timestamp": timestamp,
-        "data_csv": f"category,value\nA,{data_value}\n",
+        "data": TypedTableCodec.encode(pd.DataFrame({"category": ["A"], "value": [data_value]})),
         "csv_path": None if parser else "/data/results.csv",
         "plots": [
             {
                 "id": 1,
                 "name": title,
                 "plot_type": "bar",
-                "processed_data": f"category,value\nA,{data_value}\n",
+                "source_data": TypedTableCodec.encode(
+                    pd.DataFrame({"category": ["A"], "value": [data_value]})
+                ),
+                "processed_data": TypedTableCodec.encode(
+                    pd.DataFrame({"category": ["A"], "value": [data_value]})
+                ),
                 "config": {
                     "x": "category",
                     "y": "value",
                     "title": title,
                     "line_width": line_width,
+                    "legend_labels": {"A": title},
                 },
                 "pipeline": [{"type": step, "column": "value"}],
-                "legend_mappings": {"A": title},
                 "figure_spec": {"title": title, "line_width": line_width},
             }
         ],
         "plot_counter": 1,
         "config": {},
-        "parse_variables": ([{"name": "ipc", "type": "scalar"}] if parser else []),
+        "parse_variables": (
+            [
+                StatConfigCodec.to_snapshot(
+                    {"name": "ipc", "type": "scalar", "params": {"source_type": "scalar"}}
+                )
+            ]
+            if parser
+            else []
+        ),
         "use_parser": parser,
         "stats_path": "/simulations" if parser else None,
         "stats_pattern": "stats*.txt",
-        "scanned_variables": ([{"name": "ipc", "type": "scalar"}] if parser else []),
+        "scanned_variables": (
+            [
+                {
+                    "name": "ipc",
+                    "type": "scalar",
+                    "entries": [],
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "scalar",
+                        "basis": "backend_metadata",
+                    },
+                    "instances": [{"source_name": "ipc", "indices": []}],
+                }
+            ]
+            if parser
+            else []
+        ),
         "manager_history": [],
         "portfolio_history": [],
     }
-    return json.dumps(document, indent=2).encode()
+    return json.dumps(portfolio_document(**fields), indent=2).encode()
 
 
 def test_retains_exact_versions_and_identifies_current(
@@ -179,7 +212,7 @@ def test_compare_groups_reviewable_changes_and_omits_embedded_rows(
     assert sections == {"data_sources", "pipelines", "plots", "figure_settings"}
     assert "[0].name" in paths
     assert "[0].steps[0].type" in paths
-    assert not any("data_csv" in path or "999" in path for path in paths)
+    assert not any("data." in path or "999" in path for path in paths)
     assert sum(count for _section, count in difference.section_counts) == len(difference.entries)
     assert not difference.truncated
 
@@ -231,3 +264,24 @@ def test_comparison_is_bounded(revision_storage: tuple[Path, Path]) -> None:
 
     assert difference.change_count == 2
     assert difference.truncated
+
+
+@pytest.mark.parametrize("mutation", ["schema", "manifest"])
+def test_rejected_revision_does_not_publish_or_retain_content(
+    revision_storage: tuple[Path, Path], mutation: str
+) -> None:
+    """Reject unsupported or unverifiable input before touching current/history files."""
+    current, history = revision_storage
+    original = _payload(timestamp="2026-10-25T10:00:00")
+    current.write_bytes(original)
+    document = json.loads(original)
+    if mutation == "schema":
+        document["schema_version"] = 3
+    else:
+        document.pop("integrity_manifest")
+    with pytest.raises(ValueError):
+        PortfolioRevisionService.retain_and_replace(
+            "Study", json.dumps(document).encode(), current, overwrite=True
+        )
+    assert current.read_bytes() == original
+    assert not list(history.rglob("*.json"))

@@ -477,7 +477,6 @@ class DashboardComposer:
                 data = matplotlib_download_bytes(
                     figure,
                     typed_mpl_fmt,
-                    spec=getattr(figure, "_ring5_spec", None),
                 )
                 st.download_button(
                     f"Download complete {mpl_fmt.upper()}",
@@ -486,6 +485,7 @@ class DashboardComposer:
                     mime=get_matplotlib_mime(typed_mpl_fmt),
                     width="stretch",
                     key="dashboard.composer.matplotlib_download",
+                    on_click="ignore",
                 )
 
 

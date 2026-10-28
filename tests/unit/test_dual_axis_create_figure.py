@@ -1,4 +1,6 @@
-"""Tests for DualAxisBarDotPlot.create_figure — all execution branches."""
+"""Public dual-axis bar/dot rendering across its execution branches."""
+
+from ring5 import Session
 
 from typing import cast
 
@@ -49,10 +51,16 @@ class TestNoColorGrouping:
     """Test single-trace (no color) branches."""
 
     def test_basic_no_color(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Basic dual-axis with no color grouping."""
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
         # 1 bar trace + 1 scatter trace
         assert len(list(fig.data)) == 2
@@ -60,41 +68,65 @@ class TestNoColorGrouping:
         assert isinstance(fig.data[1], go.Scatter)
 
     def test_no_lines(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """show_lines=False creates markers-only scatter."""
         base_config["show_lines"] = False
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter = cast(go.Scatter, fig.data[1])
         assert scatter.mode == "markers"
 
     def test_with_dot_color(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Explicit dot_color is applied to marker."""
         base_config["dot_color"] = "#FF0000"
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter = cast(go.Scatter, fig.data[1])
         assert cast(go.scatter.Marker, scatter.marker).color == "#FF0000"
 
     def test_with_error_bars(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Error bars from .sd columns."""
         base_config["show_error_bars"] = True
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         bar_trace = cast(go.Bar, fig.data[0])
         scatter_trace = cast(go.Scatter, fig.data[1])
         assert bar_trace.error_y is not None  # Bar error
         assert scatter_trace.error_y is not None  # Dot error
 
     def test_isolate_last_no_color(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Isolate last category with no color → 3 traces (bar + main scatter + iso scatter)."""
         base_config["isolate_last_group"] = True
         base_config["xaxis_order"] = ["A", "B", "Mean"]
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         # 1 bar + 1 main scatter (A,B) + 1 isolated scatter (Mean)
         assert len(list(fig.data)) == 3
         # Isolated trace has markers-only mode
@@ -103,13 +135,19 @@ class TestNoColorGrouping:
         assert iso_trace.showlegend is False
 
     def test_isolate_last_with_error_bars(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Isolate last + error bars on both main and isolated traces."""
         base_config["isolate_last_group"] = True
         base_config["show_error_bars"] = True
         base_config["xaxis_order"] = ["A", "B", "Mean"]
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         # Main scatter should have error bars
         main_scatter = cast(go.Scatter, fig.data[1])
         assert main_scatter.error_y is not None
@@ -122,11 +160,17 @@ class TestWithColorGrouping:
     """Test color-grouped branches."""
 
     def test_basic_color_grouped(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Color grouping creates bar+scatter per group."""
         base_config["color"] = "Config"
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         # 2 groups × (1 bar + 1 scatter) = 4 traces
         assert len(list(fig.data)) == 4
         bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
@@ -135,35 +179,53 @@ class TestWithColorGrouping:
         assert len(scatter_traces) == 2
 
     def test_color_grouped_no_lines(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Color grouped with no lines → markers mode."""
         base_config["color"] = "Config"
         base_config["show_lines"] = False
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for s in scatter_traces:
             assert s.mode == "markers"
 
     def test_color_grouped_with_error_bars(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Color grouped with error bars on both bar and dot."""
         base_config["color"] = "Config"
         base_config["show_error_bars"] = True
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
         for bt in bar_traces:
             assert bt.error_y is not None
 
     def test_color_grouped_isolate_last(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Color grouped + isolate last: extra isolated scatter per group."""
         base_config["color"] = "Config"
         base_config["isolate_last_group"] = True
         base_config["xaxis_order"] = ["A", "B", "Mean"]
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         # 2 groups × (1 bar + 1 main scatter + 1 iso scatter) = 6 traces
         assert len(list(fig.data)) == 6
         # Isolated traces have showlegend=False
@@ -171,25 +233,37 @@ class TestWithColorGrouping:
         assert len(iso_traces) >= 1
 
     def test_color_grouped_isolate_with_error_bars(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Color grouped + isolate + error bars."""
         base_config["color"] = "Config"
         base_config["isolate_last_group"] = True
         base_config["show_error_bars"] = True
         base_config["xaxis_order"] = ["A", "B", "Mean"]
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for st_trace in scatter_traces:
             assert st_trace.error_y is not None
 
     def test_color_grouped_custom_legend_order(
-        self, plot: DualAxisBarDotPlot, sample_data: pd.DataFrame, base_config: dict
+        self,
+        plot: DualAxisBarDotPlot,
+        sample_data: pd.DataFrame,
+        base_config: dict,
+        plot_session: Session,
     ) -> None:
         """Custom legend_order changes trace ordering."""
         base_config["color"] = "Config"
         base_config["legend_order"] = ["c2", "c1"]
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         # First bar trace should be c2
         first_trace = cast(go.Bar, fig.data[0])
         assert first_trace.name is not None
@@ -205,8 +279,3 @@ class TestLayout:
         """Layout barmode is group for dual-axis bar-dot."""
         result = plot.create_traces(sample_data, base_config)
         assert result.barmode == "group"
-
-    def test_get_legend_column(self, plot: DualAxisBarDotPlot) -> None:
-        assert plot.get_legend_column({"color": "Config"}) == "Config"
-        assert plot.get_legend_column({}) is None
-        assert plot.get_legend_column({"color": None}) is None

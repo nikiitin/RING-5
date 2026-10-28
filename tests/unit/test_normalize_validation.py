@@ -23,7 +23,7 @@ def _make_params(**kwargs: Any) -> dict[str, Any]:
 class TestNormalizeZeroDenominator:
     """When baseline value is 0, division by zero must be handled."""
 
-    def test_zero_baseline_zeros_normalized(self) -> None:
+    def test_zero_baseline_preserves_undefined_normalized(self) -> None:
         df = pd.DataFrame(
             {
                 "config": ["baseline", "eval"],
@@ -33,8 +33,7 @@ class TestNormalizeZeroDenominator:
         )
         n = Normalize(_make_params())
         result = n(df)
-        assert result["cycles"].iloc[0] == 0.0
-        assert result["cycles"].iloc[1] == 0.0
+        assert result["cycles"].isna().all()
 
 
 class TestNormalizeSdColumns:
@@ -79,7 +78,7 @@ class TestNormalizeSdColumns:
         )
         n = Normalize(_make_params())
         result = n(df)
-        assert result["cycles.sd"].iloc[0] == 0.0
+        assert result["cycles.sd"].isna().all()
 
 
 class TestNormalizePreconditions:
@@ -198,7 +197,7 @@ class TestComputeDataFingerprint:
         cols = self._relevant_cols(params)
         fp = compute_data_fingerprint(df, params, cols)
         assert isinstance(fp, str)
-        assert len(fp) == 16
+        assert fp.startswith("sha256:")
 
 
 class TestNormalizeMultipleVars:

@@ -1,3 +1,4 @@
+from ring5 import Session
 from collections.abc import Generator
 from typing import Any, cast
 from unittest.mock import patch
@@ -16,7 +17,7 @@ from tests.conftest import columns_side_effect
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
     with (
-        patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st,
+        patch("src.web.components.plotting.config.grouped_stacked_bar_config.st") as mock_st,
         patch("src.web.components.plotting.config.plot_config_components.st", mock_st),
     ):
         mock_st.session_state = {}
@@ -144,7 +145,7 @@ def test_render_config_filter_options(mock_streamlit: Any, sample_data: Any) -> 
     assert config["group_filter"] == ["Low"]
 
 
-def test_create_figure_grouped_calculated(sample_data: Any) -> None:
+def test_create_figure_grouped_calculated(sample_data: Any, plot_session: Session) -> None:
     """Test figure creation with calculated logic for grouping."""
     plot = GroupedStackedBarPlot(1, "Test")
     config = {
@@ -155,7 +156,9 @@ def test_create_figure_grouped_calculated(sample_data: Any) -> None:
         "bargroupgap": 0.1,
     }
 
-    fig = plot.create_figure(sample_data, config)
+    plot.processed_data = sample_data
+    plot.config = config
+    fig = cast(go.Figure, plot_session.render(plot))
 
     # Implementation loops over y_columns and adds trace.
     # GSB adds one trace per Y column.

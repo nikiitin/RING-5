@@ -5,7 +5,7 @@ works with the pip install alone. The probes are instant (no subprocess):
 
 - ``perl``    → stats scanning + parsing
 - a Chrome-family browser → plotly png/svg/pdf export (Kaleido)
-- ``xelatex`` → matplotlib PGF export
+- the selected TeX compiler → matplotlib PGF export
 
 Zero-dependency paths: plotly HTML export and matplotlib png/svg/pdf.
 """
@@ -15,10 +15,17 @@ from __future__ import annotations
 import shutil
 from dataclasses import dataclass
 
+from ring5.errors import ExportError
+from src.core.common.browser_selection import select_browser
+from src.core.models.visualization.export_options import TexSystem, validate_tex_system
+
 
 @dataclass(frozen=True)
 class DependencyStatus:
-    """One binary's availability."""
+    """One binary's executable availability and selected path.
+
+    An unavailable explicit browser selection retains its requested path.
+    """
 
     name: str
     found: bool
@@ -33,31 +40,34 @@ class DoctorReport:
 
     perl: DependencyStatus
     chrome: DependencyStatus
-    xelatex: DependencyStatus
+    tex_compiler: DependencyStatus
 
     @property
     def all_found(self) -> bool:
         """Whether every optional and required external dependency is available."""
-        return self.perl.found and self.chrome.found and self.xelatex.found
+        return self.perl.found and self.chrome.found and self.tex_compiler.found
 
     @property
     def essential_found(self) -> bool:
-        # [impl->req~ring5.api.doctor~1]
+        # [impl->req~ring5.api.doctor~2]
         """Only the dependency required for core parse/render — ``perl``.
 
-        chrome/xelatex gate *optional* export formats, so a CLI exit gate should not fail
-        merely because they are absent.
+        Browser/compiler availability gates optional export formats, so a CLI exit gate
+        should not fail merely because they are absent.
         """
         return self.perl.found
 
     def __str__(self) -> str:
+        """Return the diagnostic summary with portable ASCII status and hint labels."""
         lines = ["RING-5 dependency check:"]
-        for dep in (self.perl, self.chrome, self.xelatex):
-            mark = "✓" if dep.found else "✗"
-            where = dep.path or "not found"
-            lines.append(f"  {mark} {dep.name:<8} {where}  ({dep.needed_for})")
+        for dep in (self.perl, self.chrome, self.tex_compiler):
+            mark = "OK" if dep.found else "MISSING"
+            where = dep.path if dep.path is not None else "not found"
+            if where == "":
+                where = "empty BROWSER_PATH"
+            lines.append(f"  [{mark}] {dep.name:<8} {where}  ({dep.needed_for})")
             if not dep.found:
-                lines.append(f"      → {dep.install_hint}")
+                lines.append(f"      hint: {dep.install_hint}")
         lines.append(
             "  Always available: plotly HTML export, matplotlib png/svg/pdf export, "
             "shapers, portfolios."
@@ -65,38 +75,26 @@ class DoctorReport:
         return "\n".join(lines)
 
 
-def _find_chrome() -> str | None:
-    """Locate a Chrome-family browser the way Kaleido will.
+def doctor(*, tex_system: TexSystem = "xelatex") -> DoctorReport:
+    # [impl->req~ring5.api.doctor~2]
+    """Check required Perl and optional browser/selected-compiler availability.
 
-    Kaleido v1 resolves its browser through choreographer: a previously
-    downloaded local Chrome, the ``BROWSER_PATH`` override, PATH, then the
-    usual install locations. ``find_browser`` performs that exact lookup
-    instantly (no subprocess).
+    Args:
+        tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
+
+    Returns:
+        Availability report without launching a browser, compiler or version probe.
+
+    Raises:
+        ExportError: The requested compiler identifier is unsupported.
     """
     try:
-        from choreographer.browsers.chromium import Chromium
-
-        found = Chromium.find_browser(skip_local=False)
-        return str(found) if found else None
-    except Exception:
-        # choreographer internals moved — fall back to a PATH sweep over the
-        # same executable names it checks.
-        for name in ("chrome", "chromium", "chromium-browser", "google-chrome"):
-            path = shutil.which(name)
-            if path:
-                return path
-        return None
-
-
-def doctor() -> DoctorReport:
-    # [impl->req~ring5.api.doctor~1]
-    """Run the three instant dependency probes and return a report.
-
-    ``print(ring5.doctor())`` gives the human-readable summary.
-    """
+        compiler = validate_tex_system(tex_system)
+    except ValueError as exc:
+        raise ExportError(str(exc)) from exc
     perl_path = shutil.which("perl")
-    chrome_path = _find_chrome()
-    xelatex_path = shutil.which("xelatex")
+    browser = select_browser()
+    compiler_path = shutil.which(compiler)
 
     return DoctorReport(
         perl=DependencyStatus(
@@ -108,16 +106,19 @@ def doctor() -> DoctorReport:
         ),
         chrome=DependencyStatus(
             name="chrome",
-            found=chrome_path is not None,
-            path=chrome_path,
+            found=browser.executable_path is not None,
+            path=browser.executable_path or browser.selected_path,
             needed_for="plotly png/svg/pdf export",
-            install_hint="Run `kaleido_get_chrome` or set BROWSER_PATH.",
+            install_hint=(
+                "Fix or unset an invalid BROWSER_PATH; "
+                "run `ring5 install-chrome` and set BROWSER_PATH to its printed path."
+            ),
         ),
-        xelatex=DependencyStatus(
-            name="xelatex",
-            found=xelatex_path is not None,
-            path=xelatex_path,
+        tex_compiler=DependencyStatus(
+            name=compiler,
+            found=compiler_path is not None,
+            path=compiler_path,
             needed_for="matplotlib PGF (LaTeX) export",
-            install_hint="Install TeX (e.g. `make install-latex` or texlive-xetex).",
+            install_hint=f"Install a TeX distribution that provides {compiler}.",
         ),
     )

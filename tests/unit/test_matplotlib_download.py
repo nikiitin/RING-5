@@ -14,7 +14,6 @@ import pytest
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from src.core.models.visualization.figure_config import FigureConfig
 from src.web.rendering.figure_export import (
     get_matplotlib_extension,
     get_matplotlib_mime,
@@ -144,12 +143,11 @@ class TestMatplotlibPGF:
         assert isinstance(data, bytes)
         assert len(data) > 100
 
-    def test_pgf_ignores_spec_preamble(self, simple_mpl_figure: Figure) -> None:
-        """Untrusted FigureConfig preambles never reach PGF output."""
-        spec = FigureConfig(
-            latex_extra_preamble="\\usepackage{times}",
-        )
-        data = matplotlib_download_bytes(simple_mpl_figure, "pgf", spec=spec)
+    def test_pgf_disables_global_custom_preamble(self, simple_mpl_figure: Figure) -> None:
+        """A process-level custom preamble never enters a figure export."""
+        with matplotlib.rc_context({"pgf.preamble": r"\usepackage{times}"}):
+            data = matplotlib_download_bytes(simple_mpl_figure, "pgf")
+            assert matplotlib.rcParams["pgf.preamble"] == r"\usepackage{times}"
         assert b"\\begin{pgfpicture}" in data
         assert b"usepackage{times}" not in data
 
@@ -162,10 +160,15 @@ class TestMatplotlibPGF:
         assert b"\\input{/etc/hostname}" not in data
         assert b"\\textbackslash{}input\\{/etc/hostname\\}" in data
 
-    def test_pgf_without_spec(self, simple_mpl_figure: Figure) -> None:
-        """PGF export works without a FigureConfig (empty preamble)."""
-        data = matplotlib_download_bytes(simple_mpl_figure, "pgf", spec=None)
+    def test_pgf_restores_figure_text(self, simple_mpl_figure: Figure) -> None:
+        """A native PGF export restores the caller's literal figure labels."""
+        title = r"Measurement_1 & 50% $value$"
+        simple_mpl_figure.axes[0].set_title(title)
+        data = matplotlib_download_bytes(simple_mpl_figure, "pgf")
         assert b"\\begin{pgfpicture}" in data
+        assert rb"Measurement\_1 \& 50\% \$value\$" in data
+        assert simple_mpl_figure.axes[0].get_title() == title
+        assert simple_mpl_figure.axes[0].title.get_parse_math()
 
 
 # Error handling

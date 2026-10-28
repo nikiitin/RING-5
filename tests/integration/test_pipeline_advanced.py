@@ -97,7 +97,7 @@ class TestComplexPipelines:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(
+        result: pd.DataFrame = loaded_facade.shapers.process_pipeline(
             data, cast(list[ShaperStepConfig], pipeline)
         )
 
@@ -144,7 +144,7 @@ class TestComplexPipelines:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(
+        result: pd.DataFrame = loaded_facade.shapers.process_pipeline(
             data, cast(list[ShaperStepConfig], pipeline)
         )
 
@@ -208,7 +208,7 @@ class TestComplexPipelines:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(
+        result: pd.DataFrame = loaded_facade.shapers.process_pipeline(
             data, cast(list[ShaperStepConfig], pipeline)
         )
 
@@ -256,8 +256,8 @@ class TestShaperIntegration:
             "conditionSelector",
             {  # type: ignore
                 "column": "system.cpu.ipc",
-                "condition": ">=",
-                "value": 2.0,
+                "mode": "greater_or_equal",
+                "threshold": 2.0,
             },
         )
         result: pd.DataFrame = shaper(rich_sample_data)

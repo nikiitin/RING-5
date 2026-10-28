@@ -5,11 +5,6 @@ parent: Stable Interfaces
 grand_parent: Developer Guide
 nav_order: 4
 permalink: /developer-guide/api-reference/models-and-protocols/
-redirect_from:
-  - /developer-guide/core/
-  - /developer-guide/core/models-reference/
-  - /engineering-reference/reference/models-catalog/
-  - /engineering-reference/reference/protocol-catalog/
 ---
 
 # Models and protocols
@@ -37,13 +32,21 @@ fields and `RestoreReport`. Shaper models form a discriminated configuration uni
 models describe engines, traces, axes, legends, annotations, labels, palettes, and full figure
 configuration without backend imports.
 
-## Compatibility
+## Contract validation
 
-- A field serialized to JSON or CSV needs a default or migration when changed.
+- A serialized contract change updates every producer and consumer and rejects unsupported shapes.
 - A `TypedDict` discriminator must match its factory identifier.
 - Protocols remain narrow; do not turn them into catalogs of an implementation.
 - Models do not call services, read application state, or import Streamlit or rendering engines.
 - Round-trip tests cover `to_dict` and `from_dict` behavior for persisted models.
+
+Serialized plots use `validate_plot_fields` in `src/core/common/plot_payload.py` before data
+decoding. Visible legend labels belong to `config.legend_labels`; adding persistent plot fields
+requires updating the writer, field contract and restoration together. `FigureConfig.from_dict`
+and its nested styling decoders reject unsupported field names and supplied object/list shapes.
+Omitted fields retain model defaults; optional fields retain their documented null values. Scalar
+values follow each model's construction policy. Raw trace dictionaries remain inspection data, including
+subclass fields and arbitrary cell values; this decoder does not reconstruct or replay traces.
 
 Use the source definitions as the field-level reference. This page records ownership and stability,
 not a copied inventory that can drift.

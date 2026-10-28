@@ -38,7 +38,7 @@ def test_public_theme_round_trip_preserves_data_and_renders_dark_bars_in_both_en
             imported,
             "bar",
         )
-        plot = session.create_plot("bar", data=data, config=config)
+        plot = session.create_plot("bar", data=ring5.Table(data), config=config)
         plotly_figure = session.render(plot, engine="plotly")
         matplotlib_figure = session.render(plot, engine="matplotlib")
 

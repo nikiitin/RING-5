@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import subprocess
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock, patch
 
@@ -14,6 +14,10 @@ import pandas as pd
 import pytest
 
 import ring5
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models.parsing_models import StatConfig
+from src.core.models.recipe_models import ANALYSIS_RECIPE_SCHEMA_VERSION
+from tests.helpers.html_assertions import assert_plotly_document
 from src.core.services.data_services.path_service import PathService
 
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_analysis_recipes")]
@@ -73,7 +77,9 @@ def test_recipe_exports_execute_through_only_the_public_api(tmp_path: Path) -> N
     for cell in notebook["cells"]:
         if cell["cell_type"] == "code":
             exec(compile(cell["source"], f"{cell['id']}.py", "exec"), namespace)
-    assert namespace["result"].rows == 2  # type: ignore[union-attr]
+    result = namespace["result"]
+    assert isinstance(result, ring5.AnalysisRecipeRunResult)
+    assert result.rows == 2
 
 
 def test_parameterized_recipe_round_trip_executes_plots_and_exports(tmp_path: Path) -> None:
@@ -132,7 +138,7 @@ def test_parameterized_recipe_round_trip_executes_plots_and_exports(tmp_path: Pa
             initial = pd.read_csv(csv_path)
             old_plot = session.create_plot(
                 "bar",
-                data=initial,
+                data=ring5.Table(initial),
                 config={"x": "benchmark", "y": "value"},
                 name="Old plot",
             )
@@ -159,9 +165,8 @@ def test_parameterized_recipe_round_trip_executes_plots_and_exports(tmp_path: Pa
                 str(output_dir / "values.html"),
                 str(output_dir / "values-copy.html"),
             )
-            assert all(
-                Path(path).read_text().startswith("<html>") for path in result.exported_paths
-            )
+            for path in result.exported_paths:
+                assert_plotly_document(Path(path).read_text(encoding="utf-8"))
             assert session.plots[0].pipeline == []
             assert session.api.get_visualization_config(old_plot.plot_id) is None
 
@@ -179,7 +184,11 @@ def test_recipe_capture_and_errors_use_the_public_contract(tmp_path: Path) -> No
             session.create_plot("bar", data=data, config={"x": "x", "y": "y"}, name="Bars")
             captured = session.capture_analysis_recipe("Captured")
 
-            assert captured.source == ring5.RecipeSource(kind="csv", path=str(csv_path))
+            assert captured.source == ring5.RecipeSource(
+                kind="csv",
+                path=str(csv_path),
+                csv_policy=ring5.InferredCsvPolicy(("benchmark_name", "config_description")),
+            )
             assert captured.plots[0].name == "Bars"
             assert captured.plots[0].config == {"x": "x", "y": "y"}
 
@@ -208,13 +217,13 @@ def test_recipe_capture_and_errors_use_the_public_contract(tmp_path: Path) -> No
                 session.delete_analysis_recipe(1)  # type: ignore[arg-type]
             with pytest.raises(ring5.RecipeError, match="Analysis recipe must"):
                 session.export_analysis_recipe("invalid")  # type: ignore[arg-type]
+            future = json.loads(payload)
+            future["schema_version"] = ANALYSIS_RECIPE_SCHEMA_VERSION + 1
             with pytest.raises(ring5.RecipeError, match="schema version"):
-                session.import_analysis_recipe(
-                    payload.replace(b'"schema_version": 1', b'"schema_version": 2')
-                )
+                session.import_analysis_recipe(json.dumps(future))
 
         with ring5.Session() as empty_session:
-            with pytest.raises(ring5.RecipeError, match="no reusable CSV source"):
+            with pytest.raises(ring5.RecipeError, match="no explicit reusable source"):
                 empty_session.capture_analysis_recipe("No source")
 
 
@@ -222,49 +231,82 @@ def test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typ
     tmp_path: Path,
 ) -> None:
     # [test->req~ring5.portfolio.analysis-recipes~1]
-    parsed_csv = tmp_path / "parsed.csv"
-    pd.DataFrame({"simTicks": [123]}).to_csv(parsed_csv, index=False)
-    variables = cast(
-        tuple[dict[str, object], ...],
-        (
-            {
-                "name": "simTicks",
-                "type": "scalar",
-                "_id": "ticks",
-                "repeat": "1",
-                "statisticsOnly": True,
-                "keepIndices": True,
-            },
-            {
-                "name": "system.cpu.ipc",
-                "alias": "ipc",
-                "type": "scalar",
-                "_id": "ipc",
-            },
+    inputs = tmp_path / "simulations"
+    inputs.mkdir()
+    (inputs / "stats.txt").write_text(
+        "system.cpu0.simTicks 123\nsystem.cpu.ipc 1.25\n", encoding="utf-8"
+    )
+    variables = (
+        StatConfigCodec.to_payload(
+            StatConfig(
+                name="simTicks",
+                source_name=r"system.cpu\d+.simTicks",
+                type="scalar",
+                statistics_only=True,
+                keep_indices=True,
+                params={"source_type": "scalar"},
+            )
+        ),
+        StatConfigCodec.to_payload(
+            StatConfig(
+                name="ipc",
+                type="scalar",
+                source_name="system.cpu.ipc",
+                params={"source_type": "scalar"},
+            )
         ),
     )
     recipe = ring5.AnalysisRecipe(
         name="Parser recipe",
         source=ring5.RecipeSource(
             kind="parser",
-            path="/simulations",
-            variables=variables,  # type: ignore[arg-type]
+            path=str(inputs),
+            variables=variables,
+            scanned_variables=(
+                {
+                    "name": r"system.cpu\d+.simTicks",
+                    "type": "vector",
+                    "entries": ["0"],
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "scalar",
+                        "basis": "backend_metadata",
+                    },
+                    "instances": [{"source_name": "system.cpu0.simTicks", "indices": ["0"]}],
+                },
+                {
+                    "name": "system.cpu.ipc",
+                    "type": "scalar",
+                    "entries": [],
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "scalar",
+                        "basis": "backend_metadata",
+                    },
+                    "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
+                },
+            ),
+            scan_limit=None,
         ),
     )
 
     with ring5.Session() as session:
-        with patch.object(
-            session,
-            "parse",
-            return_value=SimpleNamespace(csv_path=str(parsed_csv)),
-        ) as parse:
+        parser = session.api._parser
+        with (
+            patch.object(parser, "submit_parse_async", wraps=parser.submit_parse_async) as parse,
+            patch.object(parser, "submit_scan_async") as scan,
+        ):
             result = session.run_analysis_recipe(recipe)
-        submitted = parse.call_args.args[1]
+        scan.assert_not_called()
+        submitted = parse.call_args.args[2]
         assert submitted[0].statistics_only is True
         assert submitted[0].keep_indices is True
         assert submitted[1].name == "ipc"
         assert submitted[1].source_name == "system.cpu.ipc"
         assert result.rows == 1
+        frame = session.api.state_manager.get_data()
+        assert frame is not None
+        assert frame.to_dict("records") == [{"system.cpu0.simTicks": 123.0, "ipc": 1.25}]
         assert session.api.state_manager.is_using_parser() is True
 
         invalid_repeat = ring5.AnalysisRecipe(
@@ -274,11 +316,20 @@ def test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typ
                 path="/simulations",
                 variables=cast(
                     tuple[dict[str, object], ...],
-                    ({"name": "x", "type": "scalar", "repeat": "many"},),
+                    (
+                        {
+                            **StatConfigCodec.to_payload(
+                                StatConfig(
+                                    name="x", type="scalar", params={"source_type": "scalar"}
+                                )
+                            ),
+                            "repeat": "many",
+                        },
+                    ),
                 ),  # type: ignore[arg-type]
             ),
         )
-        with pytest.raises(ring5.RecipeError, match="invalid repeat metadata"):
+        with pytest.raises(ring5.RecipeError, match="repeat must be a positive integer"):
             session.run_analysis_recipe(invalid_repeat)
 
         csv_recipe = ring5.AnalysisRecipe(
@@ -292,3 +343,84 @@ def test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typ
         ):
             with pytest.raises(ring5.RecipeError, match="Could not load recipe source"):
                 session.run_analysis_recipe(csv_recipe)
+
+
+@pytest.mark.parametrize("numeric_pattern", [False, True], ids=["literal", "numeric-pattern"])
+def test_saved_parser_recipe_replays_complete_catalog_without_rescanning(
+    tmp_path: Path, numeric_pattern: bool
+) -> None:
+    """Replay saved scanner records exactly, including unused physical evidence."""
+    # [test->req~ring5.portfolio.analysis-recipes~1]
+    inputs = tmp_path / "simulations"
+    inputs.mkdir()
+    stats = inputs / "stats.txt"
+    raw_stats = b"system.cpu0.simTicks 123\n" b"system.cpu1.simTicks 456\n" b"system.cpu.ipc 1.25\n"
+    stats.write_bytes(raw_stats)
+    recipes_dir = tmp_path / "recipes"
+    recipes_dir.mkdir()
+
+    with patch.object(PathService, "get_analysis_recipes_dir", return_value=recipes_dir):
+        with ring5.Session() as session:
+            discovery = session.scan_submit(str(inputs), limit=0).finalize()
+            catalog = [variable.to_dict() for variable in discovery.variables]
+            observed = copy.deepcopy(catalog)
+            assert discovery.complete and discovery.scanned_files == 1
+            assert len(catalog) == 2
+            assert {
+                instance["source_name"] for record in catalog for instance in record["instances"]
+            } == {"system.cpu0.simTicks", "system.cpu1.simTicks", "system.cpu.ipc"}
+            variable = ring5.StatConfig(
+                name="ticks",
+                type="scalar",
+                source_name=(
+                    r"system.cpu\d+.simTicks" if numeric_pattern else "system.cpu0.simTicks"
+                ),
+                keep_indices=numeric_pattern,
+                params={"source_type": "scalar"},
+            )
+            recipe = ring5.AnalysisRecipe(
+                name="Full saved catalog",
+                source=ring5.RecipeSource(
+                    kind="parser",
+                    path=str(inputs),
+                    variables=(StatConfigCodec.to_payload(variable),),
+                    scanned_variables=tuple(catalog),
+                    scan_limit=0,
+                ),
+            )
+            saved_path = Path(session.save_analysis_recipe(recipe))
+            saved_bytes = saved_path.read_bytes()
+            loaded = session.load_analysis_recipe(recipe.name)
+            expected_source = copy.deepcopy(loaded.source)
+            assert loaded == recipe
+            assert list(loaded.source.scanned_variables) == observed
+            with patch(
+                "src.parsing.gem5.impl.gem5_parser.Gem5Parser.submit_scan_async",
+                side_effect=AssertionError("Saved recipe replay rescanned"),
+            ) as rescan:
+                result = session.run_analysis_recipe(loaded)
+            rescan.assert_not_called()
+            assert result.rows == 1
+            frame = session.api.state_manager.get_data()
+            assert frame is not None
+            expected_row = (
+                {"system.cpu0.simTicks": 123.0, "system.cpu1.simTicks": 456.0}
+                if numeric_pattern
+                else {"ticks": 123.0}
+            )
+            assert frame.to_dict("records") == [expected_row]
+            assert result.columns == tuple(expected_row)
+            assert catalog == observed
+            assert session.api.state_manager.get_scanned_variables() == observed
+            recaptured = session.capture_analysis_recipe("Recaptured full catalog")
+            assert recaptured.source == expected_source
+            assert session.load_analysis_recipe(recipe.name).source == expected_source
+
+            # Neither caller-owned declarations nor editor drafts own the loaded origin.
+            catalog[0]["entries"].append("caller mutation")
+            loaded.source.scanned_variables[0]["entries"].append("loaded recipe mutation")
+            recaptured.source.scanned_variables[0]["entries"].append("capture mutation")
+            session.api.state_manager.set_scanned_variables([])
+            assert session.capture_analysis_recipe("Owned origin").source == expected_source
+            assert saved_path.read_bytes() == saved_bytes
+    assert stats.read_bytes() == raw_stats

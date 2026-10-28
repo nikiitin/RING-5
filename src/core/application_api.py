@@ -6,77 +6,82 @@ from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import Future
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
 
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.models.source_context_models import (
+    CsvSourceContext,
+    InferredCsvPolicy,
+    ParserSourceContext,
+    ReviewedCsvPolicy,
+)
+
 from src.core.common.security_limits import MAX_BACKGROUND_JOB_LABEL_LENGTH
-from src.core.models import (
-    BackgroundJobInfo,
-    BackgroundJobKind,
-    BrowserUpload,
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.background_job_models import BackgroundJobInfo, BackgroundJobKind
+from src.core.models.browser_upload_models import BrowserUpload
+from src.core.models.dataset_workspace_models import (
     DatasetInfo,
     DatasetLineage,
     DatasetRevision,
     DatasetSnapshotInfo,
-    DashboardSpec,
-    DrillDownResult,
-    ImportOptions,
-    ImportPreview,
-    IncrementalParseBatchResult,
-    IncrementalParseResult,
     JoinCardinality,
     JoinDiagnostics,
-    LinkedSelectionSpec,
-    PlotConfigurationComparison,
-    PlotTransferMode,
-    PlotTransferResult,
-    RestoreReport,
-    SmallMultiplesSpec,
+)
+from src.core.models.visualization.dashboard_spec import DashboardSpec
+from src.core.models.visualization.drill_down_result import DrillDownResult
+from src.core.models.import_models import ImportOptions, ImportPreview
+from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
+from src.core.models.parsing_models import (
+    default_parse_configs,
+    IncrementalParseBatchResult,
+    require_current_parser_contract,
+    IncrementalParseResult,
     ParseBatchResult,
-    ParseJobReceipt,
-    ParseJobSnapshot,
     ParserPlaygroundBatchResult,
     ParserPlaygroundResult,
     ScanFileResult,
     ScannedVariable,
     ScanResult,
     StatConfig,
-    WorkspaceSearchResponse,
-    WorkspaceCommandSearchResponse,
+)
+from src.core.models.visualization.linked_selection_spec import LinkedSelectionSpec
+from src.core.models.visualization.plot_configuration_comparison import PlotConfigurationComparison
+from src.core.models.visualization.plot_transfer_result import PlotTransferMode, PlotTransferResult
+from src.core.models.portfolio_models import RestoreReport
+from src.core.models.visualization.small_multiples_spec import SmallMultiplesSpec
+from src.core.models.parse_job_models import ParseJobReceipt, ParseJobSnapshot
+from src.core.models.workspace_search_models import WorkspaceSearchResponse
+from src.core.models.workspace_command_models import WorkspaceCommandSearchResponse
+from src.core.models.workspace_metadata_models import (
     WorkspaceArtifact,
     WorkspaceArtifactKind,
     WorkspaceArtifactResponse,
+)
+from src.core.models.analysis_review_models import (
     AnalysisReviewResponse,
     AnalysisReviewStatus,
     AnalysisReviewTarget,
     AnalysisReviewTargetKind,
     AnalysisReviewTargetResponse,
     AnalysisReviewThread,
-    RecoveryDraftCapture,
-    RecoveryDraftInfo,
-    GuidedAnalysisProgress,
 )
+from src.core.models.recovery_models import RecoveryDraftCapture, RecoveryDraftInfo
+from src.core.models.guided_analysis_models import GuidedAnalysisProgress
 from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
-from src.core.models.pattern_index_service import PatternIndexService
 from src.core.models.data_models import (
     ColumnInfoResult,
-    CsvPoolEntry,
     ParseVariableConfig,
-    PipelineConfigConflictPolicy,
-    PipelineConfigImportResult,
-    SavedConfigData,
-    SavedConfigEntry,
     ScannedVariableDict,
 )
-from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.history_models import OperationRecord
-from src.core.models.parsing_models import StatParamValue
-from src.core.models.parse_job_models import JsonValue
 from src.core.models.plot_protocol import PlotDeserializer
-from src.core.models.visualization import FigureConfig
+from src.core.models.visualization.figure_config import FigureConfig
 from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.core.services.background_job_service import BackgroundJobService
 from src.core.services.browser_upload_service import BrowserUploadService
@@ -86,8 +91,15 @@ from src.core.services.parse_job_service import PARSER_CONTRACT_VERSION, ParseJo
 from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace
 from src.core.services.remote_source_service import RemoteSourceService
 from src.core.services.services_impl import DefaultServicesAPI
+from src.core.services.example_portfolio_service import (
+    load_example_portfolio as read_example_portfolio,
+)
 from src.core.services.shapers.shapers_api import ShapersAPI
-from src.core.services.visualization.drill_down_service import drill_down_rows
+from src.core.services.visualization.drill_down_service import (
+    drill_down_rows,
+    matching_row_positions,
+)
+from src.core.common.source_contributions import require_source_contributions
 from src.core.services.visualization.small_multiples_service import (
     create_small_multiples_spec as build_small_multiples_spec,
 )
@@ -105,6 +117,9 @@ from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
 from src.parsing.registry import SimulatorInfo, SimulatorRegistry
+
+from src.core.services.workspace_input_service import WorkspaceInputService
+from src.core.models.preview_models import PreviewInputs
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +165,10 @@ class ApplicationAPI:
         self._services = DefaultServicesAPI(self.state_manager)
         self._remote_sources = remote_source_service or RemoteSourceService()
 
-        self._parser: SimulationParser = parser or SimulatorRegistry.get_parser("gem5")
+        self._default_parser_simulator: str | None = "gem5" if parser is None else None
+        self._parser: SimulationParser = (
+            SimulatorRegistry.get_parser("gem5") if parser is None else parser
+        )
 
         # A facade may cancel only scan jobs that it submitted.
         self._pending_scan_futures: list[Future[ScanFileResult]] = []
@@ -160,7 +178,12 @@ class ApplicationAPI:
 
         logger.info("Application API initialized")
 
-    # ServicesAPI sub-API access (for UI components)
+    @property
+    def _workspace_inputs(self) -> WorkspaceInputService:
+        """Bind stateless input validation to the facade's current state boundary."""
+        return WorkspaceInputService(self.state_manager)
+
+    # Focused service access through the application facade
 
     @property
     def managers(self) -> ManagersAPI:
@@ -209,35 +232,48 @@ class ApplicationAPI:
         """Remove finished job records and their retained results."""
         return self._background_jobs.dismiss_finished()
 
-    def close_background_jobs(self, *, wait: bool = False) -> None:
-        """Cancel active jobs and release the session-owned job executor."""
-        self._background_jobs.close(wait=wait)
-
-    def load_data(self, csv_path: str) -> None:
-        """
-        Orchestrate loading data from a file path:
-        1. Load via data services
-        2. Persist via StateManager
-        """
+    def load_data(
+        self,
+        source: str | ParsedOutput,
+        *,
+        source_context: ParserSourceContext | None = None,
+        complete: bool = True,
+    ) -> None:
+        """Verify/load an explicit typed result or infer a genuine CSV, then publish atomically."""
         # [impl->req~ring5.ingestion.csv-load~1]
-        try:
-            # 1. Operation: Load
-            df = self._services.data_services.load_csv_file(csv_path)
-
-            # 2. Persistence: Save
-            self.state_manager.set_data(df, operation=f"Load CSV: {csv_path}")
-            self.state_manager.set_processed_data(None)  # Reset derived state
-            self.state_manager.set_csv_path(csv_path)
-
-            logger.info(f"Loaded and registered data from {csv_path}")
-        except Exception as e:
-            logger.error(f"Failed to load data from {csv_path}: {e}")
-            raise
-
-    def load_from_pool(self, csv_path: str) -> None:
-        """Load a dataset from the CSV pool."""
-        # Using pure string path from pool
-        self.load_data(csv_path)
+        if type(source) is ParsedOutput:
+            data = ParsedOutputIO.to_frame(source)
+            path = source.csv_path
+            origin = (
+                SourceContextCodec.origin(source_context, complete=complete)
+                if source_context is not None
+                else None
+            )
+        elif isinstance(source, str):
+            if source_context is not None or complete is not True:
+                raise ValueError("Parser source context requires an explicit typed output.")
+            variables = self.state_manager.get_parse_variables()
+            configuration_columns = tuple(
+                dict.fromkeys(
+                    variable["name"]
+                    for variable in variables
+                    if variable.get("type") == "configuration" and variable.get("name")
+                )
+            )
+            data = self.data_services.load_csv_file(
+                source, configuration_columns=configuration_columns
+            )
+            path = source
+            origin = SourceContextCodec.origin(
+                CsvSourceContext(path, InferredCsvPolicy(configuration_columns))
+            )
+        else:
+            raise TypeError("Data source must be a CSV path or ParsedOutput descriptor.")
+        with self.state_manager.transaction():
+            self.state_manager.set_data(data, operation=f"Load data: {path}", origin=origin)
+            self.state_manager.set_processed_data(None)
+            self.state_manager.set_csv_path(path)
+            self.state_manager.set_use_parser(type(source) is ParsedOutput)
 
     def preview_import(self, file_path: str, options: ImportOptions | None = None) -> ImportPreview:
         # [impl->req~ring5.ingestion.import-preview~1]
@@ -248,13 +284,16 @@ class ApplicationAPI:
         # [impl->req~ring5.ingestion.import-preview~1]
         """Load accepted rows from an unchanged, previously reviewed import."""
         data = ImportPreviewService.load(preview)
-        self.state_manager.set_data(
-            data,
-            operation=f"Load reviewed import: {preview.source_path}",
+        origin = SourceContextCodec.origin(
+            CsvSourceContext(preview.source_path, ReviewedCsvPolicy(preview.options))
         )
-        self.state_manager.set_processed_data(None)
-        self.state_manager.set_csv_path(preview.source_path)
-        self.state_manager.set_use_parser(False)
+        with self.state_manager.transaction():
+            self.state_manager.set_data(
+                data, operation=f"Load reviewed import: {preview.source_path}", origin=origin
+            )
+            self.state_manager.set_processed_data(None)
+            self.state_manager.set_csv_path(preview.source_path)
+            self.state_manager.set_use_parser(False)
         return data
 
     def inspect_browser_upload(
@@ -278,6 +317,57 @@ class ApplicationAPI:
             destination,
             request,
         )
+
+    def can_load_example_portfolio(self) -> bool:
+        """Return whether the initial tutorial can replace an untouched workspace.
+
+        Default parser presets have session-local widget IDs. Compare their
+        current values without those IDs so authored drafts remain protected.
+        Active jobs keep ownership of their workspace until they settle.
+        """
+        if self.get_active_parse_job() is not None or any(
+            not job.terminal for job in self.list_background_jobs()
+        ):
+            return False
+        with self.state_manager.transaction():
+            if (
+                self.state_manager.has_data()
+                or self.state_manager.get_plots()
+                or self.list_datasets()
+                or self.state_manager.get_scanned_variables()
+                or self.state_manager.get_config()
+                or self.state_manager.get_stats_path() not in ("", "/path/to/stats")
+                or self.state_manager.get_stats_pattern() != "stats.txt"
+                or self.state_manager.get_parser_strategy() != "simple"
+                or self.state_manager.get_simulator() != "gem5"
+            ):
+                return False
+            drafts = self.state_manager.get_parse_variables()
+        try:
+            values = [
+                StatConfigCodec.to_payload(StatConfigCodec.from_draft(draft)) for draft in drafts
+            ]
+        except (TypeError, ValueError):
+            return False
+        return not values or values == [
+            StatConfigCodec.to_payload(config) for config in default_parse_configs()
+        ]
+
+    def load_example_portfolio(self) -> RestoreReport:
+        """Replace this session with the bundled synthetic tutorial workspace.
+
+        No portfolio files are created or changed. The normal current-format
+        validator and state restoration boundary own the operation.
+
+        Returns:
+            The report describing restored data and plots.
+
+        Raises:
+            OSError: The installed resource cannot be read.
+            ValueError: The resource or workspace restoration is invalid.
+        """
+        # [impl->req~ring5.portfolio.bundled-example~1]
+        return self.state_manager.restore_session(read_example_portfolio())
 
     def restore_browser_portfolio(
         self,
@@ -332,11 +422,22 @@ class ApplicationAPI:
         return replace(upload, origin_display=download.display_uri)
 
     def get_current_view(self) -> dict[str, Any]:
-        """Assemble the current data pipeline state for UI consumption."""
+        """Assemble the current data pipeline state for UI consumption.
+
+        Returns:
+            Dictionary containing ``raw_data`` and ``processed_data`` frames
+            (or None), analysis ``config``, the canonical workspace ``csv_path``
+            (or an empty string/None), and ``selected_dataset_name`` (or None).
+            The selected name identifies active named data. The CSV path is a
+            workspace file association, not provenance for every named dataset.
+            Neither identity field is inserted into analysis configuration.
+        """
         return {
             "raw_data": self.state_manager.get_data(),
             "processed_data": self.state_manager.get_processed_data(),
             "config": self.state_manager.get_config(),
+            "csv_path": self.state_manager.get_csv_path(),
+            "selected_dataset_name": self.state_manager.selected_dataset_name(),
         }
 
     def search_workspace(self, query: str, *, limit: int = 20) -> WorkspaceSearchResponse:
@@ -541,9 +642,7 @@ class ApplicationAPI:
             self.state_manager.get_data(),
             comparison_ready=comparison_ready,
             plot_count=len(plots),
-            rendered_plot_count=sum(
-                getattr(plot, "last_generated_fig", None) is not None for plot in plots
-            ),
+            rendered_plot_count=sum(plot.render_state.snapshot() is not None for plot in plots),
             exported=exported,
         )
 
@@ -601,19 +700,21 @@ class ApplicationAPI:
         replace: bool = False,
     ) -> DatasetInfo:
         """Retain the current source-data view under a name."""
-        data = self.state_manager.get_data()
-        if data is None:
-            raise ValueError("No active data is available to retain.")
-        selected = self.state_manager.selected_dataset_name()
-        sources = (selected,) if selected is not None else ()
-        return self.add_dataset(
-            name,
-            data,
-            select=select,
-            replace=replace,
-            operation="Retain current dataset",
-            source_datasets=sources,
-        )
+        with self.state_manager.transaction():
+            data = self.state_manager.get_data()
+            if data is None:
+                raise ValueError("No active data is available to retain.")
+            selected = self.state_manager.selected_dataset_name()
+            sources = (selected,) if selected is not None else ()
+            return self.state_manager.add_dataset(
+                name,
+                data,
+                select=select,
+                replace=replace,
+                operation="Retain current dataset",
+                source_datasets=sources,
+                origin=self.state_manager.get_loaded_origin(),
+            )
 
     def list_datasets(self) -> tuple[DatasetInfo, ...]:
         """Return retained dataset metadata in insertion order."""
@@ -892,22 +993,47 @@ class ApplicationAPI:
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: Sequence[ParseVariableConfig | StatConfig],
+        variables: Sequence[StatConfig],
         strategy_type: str = "simple",
         scanned_vars: Sequence[ScannedVariable | ScannedVariableDict] | None = None,
         simulator: str | None = None,
         parser_contract_version: str = PARSER_CONTRACT_VERSION,
         incremental: bool = False,
     ) -> ParseJobSnapshot:
-        """Submit a session-scoped background parse attempt and return immediately."""
-        selected_simulator = simulator or self.state_manager.get_simulator()
+        """Own a resolved typed request and enqueue one session parse attempt.
+
+        An explicit simulator declares an injected backend's identity. A known
+        composed backend retains its actual identifier and cannot be relabeled.
+
+        Raises:
+            TypeError: A declared simulator is not native text or None.
+            ValueError: The execution contract is unsupported or a simulator declaration
+                differs from the known composed backend.
+        """
+        require_current_parser_contract(parser_contract_version)
+        if simulator is not None and type(simulator) is not str:
+            raise TypeError("Declared simulator must be text or None.")
+        if (
+            self._default_parser_simulator is not None
+            and simulator is not None
+            and simulator != self._default_parser_simulator
+        ):
+            raise ValueError("Declared simulator does not match the configured parser backend.")
+        scanned: list[ScannedVariableDict] = []
+        for value in (() if scanned_vars is None else scanned_vars):
+            if isinstance(value, dict):
+                scanned.append(value)
+            elif isinstance(value, ScannedVariable):
+                scanned.append(value.to_dict())
+            else:
+                raise TypeError("Background scanner metadata requires current typed payloads.")
         return self._get_parse_job_service().submit(
             stats_path=stats_path,
             stats_pattern=stats_pattern,
             variables=variables,
             strategy_type=strategy_type,
-            scanned_variables=scanned_vars,
-            simulator=selected_simulator,
+            scanned_variables=scanned,
+            simulator=self._default_parser_simulator if simulator is None else simulator,
             parser_contract_version=parser_contract_version,
             incremental=incremental,
         )
@@ -940,19 +1066,30 @@ class ApplicationAPI:
         """Acknowledge and remove a terminal parse attempt."""
         self._get_parse_job_service().dismiss(job_id)
 
-    def close(self) -> None:
-        """Release this browser session's jobs and transient resources."""
-        if self._closed:
-            return
-        self._closed = True
-        if self._parse_jobs is not None:
-            self._parse_jobs.close()
-        self._background_jobs.close(wait=False)
+    def close(self, *, wait: bool = False) -> None:
+        """Release owned jobs and transient resources.
+
+        Parser cleanup always waits for running file workers before deleting their
+        workspace. Repeated calls can wait for background jobs already cancelling.
+
+        Args:
+            wait: Wait for running background transformations and exports to finish.
+        """
+        if not self._closed:
+            self._closed = True
+            self.cancel_pending_scans()
+            if self._parse_jobs is not None:
+                self._parse_jobs.close()
+        self._background_jobs.close(wait=wait)
 
     def _load_consumed_parse_result(self, receipt: ParseJobReceipt) -> None:
         """Load a published result before deleting its transient attempt."""
-        self.load_data(receipt.csv_path)
-        self.state_manager.set_csv_pool(self.load_csv_pool())
+        self.load_data(
+            receipt.output,
+            source_context=receipt.source_context,
+            complete=receipt.status.value == "succeeded",
+        )
+        self.state_manager.set_csv_pool(self.data_services.load_csv_pool())
 
     def _get_parse_job_service(self) -> ParseJobService:
         """Lazily create the parser orchestrator owned by this session."""
@@ -969,99 +1106,56 @@ class ApplicationAPI:
 
     def _submit_background_parse(
         self,
-        stats_path: str,
-        stats_pattern: str,
-        variables: Sequence[JsonValue],
+        source: ParserSourceContext,
         output_dir: str,
-        strategy_type: str,
-        scanned_vars: list[JsonValue] | None,
         incremental: bool,
     ) -> ParseBatchResult | IncrementalParseBatchResult:
-        """Adapt persisted JSON values to the existing parser primitive."""
-        typed_variables: list[ParseVariableConfig | StatConfig] = []
-        for value in variables:
-            if isinstance(value, dict) and isinstance(value.get("params"), dict):
-                typed_variables.append(
-                    StatConfig(
-                        name=str(value.get("name", "")),
-                        type=str(value.get("type", "scalar")),
-                        repeat=int(cast(int | str, value.get("repeat", 1))),
-                        params=cast(dict[str, StatParamValue], value["params"]),
-                        statistics_only=bool(value.get("statistics_only", False)),
-                        is_regex=bool(value.get("is_regex", False)),
-                        keep_indices=bool(value.get("keep_indices", False)),
-                        source_name=(
-                            str(value["source_name"])
-                            if value.get("source_name") is not None
-                            else None
-                        ),
-                    )
-                )
-            else:
-                typed_variables.append(cast(ParseVariableConfig, value))
-        typed_scanned = cast(
-            list[ScannedVariable] | list[ScannedVariableDict] | None,
-            scanned_vars,
-        )
-        stat_configs, resolved_scanned = self._normalize_parse_request(
-            typed_variables, typed_scanned
-        )
+        """Submit fresh typed values from the exact persisted request."""
+        require_current_parser_contract(source.parser_contract_version)
+        variables = SourceContextCodec.variables(source)
+        scanned = SourceContextCodec.scanned_variables(source)
         if incremental:
             cache_path = str(Path(output_dir).parent.parent / "incremental-cache.json")
             return self._parser.submit_incremental_parse_async(
-                stats_path,
-                stats_pattern,
-                stat_configs,
+                source.stats_path,
+                source.stats_pattern,
+                variables,
                 output_dir,
-                strategy_type,
-                resolved_scanned,
+                source.strategy_type,
+                scanned,
                 cache_path,
             )
         return self._parser.submit_parse_async(
-            stats_path, stats_pattern, stat_configs, output_dir, strategy_type, resolved_scanned
+            source.stats_path,
+            source.stats_pattern,
+            variables,
+            output_dir,
+            source.strategy_type,
+            scanned,
         )
 
     def _finalize_background_parse(
         self,
-        output_dir: str,
         batch: ParseBatchResult | IncrementalParseBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
         complete: bool,
-        strategy_type: str,
-    ) -> str | None:
-        """Adapt the job finalizer callback to the parser primitive."""
+    ) -> ParsedOutput:
+        """Finalize the actual batch plan without inferring schema or provenance."""
         if isinstance(batch, IncrementalParseBatchResult):
-            if complete:
-                return self.finalize_incremental_parsing(batch, results).csv_path
-            # Partial rows must not enter the parser's durable success cache.
-            # Keep that capability private so SimulationParser's public contract stays unchanged.
-            partial_finalizer = getattr(
-                self._parser,
-                "_finalize_partial_incremental_parsing",
-                None,
-            )
-            if callable(partial_finalizer):
-                return cast(str, partial_finalizer(batch, results))
-            if batch.cached_rows:
-                raise RuntimeError(
-                    "Parser backend cannot retain reused rows in a partial incremental result"
-                )
-        return self.finalize_parsing(
-            output_dir,
-            results,
-            strategy_type=strategy_type,
-            var_names=batch.var_names,
-        )
+            return self._parser.finalize_incremental_parsing(
+                batch, results, complete=complete
+            ).output
+        return self._parser.finalize_parsing(batch, results, complete=complete)
 
-    def _publish_background_csv(self, file_path: str, file_name: str) -> str:
-        """Atomically publish a completed job result to Recent CSVs."""
-        return self._services.data_services.publish_to_csv_pool(file_path, file_name)
+    def _publish_background_csv(self, output: ParsedOutput, file_name: str) -> ParsedOutput:
+        """Promote the explicit typed result through the canonical CSV writer."""
+        return self._services.data_services.publish_to_csv_pool(output, file_name)
 
     def submit_parse_async(
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: Sequence[ParseVariableConfig | StatConfig],
+        variables: Sequence[StatConfig],
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,
@@ -1069,7 +1163,7 @@ class ApplicationAPI:
         """
         Submit parsing job to the service.
 
-        Converts variable dictionaries to StatConfig objects.
+        Accepts validated runnable StatConfig values only.
         Repetition and regex expansion are handled by the parsing module.
         """
         # [impl->req~ring5.ingestion.output-aliases~1]
@@ -1084,52 +1178,45 @@ class ApplicationAPI:
         )
         return batch
 
+    def draft_from_scanned_variable(self, variable: ScannedVariableDict) -> ParseVariableConfig:
+        """Project scanner metadata using the selected simulator's explicit summary names.
+
+        Args:
+            variable: Current scanner metadata for one variable.
+
+        Returns:
+            Independent current editor draft with nested type options.
+
+        Raises:
+            TypeError: Scanner metadata has invalid field types.
+            ValueError: Scanner metadata cannot form a current draft.
+        """
+        info = self.get_simulator_info(self.state_manager.get_simulator())
+        return StatConfigCodec.from_scanned(variable, info.internal_stats)
+
+    @staticmethod
+    def compile_parse_variables(variables: Sequence[ParseVariableConfig]) -> list[StatConfig]:
+        """Compile complete current editor drafts before submitting parser work.
+
+        Args:
+            variables: Editable drafts with UI identity separate from parser fields.
+
+        Returns:
+            Independent runnable configurations.
+
+        Raises:
+            TypeError: A field has the wrong type.
+            ValueError: A draft is incomplete or uses unsupported fields.
+        """
+        return [StatConfigCodec.from_draft(variable) for variable in variables]
+
     @staticmethod
     def _normalize_parse_request(
-        variables: Sequence[ParseVariableConfig | StatConfig],
+        variables: Sequence[StatConfig],
         scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None,
     ) -> tuple[list[StatConfig], list[ScannedVariable] | None]:
-        """Normalize UI/public parser configurations for either submission mode."""
-        stat_configs: list[StatConfig] = []
-        for var in variables:
-            if isinstance(var, dict):
-                # Normalize type for consistency
-                v_type = str(var.get("type", "scalar")).lower()
-
-                # Aliases are part of the serialized parser-variable contract.
-                source_name = str(var.get("name", ""))
-                alias = var.get("alias")
-                params: dict[str, StatParamValue] = cast(dict[str, StatParamValue], dict(var))
-                is_regex = PatternIndexService.is_pattern_variable(source_name)
-                output_name = str(alias) if alias else source_name
-
-                if alias and not is_regex:
-                    params["parsed_ids"] = [source_name]
-
-                config = StatConfig(
-                    name=output_name,
-                    source_name=source_name if alias else None,
-                    type=v_type,
-                    repeat=int(var.get("repeat", 1)),
-                    statistics_only=bool(
-                        var.get("statistics_only", var.get("statisticsOnly", False))
-                    ),
-                    params=params,
-                    is_regex=is_regex,
-                    keep_indices=bool(var.get("keep_indices", var.get("keepIndices", False))),
-                )
-            elif hasattr(var, "name") and hasattr(var, "type") and not hasattr(var, "params"):
-                # Accept scanned-variable objects from compatibility callers.
-                config = StatConfig(
-                    name=var.name,
-                    type=var.type,
-                    params={"entries": getattr(var, "entries", [])},
-                    is_regex=PatternIndexService.is_pattern_variable(var.name),
-                )
-            else:
-                config = var
-
-            stat_configs.append(config)
+        """Own runnable configurations and decode current scanned metadata."""
+        stat_configs = StatConfigCodec.validate_many(variables)
 
         # Convert ScannedVariableDict to ScannedVariable if needed
         resolved_scanned: list[ScannedVariable] | None = None
@@ -1144,7 +1231,7 @@ class ApplicationAPI:
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: Sequence[ParseVariableConfig | StatConfig],
+        variables: Sequence[StatConfig],
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,
@@ -1171,30 +1258,40 @@ class ApplicationAPI:
 
     def finalize_parsing(
         self,
-        output_dir: str,
-        results: list[dict[str, Any]],
-        strategy_type: str = "simple",
-        var_names: list[str] | None = None,
-    ) -> str | None:
-        """Finalize parsing results into a CSV."""
-        return self._parser.finalize_parsing(
-            output_dir, results, strategy_type, var_names=var_names
-        )
+        batch: ParseBatchResult,
+        results: list[ParsedFileResult],
+        *,
+        complete: bool = True,
+    ) -> ParsedOutput:
+        """Publish typed full or partial results using the submitted immutable context."""
+        return self._parser.finalize_parsing(batch, results, complete=complete)
 
     def finalize_incremental_parsing(
         self,
         batch: IncrementalParseBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
+        *,
+        complete: bool = True,
     ) -> IncrementalParseResult:
         # [impl->req~ring5.ingestion.incremental-parsing~1]
-        """Merge changed parser results with unchanged cached rows."""
-        return self._parser.finalize_incremental_parsing(batch, results)
+        """Publish changed and cached rows through the explicit backend completion contract.
+
+        Args:
+            batch: Submitted input and cache-reuse plan.
+            results: Successful changed-file results.
+            complete: Require all planned rows and promote the success cache.
+                False publishes accepted rows without changing that cache.
+
+        Returns:
+            Published CSV and accepted counts against the planned total file count.
+        """
+        return self._parser.finalize_incremental_parsing(batch, results, complete=complete)
 
     def submit_parser_playground_async(
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: Sequence[ParseVariableConfig | StatConfig],
+        variables: Sequence[StatConfig],
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,
@@ -1220,7 +1317,7 @@ class ApplicationAPI:
     def finalize_parser_playground(
         self,
         batch: ParserPlaygroundBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
     ) -> ParserPlaygroundResult:
         # [impl->req~ring5.ingestion.parser-playground~1]
         """Finalize a parser configuration test into an immutable bounded preview."""
@@ -1258,112 +1355,6 @@ class ApplicationAPI:
         """
         self._pending_scan_futures = [f for f in self._pending_scan_futures if not f.done()]
         return self._parser.aggregate_scan_results(results)
-
-    def get_parse_status(self) -> str:
-        """Return the active session parse status, or ``"idle"``."""
-        active = self.get_active_parse_job()
-        return active.status.value if active is not None else "idle"
-
-    def get_scanner_status(self) -> str:
-        """Get current scanner status."""
-        return "idle"
-
-    # Shapers & Pipelines
-
-    def apply_shapers(
-        self, data: pd.DataFrame, pipeline_config: list[ShaperStepConfig]
-    ) -> pd.DataFrame:
-        """Apply a sequence of shapers to a DataFrame."""
-        return self._services.shapers.process_pipeline(data, pipeline_config)
-
-    # Configuration Management
-
-    def save_configuration(
-        self,
-        name: str,
-        description: str,
-        shapers_config: list[ShaperStepConfig],
-        csv_path: str | None = None,
-    ) -> str:
-        """Save current configuration to disk."""
-        return self._services.data_services.save_configuration(
-            name, description, shapers_config, csv_path
-        )
-
-    def load_configuration(self, config_path: str) -> SavedConfigData:
-        """Load configuration from file."""
-        return self._services.data_services.load_configuration(config_path)
-
-    def export_configuration(
-        self,
-        name: str,
-        description: str,
-        shapers_config: list[ShaperStepConfig],
-        csv_path: str | None = None,
-    ) -> bytes:
-        """Serialize a validated pipeline configuration as versioned JSON.
-
-        Args:
-            name: Human-readable configuration name.
-            description: Optional human-readable explanation.
-            shapers_config: Ordered flat shaper configurations.
-            csv_path: Optional source CSV association.
-
-        Returns:
-            Deterministic UTF-8 JSON bytes.
-        """
-        return self._services.data_services.export_configuration(
-            name,
-            description,
-            shapers_config,
-            csv_path,
-        )
-
-    def import_configuration(
-        self,
-        payload: str | bytes | bytearray,
-        *,
-        conflict: PipelineConfigConflictPolicy = "error",
-    ) -> PipelineConfigImportResult:
-        """Validate and save a current or legacy pipeline configuration.
-
-        Args:
-            payload: UTF-8 JSON text or bytes, limited to 256 KiB.
-            conflict: Logical-name policy: ``"error"``, ``"rename"``, or
-                ``"replace"``.
-
-        Returns:
-            Saved configuration and conflict-resolution details.
-        """
-        return self._services.data_services.import_configuration(payload, conflict=conflict)
-
-    def load_csv_pool(self) -> list[CsvPoolEntry]:
-        """List available CSV files in the pool."""
-        return self._services.data_services.load_csv_pool()
-
-    def load_saved_configs(self) -> list[SavedConfigEntry]:
-        """List all saved configurations."""
-        return self._services.data_services.load_saved_configs()
-
-    def delete_configuration(self, config_path: str) -> bool:
-        """Delete a configuration file."""
-        return self._services.data_services.delete_configuration(config_path)
-
-    def add_to_csv_pool(self, file_path: str) -> str:
-        """Add a file to the CSV pool."""
-        return self._services.data_services.add_to_csv_pool(file_path)
-
-    def delete_from_pool(self, file_path: str) -> bool:
-        """Delete a file from the CSV pool."""
-        return self._services.data_services.delete_from_csv_pool(file_path)
-
-    def delete_from_csv_pool(self, file_path: str) -> bool:
-        """Alias for delete_from_pool."""
-        return self.delete_from_pool(file_path)
-
-    def load_csv_file(self, file_path: str) -> pd.DataFrame:
-        """Load a CSV file directly returning DataFrame."""
-        return self._services.data_services.load_csv_file(file_path)
 
     def get_column_info(self, df: pd.DataFrame | None) -> ColumnInfoResult:
         """Get summary information about DataFrame columns for UI."""
@@ -1607,21 +1598,155 @@ class ApplicationAPI:
         )
         if plot is None:
             raise ValueError(f"Drill-down references unknown plot ID: {plot_id}.")
-        source_data = plot.source_data if plot.source_data is not None else plot.processed_data
-        if source_data is None:
+        source_data, processed_data = plot.source_data, plot.processed_data
+        if source_data is None or processed_data is None:
             raise ValueError(f"Plot {plot_id} has no source data to inspect.")
-        return drill_down_rows(plot_id, source_data, filters)
+        relation = require_source_contributions(source_data, processed_data)
+        if not isinstance(filters, Mapping):
+            raise ValueError("Drill-down filters must be a column-to-value mapping.")
+        point_filters = {
+            column: value for column, value in filters.items() if column in processed_data.columns
+        }
+        source_filters = {
+            column: value
+            for column, value in filters.items()
+            if column not in processed_data.columns
+        }
+        positions, _ = matching_row_positions(processed_data, point_filters)
+        contributors = source_data.iloc[relation.resolve(positions)]
+        matched = drill_down_rows(plot_id, contributors, source_filters)
+        return DrillDownResult(plot_id, tuple(filters.items()), matched.rows)
 
     # Previews (Delegated to StateManager)
 
-    def set_preview(self, operation_name: str, data: pd.DataFrame) -> None:
-        """Store a preview DataFrame for an operation."""
+    def capture_preview_inputs(self, dataset_names: Sequence[str] = ()) -> PreviewInputs:
+        """Capture the exact sources before computing a data-manager preview.
+
+        Args:
+            dataset_names: Ordered named sources; empty selects the active data source.
+
+        Returns:
+            Immutable active-source or named-revision identities for storing the result.
+
+        Raises:
+            ValueError: Source names or metadata cannot be identified safely.
+            KeyError: A named dataset does not exist.
+        """
+        return self._workspace_inputs.capture_preview_inputs(dataset_names)
+
+    def set_preview(
+        self,
+        operation_name: str,
+        data: pd.DataFrame,
+        *,
+        operation_config: Mapping[str, Any],
+        inputs: PreviewInputs,
+    ) -> None:
+        """Store an owned preview with required input and reviewed-option guards.
+
+        Args:
+            operation_name: Session-unique name for this manager operation.
+            data: Computed result; retained independently of caller mutations.
+            operation_config: Exact options used for computation.
+            inputs: Input identities captured before computation.
+
+        Raises:
+            ValueError: Captured sources changed or required review metadata is invalid.
+        """
         # [impl->req~ring5.extension.data-manager~1]
-        self.state_manager.set_preview(operation_name, data)
+        self._workspace_inputs.set_preview(
+            operation_name,
+            data,
+            operation_config=operation_config,
+            inputs=inputs,
+        )
+
+    def preview_matches(self, operation_name: str, *, operation_config: Mapping[str, Any]) -> bool:
+        """Check whether a preview still matches its source and current options.
+
+        Args:
+            operation_name: Stored manager operation name.
+            operation_config: Current options to compare with the reviewed options.
+
+        Returns:
+            True for an available guarded preview with unchanged source and options.
+
+        Raises:
+            ValueError: Options contain unsupported or recursive metadata.
+        """
+        return self._workspace_inputs.preview_matches(
+            operation_name, operation_config=operation_config
+        )
+
+    def get_preview_config(self, operation_name: str) -> dict[str, Any] | None:
+        """Return the options retained with a reviewed manager preview.
+
+        Args:
+            operation_name: Stored manager operation name.
+
+        Returns:
+            Independent reviewed options, or None when no preview is stored.
+        """
+        return self._workspace_inputs.get_preview_config(operation_name)
+
+    def confirm_preview(
+        self, operation_name: str, *, operation_config: Mapping[str, Any], operation: str
+    ) -> pd.DataFrame:
+        """Apply an unchanged preview to source data and consume the stored preview.
+
+        Args:
+            operation_name: Stored manager operation name.
+            operation_config: Current options, which must match the reviewed options.
+            operation: Non-empty operation label recorded in named-dataset lineage.
+
+        Returns:
+            Independent copy of the retained source data after confirmation.
+
+        Raises:
+            ValueError: The preview is absent, stale, display-only, or has different options.
+        """
+        return self._workspace_inputs.confirm_preview(
+            operation_name, operation_config=operation_config, operation=operation
+        )
+
+    def report_input_signature(
+        self, selected_ids: Sequence[int], *, include_data: bool = True
+    ) -> str:
+        """Identify all figure, data and provenance inputs used by a report.
+
+        Args:
+            selected_ids: Plot identifiers in report order.
+            include_data: Whether the report includes its source table.
+
+        Returns:
+            Stable SHA-256 signature of the complete report input snapshot.
+
+        Raises:
+            ValueError: Plot IDs, options, or retained metadata are invalid.
+        """
+        return self._workspace_inputs.report_input_signature(
+            selected_ids, include_data=include_data
+        )
+
+    def portfolio_bundle_signature(self, name: str, snapshot_name: str | None = None) -> str:
+        """Identify verified saved content used by a portable bundle.
+
+        Args:
+            name: Saved portfolio name.
+            snapshot_name: Optional saved dataset snapshot to include.
+
+        Returns:
+            Stable SHA-256 signature covering exact verified saved bytes.
+
+        Raises:
+            OSError: A saved artifact is missing or unreadable.
+            ValueError: A saved artifact fails integrity or format validation.
+        """
+        return self._workspace_inputs.portfolio_bundle_signature(name, snapshot_name=snapshot_name)
 
     def get_preview(self, operation_name: str) -> pd.DataFrame | None:
-        """Retrieve a preview DataFrame for an operation."""
-        return self.state_manager.get_preview(operation_name)
+        """Return an owned preview only while all of its captured sources are current."""
+        return self._workspace_inputs.get_preview(operation_name)
 
     def has_preview(self, operation_name: str) -> bool:
         """Check if a preview exists for an operation."""

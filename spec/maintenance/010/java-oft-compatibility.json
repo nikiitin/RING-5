@@ -1,0 +1,540 @@
+{
+  "status": "pass_with_explicit_publisher_availability_gap",
+  "checked_utc": "2026-10-23T22:48:07.944595+00:00",
+  "scope": {
+    "source_commit": "e70ddd6f22618b57e427724e92bb057fb4c87a39",
+    "source_snapshot": "/tmp/ring5-010/java-oft-matrix/source",
+    "source_integrity": {
+      "commit": "e70ddd6f22618b57e427724e92bb057fb4c87a39",
+      "files_verified": 1022,
+      "all_equal": true
+    },
+    "jar_version": "4.11.0",
+    "jar_sha256": "f094cd314f0fc4236f513f66fb39260a16f72e2320beb6b4fdeb7940b9b8cf87",
+    "host_platform": "Linux-7.2.11-100.fc43.x86_64-x86_64-with-glibc2.42",
+    "container_platform": "linux/amd64",
+    "rootless": true,
+    "container_network": "none",
+    "host_java_modified": false,
+    "source_mounts_read_only": true,
+    "repository_modified": false,
+    "browser_or_kaleido_jobs": false
+  },
+  "baseline": {
+    "java_version": "openjdk 25.0.4.1 2026-08-18\nOpenJDK Runtime Environment (Red_Hat-25.0.4.1.1-1) (build 25.0.4.1+1)\nOpenJDK 64-Bit Server VM (Red_Hat-25.0.4.1.1-1) (build 25.0.4.1+1, mixed mode, sharing)",
+    "cases": [
+      {
+        "case": "approved",
+        "command": [
+          "java",
+          "-Xmx256m",
+          "-jar",
+          "/tmp/ring5-010/java-oft-matrix/openfasttrace-4.11.0.jar",
+          "trace",
+          "-w",
+          "approved",
+          "--v",
+          "summary",
+          "spec/oft/generated/features.md",
+          "spec/oft/generated/requirements.md",
+          "app.py",
+          "ring5",
+          "src",
+          "scripts",
+          "tests",
+          "docs",
+          "spec/oft/README.md",
+          "spec/oft/discovery-audit.md"
+        ],
+        "cwd": "/tmp/ring5-010/java-oft-matrix/source",
+        "exit_code": 0,
+        "stdout": "\u001b[32mok\u001b[0m - 1922 total\n",
+        "stderr": ""
+      },
+      {
+        "case": "all",
+        "command": [
+          "java",
+          "-Xmx256m",
+          "-jar",
+          "/tmp/ring5-010/java-oft-matrix/openfasttrace-4.11.0.jar",
+          "trace",
+          "--v",
+          "summary",
+          "spec/oft/generated/features.md",
+          "spec/oft/generated/requirements.md",
+          "app.py",
+          "ring5",
+          "src",
+          "scripts",
+          "tests",
+          "docs",
+          "spec/oft/README.md",
+          "spec/oft/discovery-audit.md"
+        ],
+        "cwd": "/tmp/ring5-010/java-oft-matrix/source",
+        "exit_code": 0,
+        "stdout": "\u001b[32mok\u001b[0m - 1922 total\n",
+        "stderr": ""
+      },
+      {
+        "case": "proposed-filtered",
+        "command": [
+          "java",
+          "-Xmx256m",
+          "-jar",
+          "/tmp/ring5-010/java-oft-matrix/openfasttrace-4.11.0.jar",
+          "trace",
+          "-w",
+          "approved",
+          "--v",
+          "summary",
+          "spec/oft/generated/features.md",
+          "spec/oft/generated/requirements.md",
+          "app.py",
+          "ring5",
+          "src",
+          "scripts",
+          "tests",
+          "docs",
+          "spec/oft/README.md",
+          "spec/oft/discovery-audit.md",
+          "/tmp/ring5-010/java-oft-matrix/checks/proposed-gap.md"
+        ],
+        "cwd": "/tmp/ring5-010/java-oft-matrix/source",
+        "exit_code": 0,
+        "stdout": "\u001b[32mok\u001b[0m - 1922 total\n",
+        "stderr": ""
+      },
+      {
+        "case": "proposed-unfiltered",
+        "command": [
+          "java",
+          "-Xmx256m",
+          "-jar",
+          "/tmp/ring5-010/java-oft-matrix/openfasttrace-4.11.0.jar",
+          "trace",
+          "--v",
+          "summary",
+          "spec/oft/generated/features.md",
+          "spec/oft/generated/requirements.md",
+          "app.py",
+          "ring5",
+          "src",
+          "scripts",
+          "tests",
+          "docs",
+          "spec/oft/README.md",
+          "spec/oft/discovery-audit.md",
+          "/tmp/ring5-010/java-oft-matrix/checks/proposed-gap.md"
+        ],
+        "cwd": "/tmp/ring5-010/java-oft-matrix/source",
+        "exit_code": 1,
+        "stdout": "\u001b[91mnot ok\u001b[0m - 1923 total, 1 direct, 0 transitive defects\n",
+        "stderr": ""
+      }
+    ]
+  },
+  "runtimes": [
+    {
+      "name": "image17",
+      "tested_version": "openjdk 17.0.20.1 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)",
+      "official_image": "docker.io/library/eclipse-temurin:17-jre",
+      "official_image_index_digest": "sha256:e04fa72be13b257a59fdec6dc14af78c8f80f035d3c1ed4e03e45552a231d4c8",
+      "linux_amd64_manifest_digest": "sha256:3f28040954c30a9deb5cdd1116f806029c435ac6dca8c228f5b6f1d96f82b827",
+      "image_config_id": "c4ab0048f2a29d911c2e3e3c4ed7d9a3fc27b2823d0049d1cded1321950578d6",
+      "runtime_overlay": null,
+      "readonly_probe_exit_code": 0,
+      "checks": [
+        {
+          "case": "approved",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image17-approved.command.json"
+        },
+        {
+          "case": "all",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image17-all.command.json"
+        },
+        {
+          "case": "proposed-filtered",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image17-proposed-filtered.command.json"
+        },
+        {
+          "case": "proposed-unfiltered",
+          "exit_code": 1,
+          "expected_exit_code": 1,
+          "stdout": "not ok - 1923 total, 1 direct, 0 transitive defects",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image17-proposed-unfiltered.command.json"
+        }
+      ]
+    },
+    {
+      "name": "image25",
+      "tested_version": "openjdk 25.0.4.1 2026-08-18 LTS\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+      "official_image": "docker.io/library/eclipse-temurin:25-jre",
+      "official_image_index_digest": "sha256:dbb43d81099eec91e0800226ed2296d03146ee7857165b95112372ad0d67e87f",
+      "linux_amd64_manifest_digest": "sha256:171ffcf2a9ca207dfbc77b825cd3aaf8ab08d6113c086ee11514b965269fde28",
+      "image_config_id": "ea2ee6e4f3d6e057c1d5da6e72e8d80ffeeeee09024c3c7ef649d5ab84031a67",
+      "runtime_overlay": null,
+      "readonly_probe_exit_code": 0,
+      "checks": [
+        {
+          "case": "approved",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image25-approved.command.json"
+        },
+        {
+          "case": "all",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image25-all.command.json"
+        },
+        {
+          "case": "proposed-filtered",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image25-proposed-filtered.command.json"
+        },
+        {
+          "case": "proposed-unfiltered",
+          "exit_code": 1,
+          "expected_exit_code": 1,
+          "stdout": "not ok - 1923 total, 1 direct, 0 transitive defects",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image25-proposed-unfiltered.command.json"
+        }
+      ]
+    },
+    {
+      "name": "image27",
+      "tested_version": "openjdk 27 2026-09-15\nOpenJDK Runtime Environment Temurin-27+35 (build 27+35)\nOpenJDK 64-Bit Server VM Temurin-27+35 (build 27+35, mixed mode, sharing)",
+      "official_image": "docker.io/library/eclipse-temurin:27-jre",
+      "official_image_index_digest": "sha256:d6bfa738df69e8dec9061b3e26f2ae564d92ad169faa36086dcfa33f0a901d35",
+      "linux_amd64_manifest_digest": "sha256:f7e89f74e94f641886ad8fdad56fd58e239796423ffbbe5fe88076b02d584f84",
+      "image_config_id": "320cb3c68cbe769ee5aff4ed923c41ca75cb9ee89dd1c17bb46b276003b6b645",
+      "runtime_overlay": null,
+      "readonly_probe_exit_code": 0,
+      "checks": [
+        {
+          "case": "approved",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image27-approved.command.json"
+        },
+        {
+          "case": "all",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image27-all.command.json"
+        },
+        {
+          "case": "proposed-filtered",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image27-proposed-filtered.command.json"
+        },
+        {
+          "case": "proposed-unfiltered",
+          "exit_code": 1,
+          "expected_exit_code": 1,
+          "stdout": "not ok - 1923 total, 1 direct, 0 transitive defects",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/image27-proposed-unfiltered.command.json"
+        }
+      ]
+    },
+    {
+      "name": "current17",
+      "tested_version": "openjdk 17.0.21 2026-10-20\nOpenJDK Runtime Environment Temurin-17.0.21+9 (build 17.0.21+9)\nOpenJDK 64-Bit Server VM Temurin-17.0.21+9 (build 17.0.21+9, mixed mode, sharing)",
+      "official_image": "docker.io/library/eclipse-temurin:17-jre",
+      "official_image_index_digest": "sha256:e04fa72be13b257a59fdec6dc14af78c8f80f035d3c1ed4e03e45552a231d4c8",
+      "linux_amd64_manifest_digest": "sha256:3f28040954c30a9deb5cdd1116f806029c435ac6dca8c228f5b6f1d96f82b827",
+      "image_config_id": "c4ab0048f2a29d911c2e3e3c4ed7d9a3fc27b2823d0049d1cded1321950578d6",
+      "runtime_overlay": {
+        "line": 17,
+        "release": "jdk-17.0.21+9",
+        "archive": "/tmp/ring5-010/java-oft-matrix/runtimes/OpenJDK17U-jre_x64_linux_hotspot_17.0.21_9.tar.gz",
+        "sha256": "9f41bf88c7900c7097444a1bdeb84146ae692bc08842490ab098063c74bf9a8a",
+        "source": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.21%2B9/OpenJDK17U-jre_x64_linux_hotspot_17.0.21_9.tar.gz",
+        "runtime_path": "/tmp/ring5-010/java-oft-matrix/runtimes/17/jdk-17.0.21+9-jre",
+        "command": [
+          "curl",
+          "--fail",
+          "--location",
+          "--silent",
+          "--show-error",
+          "--retry",
+          "2",
+          "--connect-timeout",
+          "20",
+          "--max-time",
+          "180",
+          "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.21%2B9/OpenJDK17U-jre_x64_linux_hotspot_17.0.21_9.tar.gz",
+          "--output",
+          "/tmp/ring5-010/java-oft-matrix/runtimes/OpenJDK17U-jre_x64_linux_hotspot_17.0.21_9.tar.gz"
+        ]
+      },
+      "readonly_probe_exit_code": 0,
+      "checks": [
+        {
+          "case": "approved",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/current17-approved.command.json"
+        },
+        {
+          "case": "all",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/current17-all.command.json"
+        },
+        {
+          "case": "proposed-filtered",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/current17-proposed-filtered.command.json"
+        },
+        {
+          "case": "proposed-unfiltered",
+          "exit_code": 1,
+          "expected_exit_code": 1,
+          "stdout": "not ok - 1923 total, 1 direct, 0 transitive defects",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/current17-proposed-unfiltered.command.json"
+        }
+      ]
+    },
+    {
+      "name": "current25",
+      "tested_version": "openjdk 25.0.5 2026-10-20 LTS\nOpenJDK Runtime Environment Temurin-25.0.5+8 (build 25.0.5+8-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.5+8 (build 25.0.5+8-LTS, mixed mode, sharing)",
+      "official_image": "docker.io/library/eclipse-temurin:25-jre",
+      "official_image_index_digest": "sha256:dbb43d81099eec91e0800226ed2296d03146ee7857165b95112372ad0d67e87f",
+      "linux_amd64_manifest_digest": "sha256:171ffcf2a9ca207dfbc77b825cd3aaf8ab08d6113c086ee11514b965269fde28",
+      "image_config_id": "ea2ee6e4f3d6e057c1d5da6e72e8d80ffeeeee09024c3c7ef649d5ab84031a67",
+      "runtime_overlay": {
+        "line": 25,
+        "release": "jdk-25.0.5+8",
+        "archive": "/tmp/ring5-010/java-oft-matrix/runtimes/OpenJDK25U-jre_x64_linux_hotspot_25.0.5_8.tar.gz",
+        "sha256": "6fac98f0c8202efc3135a9e9e42aa61963ec42d1c5cbb40caf231e7b14a24ef6",
+        "source": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jre_x64_linux_hotspot_25.0.5_8.tar.gz",
+        "runtime_path": "/tmp/ring5-010/java-oft-matrix/runtimes/25/jdk-25.0.5+8-jre",
+        "command": [
+          "curl",
+          "--fail",
+          "--location",
+          "--silent",
+          "--show-error",
+          "--retry",
+          "2",
+          "--connect-timeout",
+          "20",
+          "--max-time",
+          "180",
+          "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jre_x64_linux_hotspot_25.0.5_8.tar.gz",
+          "--output",
+          "/tmp/ring5-010/java-oft-matrix/runtimes/OpenJDK25U-jre_x64_linux_hotspot_25.0.5_8.tar.gz"
+        ]
+      },
+      "readonly_probe_exit_code": 0,
+      "checks": [
+        {
+          "case": "approved",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/current25-approved.command.json"
+        },
+        {
+          "case": "all",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/current25-all.command.json"
+        },
+        {
+          "case": "proposed-filtered",
+          "exit_code": 0,
+          "expected_exit_code": 0,
+          "stdout": "ok - 1922 total",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/current25-proposed-filtered.command.json"
+        },
+        {
+          "case": "proposed-unfiltered",
+          "exit_code": 1,
+          "expected_exit_code": 1,
+          "stdout": "not ok - 1923 total, 1 direct, 0 transitive defects",
+          "stderr": "",
+          "stdout_identical_to_local25": true,
+          "command_record": "/tmp/ring5-010/java-oft-matrix/results/current25-proposed-unfiltered.command.json"
+        }
+      ]
+    }
+  ],
+  "catalog": {
+    "approved_requirements": 222,
+    "approved_features": 13,
+    "proposed_items_in_generated_catalog": 0,
+    "approved_trace_items": 1922,
+    "all_status_trace_items": 1922,
+    "all_real_catalog_runs_exit_zero": true
+  },
+  "negative_control": {
+    "fixture": "/tmp/ring5-010/java-oft-matrix/checks/proposed-gap.md",
+    "isolated_from_source": true,
+    "proposed_requirement": "req~ring5.compatibility.proposed-gap~1",
+    "missing_evidence": "impl",
+    "approved_filter_exit_code": 0,
+    "unfiltered_exit_code": 1,
+    "unfiltered_direct_defects": 1,
+    "unfiltered_transitive_defects": 0,
+    "failure_detail_log": "/tmp/ring5-010/java-oft-matrix/results/current25-proposed-failure-details.stdout.log",
+    "meaning": "The sole nonzero is intentionally injected absent implementation evidence, not JVM/OFT incompatibility."
+  },
+  "publisher_availability": [
+    {
+      "line": 17,
+      "source": "https://api.github.com/repos/adoptium/temurin17-binaries/releases/latest",
+      "release": "jdk-17.0.21+9",
+      "published_at": "2026-10-22T17:28:09Z",
+      "assets": [
+        {
+          "name": "OpenJDK17U-jre_x64_linux_hotspot_17.0.21_9.tar.gz",
+          "browser_download_url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.21%2B9/OpenJDK17U-jre_x64_linux_hotspot_17.0.21_9.tar.gz",
+          "size": 46726088,
+          "digest": "sha256:9f41bf88c7900c7097444a1bdeb84146ae692bc08842490ab098063c74bf9a8a"
+        },
+        {
+          "name": "OpenJDK17U-jre_x64_linux_hotspot_17.0.21_9.tar.gz.sha256.txt",
+          "browser_download_url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.21%2B9/OpenJDK17U-jre_x64_linux_hotspot_17.0.21_9.tar.gz.sha256.txt",
+          "size": 116,
+          "digest": "sha256:bd84e711a48f5f3a648359451058d48b41366c544a59e3b0a80524348d6038c2"
+        }
+      ]
+    },
+    {
+      "line": 25,
+      "source": "https://api.github.com/repos/adoptium/temurin25-binaries/releases/latest",
+      "release": "jdk-25.0.5+8",
+      "published_at": "2026-10-22T08:18:33Z",
+      "assets": [
+        {
+          "name": "OpenJDK25U-jre_x64_linux_hotspot_25.0.5_8.tar.gz",
+          "browser_download_url": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jre_x64_linux_hotspot_25.0.5_8.tar.gz",
+          "size": 61736206,
+          "digest": "sha256:6fac98f0c8202efc3135a9e9e42aa61963ec42d1c5cbb40caf231e7b14a24ef6"
+        },
+        {
+          "name": "OpenJDK25U-jre_x64_linux_hotspot_25.0.5_8.tar.gz.sha256.txt",
+          "browser_download_url": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jre_x64_linux_hotspot_25.0.5_8.tar.gz.sha256.txt",
+          "size": 115,
+          "digest": "sha256:d4fbab8aca7aa28755ea0a0bf1c3484d20afd0d2659e1cb70f40679891c8c6b6"
+        }
+      ]
+    },
+    {
+      "line": 27,
+      "source": "https://api.github.com/repos/adoptium/temurin27-binaries/releases/latest",
+      "release": "jdk-27+35",
+      "published_at": "2026-09-21T10:22:53Z",
+      "assets": [
+        {
+          "name": "OpenJDK27U-jre_x64_linux_hotspot_27_35.tar.gz",
+          "browser_download_url": "https://github.com/adoptium/temurin27-binaries/releases/download/jdk-27%2B35/OpenJDK27U-jre_x64_linux_hotspot_27_35.tar.gz",
+          "size": 62130166,
+          "digest": "sha256:2cb1b81ab49f516e5aeb28ee8acf3c73d64c77ca432ac959c6511a335342d8e9"
+        },
+        {
+          "name": "OpenJDK27U-jre_x64_linux_hotspot_27_35.tar.gz.sha256.txt",
+          "browser_download_url": "https://github.com/adoptium/temurin27-binaries/releases/download/jdk-27%2B35/OpenJDK27U-jre_x64_linux_hotspot_27_35.tar.gz.sha256.txt",
+          "size": 112,
+          "digest": "sha256:7a73f84ea6c57a99c65385d8803a0d29d57f307f9acac7b02f79fcbec9136236"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "The rolling official17-jre and25-jre images still ship17.0.20.1+1 and25.0.4.1+1. Newest17.0.21+9 and25.0.5+8 were tested as checksum-verified official Adoptium JRE read-only overlays inside those images; do not label these newer immutable image releases.",
+    "Official Temurin27 latest GA isjdk-27+35. Upstream/current Java27.0.1 recorded in the dependency inventory is not yet a published Temurin GA in the queried official source, so27.0.1 itself was not tested.",
+    "Linuxamd64 containers validate these Java runtimes against OFT4.11.0 only; they do not substitute for nativeWindows/macOS checks.",
+    "The immutable source archive intentionally excludes ignored browser/data artifacts and later branch changes; it is verified byte-for-byte against frozene70ddd6f."
+  ],
+  "reproduce": {
+    "runner": "/tmp/ring5-010/java-oft-matrix/run-matrix.py",
+    "runner_command": "python /tmp/ring5-010/java-oft-matrix/run-matrix.py",
+    "full_command_records": "/tmp/ring5-010/java-oft-matrix/matrix-results.json",
+    "runtime_download_verifier": "/tmp/ring5-010/java-oft-matrix/fetch-current-runtimes.py",
+    "official_image_metadata": "/tmp/ring5-010/java-oft-matrix/images",
+    "approved_example": "podman run --rm --pull=never --read-only --network=none --security-opt label=disable --cap-drop=all --userns=keep-id --cpus=1 --memory=512m --pids-limit=128 --tmpfs /tmp:rw,nosuid,nodev,size=64m --mount type=bind,source=/tmp/ring5-010/java-oft-matrix/source,destination=/repo,ro --mount type=bind,source=/tmp/ring5-010/java-oft-matrix/openfasttrace-4.11.0.jar,destination=/oft.jar,ro --mount type=bind,source=/tmp/ring5-010/java-oft-matrix/checks,destination=/checks,ro --workdir /repo --mount type=bind,source=/tmp/ring5-010/java-oft-matrix/runtimes/25/jdk-25.0.5+8-jre,destination=/opt/java/openjdk,ro --entrypoint java ea2ee6e4f3d6e057c1d5da6e72e8d80ffeeeee09024c3c7ef649d5ab84031a67 -Xmx256m -Djava.io.tmpdir=/tmp -jar /oft.jar trace -w approved --v summary spec/oft/generated/features.md spec/oft/generated/requirements.md app.py ring5 src scripts tests docs spec/oft/README.md spec/oft/discovery-audit.md",
+    "pull_commands": [
+      "podman pull docker.io/library/eclipse-temurin@sha256:3f28040954c30a9deb5cdd1116f806029c435ac6dca8c228f5b6f1d96f82b827",
+      "podman pull docker.io/library/eclipse-temurin@sha256:171ffcf2a9ca207dfbc77b825cd3aaf8ab08d6113c086ee11514b965269fde28",
+      "podman pull docker.io/library/eclipse-temurin@sha256:f7e89f74e94f641886ad8fdad56fd58e239796423ffbbe5fe88076b02d584f84"
+    ],
+    "setup_sequence": [
+      "Pull the three pinned linux/amd64 image manifest references.",
+      "Archive source commit e70ddd6f22618b57e427724e92bb057fb4c87a39, copy the verified jar, and retain the proposed-gap fixture under the recorded output paths.",
+      "Run the official archive download/hash verification script to provision current17/current25 overlays.",
+      "Run run-matrix.py; each real invocation uses image config ID after immutable digest resolution."
+    ]
+  },
+  "official_sources": [
+    "https://raw.githubusercontent.com/docker-library/official-images/master/library/eclipse-temurin",
+    "https://api.adoptium.net/v3/info/available_releases",
+    "https://api.github.com/repos/adoptium/temurin17-binaries/releases/latest",
+    "https://api.github.com/repos/adoptium/temurin25-binaries/releases/latest",
+    "https://api.github.com/repos/adoptium/temurin27-binaries/releases/latest"
+  ]
+}

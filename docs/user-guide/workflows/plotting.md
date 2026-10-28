@@ -5,8 +5,6 @@ parent: Workflows
 grand_parent: User Guide
 nav_order: 3
 permalink: /user-guide/workflows/plotting/
-redirect_from:
-  - /user-guide/pages/manage-plots/
 ---
 
 # Create and configure plots
@@ -90,6 +88,14 @@ the baseline rows before normalizing only if the normalizer still receives every
 Select **Finalize Pipeline for Plotting** after the preview matches the intended table. See
 [Shapers]({{site.baseurl}}/user-guide/reference/shapers/) for configuration rules.
 
+Native Distribution histograms retain the parser's declared grid and omission policy through
+supported row/coordinate-preserving transformations. Whole-layout column projection preserves a
+complete frequency view; removing one bound cell removes that declaration. Reconstruction and
+unknown transformations do not borrow the old geometry. Inspect the resulting table and select a
+view that matches it. The histogram selector lists explicit logical native variables even when
+physical column names have no common prefix. See [Histogram controls]({{site.baseurl}}/user-guide/reference/plot-types/#histogram-controls)
+for native storage-cell and generic interval semantics.
+
 ## Share a pipeline configuration
 
 <!--
@@ -114,11 +120,10 @@ logical name already exists, and select **Import, save, and use**:
 - **Replace the saved configuration** writes the validated import, then removes the older record
   with the same logical name.
 
-The importer accepts current versioned files and migrates legacy unversioned saved-configuration
-JSON. It rejects unknown future versions, unregistered or incomplete shapers, non-finite values,
+The importer accepts the current versioned schema. It rejects unversioned files, other versions, unregistered or incomplete shapers, non-finite values,
 unsupported fields, and files larger than 256 KiB before changing the active pipeline. A successful
-import is also saved in the local configuration catalog and reports whether migration or conflict
-handling occurred. It becomes the active editor pipeline; select **Finalize Pipeline for Plotting**
+import is also saved in the local configuration catalog and reports any name conflict
+handling. It becomes the active editor pipeline; select **Finalize Pipeline for Plotting**
 after reviewing its previews to update the plot data.
 
 Python scripts use the same validation and conflict rules:
@@ -214,3 +219,23 @@ with ring5.Session() as session:
 `FigureSpec` covers common figure settings. Its `extra` mapping carries supported flat renderer
 configuration when a setting is not represented by a typed field. Treat those extra keys as a more
 specialized interface and test them against both engines.
+
+## Pipeline validation
+
+Portfolios preserve unfinished pipeline editor settings. A saved draft does not run until its
+required fields are complete.
+
+Complete every transformation before previewing, finalizing, exporting, or submitting a background
+pipeline. The same configuration checks run at each boundary: unknown fields, unsupported modes,
+wrong value types and incomplete nested steps produce an error before any step executes. Data-dependent
+checks, such as missing columns or an ambiguous normalization baseline, run against the selected table.
+
+SplitApply supports at most 100 total steps and 20 nested levels. PivotLonger value-filter group keys
+use decimal strings such as `"1"`; `"0"` refers to the whole match. Invalid capture groups are rejected.
+
+Derived-column value mappings use a JSON object: quote text values, and use numbers, `true`/`false`
+or `null` to retain those value types. Opening an editor preserves valid stored operands and defaults.
+
+Registered Python plugins can be executed and stored in a pipeline. A plugin without a web configuration
+editor keeps its existing configuration when opened in the application. Register the plugin before
+loading or executing pipelines that use it.

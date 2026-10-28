@@ -23,9 +23,16 @@ class ImportColumnCorrection:
 
     def __post_init__(self) -> None:
         """Reject ambiguous or unsupported corrections."""
-        if not isinstance(self.column, str) or not self.column.strip():
+        if type(self.column) is not str or not self.column.strip():
             raise ValueError("Import correction column must be non-empty text.")
-        if self.import_as not in {"auto", "text", "integer", "number", "boolean", "datetime"}:
+        if type(self.import_as) is not str or self.import_as not in {
+            "auto",
+            "text",
+            "integer",
+            "number",
+            "boolean",
+            "datetime",
+        }:
             raise ValueError(f"Unsupported import type: {self.import_as!r}.")
 
 
@@ -43,28 +50,40 @@ class ImportOptions:
 
     def __post_init__(self) -> None:
         """Validate bounded and deterministic import controls."""
-        if self.encoding is not None and self.encoding not in {
-            "utf-8",
-            "utf-8-sig",
-            "cp1252",
-            "latin-1",
-        }:
+        if self.encoding is not None and (
+            type(self.encoding) is not str
+            or self.encoding
+            not in {
+                "utf-8",
+                "utf-8-sig",
+                "cp1252",
+                "latin-1",
+            }
+        ):
             raise ValueError(f"Unsupported import encoding: {self.encoding!r}.")
-        if self.delimiter is not None and self.delimiter not in {",", ";", "\t", "|"}:
+        if self.delimiter is not None and (
+            type(self.delimiter) is not str or self.delimiter not in {",", ";", "\t", "|"}
+        ):
             raise ValueError("Import delimiter must be comma, semicolon, tab, or pipe.")
-        if isinstance(self.header_row, bool) or not 1 <= self.header_row <= 100:
+        if type(self.header_row) is not int or not 1 <= self.header_row <= 100:
             raise ValueError("Import header_row must be from 1 through 100.")
         if (
-            isinstance(self.preview_rows, bool)
+            type(self.preview_rows) is not int
             or not 1 <= self.preview_rows <= MAX_IMPORT_PREVIEW_ROWS
         ):
             raise ValueError(
                 f"Import preview_rows must be from 1 through {MAX_IMPORT_PREVIEW_ROWS}."
             )
-        if len(self.null_values) > 50:
+        if type(self.trim_whitespace) is not bool:
+            raise TypeError("Import trim_whitespace must be a boolean.")
+        if type(self.null_values) is not tuple or len(self.null_values) > 50:
             raise ValueError("Imports support at most 50 missing-value tokens.")
-        if any(not isinstance(value, str) or len(value) > 100 for value in self.null_values):
+        if any(type(value) is not str or len(value) > 100 for value in self.null_values):
             raise ValueError("Import missing-value tokens must be text up to 100 characters.")
+        if type(self.column_types) is not tuple or any(
+            type(correction) is not ImportColumnCorrection for correction in self.column_types
+        ):
+            raise TypeError("Import column_types must be a tuple of ImportColumnCorrection values.")
         columns = [correction.column for correction in self.column_types]
         if len(columns) > MAX_IMPORT_COLUMNS or len(set(columns)) != len(columns):
             raise ValueError("Import column corrections must be unique and bounded.")

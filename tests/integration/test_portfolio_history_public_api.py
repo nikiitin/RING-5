@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 import ring5
-from src.core.services.portfolio_migrator import PortfolioVersionError as CoreVersionError
+from src.core.models.portfolio_contract import PortfolioVersionError as CoreVersionError
 
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_portfolios")]
 
@@ -21,7 +21,7 @@ def test_portfolio_revisions_compare_and_restore(portfolios_dir: Path) -> None:
         session.api.state_manager.set_data(data)
         plot = session.create_plot(
             "bar",
-            data=data,
+            data=ring5.Table(data),
             config={"x": "category", "y": "value", "title": "Baseline"},
             name="Baseline bars",
         )

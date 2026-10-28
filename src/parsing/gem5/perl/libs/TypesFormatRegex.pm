@@ -1,307 +1,207 @@
 package TypesFormatRegex;
-# Kind of "language" to parse gem5 stats files.
-#
+
 use strict;
 use warnings;
 use Exporter 'import';
-our $VERSION = '1.00';
-our @EXPORT  = qw(parseAndPrintLineWithFormat setFilterRegexes classifyLine resetLineContext);
+use JSON::PP;
+use Scanning::RegexUtils qw($scalarValueRegex $floatRegex $varNameRegex);
 
-# Imports from new modular packages
-use Scanning::RegexUtils qw(:all);
-use Scanning::Type::Configuration qw($confRegex);
-use Scanning::Type::Scalar qw($scalarRegex);
-use Scanning::Type::Distribution qw($distRegex $distEntry);
-use Scanning::Type::Histogram qw($histogramRegex $histogramEntryRangeRegex);
-use Scanning::Type::Vector qw($vectorRegex $vectorEntryRegex);
-use Scanning::Type::Summary qw($summaryRegex);
-
-# Note: Individual regexes are now imported.
-# Methods below use them.
-
+our @EXPORT = qw(classifyLine finishLineContext resetLineContext setFilterRegexes parseAndPrintLineWithFormat printLineContext encodeRecord);
+my $json = JSON::PP->new->canonical(1)->utf8(1);
 my $filtersRegexes;
-my @storedFilters;
-my %onelineHistogramMetadata;
+my %sources;
+my $context_bytes = 0;
+my $wire_bytes = 0;
+my $max_bytes = $ENV{RING5_MAX_SOURCE_BYTES} // 268435456;
+my $max_cell = 4194304;
+die "Invalid source decoder byte limit\n" unless $max_bytes =~ /^\d+$/ && $max_bytes > 0;
+
+sub encodeRecord {
+    return $json->encode($_[0]);
+}
 
 sub resetLineContext {
-    %onelineHistogramMetadata = ();
+    %sources = ();
+    $context_bytes = 0;
+    $wire_bytes = 0;
 }
 
-sub _rememberOnelineHistogramMetadata {
-    my ($line) = @_;
-    if ($line =~ /^($varNameRegex)::(bucket_size|max_bucket)\s+(-?\d+)$commentRegex$/) {
-        $onelineHistogramMetadata{$1}{$2} = int($3);
-        return 1;
-    }
-    return 0;
+sub _charge {
+    my ($text) = @_;
+    die "Source decoder text exceeds its byte limit\n" if length($text) > $max_bytes;
+    $context_bytes += length(encodeRecord($text)) + 64;
+    die "Source decoder context exceeds its byte limit\n" if $context_bytes > $max_bytes;
 }
 
-sub _classifyOnelineHistogram {
-    my ($line) = @_;
-    my $clean = removeCommentFromLine($line);
-    return undef unless $clean =~ /^($varNameRegex)\s+\|(.*)$/;
-
-    my $name = $1;
-    my $payload = $2;
-    my $metadata = $onelineHistogramMetadata{$name};
-    return undef unless defined $metadata;
-    die "Incomplete one-line histogram metadata for $name\n"
-        unless exists $metadata->{bucket_size} && exists $metadata->{max_bucket};
-
-    my $bucket_size = $metadata->{bucket_size};
-    my $max_bucket = $metadata->{max_bucket};
-    die "Invalid one-line histogram metadata for $name\n"
-        unless $bucket_size > 0 && $max_bucket >= 0;
-
-    my @groups = split /\s*\|\s*/, $payload;
-    my @values;
-    foreach my $group (@groups) {
-        die "Malformed one-line histogram bucket for $name: $group\n"
-            unless $group =~ /^\s*(-?\d+)\s+$floatRegex%\s+$floatRegex%\s*$/;
-        push @values, $1;
+sub _source {
+    my ($name) = @_;
+    die "Source name exceeds the matching limit\n" if length($name) > 1024;
+    if (!exists $sources{$name}) {
+        _charge($name);
+        $sources{$name} = { shapes => {}, entries => {}, geometry => {} };
     }
-
-    my $expected = int($max_bucket / $bucket_size) + 1;
-    die "One-line histogram bucket count mismatch for $name: expected $expected, found "
-        . scalar(@values) . "\n"
-        unless scalar(@values) == $expected;
-
-    my @entries;
-    for (my $index = 0; $index < @values; $index++) {
-        my $start = $index * $bucket_size;
-        my $end = $start + $bucket_size - 1;
-        $end = $max_bucket if $end > $max_bucket;
-        push @entries, { entry => "$start-$end", value => $values[$index] };
-    }
-    return { type => 'histogram', name => $name, entries => \@entries };
+    return $sources{$name};
 }
 
-sub getRealVariableNameFromLine {
-    my ($line) = @_;
-
-    # Optimization: Extract name part more efficiently
-    # Use index() which is faster than regex for simple character search
-    my $namePart = $line;
-    my $sep_pos;
-
-    # Find first separator: ::, space, or =
-    if (($sep_pos = index($line, '::')) != -1) {
-        $namePart = substr($line, 0, $sep_pos);
-    }
-    elsif (($sep_pos = index($line, ' ')) != -1) {
-        $namePart = substr($line, 0, $sep_pos);
-    }
-    elsif (($sep_pos = index($line, '=')) != -1) {
-        $namePart = substr($line, 0, $sep_pos);
-    }
-
-    # Optimization: Try exact match first (fastest path)
-    foreach my $filter (@storedFilters) {
-        return $namePart if $namePart eq $filter;
-    }
-
-    # Then try anchored regex match
-    foreach my $filter (@storedFilters) {
-        return $namePart if $namePart =~ /^(?:$filter)$/;
-    }
-
-    # parseAndPrintLineWithFormat already performed the same anchored filter
-    # check, so a non-match here is malformed rather than a reason to search
-    # arbitrary text later in the line.
-    return '';
+sub _error {
+    my ($name, $message) = @_;
+    my $source = _source($name);
+    $source->{error} //= substr($message, 0, 1000);
+    return [];
 }
 
-sub getEntryNameFromLine {
-    # Get the entry name from the line
-    my ($line) = @_;
-    # If is histogram it is a range
-    if ($line =~ $histogramEntryRangeRegex) {
-        $line =~ /($histogramEntryRangeRegex)/;
-        return $1;
+sub _measurement {
+    my ($name, $shape, $entry, $value) = @_;
+    die "Source cell exceeds the character limit\n" if length($value) > $max_cell;
+    my $source = _source($name);
+    $source->{shapes}{$shape} = 1;
+    if (defined $entry && !exists $source->{entries}{$entry}) {
+        die "Source entry exceeds the matching limit\n" if length($entry) > 1024;
+        _charge($entry);
+        $source->{entries}{$entry} = 1;
     }
-    # If is distribution it is an integer or an
-    # overflow/underflow
-    if ($line =~ $distEntry) {
-        $line =~ /($distEntry)/;
-        return $1;
-    }
-    if ($line =~ $vectorEntryRegex &&
-        $line !~ $summariesEntryRegex) {
-        # Do not get summaries.
-        # Vector format
-        $line =~ /($vectorEntryRegex)/;
-        return $1;
-    }
-    if ($line =~ $summariesEntryRegex) {
-        $line =~ /($summariesEntryRegex)/;
-        return $1;
-    }
-    # Do return empty string if no entry was found
-    return "";
-}
-
-sub getValueFromLine {
-    my ($line) = @_;
-
-    # Optimization: Use index() to detect separator type (faster than regex)
-    my $sep_pos = index($line, '=');
-    my @lineSplits;
-
-    if ($sep_pos != -1) {
-        # Configuration line (has =)
-        @lineSplits = split /=/, $line, 2;  # Limit splits to 2 parts
-    } else {
-        # Complex type (space-separated)
-        @lineSplits = split /\s+/, $line, 3;  # Limit splits to 3 parts (name, value, rest)
-    }
-
-    # Return value (second element)
-    return defined($lineSplits[1]) ? $lineSplits[1] : '';
-}
-
-sub removeCommentFromLine {
-    my ($line) = @_;
-    # Optimization: Use index() to check for comment existence first
-    my $comment_pos = index($line, '#');
-    if ($comment_pos != -1) {
-        $line = substr($line, 0, $comment_pos);
-    }
-    # Remove (Unspecified) if present
-    $line =~ s/\(Unspecified\)\s*$//;
-    # Trim trailing whitespace
-    $line =~ s/\s+$//;
-    return $line;
-}
-
-sub formatLine {
-    my ($line) = @_;
-    $line = removeCommentFromLine($line);
-    # Get the real variable name
-    my $varName = getRealVariableNameFromLine($line);
-    # Comments are not used, remove
-    my $entryName = getEntryNameFromLine($line);
-    # Get the value that will be printed
-    my $value = getValueFromLine($line);
-    # Give the needed format for the line
-    # Split the value with a slash
-    return "$varName" . "$entryName" .  "/$value";
-}
-
-sub setFilterRegexes {
-    my (@regexes) = @_;
-    die "Too many filter expressions" if scalar(@regexes) > 2048;
-    foreach my $filter (@regexes) {
-        die "Filter expression is too long" if length($filter) > 1024;
-    }
-    @storedFilters = @regexes;
-    # Add all filters to same regex
-    $filtersRegexes = join("|", map { "(?:$_)" } @regexes);
-    # Compile regexes
-    $filtersRegexes = qr/^(?:$filtersRegexes)(?=::|\s|=)/;
-}
-
-sub parseAndPrintLineWithFormat {
-    my ($line) = @_;
-
-    # Early return optimization: check filter first
-    return unless $line =~ $filtersRegexes;
-
-    # Gem5's Stats::oneline histogram format writes its bucket geometry on
-    # preceding metadata lines, followed by one pipe-delimited row.  Consume
-    # the metadata rather than exposing it as fake vector buckets.
-    return if _rememberOnelineHistogramMetadata($line);
-    my $oneline = _classifyOnelineHistogram($line);
-    if (defined $oneline) {
-        foreach my $item (@{$oneline->{entries}}) {
-            print "histogram/$oneline->{name}::$item->{entry}/$item->{value}\n";
+    if (defined $entry && $entry =~ /^(?:bucket_size|min_bucket|max_bucket)$/) {
+        if (!exists $source->{geometry}{$entry} || $source->{geometry}{$entry} ne $value) {
+            if (exists $source->{geometry}{$entry}) {
+                $context_bytes -= length(encodeRecord($source->{geometry}{$entry})) + 64;
+            }
+            _charge($value);
+            $source->{geometry}{$entry} = $value;
         }
-        return;
     }
+    return [{ event => 'measurement', name => $name, shape => $shape,
+              entry => $entry, value => $value }];
+}
 
-    # Optimization: Check types in order of frequency (most common first)
-    # and use elsif to avoid multiple regex matches
+# Candidates name supported decoder contracts, never hidden C++ producer classes.
+sub _candidates {
+    my ($source) = @_;
+    my @shapes = keys %{$source->{shapes}};
+    return undef if @shapes != 1;
+    return ['scalar'] if $shapes[0] eq 'scalar';
+    return ['configuration'] if $shapes[0] eq 'configuration';
+    my @entries = keys %{$source->{entries}};
+    my ($distribution, $histogram, $hist_context) = (1, 1, 0);
+    my $geometry = $source->{geometry};
+    if (exists $geometry->{bucket_size} && exists $geometry->{min_bucket}
+        && exists $geometry->{max_bucket}
+        && $geometry->{bucket_size} =~ /^\d+$/ && $geometry->{bucket_size} > 0
+        && $geometry->{min_bucket} =~ /^-?\d+$/ && $geometry->{max_bucket} =~ /^-?\d+$/
+        && $geometry->{min_bucket} <= $geometry->{max_bucket}) {
+        $hist_context = 1;
+    }
+    foreach my $entry (@entries) {
+        next if $entry =~ /^(?:bucket_size|min_bucket|max_bucket)$/;
+        next if $entry =~ /^(?:samples|mean|stdev|total)$/;
+        if ($entry eq 'gmean') {
+            $distribution = 0;
+            $hist_context = 1;
+        } elsif ($entry =~ /^(?:underflows|overflows|min_value|max_value)$/) {
+            $histogram = 0;
+        } elsif ($entry =~ /^-?\d+--?\d+$/) {
+            $hist_context = 1;
+        } elsif ($entry =~ /^$floatRegex(?:-$floatRegex)?$/) {
+            $histogram = 0 unless $entry =~ /^-?\d+$/;
+        } else {
+            $distribution = 0;
+            $histogram = 0;
+        }
+    }
+    $histogram = 0 unless $hist_context;
+    my @candidates = ('vector');
+    push @candidates, 'distribution' if $distribution;
+    push @candidates, 'histogram' if $histogram;
+    return [sort @candidates];
+}
 
-    # Scalar is most common - check first
-    if ($line =~ $scalarRegex) {
-        print "scalar/" . formatLine($line) . "\n";
+sub finishLineContext {
+    my @records;
+    foreach my $name (sort keys %sources) {
+        my $source = $sources{$name};
+        my $candidates = _candidates($source);
+        if (defined $source->{error} || !defined $candidates) {
+            push @records, { event => 'source_error', name => $name,
+                message => $source->{error} // 'Contradictory scalar, text or entry source observations' };
+            next;
+        }
+        my $evidence = @$candidates == 1
+            ? { state => 'resolved', kind => $candidates->[0], basis => 'wire_contract' }
+            : { state => 'ambiguous', candidates => $candidates };
+        push @records, { event => 'source', name => $name,
+            source_evidence => $evidence, entries => [sort keys %{$source->{entries}}] };
     }
-    # Vector is second most common
-    elsif ($line =~ $vectorRegex) {
-        print "vector/" . formatLine($line) . "\n";
-    }
-    # Histogram
-    elsif ($line =~ $histogramRegex) {
-        print "histogram/" . formatLine($line) . "\n";
-    }
-    # Distribution
-    elsif ($line =~ $distRegex) {
-        print "distribution/" . formatLine($line) . "\n";
-    }
-    # Summary
-    elsif ($line =~ $summaryRegex) {
-        print "summary/" . formatLine($line) . "\n";
-    }
-    # Configuration (least common)
-    elsif ($line =~ $confRegex) {
-        print "configuration/" . formatLine($line) . "\n";
-    }
-    # A line that matched the user's filter but no type regex is a requested
-    # stat we could not classify: report it (the Python stderr-drainer surfaces
-    # "ERROR" lines as warnings) so missingness is traceable, never silent.
-    else {
-        print STDERR "ERROR: unclassifiable line matched filter: $line\n";
-    }
+    %sources = ();
+    $context_bytes = 0;
+    return \@records;
 }
 
 sub classifyLine {
     my ($line) = @_;
-
-    if (_rememberOnelineHistogramMetadata($line)) {
-        return { type => 'oneline_metadata', name => undef, entry => undef };
+    if ($line =~ /^-+\s*(?:Begin|End) Simulation Statistics(?:\s*:\s*.*?)?\s*-+\s*$/) {
+        my $records = finishLineContext();
+        push @$records, { event => 'dump' };
+        return $records;
     }
-    my $oneline = _classifyOnelineHistogram($line);
-    return $oneline if defined $oneline;
-
-    # Check types in order with explicit captures
-
-    # Configuration: name=value
-    if ($line =~ /^($varNameRegex)=$confValueRegex$/) {
-        return { type => 'configuration', name => $1, entry => undef };
+    return [] if $line =~ /^\s*(?:#.*)?$/;
+    if ($line =~ /^($varNameRegex)=(.*)$/) {
+        return _measurement($1, 'configuration', undef, $2);
     }
-    # Scalar: name value # comment
-    elsif ($line =~ /^($varNameRegex)\s+$scalarValueRegex$commentRegex?$/) {
-        return { type => 'scalar', name => $1, entry => undef };
+    $line =~ s/\s*#.*$//;
+    $line =~ s/\s+\([^\r\n]*\)\s*$//;
+    $line =~ s/\s+$//;
+    if ($line =~ /^($varNameRegex)\s+\|(.*)$/) {
+        my ($name, $payload) = ($1, $2);
+        my @values;
+        foreach my $part (split /\|/, $payload, -1) {
+            return _error($name, 'Malformed oneline numeric cell')
+                unless $part =~ /^\s*($scalarValueRegex)(?:\s+$scalarValueRegex%){0,2}\s*$/;
+            push @values, $1;
+        }
+        my $source = _source($name);
+        $source->{shapes}{entry} = 1;
+        return [{ event => 'measurement', name => $name, shape => 'oneline', values => \@values,
+                  reported_geometry => {%{$source->{geometry}}} }];
     }
-    # Histogram: name::range ...
-    elsif ($line =~ /^($varNameRegex)($histogramEntryRangeRegex)\s+$complexValueRegex$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
-        $entry =~ s/^:://;
-        return { type => 'histogram', name => $name, entry => $entry };
+    if ($line =~ /^($varNameRegex)::(\S+)\s+($scalarValueRegex)(?:\s+$scalarValueRegex%){0,2}$/) {
+        return _measurement($1, 'entry', $2, $3);
     }
-    # Distribution: name::val ...
-    elsif ($line =~ /^($varNameRegex)($distEntry)\s+$complexValueRegex$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
-        $entry =~ s/^:://;
-        return { type => 'distribution', name => $name, entry => $entry };
+    if ($line =~ /^($varNameRegex)\s+($scalarValueRegex)(?:\s+$scalarValueRegex%){0,2}$/) {
+        return _measurement($1, 'scalar', undef, $2);
     }
-    # Summary: name::total ...
-    elsif ($line =~ /^($varNameRegex)($summariesEntryRegex)\s+$scalarValueRegex$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
-        $entry =~ s/^:://;
-        return { type => 'summary', name => $name, entry => $entry };
+    if ($line =~ /^($varNameRegex)(?=::|\s|=)/) {
+        return _error($1, 'Malformed source measurement');
     }
-    # Vector: name::entry ...
-    elsif ($line =~ /^($varNameRegex)($vectorEntryRegex)\s+(?:$complexValueRegex|$scalarValueRegex)$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
-        $entry =~ s/^:://;
-        return { type => 'vector', name => $name, entry => $entry };
-    }
-
     return undef;
 }
 
-1; # A module must end with a true value or "use" will report an error
+sub setFilterRegexes {
+    my (@regexes) = @_;
+    die "Too many filter expressions\n" if @regexes > 2048;
+    die "Filter expression is too long\n" if grep { length($_) > 1024 } @regexes;
+    my $alternatives = join('|', map { "(?:$_)" } @regexes);
+    $filtersRegexes = qr/^(?:$alternatives)(?=::|\s|=)/;
+}
+
+sub _printRecords {
+    my ($records) = @_;
+    foreach my $record (@$records) {
+        my $encoded = encodeRecord($record) . "\n";
+        $wire_bytes += length($encoded);
+        die "Source decoder output exceeds its byte limit\n" if $wire_bytes > $max_bytes;
+        print $encoded;
+    }
+}
+
+sub printLineContext {
+    _printRecords(finishLineContext());
+}
+
+sub parseAndPrintLineWithFormat {
+    my ($line) = @_;
+    return unless $line =~ /^-+\s*(?:Begin|End) Simulation Statistics/
+        || $line =~ $filtersRegexes;
+    my $records = classifyLine($line);
+    _printRecords($records) if defined $records;
+}
+
+1;

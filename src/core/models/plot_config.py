@@ -1,26 +1,32 @@
 """
 Plot Configuration Type Definitions for RING-5.
 
-Defines TypedDicts for plot configuration data structures used across
-the application. These belong in the core/models layer because they are
-pure data definitions with no UI dependencies.
+Defines editable plot mappings and annotation-shape data shared across layers.
+Resolved figure styling uses the visualization FigureConfig models.
 
-- ShapeConfig: Annotation shape configuration (lines, circles, rectangles)
+- PlotConfig: Editable plot-specific mappings, including registered extension fields.
+- ShapeConfig: Native annotation shape fields retained by the web editor.
 """
 
-from typing import Required, TypedDict
+from typing import Any, TypedDict
+
+PlotConfig = dict[str, Any]
 
 
 class ShapeConfig(TypedDict, total=False):
     """Type definition for annotation shape configuration.
 
-    Used for horizontal/vertical reference lines, circles, and rectangles
-    drawn on plots via Plotly's layout.shapes mechanism.
+    UI-created lines, circles and rectangles specify their type and coordinates.
+    Native defaults, omitted coordinates and SVG paths remain intact when edited.
+    Text coordinates retain exact category labels and date strings.
     """
 
-    type: Required[str]  # "line", "circle", "rect"
-    x0: Required[float | str]
-    y0: Required[float | str]
-    x1: Required[float | str]
-    y1: Required[float | str]
+    type: str | None
+    x0: float | str | None
+    y0: float | str | None
+    x1: float | str | None
+    y1: float | str | None
+    path: str
+    xref: str
+    yref: str
     line: dict[str, str | float | int]  # Contains color (str), width (float/int)

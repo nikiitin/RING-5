@@ -16,6 +16,7 @@ import pytest
 
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.config_service import ConfigService
+from src.core.services.data_services.pipeline_config_exchange_service import PIPELINE_CONFIG_FORMAT
 
 # Fixtures
 
@@ -41,11 +42,13 @@ def empty_config_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def sample_config_dict() -> dict:
     """Sample configuration dictionary."""
     return {
+        "format": PIPELINE_CONFIG_FORMAT,
+        "schema_version": 1,
         "name": "test_config",
         "description": "Test configuration for shapers",
         "shapers": [
-            {"type": "normalize", "baseline": "config1"},
-            {"type": "sort", "columns": ["benchmark"]},
+            {"type": "columnSelector", "columns": ["ipc"]},
+            {"type": "sort", "order_dict": {"benchmark": ["x", "y"]}},
         ],
         "csv_path": "/path/to/data.csv",
     }
@@ -102,7 +105,7 @@ class TestConfigurationSaving:
         """Verify configuration file is created."""
         shapers = cast(
             list[ShaperStepConfig],
-            [{"type": "normalize", "baseline": "config1"}],
+            [{"type": "columnSelector", "columns": ["ipc"]}],
         )
 
         config_path = ConfigService.save_configuration(
@@ -146,8 +149,8 @@ class TestConfigurationSaving:
         name = "test_config"
         description = "Test description"
         shapers = [
-            {"type": "normalize", "baseline": "baseline"},
-            {"type": "sort", "columns": ["benchmark"]},
+            {"type": "columnSelector", "columns": ["ipc"]},
+            {"type": "sort", "order_dict": {"benchmark": ["x", "y"]}},
         ]
         csv_path = "/path/data.csv"
 
@@ -247,7 +250,15 @@ class TestConfigurationLoading:
         """Verify configs without description get default value."""
         config_file = empty_config_dir / "nodesc.json"
         with open(config_file, "w") as f:
-            json.dump({"name": "test"}, f)
+            json.dump(
+                {
+                    "format": PIPELINE_CONFIG_FORMAT,
+                    "schema_version": 1,
+                    "name": "test",
+                    "shapers": [],
+                },
+                f,
+            )
 
         configs = ConfigService.load_saved_configs()
 
@@ -257,7 +268,16 @@ class TestConfigurationLoading:
     def test_load_saved_configs_ignores_non_json_files(self, empty_config_dir: Path) -> None:
         """Verify only .json files are processed."""
         (empty_config_dir / "config.txt").write_text("not json")
-        (empty_config_dir / "config.json").write_text('{"name": "test"}')
+        (empty_config_dir / "config.json").write_text(
+            json.dumps(
+                {
+                    "format": PIPELINE_CONFIG_FORMAT,
+                    "schema_version": 1,
+                    "name": "test",
+                    "shapers": [],
+                }
+            )
+        )
 
         configs = ConfigService.load_saved_configs()
 
@@ -288,7 +308,7 @@ class TestConfigurationLoading:
         invalid_file = empty_config_dir / "invalid.json"
         invalid_file.write_text("{ broken json")
 
-        with pytest.raises(json.JSONDecodeError):
+        with pytest.raises(ValueError, match="finite UTF-8 JSON"):
             ConfigService.load_configuration(str(invalid_file))
 
 
@@ -304,8 +324,8 @@ class TestConfigurationRoundTrip:
         original_shapers = cast(
             list[ShaperStepConfig],
             [
-                {"type": "normalize", "baseline": "base", "column": "value"},
-                {"type": "mean", "method": "geometric"},
+                {"type": "columnSelector", "columns": ["ipc", "benchmark"]},
+                {"type": "sort", "order_dict": {"benchmark": ["x", "y"]}},
             ],
         )
 
@@ -348,3 +368,27 @@ class TestConfigurationRoundTrip:
         config2 = ConfigService.load_configuration(path2)
         assert config1.get("description") == "desc1"
         assert config2.get("description") == "desc2"
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        {"name": "old", "shapers": []},
+        {"format": PIPELINE_CONFIG_FORMAT, "schema_version": 0, "name": "old", "shapers": []},
+    ],
+)
+def test_local_load_rejects_obsolete_schema(empty_config_dir: Path, record: dict) -> None:
+    """Local files use exactly the same schema gate as portable imports."""
+    path = empty_config_dir / "obsolete.json"
+    path.write_text(json.dumps(record))
+    with pytest.raises(ValueError):
+        ConfigService.load_configuration(str(path))
+    assert ConfigService.load_saved_configs() == []
+
+
+def test_invalid_save_leaves_catalog_unchanged(empty_config_dir: Path) -> None:
+    """Invalid pipeline content is rejected before writing a local record."""
+    invalid = cast(list[ShaperStepConfig], [{"type": "normalize", "baseline": "old"}])
+    with pytest.raises(ValueError, match="normalizeVars"):
+        ConfigService.save_configuration("Invalid", "", invalid)
+    assert list(empty_config_dir.iterdir()) == []

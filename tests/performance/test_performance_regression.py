@@ -5,6 +5,10 @@ These tests ensure critical operations maintain acceptable performance.
 Run with: pytest tests/performance/ -v
 """
 
+from ring5 import Session
+from typing import cast
+import plotly.graph_objects as go
+
 import time
 from statistics import median
 from typing import Any
@@ -35,7 +39,7 @@ class TestPlotPerformance:
             }
         )
 
-    def test_bar_plot_generation_speed(self, sample_data: Any) -> None:
+    def test_bar_plot_generation_speed(self, sample_data: Any, plot_session: Session) -> None:
         """Bar plot generation should complete in < 500ms."""
         suite = BenchmarkSuite("Bar Plot Generation")
 
@@ -51,18 +55,17 @@ class TestPlotPerformance:
         }
 
         # Warm up (first call may be slower)
-        _ = plot.create_figure(sample_data, plot.config)
+        plot.processed_data = sample_data
+        _ = cast(go.Figure, plot_session.render(plot))
 
         # Actual benchmark
-        result = suite.benchmark(
-            plot.create_figure, sample_data, plot.config, iterations=5, name="Create bar figure"
-        )
+        result = suite.benchmark(plot_session.render, plot, iterations=5, name="Create bar figure")
 
         avg_time = suite.results[0].avg_ms
         assert result is not None, "Plot generation failed"
         assert avg_time < 500, f"Bar plot too slow: {avg_time:.2f}ms (threshold: 500ms)"
 
-    def test_grouped_bar_plot_speed(self, sample_data: Any) -> None:
+    def test_grouped_bar_plot_speed(self, sample_data: Any, plot_session: Session) -> None:
         """Grouped bar plot should complete in < 800ms."""
         suite = BenchmarkSuite("Grouped Bar Plot")
 
@@ -75,12 +78,12 @@ class TestPlotPerformance:
             "group": "benchmark",
         }
 
-        _ = plot.create_figure(sample_data, plot.config)
+        plot.processed_data = sample_data
+        _ = cast(go.Figure, plot_session.render(plot))
 
         result = suite.benchmark(
-            plot.create_figure,
-            sample_data,
-            plot.config,
+            plot_session.render,
+            plot,
             iterations=3,
             name="Create grouped bar figure",
         )
@@ -339,7 +342,7 @@ class TestDataLoadingPerformance:
 class TestEndToEndPerformance:
     """End-to-end performance tests."""
 
-    def test_full_pipeline_speed(self) -> None:
+    def test_full_pipeline_speed(self, plot_session: Session) -> None:
         """Complete analysis pipeline should complete reasonably fast."""
         # Create data with ONE baseline per benchmark, plus other configs
         benchmarks = ["bzip2", "gcc"]
@@ -397,7 +400,8 @@ class TestEndToEndPerformance:
             }
 
         with suite.measure("3. Generate figure"):
-            fig = plot.create_figure(normalized, plot.config)
+            plot.processed_data = normalized
+            fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
 

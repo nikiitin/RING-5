@@ -13,6 +13,7 @@ Test tiers:
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -288,3 +289,48 @@ class TestDataSourceCsvLoad:
         ds.load_accepted_import_button.click()
         ds.wait_for_streamlit()
         ds.assert_data_loaded(row_count=18)
+
+
+@pytest.mark.xdist_group("e2e_parser_fragment_commits")
+class TestParserFragmentCommits:
+    """Edits and dialog publication survive subsequent fragment and app interactions."""
+
+    def test_source_edits_and_duplicate_add_retain_exact_backend_values(
+        self, tier0_page: Page, tmp_path: Path
+    ) -> None:
+        source = DataSourcePage(tier0_page)
+        source.navigate()
+        source.ensure_parse_mode()
+        source.add_manual_variable("authored.measurement", "scalar")
+        path = str(tmp_path / 'résults  "quoted" \\ folder')
+        pattern = 'authored "sample"\\?.stats'
+        source.fill_stats_path(path)
+        source.fill_stats_pattern(pattern)
+        source.ensure_config_aware_strategy()
+        with source.expect_script_rerun():
+            source.incremental_parse_checkbox.locator("xpath=ancestor::label").click()
+        expect(source.incremental_parse_checkbox).not_to_be_checked()
+        expect(source.stats_path_input).to_have_value(path)
+        expect(source.stats_pattern_input).to_have_value(pattern)
+        expect(source.config_preview_string("statsPath")).to_have_text(
+            re.compile(
+                "^" + re.escape('"' + str(tmp_path) + '/résults  "quoted" \\\\ folder"') + "$"
+            )
+        )
+        expect(source.config_preview_string("statsPattern")).to_have_text(
+            re.compile("^" + re.escape('"authored "sample"\\\\?.stats"') + "$")
+        )
+        source.add_manual_variable("authored.measurement", "scalar")
+        expect(source.variable_name_inputs).to_have_count(4)
+        expect(source.variable_name_inputs.nth(3)).to_have_value("authored.measurement")
+        expect(source.stats_path_input).to_have_value(path)
+        expect(source.stats_pattern_input).to_have_value(pattern)
+        expect(source.config_preview_string("statsPath")).to_have_text(
+            re.compile(
+                "^" + re.escape('"' + str(tmp_path) + '/résults  "quoted" \\\\ folder"') + "$"
+            )
+        )
+        expect(source.config_preview_string("statsPattern")).to_have_text(
+            re.compile("^" + re.escape('"authored "sample"\\\\?.stats"') + "$")
+        )
+        expect(tier0_page.get_by_test_id("stException")).to_have_count(0)

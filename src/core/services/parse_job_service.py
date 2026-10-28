@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import dataclasses
 import hashlib
 import json
 import logging
 import shutil
 import threading
 import uuid
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from concurrent.futures import (
     FIRST_COMPLETED,
     CancelledError,
@@ -17,14 +16,18 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     wait,
 )
-from enum import Enum
 from pathlib import Path
-from typing import Any
 
-from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
-from src.core.models import (
-    IncrementalParseBatchResult,
-    ParseBatchResult,
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.source_context_models import ParserSourceContext
+from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
+from src.core.models.parsing_models import StatConfig
+from src.core.models.data_models import ScannedVariableDict
+from src.core.common.input_identity import fingerprint_inputs
+from src.core.common.utils import normalize_user_path, validate_stats_pattern
+from src.core.models.parsing_models import IncrementalParseBatchResult, ParseBatchResult
+from src.core.models.parse_job_models import (
     ParseFileSignature,
     ParseJobConflictError,
     ParseJobNotConsumableError,
@@ -34,30 +37,28 @@ from src.core.models import (
     ParseJobSnapshot,
     ParseJobStatus,
 )
-from src.core.models.parse_job_models import JsonValue
-from src.core.services.parse_job_store import ParseJobStore
+from src.core.models.parsing_models import PARSER_RESULT_VERSION, require_current_parser_contract
+from src.core.services.parse_job_store import (
+    MAX_REQUEST_JSON_BYTES,
+    InvalidStoredOutput,
+    ParseJobStore,
+)
 from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace
 from src.parsing.framework.file_discovery import find_stats_files
 
 logger = logging.getLogger(__name__)
 
-PARSER_CONTRACT_VERSION = "1"
+PARSER_CONTRACT_VERSION = str(PARSER_RESULT_VERSION)
 
 SubmitParse = Callable[
-    [str, str, Sequence[JsonValue], str, str, list[JsonValue] | None, bool],
+    [ParserSourceContext, str, bool],
     ParseBatchResult | IncrementalParseBatchResult,
 ]
 FinalizeParse = Callable[
-    [
-        str,
-        ParseBatchResult | IncrementalParseBatchResult,
-        list[dict[str, Any]],
-        bool,
-        str,
-    ],
-    str | None,
+    [ParseBatchResult | IncrementalParseBatchResult, list[ParsedFileResult], bool],
+    ParsedOutput,
 ]
-PublishCsv = Callable[[str, str], str]
+PublishCsv = Callable[[ParsedOutput, str], ParsedOutput]
 BeforeCleanup = Callable[[ParseJobReceipt], None]
 
 
@@ -65,85 +66,46 @@ def build_parse_job_request(
     *,
     stats_path: str,
     stats_pattern: str,
-    variables: Sequence[object],
+    variables: Sequence[StatConfig],
     strategy_type: str,
-    scanned_variables: Sequence[object] | None = None,
-    simulator: str = "gem5",
+    scanned_variables: Sequence[ScannedVariableDict] | None = None,
+    simulator: str | None = None,
     parser_contract_version: str = PARSER_CONTRACT_VERSION,
     incremental: bool = False,
 ) -> ParseJobRequest:
-    """Canonicalize a request and compute its content-and-input fingerprint."""
+    """Own the exact resolved request and fingerprint its actual source contents."""
+    require_current_parser_contract(parser_contract_version)
     normalized_path = normalize_user_path(stats_path)
     if not normalized_path.exists():
         raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
     if not normalized_path.is_dir():
         raise NotADirectoryError(f"Stats path is not a directory: {stats_path}")
-
-    normalized_pattern = sanitize_glob_pattern(stats_pattern)
-    variables_json = _canonical_json(list(variables), strip_internal_ids=True)
-    scanned_json = _canonical_json(
-        list(scanned_variables) if scanned_variables is not None else [],
-        strip_internal_ids=True,
+    normalized_pattern = validate_stats_pattern(stats_pattern)
+    scanned = () if scanned_variables is None else scanned_variables
+    if isinstance(scanned, (str, bytes)) or any(type(value) is not dict for value in scanned):
+        raise TypeError("Parse jobs require current scanned-variable payloads.")
+    context = SourceContextCodec.parser(
+        stats_path=str(normalized_path),
+        stats_pattern=normalized_pattern,
+        strategy_type=strategy_type,
+        variables=variables,
+        scanned_variables=scanned,
+        simulator=simulator,
+        parser_contract_version=parser_contract_version,
+        scan_limit=None,
+        strict=False,
+        metadata_byte_limit=MAX_REQUEST_JSON_BYTES,
     )
     signatures: list[ParseFileSignature] = []
-    matching_paths = find_stats_files(
-        str(normalized_path),
-        normalized_pattern,
-        sort=True,
-    )
+    matching_paths = find_stats_files(str(normalized_path), normalized_pattern, sort=True)
     for candidate in matching_paths:
         resolved = Path(candidate).resolve(strict=True)
         stat = resolved.stat()
-        resolved_string = str(resolved)
-        signatures.append(
-            ParseFileSignature(
-                path=resolved_string,
-                size=stat.st_size,
-                mtime_ns=stat.st_mtime_ns,
-            )
-        )
+        signatures.append(ParseFileSignature(str(resolved), stat.st_size, stat.st_mtime_ns))
     signatures.sort(key=lambda item: item.path)
-
-    companion_inputs: list[dict[str, JsonValue]] = []
-    if strategy_type == "config_aware":
-        companion_paths = {Path(signature.path).parent / "config.ini" for signature in signatures}
-        for companion in sorted(companion_paths):
-            try:
-                resolved_companion = companion.resolve(strict=True)
-                companion_stat = resolved_companion.stat()
-            except FileNotFoundError:
-                companion_inputs.append(
-                    {
-                        "path": str(companion.resolve(strict=False)),
-                        "missing": True,
-                    }
-                )
-            else:
-                companion_inputs.append(
-                    {
-                        "path": str(resolved_companion),
-                        "size": companion_stat.st_size,
-                        "mtime_ns": companion_stat.st_mtime_ns,
-                    }
-                )
-
     fingerprint_payload = {
-        "simulator": simulator,
-        "parser_contract_version": parser_contract_version,
-        "stats_path": str(normalized_path),
-        "stats_pattern": normalized_pattern,
-        "strategy_type": strategy_type,
-        "variables": json.loads(variables_json),
-        "scanned_variables": json.loads(scanned_json),
-        "matching_files": [
-            {
-                "path": signature.path,
-                "size": signature.size,
-                "mtime_ns": signature.mtime_ns,
-            }
-            for signature in signatures
-        ],
-        "strategy_companion_inputs": companion_inputs,
+        "source_context": SourceContextCodec.to_payload(context),
+        "matching_files": fingerprint_inputs(matching_paths, strategy_type),
         "incremental": incremental,
     }
     encoded = json.dumps(
@@ -153,19 +115,11 @@ def build_parse_job_request(
         sort_keys=True,
         allow_nan=False,
     )
-    fingerprint = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-    return ParseJobRequest(
-        simulator=simulator,
-        parser_contract_version=parser_contract_version,
-        stats_path=str(normalized_path),
-        stats_pattern=normalized_pattern,
-        strategy_type=strategy_type,
-        variables_json=variables_json,
-        scanned_variables_json=scanned_json,
-        file_signatures=tuple(signatures),
-        fingerprint=fingerprint,
-        incremental=incremental,
+    request = ParseJobRequest(
+        context, tuple(signatures), hashlib.sha256(encoded.encode("utf-8")).hexdigest(), incremental
     )
+    ParseJobStore._encode_request(request)
+    return request
 
 
 class ParseJobService:
@@ -200,7 +154,7 @@ class ParseJobService:
         self._cancel_event_lock = threading.Lock()
         self._executor: ThreadPoolExecutor | None = None
         self._cancel_events: dict[str, threading.Event] = {}
-        self._file_futures: dict[str, list[Future[dict[str, Any]]]] = {}
+        self._file_futures: dict[str, tuple[Future[ParsedFileResult], ...]] = {}
         self._orchestration_futures: dict[str, Future[None]] = {}
         self._discard_when_terminal: set[str] = set()
         self._closed = False
@@ -211,10 +165,10 @@ class ParseJobService:
         *,
         stats_path: str,
         stats_pattern: str,
-        variables: Sequence[object],
+        variables: Sequence[StatConfig],
         strategy_type: str,
-        scanned_variables: Sequence[object] | None = None,
-        simulator: str = "gem5",
+        scanned_variables: Sequence[ScannedVariableDict] | None = None,
+        simulator: str | None = None,
         parser_contract_version: str = PARSER_CONTRACT_VERSION,
         incremental: bool = False,
     ) -> ParseJobSnapshot:
@@ -278,18 +232,7 @@ class ParseJobService:
                     f"Parse job {active.job_id} is already active in this session"
                 )
             old_request = self._store.get_request(job_id)
-            variables = old_request.variables()
-            scanned_variables = old_request.scanned_variables()
-            request = build_parse_job_request(
-                stats_path=old_request.stats_path,
-                stats_pattern=old_request.stats_pattern,
-                variables=variables,
-                strategy_type=old_request.strategy_type,
-                scanned_variables=scanned_variables,
-                simulator=old_request.simulator,
-                parser_contract_version=old_request.parser_contract_version,
-                incremental=old_request.incremental,
-            )
+            request = self._refresh_request(old_request)
             attempt_dir = self._store.delete_job(job_id)
             shutil.rmtree(attempt_dir, ignore_errors=True)
             self._remove_cancel_event(job_id)
@@ -308,7 +251,7 @@ class ParseJobService:
         allow_partial: bool = False,
         before_cleanup: BeforeCleanup | None = None,
     ) -> ParseJobReceipt:
-        """Publish if needed and delete transient data after optional consumption."""
+        """Validate and consume actual output before deleting its transient attempt."""
         with self._operation_lock:
             snapshot = self._require_job(job_id)
             if snapshot.status == ParseJobStatus.PARTIAL and not allow_partial:
@@ -317,37 +260,42 @@ class ParseJobService:
                 raise ParseJobNotConsumableError(
                     f"Parse job in {snapshot.status.value} state cannot be consumed"
                 )
-
-            published_path = snapshot.published_csv_path
+            request = self._store.get_request(job_id)
+            published = snapshot.published_output
             if snapshot.status == ParseJobStatus.PARTIAL:
-                output_path = snapshot.output_csv_path
-                if output_path is None or not Path(output_path).is_file():
+                if snapshot.output is None:
                     raise FileNotFoundError("Partial parse output is no longer available")
-                published_path = self._publish_output(job_id, snapshot.fingerprint, output_path)
-            if published_path is None or not Path(published_path).is_file():
+                ParsedOutputIO.read(snapshot.output)
+                published = self._publish_output(job_id, snapshot.fingerprint, snapshot.output)
+            if published is None:
                 self._store.forget_published(snapshot.fingerprint)
                 raise FileNotFoundError("Published parse result is no longer available")
-
+            try:
+                ParsedOutputIO.read(published)
+            except (OSError, ValueError, TypeError):
+                self._store.forget_published(snapshot.fingerprint)
+                if snapshot.status == ParseJobStatus.PARTIAL:
+                    self._discard_published_output(published)
+                raise
             receipt = ParseJobReceipt(
-                job_id=job_id,
-                fingerprint=snapshot.fingerprint,
-                csv_path=published_path,
-                status=snapshot.status,
-                reused=snapshot.cache_hit,
+                job_id,
+                snapshot.fingerprint,
+                published,
+                request.source_context,
+                snapshot.status,
+                snapshot.cache_hit,
             )
             if before_cleanup is not None:
                 try:
                     before_cleanup(receipt)
                 except Exception:
                     if snapshot.status == ParseJobStatus.PARTIAL:
-                        self._discard_published_output(published_path)
+                        self._discard_published_output(published)
                     raise
-            self._store.remember_published(snapshot.fingerprint, published_path)
+            if snapshot.status == ParseJobStatus.SUCCEEDED:
+                self._store.remember_published(snapshot.fingerprint, published)
             attempt_dir = self._store.delete_job(job_id)
-            shutil.rmtree(attempt_dir, ignore_errors=True)
-            self._remove_cancel_event(job_id)
-            self._file_futures.pop(job_id, None)
-            self._orchestration_futures.pop(job_id, None)
+            self._remove_attempt(job_id, attempt_dir)
             return receipt
 
     def dismiss(self, job_id: str) -> None:
@@ -430,11 +378,18 @@ class ParseJobService:
                 f"Parse job {active.job_id} is already active in this session"
             )
 
-        existing = self._store.get_latest_by_fingerprint(request.fingerprint)
+        try:
+            existing = self._store.get_latest_by_fingerprint(request.fingerprint)
+        except InvalidStoredOutput:
+            stale = self._store.discard_cached_success(request.fingerprint)
+            if stale is None:
+                raise
+            self._store.forget_published(request.fingerprint)
+            self._remove_attempt(*stale)
+            existing = None
         if existing is not None and not ignore_cached_result:
-            published_path = existing.published_csv_path
-            if existing.status == ParseJobStatus.SUCCEEDED and (
-                published_path is None or not Path(published_path).is_file()
+            if existing.status == ParseJobStatus.SUCCEEDED and not self._valid_output(
+                existing.published_output
             ):
                 self._store.forget_published(request.fingerprint)
                 self._delete_transient_job(existing.job_id)
@@ -442,9 +397,13 @@ class ParseJobService:
                 return existing
 
         if not ignore_cached_result:
-            published_path = self._store.get_published(request.fingerprint)
-            if published_path is not None:
-                if Path(published_path).is_file():
+            try:
+                published = self._store.get_published(request.fingerprint)
+            except InvalidStoredOutput:
+                self._store.forget_published(request.fingerprint)
+                published = None
+            if published is not None:
+                if self._valid_output(published):
                     job_id = uuid.uuid4().hex
                     attempt_dir = self._create_attempt_dir(job_id)
                     try:
@@ -455,7 +414,7 @@ class ParseJobService:
                             attempt,
                             status=ParseJobStatus.SUCCEEDED,
                             phase="Reusing session result from Recent CSVs",
-                            published_csv_path=published_path,
+                            published_output=published,
                             cache_hit=True,
                         )
                     except Exception:
@@ -483,8 +442,8 @@ class ParseJobService:
         return snapshot
 
     def _run_job(self, job_id: str) -> None:
-        """Drive one persisted attempt to a terminal state on the session executor."""
-        results: list[dict[str, Any]] = []
+        """Drive typed file work to a visible terminal state on the owned executor."""
+        results: list[ParsedFileResult] = []
         try:
             event = self._get_cancel_event(job_id)
             if event is None:
@@ -496,24 +455,14 @@ class ParseJobService:
                     self._mark_cancelled(job_id)
                     return
                 self._store.transition(job_id, ParseJobStatus.RUNNING, "Preparing parser work")
-
-            variables = request.variables()
-            scanned_values = request.scanned_variables()
-            scanned_variables = scanned_values if scanned_values else None
             batch = self._submit_parse(
-                request.stats_path,
-                request.stats_pattern,
-                variables,
-                str(attempt_dir),
-                request.strategy_type,
-                scanned_variables,
-                request.incremental,
+                request.source_context, str(attempt_dir), request.incremental
             )
             futures = batch.futures
-            reused_files = (
+            reused = (
                 batch.reused_file_count if isinstance(batch, IncrementalParseBatchResult) else 0
             )
-            total_files = (
+            total = (
                 batch.total_file_count
                 if isinstance(batch, IncrementalParseBatchResult)
                 else len(futures)
@@ -525,15 +474,15 @@ class ParseJobService:
                         future.cancel()
             self._store.update_progress(
                 job_id,
-                reused_files,
-                total_files,
+                reused,
+                total,
                 (
-                    f"Reusing {reused_files} unchanged files; parsing {len(futures)} files"
-                    if reused_files
+                    f"Reusing {reused} unchanged files; parsing {len(futures)} files"
+                    if reused
                     else ("Parsing files" if futures else "No matching parser work")
                 ),
             )
-            completed = reused_files
+            completed = reused
             pending = set(futures)
             while pending:
                 if event.is_set():
@@ -541,71 +490,47 @@ class ParseJobService:
                         future.cancel()
                 done, pending = wait(pending, timeout=0.1, return_when=FIRST_COMPLETED)
                 for future in done:
-                    if future.cancelled():
-                        continue
+                    completed += 1
                     try:
                         result = future.result()
-                        completed += 1
-                        if result:
-                            results.append(result)
-                        else:
-                            self._store.append_error(
-                                job_id,
-                                "Parser returned no usable result for one file",
-                            )
+                        if type(result) is not ParsedFileResult:
+                            raise TypeError("Parser workers must return ParsedFileResult values.")
+                        results.append(result)
                     except CancelledError:
-                        continue
+                        if not event.is_set():
+                            self._store.append_error(
+                                job_id, "Parser file work was cancelled before producing a result"
+                            )
                     except Exception as exc:
-                        completed += 1
                         self._store.append_error(job_id, _format_error(exc))
                     self._store.update_progress(
-                        job_id,
-                        completed,
-                        total_files,
-                        f"Prepared {completed} of {total_files} files",
+                        job_id, completed, total, f"Prepared {completed} of {total} files"
                     )
-
             with self._operation_lock:
                 self._file_futures.pop(job_id, None)
             if event.is_set():
                 results.clear()
                 self._mark_cancelled(job_id)
                 return
-
             snapshot = self._store.get_job(job_id)
             if snapshot is None:
                 return
-            has_reusable_rows = (
+            if not results and not (
                 isinstance(batch, IncrementalParseBatchResult) and batch.reused_file_count > 0
-            )
-            if not results and not has_reusable_rows:
+            ):
                 if snapshot.error_count == 0:
                     self._store.append_error(job_id, "No usable parsing results were produced")
                 self._mark_failed(job_id, "Parsing produced no usable results")
                 return
-
-            self._store.update_progress(
-                job_id,
-                completed,
-                total_files,
-                "Finalizing CSV",
-            )
-            output_path = self._finalize_parse(
-                str(attempt_dir),
-                batch,
-                results,
-                snapshot.error_count == 0,
-                request.strategy_type,
-            )
+            if self._refresh_request(request).fingerprint != request.fingerprint:
+                raise ValueError("Parser inputs changed during execution; submit a new request.")
+            self._store.update_progress(job_id, completed, total, "Finalizing CSV")
+            output = self._finalize_parse(batch, results, snapshot.error_count == 0)
             results.clear()
+            ParsedOutputIO.read(output)
             if event.is_set():
                 self._mark_cancelled(job_id)
                 return
-            if output_path is None or not Path(output_path).is_file():
-                self._store.append_error(job_id, "Parser did not generate a final CSV")
-                self._mark_failed(job_id, "CSV finalization failed")
-                return
-
             snapshot = self._store.get_job(job_id)
             if snapshot is None:
                 return
@@ -623,13 +548,13 @@ class ParseJobService:
                                 job_id,
                                 ParseJobStatus.PARTIAL,
                                 "Some files failed; partial CSV is ready",
-                                output_csv_path=output_path,
+                                output=output,
                             )
                             return
                     self._mark_cancelled(job_id)
                 return
-
-            published_path = self._publish_output(job_id, request.fingerprint, output_path)
+            published = self._publish_output(job_id, request.fingerprint, output)
+            ParsedOutputIO.read(published)
             with self._operation_lock:
                 current = self._store.get_job(job_id)
                 with self._cancel_event_lock:
@@ -643,19 +568,18 @@ class ParseJobService:
                             job_id,
                             ParseJobStatus.SUCCEEDED,
                             "CSV is ready in Recent CSVs",
-                            output_csv_path=output_path,
-                            published_csv_path=published_path,
+                            output=output,
+                            published_output=published,
                         )
                         return
-                self._discard_published_output(published_path)
+                self._discard_published_output(published)
                 self._mark_cancelled(job_id)
         except Exception as exc:
-            # The orchestration thread is an exception boundary: every parser
-            # failure must become visible persisted state before the future ends.
+            # This owned orchestration boundary persists failures before its Future completes.
             results.clear()
             try:
-                cancel_event = self._get_cancel_event(job_id)
-                if cancel_event is not None and cancel_event.is_set():
+                event = self._get_cancel_event(job_id)
+                if event is not None and event.is_set():
                     self._mark_cancelled(job_id)
                 else:
                     self._store.append_error(job_id, _format_error(exc))
@@ -663,6 +587,32 @@ class ParseJobService:
             except (ParseJobNotFoundError, OSError):
                 logger.debug("Parse job %s disappeared during shutdown", job_id)
             logger.error("Background parse job %s failed: %s", job_id, exc, exc_info=True)
+
+    @staticmethod
+    def _refresh_request(request: ParseJobRequest) -> ParseJobRequest:
+        """Recompute signatures and content identity from the captured source request."""
+        source = request.source_context
+        return build_parse_job_request(
+            stats_path=source.stats_path,
+            stats_pattern=source.stats_pattern,
+            variables=SourceContextCodec.variables(source),
+            strategy_type=source.strategy_type,
+            scanned_variables=SourceContextCodec.scanned_payloads(source),
+            simulator=source.simulator,
+            parser_contract_version=source.parser_contract_version,
+            incremental=request.incremental,
+        )
+
+    @staticmethod
+    def _valid_output(output: ParsedOutput | None) -> bool:
+        """Permit cache reuse only after descriptor, content and read-stability validation."""
+        if output is None:
+            return False
+        try:
+            ParsedOutputIO.read(output)
+        except (OSError, ValueError, TypeError):
+            return False
+        return True
 
     def _mark_cancelled(self, job_id: str) -> None:
         """Finish cancellation and discard reset jobs after workers return."""
@@ -695,18 +645,18 @@ class ParseJobService:
                     return
             self._mark_cancelled(job_id)
 
-    def _publish_output(self, job_id: str, fingerprint: str, output_path: str) -> str:
+    def _publish_output(self, job_id: str, fingerprint: str, output: ParsedOutput) -> ParsedOutput:
         """Publish under a collision-resistant Recent CSV name."""
         file_name = f"parsed_{fingerprint[:16]}_{job_id}.csv"
-        return self._publish_csv(output_path, file_name)
+        return self._publish_csv(output, file_name)
 
     @staticmethod
-    def _discard_published_output(published_path: str) -> None:
+    def _discard_published_output(output: ParsedOutput) -> None:
         """Remove a job-owned Recent CSV when cancellation wins publication."""
         try:
-            Path(published_path).unlink(missing_ok=True)
+            Path(output.csv_path).unlink(missing_ok=True)
         except OSError:
-            logger.exception("Could not remove cancelled parse output %s", published_path)
+            logger.exception("Could not remove cancelled parse output %s", output.csv_path)
 
     def _get_cancel_event(self, job_id: str) -> threading.Event | None:
         """Return a cancellation event without racing session cleanup."""
@@ -754,50 +704,21 @@ class ParseJobService:
         return snapshot
 
     def _delete_transient_job(self, job_id: str) -> None:
-        """Remove one persisted attempt and all in-memory handles to it."""
-        attempt_dir = self._store.delete_job(job_id)
+        """Remove persisted metadata and every handle owned by one settled attempt."""
+        self._remove_attempt(job_id, self._store.delete_job(job_id))
+
+    def _remove_attempt(self, job_id: str, attempt_dir: Path) -> None:
+        """Dispose only this session's controlled attempt directory and owned handles."""
+        if attempt_dir.resolve().parent != self._attempts_dir.resolve():
+            raise ValueError("Parse attempt directory is outside this session's workspace.")
         shutil.rmtree(attempt_dir, ignore_errors=True)
         self._remove_cancel_event(job_id)
         self._file_futures.pop(job_id, None)
         self._orchestration_futures.pop(job_id, None)
+        self._discard_when_terminal.discard(job_id)
 
 
 def _format_error(exc: BaseException) -> str:
     """Flatten an exception into one bounded-store-friendly line."""
     message = str(exc).replace("\n", " ").replace("\r", " ")
     return f"{type(exc).__name__}: {message}"
-
-
-def _canonical_json(value: object, *, strip_internal_ids: bool) -> str:
-    """Serialize request metadata deterministically without non-JSON values."""
-    normalized = _to_json_value(value, strip_internal_ids=strip_internal_ids)
-    return json.dumps(
-        normalized,
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-        allow_nan=False,
-    )
-
-
-def _to_json_value(value: object, *, strip_internal_ids: bool) -> JsonValue:
-    """Convert supported request objects into recursively typed JSON values."""
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, Enum):
-        return _to_json_value(value.value, strip_internal_ids=strip_internal_ids)
-    if dataclasses.is_dataclass(value) and not isinstance(value, type):
-        return _to_json_value(dataclasses.asdict(value), strip_internal_ids=strip_internal_ids)
-    if isinstance(value, Mapping):
-        result: dict[str, JsonValue] = {}
-        for key, item in value.items():
-            string_key = str(key)
-            if strip_internal_ids and string_key == "_id":
-                continue
-            result[string_key] = _to_json_value(item, strip_internal_ids=strip_internal_ids)
-        return result
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
-        return [_to_json_value(item, strip_internal_ids=strip_internal_ids) for item in value]
-    raise TypeError(f"Unsupported parse request value: {type(value).__name__}")

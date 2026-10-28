@@ -7,6 +7,8 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.common.dataframe_copy import copy_dataframe
+
 
 @dataclass(frozen=True, eq=False)
 class DrillDownResult:
@@ -19,12 +21,12 @@ class DrillDownResult:
 
     def __post_init__(self) -> None:
         """Detach the stored snapshot from the caller-owned DataFrame."""
-        object.__setattr__(self, "_rows", self._rows.copy(deep=True))
+        object.__setattr__(self, "_rows", copy_dataframe(self._rows))
 
     @property
     def rows(self) -> pd.DataFrame:
         """Return a defensive copy of the matching source rows."""
-        return self._rows.copy(deep=True)
+        return copy_dataframe(self._rows)
 
     @property
     def row_count(self) -> int:

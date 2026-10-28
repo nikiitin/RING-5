@@ -5,6 +5,8 @@ updates is presentation logic (it understands Plotly's wire format), so it
 lives in the web rendering layer rather than core.
 """
 
+import pytest
+
 from src.web.rendering.relayout import update_config_from_relayout
 
 
@@ -12,6 +14,20 @@ class TestUpdateConfigFromRelayout:
     """Tests for relayout event processing."""
 
     # [test->req~ring5.figure.interactive-editing~1]
+
+    @pytest.mark.parametrize("zoom", [False, True])
+    def test_browser_hover_policy_never_replaces_the_saved_hover_mode(self, zoom: bool) -> None:
+        """Relayout admits a real zoom while ignoring a temporary browser hover mode."""
+        config = {"hovermode": "x unified", "range_x": None}
+        event: dict[str, object] = {"hovermode": "closest"}
+        if zoom:
+            event["xaxis.range"] = [10, 30]
+
+        updated, changed = update_config_from_relayout(config, event)
+
+        assert changed is zoom
+        assert updated == {"hovermode": "x unified", "range_x": [10, 30] if zoom else None}
+        assert config == {"hovermode": "x unified", "range_x": None}
 
     def test_empty_relayout_returns_unchanged(self) -> None:
         config = {"range_x": [0, 10]}
@@ -73,8 +89,8 @@ class TestUpdateConfigFromRelayout:
         assert changed is True
         assert new_config["legend_x"] == 0.5
         assert new_config["legend_y"] == 0.9
-        assert new_config["legend_xanchor"] == "left"
-        assert new_config["legend_yanchor"] == "top"
+        assert new_config["legend_anchor_x"] == "left"
+        assert new_config["legend_anchor_y"] == "top"
 
     def test_legend2_drag_position(self) -> None:
         config: dict = {}
@@ -89,7 +105,7 @@ class TestUpdateConfigFromRelayout:
         relayout = {"legend.xanchor": "right"}
         new_config, changed = update_config_from_relayout(config, relayout)
         assert changed is True
-        assert new_config["legend_xanchor"] == "right"
+        assert new_config["legend_anchor_x"] == "right"
 
     def test_legend_title_text(self) -> None:
         config = {"legend_title": "Old Title"}

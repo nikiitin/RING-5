@@ -5,6 +5,8 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_color_selector,
@@ -13,7 +15,8 @@ from src.web.components.plotting.config.base_plot_config import (
 from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _ORIENTATION_LABELS = {"Vertical": "vertical", "Horizontal": "horizontal"}
 _QUARTILE_LABELS = {
@@ -33,10 +36,6 @@ _POINT_LABELS = {
 }
 
 
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
-
-
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
     # [impl->req~ring5.plot.box~1]
     """Render column mapping and distribution controls for a box plot."""
@@ -45,10 +44,10 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
         "Orientation",
         options=list(_ORIENTATION_LABELS),
         index=list(_ORIENTATION_LABELS).index(
-            _saved_label(_ORIENTATION_LABELS, saved_config.get("orientation"), "Vertical")
+            saved_option_label(_ORIENTATION_LABELS, saved_config.get("orientation"), "Vertical")
         ),
         horizontal=True,
-        key=f"box_orientation_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_orientation"),
     )
     orientation = _ORIENTATION_LABELS[orientation_label]
 
@@ -86,21 +85,21 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Quartile calculation",
             options=list(_QUARTILE_LABELS),
             index=list(_QUARTILE_LABELS).index(
-                _saved_label(
+                saved_option_label(
                     _QUARTILE_LABELS,
                     saved_config.get("quartile_method"),
                     "Linear interpolation",
                 )
             ),
-            key=f"box_quartile_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_quartile"),
         )
         whisker_label = st.selectbox(
             "Whisker range",
             options=list(_WHISKER_LABELS),
             index=list(_WHISKER_LABELS).index(
-                _saved_label(_WHISKER_LABELS, saved_config.get("whisker_mode"), "Tukey (IQR)")
+                saved_option_label(_WHISKER_LABELS, saved_config.get("whisker_mode"), "Tukey (IQR)")
             ),
-            key=f"box_whisker_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_whisker"),
         )
         whisker_mode = _WHISKER_LABELS[whisker_label]
         whisker_multiplier = float(saved_config.get("whisker_multiplier", 1.5))
@@ -112,7 +111,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
                 max_value=3.0,
                 value=whisker_multiplier,
                 step=0.25,
-                key=f"box_iqr_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_iqr"),
             )
         elif whisker_mode == "percentile":
             whisker_percentiles = st.slider(
@@ -120,16 +119,16 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
                 min_value=0,
                 max_value=100,
                 value=tuple(whisker_percentiles),
-                key=f"box_percentiles_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_percentiles"),
             )
     with settings_2:
         point_label = st.selectbox(
             "Show observations",
             options=list(_POINT_LABELS),
             index=list(_POINT_LABELS).index(
-                _saved_label(_POINT_LABELS, saved_config.get("point_mode"), "Outliers only")
+                saved_option_label(_POINT_LABELS, saved_config.get("point_mode"), "Outliers only")
             ),
-            key=f"box_points_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_points"),
         )
         jitter = st.slider(
             "Point jitter",
@@ -137,7 +136,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=0.5,
             value=float(saved_config.get("jitter", 0.25)),
             step=0.05,
-            key=f"box_jitter_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_jitter"),
         )
         box_width = st.slider(
             "Box width",
@@ -145,7 +144,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=0.9,
             value=float(saved_config.get("box_width", 0.6)),
             step=0.05,
-            key=f"box_width_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_width"),
         )
         whisker_cap_width = st.slider(
             "Whisker cap width",
@@ -153,17 +152,17 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=1.0,
             value=float(saved_config.get("whisker_cap_width", 0.5)),
             step=0.1,
-            key=f"box_cap_width_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_cap_width"),
         )
         notched = st.checkbox(
             "Notched boxes",
             value=bool(saved_config.get("notched", False)),
-            key=f"box_notched_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_notched"),
         )
         show_mean = st.checkbox(
             "Show mean",
             value=bool(saved_config.get("show_mean", False)),
-            key=f"box_mean_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.box_mean"),
         )
 
     return {

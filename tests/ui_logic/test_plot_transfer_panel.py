@@ -31,8 +31,11 @@ def _comparison(*, can_replace: bool = True) -> PlotConfigurationComparison:
     )
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.plotting.plot_transfer_panel.st")
-def test_selected_sections_copy_into_current_plot(mock_st: MagicMock) -> None:
+def test_selected_sections_copy_into_current_plot(
+    mock_st: MagicMock, mock_ui_st: MagicMock
+) -> None:
     # [test->req~ring5.plots.copy-settings-pipeline~1]
     from src.web.components.plotting.plot_transfer_panel import PlotTransferPanel
 
@@ -49,19 +52,23 @@ def test_selected_sections_copy_into_current_plot(mock_st: MagicMock) -> None:
     mock_st.multiselect.return_value = ["Titles and labels", "Colors and series styles"]
     mock_st.button.return_value = True
     mock_st.session_state = {}
+    mock_ui_st.session_state = mock_st.session_state
 
     PlotTransferPanel(api).render(target, [source, target])
 
     api.copy_plot_content.assert_called_once_with(1, 2, "settings", sections=["labels", "colors"])
     api.compare_plot_configurations.assert_called_once_with(1, 2)
     mock_st.dataframe.assert_called_once()
-    assert mock_st.session_state["plot_transfer_notice_2"] == "Copied 2 configuration values."
-    assert mock_st.session_state["plot_transfer_reset_2"] == {"title": "Copied"}
+    assert mock_st.session_state["plot.2.transfer_notice"] == "Copied 2 configuration values."
+    assert mock_st.session_state["plot.2.transfer_reset"] is True
     mock_st.rerun.assert_called_once_with()
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.plotting.plot_transfer_panel.st")
-def test_pipeline_copy_explains_finalize_and_surfaces_validation(mock_st: MagicMock) -> None:
+def test_pipeline_copy_explains_finalize_and_surfaces_validation(
+    mock_st: MagicMock, mock_ui_st: MagicMock
+) -> None:
     from src.web.components.plotting.plot_transfer_panel import PlotTransferPanel
 
     source = SimpleNamespace(plot_id=1, name="Source", plot_type="bar", config={})
@@ -73,6 +80,7 @@ def test_pipeline_copy_explains_finalize_and_surfaces_validation(mock_st: MagicM
     mock_st.radio.return_value = "Shaping pipeline"
     mock_st.button.return_value = True
     mock_st.session_state = {}
+    mock_ui_st.session_state = mock_st.session_state
     api.copy_plot_content.side_effect = ValueError("Incompatible source data")
 
     PlotTransferPanel(api).render(target, [source, target])
@@ -80,9 +88,11 @@ def test_pipeline_copy_explains_finalize_and_surfaces_validation(mock_st: MagicM
     mock_st.error.assert_called_once_with("Incompatible source data")
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.plotting.plot_transfer_panel.st")
 def test_incompatible_complete_replacement_is_explained_and_disabled(
     mock_st: MagicMock,
+    mock_ui_st: MagicMock,
 ) -> None:
     # [test->req~ring5.plots.configuration-comparison~1]
     from src.web.components.plotting.plot_transfer_panel import PlotTransferPanel
@@ -96,6 +106,7 @@ def test_incompatible_complete_replacement_is_explained_and_disabled(
     mock_st.radio.return_value = "Complete plot configuration"
     mock_st.button.return_value = False
     mock_st.session_state = {}
+    mock_ui_st.session_state = mock_st.session_state
 
     PlotTransferPanel(api).render(target, [source, target])
 
@@ -104,21 +115,36 @@ def test_incompatible_complete_replacement_is_explained_and_disabled(
     api.copy_plot_content.assert_not_called()
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.plotting.plot_transfer_panel.st")
-def test_pending_reset_runs_before_destination_widgets_are_created(mock_st: MagicMock) -> None:
+def test_pending_reset_runs_before_destination_widgets_are_created(
+    mock_st: MagicMock, mock_ui_st: MagicMock
+) -> None:
     from src.web.components.plotting.plot_transfer_panel import PlotTransferPanel
 
+    native = object()
     mock_st.session_state = {
-        "plot_transfer_reset_2": {"title": "Copied title", "xlabel": "Workload"},
-        "title_2": "Stale title",
-        "plot.2.mpl_fig": object(),
-        "title_1": "Other plot",
+        "plot.2.transfer_reset": True,
+        "plot.2.widgets.title": "Stale title",
+        "plot.2.mpl_fig": native,
+        "plot.1.widgets.title": "Other plot",
+        "plot.1.widgets.pipeline.filter_col_2": "Source shaper",
+        "plot.2.transfer_notice": "Copied settings",
     }
+    mock_ui_st.session_state = mock_st.session_state
 
+    previous_title_key = "plot.2.widgets.title"
     PlotTransferPanel.apply_pending_widget_reset(2)
 
+    from src.web.state.ui_state_manager import WidgetKeyBuilder
+
+    current_title_key = WidgetKeyBuilder.plot_key(2, "widgets.title")
+    assert current_title_key != previous_title_key
+    assert previous_title_key not in mock_st.session_state
     assert mock_st.session_state == {
-        "title_1": "Other plot",
-        "title_2": "Copied title",
-        "xlabel_2": "Workload",
+        "plot.1.widgets.title": "Other plot",
+        "plot.1.widgets.pipeline.filter_col_2": "Source shaper",
+        "plot.2.mpl_fig": native,
+        "plot.2.transfer_notice": "Copied settings",
+        "plot.2.widget_generations": mock_st.session_state["plot.2.widget_generations"],
     }

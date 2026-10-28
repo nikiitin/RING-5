@@ -1,6 +1,6 @@
 """Streamlit controls for SplitApply column groups and sub-pipelines."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from typing import cast
 
 import pandas as pd
@@ -9,7 +9,7 @@ import streamlit as st
 from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 
 # Initialized lazily to avoid circular config-component imports.
-_SUB_SHAPER_DISPATCH: dict[str, tuple[str, Callable[..., ShaperStepConfig]]] = {}
+_SUB_SHAPER_DISPATCH: dict[str, Callable[..., ShaperStepConfig]] = {}
 _STATE: dict[str, bool] = {"initialized": False}
 
 _GROUP_LABELS: list[str] = [
@@ -21,17 +21,6 @@ _GROUP_LABELS: list[str] = [
 
 _MIN_GROUPS: int = 2
 _MAX_GROUPS: int = 4
-
-# Reverse lookup: delegates to ShaperFactory (single source of truth).
-# Only the subset of shaper types allowed inside SplitApply groups.
-_ALLOWED_INNER_TYPES: set[str] = {"mean", "normalize", "sort", "conditionSelector"}
-
-
-def _get_reverse_type_map() -> dict[str, str]:
-    """Build type→display map for inner shapers from factory."""
-    from src.core.services.shapers.factory import ShaperFactory
-
-    return {stype: ShaperFactory.get_display_name(stype) for stype in _ALLOWED_INNER_TYPES}
 
 
 def _init_dispatch() -> None:
@@ -48,10 +37,10 @@ def _init_dispatch() -> None:
 
     _SUB_SHAPER_DISPATCH.update(
         {
-            "Mean Calculator": ("mean", MeanConfig.render),
-            "Normalize": ("normalize", NormalizeConfig.render),
-            "Sort": ("sort", SortConfig.render),
-            "Filter": ("conditionSelector", ConditionSelectorConfig.render),
+            "mean": MeanConfig.render,
+            "normalize": NormalizeConfig.render,
+            "sort": SortConfig.render,
+            "conditionSelector": ConditionSelectorConfig.render,
         }
     )
     _STATE["initialized"] = True
@@ -66,6 +55,8 @@ class SplitApplyConfig:
         existing_config: ShaperStepConfig,
         key_prefix: str,
         shaper_id: int,
+        *,
+        display_names: dict[str, str],
     ) -> ShaperStepConfig:
         """Render the SplitApply configuration UI.
 
@@ -74,6 +65,7 @@ class SplitApplyConfig:
             existing_config: Previously saved configuration.
             key_prefix: Unique prefix for Streamlit widget keys.
             shaper_id: Unique shaper instance ID.
+            display_names: Current facade-provided editor labels and identifiers.
 
         Returns:
             Configuration dictionary consumable by ``SplitApply``.
@@ -129,7 +121,7 @@ class SplitApplyConfig:
 
         # Pad existing groups if needed
         while len(existing_groups) < num_groups:
-            existing_groups.append({})
+            existing_groups.append({"columns": []})
 
         # Render each group in an expander
         groups: list[SplitApplyGroupConfig] = []
@@ -138,9 +130,8 @@ class SplitApplyConfig:
             with st.expander(f"**{label}**", expanded=True):
                 grp = SplitApplyConfig._render_group(
                     data=data,
+                    display_names=display_names,
                     numeric_cols=numeric_cols,
-                    categorical_cols=categorical_cols,
-                    join_columns=join_columns,
                     existing_group=existing_groups[g_idx],
                     key_prefix=key_prefix,
                     shaper_id=shaper_id,
@@ -161,24 +152,22 @@ class SplitApplyConfig:
     def _render_group(
         data: pd.DataFrame,
         numeric_cols: list[str],
-        categorical_cols: list[str],
-        join_columns: list[str],
         existing_group: SplitApplyGroupConfig,
         key_prefix: str,
         shaper_id: int,
         group_index: int,
+        display_names: dict[str, str],
     ) -> SplitApplyGroupConfig:
         """Render config UI for a single column group.
 
         Args:
             data: Full DataFrame (for sub-shaper config introspection).
             numeric_cols: All numeric column names.
-            categorical_cols: All categorical column names.
-            join_columns: Currently selected join columns.
             existing_group: Saved config for this group.
             key_prefix: Widget key prefix.
             shaper_id: Shaper instance ID.
             group_index: 0-based group index.
+            display_names: Current facade-provided editor labels and identifiers.
 
         Returns:
             Group config dict with ``columns`` and ``pipeline`` keys.
@@ -196,14 +185,12 @@ class SplitApplyConfig:
         )
 
         # Sub-pipeline
-        existing_pipeline: list[ShaperStepConfig] = existing_group.get("pipeline", [])
-        pipeline: list[ShaperStepConfig] = SplitApplyConfig._render_sub_pipeline(
+        existing_pipeline: Sequence[Mapping[str, object]] = existing_group.get("pipeline", [])
+        pipeline: list[Mapping[str, object]] = SplitApplyConfig._render_sub_pipeline(
             data=data,
-            columns=columns,
-            join_columns=join_columns,
-            categorical_cols=categorical_cols,
             existing_pipeline=existing_pipeline,
             key_base=gk,
+            display_names=display_names,
         )
 
         return {"columns": columns, "pipeline": pipeline}
@@ -211,31 +198,25 @@ class SplitApplyConfig:
     @staticmethod
     def _render_sub_pipeline(
         data: pd.DataFrame,
-        columns: list[str],
-        join_columns: list[str],
-        categorical_cols: list[str],
-        existing_pipeline: list[ShaperStepConfig],
+        existing_pipeline: Sequence[Mapping[str, object]],
         key_base: str,
-    ) -> list[ShaperStepConfig]:
+        display_names: dict[str, str],
+    ) -> list[Mapping[str, object]]:
         """Render the sub-pipeline editor for one group.
 
-        Shows a selectbox to choose a shaper type and automatically
-        generates pre-filled config for the most common operations
-        (Mean and Normalize) so the user doesn't have to repeat
-        column selections manually.
+        Each step uses the main pipeline's editor with the full DataFrame
+        and its saved configuration. Column selections remain explicit.
 
         Args:
             data: Full DataFrame.
-            columns: Numeric columns belonging to this group.
-            join_columns: Categorical join columns.
-            categorical_cols: All categorical columns.
             existing_pipeline: Previously saved sub-pipeline.
             key_base: Widget key base string.
+            display_names: Current facade-provided editor labels and identifiers.
 
         Returns:
             List of shaper config dicts for this group.
         """
-        pipeline: list[ShaperStepConfig] = []
+        pipeline: list[Mapping[str, object]] = []
 
         # How many steps does this group have?
         existing_count: int = len(existing_pipeline)
@@ -248,14 +229,12 @@ class SplitApplyConfig:
         num_steps: int = st.session_state[step_count_key]
 
         for s_idx in range(num_steps):
-            existing_step: ShaperStepConfig = (
+            existing_step: Mapping[str, object] = (
                 existing_pipeline[s_idx] if s_idx < existing_count else cast(ShaperStepConfig, {})
             )
-            step_cfg: ShaperStepConfig | None = SplitApplyConfig._render_sub_step(
+            step_cfg: Mapping[str, object] | None = SplitApplyConfig._render_sub_step(
                 data=data,
-                columns=columns,
-                join_columns=join_columns,
-                categorical_cols=categorical_cols,
+                display_names=display_names,
                 existing_step=existing_step,
                 key_base=f"{key_base}_s{s_idx}",
                 step_index=s_idx,
@@ -284,13 +263,11 @@ class SplitApplyConfig:
     @staticmethod
     def _render_sub_step(
         data: pd.DataFrame,
-        columns: list[str],
-        join_columns: list[str],
-        categorical_cols: list[str],
-        existing_step: ShaperStepConfig,
+        existing_step: Mapping[str, object],
         key_base: str,
         step_index: int,
-    ) -> ShaperStepConfig | None:
+        display_names: dict[str, str],
+    ) -> Mapping[str, object] | None:
         """Render config for a single sub-pipeline step.
 
         Delegates to the exact same UI component used by the main
@@ -300,12 +277,10 @@ class SplitApplyConfig:
 
         Args:
             data: Full DataFrame.
-            columns: This group's numeric columns.
-            join_columns: Categorical join columns.
-            categorical_cols: All categorical columns.
             existing_step: Previously saved step config.
             key_base: Widget key base string.
             step_index: 0-based step index.
+            display_names: Current facade-provided editor labels and identifiers.
 
         Returns:
             Shaper config dict, or None if no type selected.
@@ -313,21 +288,27 @@ class SplitApplyConfig:
         st.markdown(f"**Step {step_index + 1}**")
 
         # Shaper type selector
-        display_names: list[str] = list(_SUB_SHAPER_DISPATCH.keys())
-        existing_type: str = existing_step.get("type", "")
-        reverse_map = _get_reverse_type_map()
-        default_display: str = reverse_map.get(existing_type, display_names[0])
-        default_idx: int = (
-            display_names.index(default_display) if default_display in display_names else 0
-        )
+        labels = {kind: label for label, kind in display_names.items()}
+        options = [labels[kind] for kind in _SUB_SHAPER_DISPATCH]
+        existing_type = existing_step.get("type", "")
+        if not isinstance(existing_type, str) or (
+            existing_type and existing_type not in _SUB_SHAPER_DISPATCH
+        ):
+            st.info(
+                "This transformation has no editor in this group. Its configuration is preserved."
+            )
+            return existing_step
+        default_display: str = labels.get(existing_type, options[0])
+        default_idx: int = options.index(default_display) if default_display in options else 0
 
         selected_display: str = st.selectbox(
             "Transformation",
-            options=display_names,
+            options=options,
             index=default_idx,
             key=f"{key_base}_type",
         )
-        shaper_type, render_fn = _SUB_SHAPER_DISPATCH[selected_display]
+        shaper_type = display_names[selected_display]
+        render_fn = _SUB_SHAPER_DISPATCH[shaper_type]
 
         # Delegate to the real config component
         sub_key_prefix: str = f"{key_base}_"
@@ -335,10 +316,9 @@ class SplitApplyConfig:
 
         cfg: ShaperStepConfig = render_fn(
             data,
-            existing_step,
+            cast(ShaperStepConfig, existing_step),
             sub_key_prefix,
             sub_shaper_id,
         )
 
-        cfg["type"] = shaper_type
-        return cfg
+        return cast(ShaperStepConfig, {**cfg, "type": shaper_type})

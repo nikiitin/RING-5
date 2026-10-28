@@ -6,8 +6,6 @@ application performance.
 """
 
 import functools
-import hashlib
-import json
 import logging
 import threading
 import time
@@ -16,6 +14,8 @@ from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
 import pandas as pd
+
+from src.core.common.content_identity import content_signature, frame_signature
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ def cached(
     ttl: float | None = None,
     maxsize: int = 128,
     cache_instance: SimpleCache | None = None,
-    key_func: Callable[..., str] | None = None,
+    key_func: Callable[..., str | None] | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
     Decorator to cache function results with optional custom key generation.
@@ -112,8 +112,8 @@ def cached(
         maxsize: Maximum cache size
         cache_instance: Existing cache to use
         key_func: Optional function to generate cache key from args/kwargs.
-                  If None, uses default stringification.
-                  Signature: key_func(*args, **kwargs) -> str
+                  Otherwise, supported arguments receive a typed content identity.
+                  Returning ``None`` bypasses the cache for that invocation.
 
     Example:
         # Simple caching (default key generation)
@@ -132,12 +132,17 @@ def cached(
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> T:
-            # Generate cache key using custom function or default
             if key_func is not None:
                 cache_key = key_func(*args, **kwargs)
             else:
-                # Default: stringify all arguments (works for primitives)
-                cache_key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
+                try:
+                    cache_key = content_signature(
+                        (func.__module__, func.__qualname__, args, kwargs)
+                    )
+                except ValueError:
+                    cache_key = None
+            if cache_key is None:
+                return func(*args, **kwargs)
 
             # Try cache first
             cached_value = cache.get(cache_key)
@@ -162,76 +167,29 @@ def cached(
     return decorator
 
 
-def timed(func: Callable[..., T]) -> Callable[..., T]:
-    """
-    Decorator to measure function execution time.
-
-    Logs execution time at INFO level for performance monitoring.
-
-    Example:
-        @timed
-        def slow_operation():
-            # ... slow code
-    """
-
-    # [impl->req~ring5.quality.performance-regression-gates~1]
-
-    @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> T:
-        start = time.perf_counter()
-        result = func(*args, **kwargs)
-        elapsed = (time.perf_counter() - start) * 1000  # ms
-
-        if elapsed > 100:  # Log slow operations (>100ms)
-            logger.warning(f"SLOW: {func.__name__} took {elapsed:.2f}ms")
-        else:
-            logger.debug(f"PERF: {func.__name__} took {elapsed:.2f}ms")
-
-        return result
-
-    return wrapper
-
-
 def compute_data_fingerprint(
     data: pd.DataFrame,
     params: dict[str, Any],
     relevant_cols: list[str],
-) -> str:
-    """Compute an MD5 fingerprint for DataFrame+params cache keying.
-
-    Used by cached shapers (mean, normalize) to detect whether the
-    input data and configuration have changed since the last run,
-    avoiding expensive recalculation when the fingerprint matches.
+) -> str | None:
+    """Identify all retained values, types, axes and metadata of a cached frame.
 
     Args:
-        data: Input DataFrame.
-        params: Shaper configuration parameters.
-        relevant_cols: Column names relevant to the computation.
+        data: Complete input retained by the cached transformation.
+        params: Shaper configuration.
+        relevant_cols: Columns selected by the operation.
 
     Returns:
-        16-char hex digest suitable as a cache key.
+        A typed content identity, or ``None`` to bypass this optimization cache.
     """
-
     # [impl->req~ring5.quality.bounded-caching~1]
-
-    fingerprint_parts = [
-        f"shape:{data.shape}",
-        f"cols:{sorted(relevant_cols)}",
-        # Canonical, order-insensitive serialization (nested dicts/sets in shaper params
-        # otherwise hash by insertion order / nondeterministically).
-        f"params:{json.dumps(params, sort_keys=True, default=str)}",
-    ]
-
-    if len(data) > 0 and relevant_cols:
-        existing = list(dict.fromkeys(c for c in relevant_cols if c in data.columns))
-        if existing:
-            # Hash the full content of the relevant columns (every row), so a
-            # change in any row — not just the first few — busts the cache.
-            row_hashes = pd.util.hash_pandas_object(data[existing], index=False)
-            content_digest = hashlib.md5(
-                row_hashes.to_numpy().tobytes(), usedforsecurity=False
-            ).hexdigest()
-            fingerprint_parts.append(f"content:{content_digest}")
-
-    fingerprint = "|".join(fingerprint_parts)
-    return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]
+    try:
+        return content_signature(
+            {
+                "data": frame_signature(data),
+                "params": params,
+                "selected": relevant_cols,
+            }
+        )
+    except ValueError:
+        return None

@@ -12,6 +12,84 @@ permalink: /developer-guide/api-reference/public-python-api/
 `ring5` is the supported headless surface. Public names are exported from `ring5/__init__.py`. The
 tests marked `public_api` enforce exact line and branch coverage for the package (`make test-api`).
 
+For a complete runnable analysis with bundled inputs, start with
+[Automate with Python and the CLI]({{site.baseurl}}/user-guide/workflows/scripting/).
+This page describes contracts and edge cases. All examples use `import ring5`; data operations
+accept and return `ring5.Table` rather than requiring pandas.
+
+## Choose a public operation
+
+These are the common call forms. Keyword-only arguments follow `*`; optional signing and advanced
+parser controls are detailed in the operation's docstring and the sections below.
+
+| Task | Call and result | Operational errors |
+| --- | --- | --- |
+| Inspect built-in plots offline | `session.load_example_portfolio() -> RestoreReport` | `PortfolioError` |
+| Load a CSV or finalized parser result | `session.load(source) -> Table` | `DataLoadError` |
+| Discover statistics | `session.scan(stats_path, *, pattern="stats.txt", limit=10, strict=True) -> ScanResult` | `ScanError` |
+| Parse named statistics | `session.parse(stats_path, variables, *, scan_limit=10, strict=True) -> ParseResult` | `ScanError`, `ParseError`, `MissingStatError` |
+| Transform a table | `session.shape(data, pipeline) -> Table` | `PipelineError` |
+| Aggregate repeated observations | `session.reduce_seeds(data, categorical_cols, statistic_cols) -> Table` | `ColumnNotFoundError`, `DataValidationError` |
+| Register a plot | `session.create_plot(plot_type, *, data, config, name=None) -> plot` | `DataValidationError`, `ColumnNotFoundError` |
+| Render a registered plot | `session.render(plot, *, engine="plotly") -> native figure` | `RenderError` |
+| Register and render together | `session.plot(plot_type, *, data, config, engine="plotly", name=None) -> native figure` | Plot validation errors, `RenderError` |
+| Write a figure | `session.export(fig, path, *, fmt=None, deterministic=False) -> str` | `ExportError`, `DependencyMissingError` |
+| Save or restore a snapshot | `session.save_portfolio(name, *, overwrite=False)` / `session.load_portfolio(name) -> RestoreReport` | `PortfolioError`, `PortfolioVersionError` |
+| Regenerate saved figures | `ring5.render_portfolio(name, out_dir, *, engine="matplotlib", fmt=None, deterministic=True) -> list[str]` | `PortfolioError`, `PortfolioVersionError` |
+| Run reusable instructions | `session.run_analysis_recipe(recipe, values=None) -> AnalysisRecipeRunResult` | `RecipeError` and narrower execution errors |
+| Build a shareable report | `session.create_report(title, figures, *, tables=None, narrative=None) -> AnalysisReport` | `DataValidationError` |
+| Write a report | `session.export_report(report, path, *, fmt=None, html_mode="document") -> str` | `ExportError` |
+
+`create_plot` registers the plot for later rendering, portfolio persistence, and reports.
+`render` returns a Matplotlib or Plotly figure; `export` infers its engine from that figure.
+Pass the exact registry identifier returned by `available_plot_types()`. `FigureSpec` supplies
+common figure settings; flat mappings express supported plot-specific controls. For example,
+scatter groups use `color`, while grouped-bar categories use `group`.
+
+The built-in showcase requires no input files and changes only the current Session:
+
+```python
+import ring5
+
+with ring5.Session() as session:
+    restored = session.load_example_portfolio()
+    if not restored.complete:
+        raise ring5.PortfolioError("The example portfolio did not restore completely")
+    figure = session.render(session.plots[0], engine="matplotlib")
+    session.export(figure, "example-output/first-example.pdf", deterministic=True)
+```
+
+Loading a portfolio replaces that Session's workspace. `load_example_portfolio` does not save a
+portfolio or download data. Use `save_portfolio("My examples")` explicitly to retain an edited
+copy. [The tour]({{site.baseurl}}/user-guide/getting-started/showcase/) explains its synthetic
+inputs and examples.
+
+### Table operations without pandas
+
+| Call | Result |
+| --- | --- |
+| `Table.from_rows(list_of_records)` | Owned table from Python records. |
+| `table.columns()` / `table.rows()` | Column names / independently owned records. |
+| `len(table)` / `table.is_empty` | Row count / empty-table check. |
+| `table.filter_eq("configuration", "baseline")` | New table containing matching rows. |
+| `table.sort(["benchmark", "seed"])` | New table in stable sort order. |
+| `table.with_scalar_op("energy_mj", "energy_j", "*", 1000.0)` | New table with an explicitly derived column. |
+| `table.to_csv("measurements.csv")` | Written path; semantics metadata gets a companion file when present. |
+| `table.frame` / `Table(frame)` | Explicit defensive pandas copy / entry point. |
+
+Independent table transformations detach a finalized plot's contributor declaration. Creating a
+plot from the returned table establishes that explicit table as its source. Plot pipelines retain
+original input rows and capture their contributor relation when finalized.
+
+`session.load` returns the primary loaded `Table` and makes it the active workspace, retaining
+replay provenance. `session.get_dataset(name)` retrieves an independently owned table previously
+retained with `add_dataset`; omitting the name requires a selected named dataset. It does not
+retrieve arbitrary loaded or restored workspace data. Portfolio loaders return a `RestoreReport`,
+not a table; restored plot handles remain available through `session.plots`.
+
+`ring5.read_table` reads a standalone table; `Table.from_rows` constructs data without an external
+source. Such arbitrary tables do not supply an inferred reusable recipe origin.
+
 ## Workspace
 
 <!--
@@ -33,15 +111,69 @@ restore portfolios. Use it as a context manager so pending session work and temp
 are released.
 
 `Session.scan_submit` returns an owned `ScanJob`; `Session.scan` waits and returns `ScanResult`.
-Likewise, `parse_submit` returns `ParseJob` and `parse` returns `ParseResult`. A job can be cancelled
-without touching work from another handle. `Session.load` returns a DataFrame. `shape`,
-`reduce_seeds`, `remove_outliers`, `apply_operation`, and `mix_columns` preserve `ring5.Table` when
-given one. `Session.compare` returns a `Table` when both baseline and candidate inputs are tables;
-otherwise it returns a DataFrame.
+Likewise, `parse_submit` returns `ParseJob` and `parse` returns `ParseResult`. A job can be
+cancelled without touching work from another handle. A finalized result owns `output` (the explicit
+`ParsedOutput` descriptor), its immutable `source_context`, and missing variable names as a tuple.
+Use `session.load(result)` to retain exact numeric/text semantics and source provenance.
+`result.csv_path` is the derived external exchange location; `session.load(result.csv_path)` uses
+ordinary CSV inference/null policy. The descriptor's SHA-256 binds schema meaning and CSV bytes.
+The public typed backend constructors and `resolve_parsed_output`/`publish_parsed_output` helpers
+are documented in the [parser extension guide]({{ site.baseurl }}/developer-guide/extension-guides/adding-a-parser/).
+
+Use `ring5.StatConfig` for explicit runnable parser settings. Configuration fields and `params`
+use snake_case; `repeat` is a positive integer, `entries` and `statistics` are separate text lists,
+and `source_name` preserves an output alias without replacing the simulator statistic. Every runnable
+configuration declares `params.source_type`, a compatible source contract before output reinterpretation.
+`ScannedVariable` requires `source_evidence` and `SourceInstance` records containing exact source names
+and numeric display coordinates. Evidence is resolved or explicitly ambiguous; ambiguous sources have
+no output suggestion (`type=None`) and require an explicit runnable `StatConfig`. Observed entry labels
+do not supply native geometry. Numeric patterns require these current scan records;
+`params.selected_sources` selects concrete names once at submission. An explicit empty selection
+remains an unfinished draft. Scalar-source vector entries derive from instance coordinates, so they
+do not accept caller-provided `entries`. Invalid
+configuration raises `ParseError`; dictionary and duck-object execution routes are unsupported.
+Histogram `statistics_only=True` extracts only configured summaries and retains missing summaries
+as NaN. Saved editor drafts remain editable, while jobs and analysis recipes require runnable
+configurations.
+
+Native frequency requests declare `params={"source_type": "distribution", "minimum": 0.25,
+"maximum": 1.25, "bucket_size": 0.5, "zero_policy": "missing"}`. `"nozero"` is an explicit
+producer omission guarantee for present compatible observations. Full native geometry is independent
+of rounded printed labels; summary-only extraction needs no grid.
+
+Custom parser declarations use `DistributionGeometry`, `DistributionColumn`,
+`NativeDistributionLayout` and `OpaqueDistributionLayout`. `ParsedVariableSchema` and
+`ParsedVariableResult` require the keyword `layout`, including `layout=None` for ordinary output.
+A layout binds exact numeric physical columns; full native layouts include every allocated slot,
+both tails and optional summaries. Opaque layouts retain literal selected labels without geometry.
+See [Add a Parser]({{site.baseurl}}/developer-guide/extension-guides/adding-a-parser/) for invariants.
+
+`Session.plot("histogram", ..., config={"histogram_variable": "logical_name"})` selects a native
+layout by logical name, independent of physical prefixes. It emits ordinal storage-cell mass with
+literal ticks and a default Native bucket axis label. Explicit labels override that default.
+Summary-only layouts are None. Opaque Distribution label views reject; ordinary Vector/CSV labels
+retain explicit generic interval interpretation. Native missing/NaN/nonfinite/negative frequencies,
+continuous rebinning and noncumulative density raise RenderError. Count supports observed zeros;
+normalized mass/CDF requires finite positive selected total. Both engines and typed persistence use
+the same bindings and values. Failed renders preserve the previous artifact and caller data.
+
+
+Declared Session data methods use `ring5.Table`. `load`, `load_import`, dataset getters, joins,
+appends and comparisons return independently owned tables. Transformation, quality, schema,
+semantics, comparison and plot-data arguments require tables. Both operands of `compare` and
+`compare_statistics` are tables; `create_report` accepts `Mapping[str, Table]` for its display tables.
+Methods that return metadata, reports, jobs, figure handles or exported bytes retain those result
+types.
+
+`Table.from_rows` constructs a table without pandas. `Table(frame)` and `table.frame` are explicit
+pandas entry and exit points that copy their data, including nested object cells and semantic
+metadata. `Session.api` remains an advanced Core interoperability boundary with its documented
+pandas-based service and state contracts. It is separate from the declared Session data methods.
 
 `Session.background_jobs` returns immutable `BackgroundJobInfo` snapshots for tracked scan, parse,
 transformation, and export work. `shape_submit` and `export_submit` add retryable work and retain
 successful results for `background_job_result`; parser results remain on their original handles.
+Successful transformation jobs publish a `Table` through `background_job_result`.
 `cancel_background_job` reports a running cancellation request as `cancelling`,
 `retry_background_job` reuses the stable job identity with a higher attempt, and
 `dismiss_finished_background_jobs` releases terminal records and retained results.
@@ -58,7 +190,7 @@ invalid columns, duplicate keys, and invalid options raise `DataValidationError`
 
 `Session.annotate_comparison` copies a threshold-comparison result and adds plot-ready labels,
 signed changes, outcome text, accessible symbols, Plotly marker names, and color-blind-safe colors.
-It preserves `ring5.Table` inputs. Callers can follow the stored threshold mode or explicitly select
+It accepts and returns `ring5.Table`. Callers can follow the stored threshold mode or explicitly select
 percentage or absolute changes; malformed comparison schemas raise `DataValidationError`.
 
 `Session.compare_statistics` accepts repeated observations and optional grouping columns. It
@@ -66,10 +198,12 @@ returns Welch confidence intervals and p-values, Hedges' g, deterministic bootst
 intervals, and sample-quality warnings. Confidence, alpha, bootstrap count, seed, and the
 small-sample threshold are explicit parameters. Invalid options raise `DataValidationError`.
 
-`Session.profile_data` returns an immutable `DataQualityReport` for a DataFrame or `ring5.Table`.
+`Session.profile_data` returns an immutable `DataQualityReport` for a `ring5.Table`.
 Dataset counts remain scalar fields; `columns` contains immutable `ColumnQuality` records and
 `to_frame()` creates a new DataFrame for display or export. Optional expected types validate finite
 values without conflating invalid values with missing cells.
+`DatasetSemantics`, `DatasetSchemaContract`, `SchemaValidationReport`, and `AccessibilityReport`
+also retain their explicit `to_frame()` conversions for display or external pandas work.
 
 `ColumnContract` declares required presence, data type, nullability, finite numeric bounds, and
 accepted scalar values. `DatasetSchemaContract` groups unique column rules and controls unexpected
@@ -83,9 +217,9 @@ Each `SchemaViolation` includes a rule, column, affected-row count, and at most 
 
 `Session.add_dataset` retains a defensive copy in a named, in-memory workspace and returns a
 `DatasetInfo`. `list_datasets`, `get_dataset`, `select_dataset`, and `remove_dataset` manage that
-workspace. `compare_datasets` leaves both sources unchanged; `join_datasets` and `append_datasets`
-store their result under a separate name. The selected dataset remains the compatibility view used
-by existing plot, transformation, and portfolio APIs.
+workspace. Dataset getters return an owned `Table`. `compare_datasets` leaves both sources
+unchanged; `join_datasets` and `append_datasets` store their result under a separate name and return
+a table. The selected dataset supplies the active plot, transformation and portfolio workspace.
 
 `Session.dataset_lineage` returns immutable `DatasetLineage` and `DatasetRevision` records with
 operation labels, source and parent ancestry, content fingerprints, and the current undo/redo
@@ -96,7 +230,7 @@ is session-owned and is cleared with the named workspace; portfolio persistence 
 `Session.diagnose_join` returns immutable `JoinDiagnostics` for an explicit key relationship,
 including duplicate rows and groups on each side, unmatched input rows, and matched distinct keys.
 `join_datasets_validated` repeats that validation immediately before joining, refuses incompatible
-cardinality without storing output, and returns `(DataFrame, JoinDiagnostics)` on success.
+cardinality without storing output, and returns `(Table, JoinDiagnostics)` on success.
 
 `Session.save_dataset_snapshot` persists the selected, active, or explicitly named dataset in a
 versioned non-executable archive. `list_dataset_snapshots` reads immutable `DatasetSnapshotInfo`
@@ -127,7 +261,7 @@ exposes the same result through the session-owned background-job lifecycle.
 save order. `compare_portfolio_revisions` returns a bounded `PortfolioDiff` whose entries cover
 source provenance, pipelines, plot definitions, and appearance settings but never embedded table
 rows. `restore_portfolio_revision` restores one retained version without changing the saved current
-version. Storage, checksum, and identifier failures use `PortfolioError`; newer schemas use
+version. Storage, checksum, and identifier failures use `PortfolioError`; unsupported schemas use
 `PortfolioVersionError`.
 
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
@@ -142,10 +276,24 @@ patterns, conventional distributions, range histograms, and pipe-delimited one-l
 all supported by the public parse workflow.
 
 `create_plot` registers a plot and `render` renders it. `plot` performs both. Plot identifiers come
-from `ring5.available_plot_types()`; display names are accepted but identifiers are preferable in
-versioned scripts. Mapping configurations are validated before registration for required fields,
+from `ring5.available_plot_types()`. Scripts and saved configurations use those exact identifiers. Mapping configurations are validated before registration for required fields,
 field types, and referenced columns. Every downstream engine failure is normalized to `RenderError`.
 `ring5.available_shaper_types()` provides the equivalent registry for pipelines.
+Run registered transformations through `Session.shape` or `shape_submit` with
+`Sequence[Mapping[str, object]]`; the pipeline validates each exact registered definition before
+execution. `ring5.shapers` exposes the plugin `Shaper` and `ShaperDefinition` types, registration,
+and discovery.
+
+`Session.drill_down` returns a public `DrillDownResult` with its plot identifier, exact filters and
+an owned `rows: Table` snapshot of original contributors. `row_count` and `columns` summarize
+those rows. Finalized pipeline provenance excludes filtered inputs and recovers raw aggregation
+samples and normalization baselines without changing the original values or metadata. Missing or
+inconsistent provenance raises `DataValidationError`. This projection preserves the shared plot
+and native figure handles used by rendering and dashboard operations.
+
+Figures returned by `Session.render` remain usable after plot invalidation, replacement, workspace
+reset or Session context exit. Matplotlib render managers are deregistered without clearing artists,
+so retained figures remain exportable and unrelated pyplot figures remain independent.
 
 ## Figure configuration and export
 
@@ -159,9 +307,16 @@ Covers:
 
 -->
 
-`FigureSpec` serializes engine-independent text annotations; the Matplotlib connector applies their
-text, coordinates, and optional arrow styling. In the web application, editable line, circle, and
-rectangle shapes are Plotly layout shapes and remain Plotly-specific.
+Typed figure configuration serializes text annotations with data or axes/panel-fraction (`paper`)
+coordinates, optional arrows, font family, and multiline alignment. `x_shift_pixels` and
+`y_shift_pixels` translate the complete annotation and arrow after resolving those coordinates;
+positive values move right and up. These logical pixels use the figure's initial rendering scale,
+so a Matplotlib export at twice the DPI doubles the display displacement along with the figure.
+An empty annotation font family inherits the figure family. Stack-total offsets use this pixel
+contract in both rendering engines. In the web application, editable line, circle, and rectangle
+shapes are Plotly layout shapes and remain Plotly-specific.
+The [shape editor]({{site.baseurl}}/user-guide/reference/settings/#edit-shapes) preserves literal
+coordinates and native defaults, with an explicit number/text choice for edits.
 
 ### Typed FigureSpec
 
@@ -173,23 +328,61 @@ Covers:
 
 -->
 
-`ring5.FigureSpec` is the typed common figure configuration. It covers data mappings, dimensions,
-axes, grouping, legends, reference lines, and dual-axis options. The `extra` mapping carries
-supported flat configuration keys that do not yet have typed fields.
+`ring5.FigureSpec` is an immutable typed common figure configuration. It covers data mappings,
+dimensions, axes, grouping, legends, reference lines, and dual-axis options. `LegendOpts`,
+`ReferenceLineOpts`, and `DualAxisOpts` are immutable values too. Constructor sequences and nested
+mappings are owned immutable snapshots; later edits to their source objects cannot change the
+specification. Unsupported objects and cycles raise ordinary configuration validation errors.
+Immutable NumPy real, boolean and text scalars from explicit pandas work retain their exact values;
+mutable arrays, opaque objects, void scalars and custom scalar subclasses are rejected.
 
-### Fluent FigureSpec builder
+The `extra` mapping carries supported flat configuration keys and takes precedence over typed
+fields. `to_config()` returns a fresh mutable mapping with the same canonical editable format used
+by the web interface and saved plots. `create_plot` and `plot` accept either a `FigureSpec` or that
+configuration mapping. Existing raw mappings retain their exact settings and renderer defaults.
+`to_config(plot_type="heatmap")` applies the built-in heatmap's contextual field admission;
+`Session.create_plot` supplies this context automatically. Heatmaps use `color_palette`,
+`reverse_colorscale` and `show_values`. Plugin-owned configurations and typed heatmap trace
+colorscales keep their separate contracts.
 
-<!--
-`uman~ring5.api.figure-builder.documentation~1`
+Per-series overrides use `series_styles`, a mapping from original text series names to style mappings.
+Display names use `legend_labels`, such as `{"ipc": "Instructions per cycle"}`. Set both mappings
+through `FigureSpec.extra` or the editable configuration mapping. Styles and ordering keep using
+`"ipc"` after the rename; repeated or empty display labels preserve each source series. Rendering
+returns the selected engine's native figure. Source-to-native associations remain internal and
+are not required to export that fully styled figure.
 
-Covers:
-- req~ring5.api.figure-builder~1
+Its `pattern` field is a string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`.
+Both native engines render this vocabulary. Plotly uses native SVG pattern paths for the
+circle/star forms. An omitted `pattern` preserves the trace or theme hatch; an explicit empty
+string selects Solid and clears it. Default stripe patterns apply before explicit series overrides.
+Typed renderer styles express absence with `hatching_pattern=None` and Solid with `""`.
+Other plugin-owned style fields are preserved. Recipe save/load retains parameter placeholders;
+materialization validates the resolved pattern value before execution.
 
--->
 
-`FigureSpecBuilder` groups related settings into chainable methods for data, size, palettes, axes,
-bars, category labels, legends, reference lines, and dual axes. `build()` returns a validated
-`FigureSpec`.
+An omitted series `opacity` preserves source attenuation. A present value must be a finite real
+number from `0` through `1`; booleans, text and JSON `null` are rejected. Named overrides take
+precedence over positional typed styles. The selected scalar replaces source opacity and
+multiplies intrinsic color alpha once. Repeated updates, including `0` followed by `1`, preserve
+intrinsic alpha, source values and geometry. Source-owned labels follow their marks; colorbars,
+titles, axes and general annotations keep independent appearance. Parallel coordinates require
+selected opacity `1` and opaque selected colors/scales, with independent unselected opacity.
+
+Legend font sizes retain fractional point values through both native engines and typed figure
+round trips. `DualAxisOpts.legend` configures the separate right-axis legend; numbered mappings
+use the available secondary or tertiary style independently. Raw mappings use `legend2_*` for
+the separate right legend and `anchor_x`/`anchor_y` in every legend tier. Explicit `bgalpha`
+replaces opacity encoded in `bgcolor`; omitting it preserves an RGBA color's embedded opacity
+and each native renderer's default for opaque colors. Plotly preserves RGB/HSL/HWB,
+Lab/LCh/OKLab/OKLCh component precision when applying this override. Its current Python validator
+cannot encode per-legend opacity for `color(profile ...)` or resolve DDK `var(...)` colors.
+Those forms remain accepted without `bgalpha`; requesting the override raises `RenderError`
+and asks for a concrete supported color. Matplotlib's static projection accepts named,
+hexadecimal, RGB and HSL colors; convert other color spaces before using that engine.
+Legend orientations use exactly `horizontal` or `vertical` in every tier. Flat
+`legend_xanchor`/`legend_yanchor` keys and their secondary/tertiary equivalents are rejected;
+Plotly relayout events retain their native dotted wire names and decode to the canonical keys.
 
 ### Public coordinates and decorations
 
@@ -231,6 +424,27 @@ provenance, and that environment in an immutable `AnalysisReport`. `report_bytes
 dependencies. `ring5.shutdown` releases process-wide worker pools early; they otherwise register
 process-exit cleanup and restart on later use.
 
+### Dependency preflight
+
+`ring5.doctor(*, tex_system="xelatex")` returns a `DoctorReport` with `perl`, `chrome`, and
+`tex_compiler` statuses. The compiler choice uses the same exact `xelatex`, `pdflatex`, or `lualatex`
+identifiers as PGF export; unsupported choices raise `ExportError`. `tex_compiler.name` identifies
+the selected compiler. `all_found` includes optional tools; `essential_found` checks only Perl.
+
+Each `DependencyStatus` records `name`, executable availability in `found`, its selected `path`,
+`needed_for`, and `install_hint`. An unavailable explicit browser choice retains its requested
+literal in `path`. Every present `BROWSER_PATH` is authoritative, including an empty value; no
+alternate browser is selected after that choice fails. An executable command name resolves through
+`PATH`. Preflight runs no browser, compiler, or version subprocess. Saved environment capture
+separately records bounded version facts for the same selected executable and all supported TeX
+compilers, without storing their paths.
+
+The CLI `ring5 install-chrome [--cache-dir PATH]` installs the reviewed Chrome for Testing Stable
+release without launching it. Standard output contains only its absolute executable path; set
+`BROWSER_PATH` to that path before starting the process that exports figures. Operational failures
+use `Ring5Error` and CLI exit code 2. Installation and browser selection remain separate operations;
+see the [installation instructions]({{site.baseurl}}/user-guide/getting-started/installation/#install-chrome-for-plotly-static-exports).
+
 ## Errors
 
 <!--
@@ -249,3 +463,42 @@ background-job identifiers and lifecycle operations.
 
 When adding a public name, export it lazily where appropriate, document parameters and exceptions,
 add a `public_api` contract test, keep `make test-api` at 100%, and update the User Guide.
+
+Session operations translate expected domain failures into the documented `ring5.errors` types.
+Python configuration constructors use ordinary `TypeError` and `ValueError` validation. Malformed
+or duplicate plugin registration raises `PipelineError`. Registered transformations run through
+`Session.shape` or `shape_submit`; execution failures use a typed `PipelineError` with step
+information where available.
+
+Portfolio restore replaces the existing workspace, clears transient previews and named-data
+history, and reports partial restoration failures. Parser strategy and simulator are retained;
+serialized portfolios must declare both fields. Unit conversion also scales a metric's `.sd`
+companion by the absolute unit scale, without applying affine offsets to uncertainties.
+Generated recipe scripts preserve `--help` for usage; a parameter named `help` receives an
+unoccupied `--parameter-help` option, with additional `parameter-` prefixes when needed.
+
+## Loaded source and recipe replay
+
+Automatic recipe capture describes the active loaded data, independently of parser editor settings.
+A source is reusable only while its exact request is retained: named-data retention, selection and
+revision restoration preserve it; generic frame or manager edits clear it. Partial parser results
+and undeclared injected backends require an explicit caller `RecipeSource` for recipe creation.
+Recipe schema 8 retains the declared simulator, current parser contract, actual discovery/strict policy and
+resolved scanner metadata. Replay uses those records directly without scanning again.
+
+`RecipeSource.csv_policy` is `InferredCsvPolicy(configuration_columns)` for ordinary CSV inference
+with exact configured-column casts, or `ReviewedCsvPolicy(ImportOptions(...))` for a reviewed import.
+The latter uses the same preview/load service and accepted-row exclusion policy as the import UI.
+It retains encoding, delimiter, header, whitespace, null tokens and column corrections; later editor
+changes do not alter replay. `ImportOptions` owns tuples of text tokens and `ImportColumnCorrection`
+values, with exact typed scalar controls.
+
+A successfully executed recipe retains its source and exact dataset-wide transformations. Capturing
+without an explicit source includes those steps once, followed by any explicitly supplied additional
+steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio schema 13 saves
+this frame-associated origin separately from editable parser controls. A snapshot or arbitrary Table
+has no inferred reusable origin.
+
+Current documents use portfolio schema 13 (`version: "13.0"`) or recipe schema 8. Serialized
+plot display names use `legend_labels`; per-series style mappings retain original series keys.
+Unsupported schema versions and nested style name fields are rejected before restoration or replay.

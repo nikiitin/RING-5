@@ -19,8 +19,6 @@ class _Plot:
         self.name = f"Plot {plot_id}"
         self.plot_type = plot_type
         self.config: dict[str, Any] = {}
-        self.legend_mappings: dict[str, str] = {}
-        self.legend_mappings_by_column: dict[str, dict[str, str]] = {}
         self.source_data: pd.DataFrame | None = None
         self.processed_data: pd.DataFrame | None = None
 
@@ -33,6 +31,7 @@ def test_comparison_reports_nested_leaves_sections_and_replacement_safety() -> N
         "y": "ipc",
         "title": "Source",
         "series_styles": {"ipc": {"color": "red", "width": 2}},
+        "legend_labels": {"A": "Alpha"},
     }
     destination.config = {
         "x": "benchmark",
@@ -40,7 +39,6 @@ def test_comparison_reports_nested_leaves_sections_and_replacement_safety() -> N
         "plot_specific": True,
         "series_styles": {"ipc": {"color": "blue"}},
     }
-    source.legend_mappings = {"A": "Alpha"}
     source.processed_data = pd.DataFrame({"benchmark": ["A"], "ipc": [1.0]})
     destination.processed_data = pd.DataFrame({"benchmark": ["A"], "latency": [2.0]})
     source_snapshot = copy.deepcopy(source.config)
@@ -53,10 +51,10 @@ def test_comparison_reports_nested_leaves_sections_and_replacement_safety() -> N
     assert by_path["title"].change == "source_only"
     assert by_path["plot_specific"].change == "destination_only"
     assert by_path["series_styles.ipc.color"].section == "Colors and series styles"
-    assert by_path["legend_mappings.A"].section == "Legends"
     assert by_path["y"].section == "Data mappings"
-    assert result.matching_fields == 2
-    assert result.total_fields == 8
+    assert by_path["legend_labels.A"].section == "Legends"
+    assert result.matching_fields == 1
+    assert result.total_fields == 7
     assert not result.identical
     assert result.difference_count == 6
     assert not result.can_replace

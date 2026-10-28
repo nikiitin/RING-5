@@ -1,9 +1,17 @@
 {
-  "include": ["src", "tests"],
-  "exclude": ["python_venv", "**/__pycache__"],
+  "include": [
+    "app.py",
+    "ring5",
+    "src",
+    "scripts",
+    "tests"
+  ],
+  "exclude": [
+    "python_venv",
+    "**/__pycache__"
+  ],
   "pythonVersion": "3.12",
-  "pythonPlatform": "Linux",
-  "typeCheckingMode": "standard",
+  "typeCheckingMode": "off",
   "venvPath": ".",
   "venv": "python_venv"
 }

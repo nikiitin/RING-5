@@ -9,6 +9,8 @@ Tests workspace-level workflows that span multiple features:
 - Cross-page state consistency
 """
 
+from ring5 import Session
+
 from typing import Any, cast
 
 import pandas as pd
@@ -61,6 +63,7 @@ class TestMultiPlotWorkspace:
             raw,
             [
                 {
+                    "mode": "in",
                     "type": "conditionSelector",
                     "column": "config_description",
                     "values": ["baseline"],
@@ -260,22 +263,12 @@ class TestCrossPageConsistency:
         # Cleanup
         api.data_services.delete_portfolio("e2e_workflow_portfolio")
 
-    def test_performance_metrics_update_with_state(self) -> None:
-        """Performance page shows updated metrics as state grows."""
-        at = create_app_with_data()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-        data_metrics = [m for m in at.metric if m.label == "Data Loaded"]
-        if data_metrics:
-            assert data_metrics[0].value == "Yes"
-
 
 # FigureEngine with multiple plot types
 class TestFigureEngineMultiType:
     """BasePlot produces valid figures for all registered types."""
 
-    def test_all_basic_types_produce_figures(self) -> None:
+    def test_all_basic_types_produce_figures(self, plot_session: Session) -> None:
         """Bar, line, scatter all produce valid go.Figure objects."""
         at = create_app_with_data()
         api: Any = get_api(at)
@@ -309,7 +302,9 @@ class TestFigureEngineMultiType:
                 "barmode": "group",
             }
 
-            fig: go.Figure = plot.create_figure(selected_cols, config)
-            fig = plot.apply_common_layout(fig, config)
+            plot.processed_data = selected_cols
+            plot.config = config
+            fig: go.Figure = cast(go.Figure, plot_session.render(plot))
+
             assert isinstance(fig, go.Figure), f"Failed for {plot_type}"
             assert len(list(fig.data)) > 0, f"No data traces for {plot_type}"

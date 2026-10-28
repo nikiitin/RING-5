@@ -1,0 +1,26 @@
+{
+  "artifacts": {
+    "linux-arm64": {
+      "executable": "chrome-linux-arm64/chrome",
+      "generation": "1792451541157120",
+      "md5": "sJNmHVWOftYY0K5gmzPBhA==",
+      "sha256": "9e37000e3ee2731e45e475a6a2eac587d3c0ee5f8aef7cab5211ecd52cf3fb7b",
+      "size": 199726566,
+      "url": "https://storage.googleapis.com/chrome-for-testing-public/156.0.8078.47/linux-arm64/chrome-linux-arm64.zip"
+    },
+    "linux64": {
+      "executable": "chrome-linux64/chrome",
+      "generation": "1792451271847937",
+      "md5": "cvpoYXzFXs9OK75pfi91hA==",
+      "sha256": "e6c94490f0b6b337225aeb2d2a5034858516b7017356980ba94f5176d8774a50",
+      "size": 200206486,
+      "url": "https://storage.googleapis.com/chrome-for-testing-public/156.0.8078.47/linux64/chrome-linux64.zip"
+    }
+  },
+  "catalog_url": "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json",
+  "channel": "Stable",
+  "integrity": "official-https-size-md5-bootstrap-project-sha256",
+  "revision": "1706539",
+  "schema_version": 1,
+  "version": "156.0.8078.47"
+}

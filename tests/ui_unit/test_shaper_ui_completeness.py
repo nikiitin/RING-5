@@ -6,6 +6,7 @@ transform that silently does nothing.
 """
 
 import pandas as pd
+import pytest
 
 from src.core.services.shapers.factory import ShaperFactory
 
@@ -28,3 +29,43 @@ def test_item_selector_config_executes() -> None:
     shaper = ShaperFactory.create_shaper("itemSelector", cfg)  # type: ignore[arg-type]
     out = shaper(df)
     assert sorted(out["bench"].tolist()) == ["a", "c"]
+
+
+def test_plugin_configuration_survives_an_editor_without_a_renderer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from unittest.mock import MagicMock
+    from src.web.pages.ui.shaper_config import configure_shaper
+    from src.web.components.shapers.split_apply_config import SplitApplyConfig, _init_dispatch
+
+    monkeypatch.setattr("src.web.pages.ui.shaper_config.st", MagicMock())
+    monkeypatch.setattr("src.web.components.shapers.split_apply_config.st", MagicMock())
+    config = {"type": "externalPlugin", "custom": {"value": 3}}
+    result = configure_shaper(
+        "externalPlugin", pd.DataFrame({"v": [1]}), 1, config, display_names={}, owner_id=0
+    )
+    assert result == config
+    assert result is not config
+    _init_dispatch()
+    nested = SplitApplyConfig._render_sub_step(
+        pd.DataFrame({"v": [1]}),
+        config,
+        "plugin",
+        0,
+        ShaperFactory.get_display_name_map(),
+    )
+    assert nested == config
+
+
+def test_metadata_discovery_and_default_editor_order_are_distinct() -> None:
+    from src.core.services.shapers.shapers_impl import DefaultShapersAPI
+
+    facade = DefaultShapersAPI()
+    assert facade.get_available_shaper_types()[0] == "mean"
+    names = facade.get_shaper_display_names()
+    assert list(names.items())[:4] == [
+        ("Column Selector", "columnSelector"),
+        ("Sort", "sort"),
+        ("Mean Calculator", "mean"),
+        ("Normalize", "normalize"),
+    ]

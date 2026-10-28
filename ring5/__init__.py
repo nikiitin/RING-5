@@ -6,11 +6,11 @@ Everything the web app does, as plain Python::
 
     with ring5.Session() as s:
         result = s.parse("/path/to/sims", variables=["simTicks"])
-        df = s.load(result.csv_path)
-        df = s.reduce_seeds(df, ["config_description_abbrev"], ["simTicks"])
+        data = s.load(result)
+        data = s.reduce_seeds(data, ["config_description_abbrev"], ["simTicks"])
         plot = s.create_plot(
             "bar",
-            data=df,
+            data=data,
             config={"x": "config_description_abbrev", "y": "simTicks"},
         )
         fig = s.render(plot, engine="matplotlib")
@@ -21,7 +21,7 @@ Everything the web app does, as plain Python::
     ring5.render_portfolio("my_paper", "figs/", engine="matplotlib", fmt="pdf")
 
 Check external dependencies with ``print(ring5.doctor())`` (perl for
-parsing; a Chrome-family browser for plotly image export; xelatex for PGF).
+parsing; a Chrome-family browser for plotly image export; the selected TeX compiler for PGF).
 Call ``ring5.shutdown()`` once per process to tear down the worker pools
 (they restart transparently on next use).
 
@@ -59,97 +59,149 @@ from ring5.errors import (
     ScanError,
 )
 
-# Typed figure config — pure dataclasses (no pandas/matplotlib), so eager:
-# build a FigureSpec and pass ``.to_config()`` as the plot config.
+# Immutable figure values have no pandas or rendering dependency, so load eagerly.
 from ring5.figure_spec import (
     DualAxisOpts,
     FigureSpec,
-    FigureSpecBuilder,
     LegendOpts,
     ReferenceLineOpts,
 )
 
 if TYPE_CHECKING:
     # Static names for mypy/IDEs; at runtime these resolve via __getattr__.
-    from src.core.models import (
-        AccessibilityFinding,
-        AccessibilityReport,
+    from src.core.models.accessibility_models import AccessibilityFinding, AccessibilityReport
+    from src.core.models.report_models import (
         AnalysisReport,
+        ReportFigure,
+        ReportNarrative,
+        ReportProvenance,
+        ReportTable,
+    )
+    from src.core.models.recipe_models import (
         AnalysisRecipe,
         AnalysisRecipeInfo,
+        AnalysisRecipeRunResult,
+        RecipeExport,
+        RecipeParameter,
+        RecipePlot,
+        RecipeSource,
+    )
+    from src.core.models.recipe_matrix_models import (
         AnalysisRecipeMatrixCase,
         AnalysisRecipeMatrixResult,
-        AnalysisRecipeRunResult,
-        BackgroundJobInfo,
-        BackgroundJobLogEntry,
+    )
+    from src.core.models.background_job_models import BackgroundJobInfo, BackgroundJobLogEntry
+    from src.core.models.schema_contract_models import (
         ColumnContract,
-        ColumnSemantics,
+        DatasetSchemaContract,
+        SchemaValidationReport,
+        SchemaViolation,
+    )
+    from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
+    from src.core.models.dataset_workspace_models import (
         DatasetInfo,
         DatasetLineage,
         DatasetRevision,
         DatasetSnapshotInfo,
-        DashboardSpec,
-        DrillDownResult,
-        DatasetSchemaContract,
-        DatasetSemantics,
+        JoinCardinality,
+        JoinDiagnostics,
+    )
+    from src.core.models.visualization.dashboard_spec import DashboardSpec
+    from src.core.models.environment_models import (
         EnvironmentComparison,
         EnvironmentDifference,
         EnvironmentMetadata,
-        FigureTheme,
+    )
+    from src.core.models.figure_theme_models import FigureTheme
+    from src.core.models.import_models import (
         ImportColumn,
         ImportColumnCorrection,
         ImportOptions,
         ImportPreview,
         ImportRejectedRow,
-        JoinCardinality,
-        JoinDiagnostics,
-        LinkedSelectionSpec,
+    )
+    from src.core.models.visualization.linked_selection_spec import LinkedSelectionSpec
+    from src.core.models.visualization.plot_configuration_comparison import (
         ConfigurationDifference,
         PlotConfigurationComparison,
-        PlotTransferResult,
+    )
+    from src.core.models.visualization.plot_transfer_result import PlotTransferResult
+    from src.core.models.portfolio_revision_models import (
         PortfolioDiff,
         PortfolioDiffEntry,
+        PortfolioRevisionInfo,
+    )
+    from src.core.models.portfolio_bundle_models import (
         PortfolioBundleArtifact,
         PortfolioBundleContents,
         PortfolioBundleInfo,
         PortfolioBundleResult,
+    )
+    from src.core.models.portfolio_integrity_models import (
         PortfolioIntegrityReport,
         PortfolioIntegritySection,
-        PortfolioRevisionInfo,
+    )
+    from src.core.models.parsing_models import (
+        ParseBatchResult,
+        IncrementalParseBatchResult,
+        IncrementalParseResult,
+        ParserPlaygroundBatchResult,
+        ScanFileResult,
         ParserPlaygroundResult,
-        PipelineConfigImportResult,
-        ReportFigure,
-        ReportNarrative,
-        ReportProvenance,
-        ReportTable,
-        RecipeExport,
-        RecipeParameter,
-        RecipePlot,
-        RecipeSource,
-        SmallMultiplesSpec,
-        RestoreReport,
         ScanResult,
         ScannedVariable,
-        SchemaValidationReport,
-        SchemaViolation,
-        ScheduledReportResult,
-        ShaperStepConfig,
+        SourceInstance,
+    )
+    from src.core.models.source_evidence import ResolvedSourceKind, AmbiguousSourceKind
+    from src.core.models.distribution_geometry import DistributionGeometry
+    from src.core.models.native_distribution_layout import (
+        DistributionColumn,
+        NativeDistributionLayout,
+        OpaqueDistributionLayout,
+    )
+    from src.core.models.parsed_output_models import (
+        ParsedCell,
+        ParsedColumn,
+        ParsedFileResult,
+        ParsedOutput,
+        ParsedSchema,
+        ParsedVariableResult,
+        ParsedVariableSchema,
+        ResolvedParsedRows,
+    )
+    from src.core.models.source_context_models import (
+        ParserSourceContext,
+        InferredCsvPolicy,
+        ReviewedCsvPolicy,
+    )
+    from src.parsing.parser_protocol import SimulationParser
+    from ring5._parsed_output import publish_parsed_output, resolve_parsed_output
+    from src.core.models.data_models import PipelineConfigImportResult
+    from src.core.models.visualization.small_multiples_spec import SmallMultiplesSpec
+    from src.core.models.portfolio_models import RestoreReport
+    from src.core.models.scheduled_report_models import ScheduledReportResult
+    from src.core.models.shaper_models import ShaperStepConfig
+    from src.core.models.workspace_search_models import (
         WorkspaceSearchResponse,
         WorkspaceSearchResult,
+    )
+    from src.core.models.workspace_command_models import (
         WorkspaceCommand,
         WorkspaceCommandSearchResponse,
+    )
+    from src.core.models.workspace_metadata_models import (
         WorkspaceArtifact,
         WorkspaceArtifactResponse,
+    )
+    from src.core.models.analysis_review_models import (
         AnalysisReviewEvent,
         AnalysisReviewResponse,
         AnalysisReviewTarget,
         AnalysisReviewTargetResponse,
         AnalysisReviewThread,
-        RecoveryDraftCapture,
-        RecoveryDraftInfo,
-        GuidedAnalysisProgress,
-        GuidedAnalysisStage,
     )
+    from src.core.models.recovery_models import RecoveryDraftCapture, RecoveryDraftInfo
+    from src.core.models.guided_analysis_models import GuidedAnalysisProgress, GuidedAnalysisStage
     from src.core.models.parsing_models import StatConfig
     from src.core.models.quality_models import ColumnQuality, DataQualityReport
 
@@ -164,7 +216,7 @@ if TYPE_CHECKING:
     from ring5._session import PlotType, Session, available_plot_types
     from ring5.shapers import available_shaper_types
     from ring5.coordinates import grouped_bar_coordinates
-    from ring5.data import Table, read_table
+    from ring5.data import DrillDownResult, Table, read_table
     from ring5.decorations import FigureDecorations
 
 try:
@@ -176,36 +228,80 @@ except PackageNotFoundError:  # not installed (e.g. vendored checkout)
 # Heavy exports (they pull pandas/matplotlib/plotly/the web rendering stack)
 # resolved lazily: attribute name -> (module, attribute).
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
-    "AccessibilityFinding": ("src.core.models", "AccessibilityFinding"),
-    "AccessibilityReport": ("src.core.models", "AccessibilityReport"),
-    "AnalysisReport": ("src.core.models", "AnalysisReport"),
-    "AnalysisRecipe": ("src.core.models", "AnalysisRecipe"),
-    "AnalysisRecipeInfo": ("src.core.models", "AnalysisRecipeInfo"),
-    "AnalysisRecipeMatrixCase": ("src.core.models", "AnalysisRecipeMatrixCase"),
-    "AnalysisRecipeMatrixResult": ("src.core.models", "AnalysisRecipeMatrixResult"),
-    "AnalysisRecipeRunResult": ("src.core.models", "AnalysisRecipeRunResult"),
-    "BackgroundJobInfo": ("src.core.models", "BackgroundJobInfo"),
-    "BackgroundJobLogEntry": ("src.core.models", "BackgroundJobLogEntry"),
-    "FigureTheme": ("src.core.models", "FigureTheme"),
-    "ImportColumn": ("src.core.models", "ImportColumn"),
-    "ImportColumnCorrection": ("src.core.models", "ImportColumnCorrection"),
-    "ImportOptions": ("src.core.models", "ImportOptions"),
-    "ImportPreview": ("src.core.models", "ImportPreview"),
-    "ImportRejectedRow": ("src.core.models", "ImportRejectedRow"),
-    "EnvironmentComparison": ("src.core.models", "EnvironmentComparison"),
-    "EnvironmentDifference": ("src.core.models", "EnvironmentDifference"),
-    "EnvironmentMetadata": ("src.core.models", "EnvironmentMetadata"),
+    "AccessibilityFinding": ("src.core.models.accessibility_models", "AccessibilityFinding"),
+    "AccessibilityReport": ("src.core.models.accessibility_models", "AccessibilityReport"),
+    "AnalysisReport": ("src.core.models.report_models", "AnalysisReport"),
+    "AnalysisRecipe": ("src.core.models.recipe_models", "AnalysisRecipe"),
+    "AnalysisRecipeInfo": ("src.core.models.recipe_models", "AnalysisRecipeInfo"),
+    "AnalysisRecipeMatrixCase": (
+        "src.core.models.recipe_matrix_models",
+        "AnalysisRecipeMatrixCase",
+    ),
+    "AnalysisRecipeMatrixResult": (
+        "src.core.models.recipe_matrix_models",
+        "AnalysisRecipeMatrixResult",
+    ),
+    "AnalysisRecipeRunResult": ("src.core.models.recipe_models", "AnalysisRecipeRunResult"),
+    "BackgroundJobInfo": ("src.core.models.background_job_models", "BackgroundJobInfo"),
+    "BackgroundJobLogEntry": ("src.core.models.background_job_models", "BackgroundJobLogEntry"),
+    "FigureTheme": ("src.core.models.figure_theme_models", "FigureTheme"),
+    "ImportColumn": ("src.core.models.import_models", "ImportColumn"),
+    "ImportColumnCorrection": ("src.core.models.import_models", "ImportColumnCorrection"),
+    "ImportOptions": ("src.core.models.import_models", "ImportOptions"),
+    "ImportPreview": ("src.core.models.import_models", "ImportPreview"),
+    "ImportRejectedRow": ("src.core.models.import_models", "ImportRejectedRow"),
+    "EnvironmentComparison": ("src.core.models.environment_models", "EnvironmentComparison"),
+    "EnvironmentDifference": ("src.core.models.environment_models", "EnvironmentDifference"),
+    "EnvironmentMetadata": ("src.core.models.environment_models", "EnvironmentMetadata"),
     "Session": ("ring5._session", "Session"),
     "PlotType": ("ring5._session", "PlotType"),
     "available_plot_types": ("ring5._session", "available_plot_types"),
     "ParseJob": ("ring5._parse", "ParseJob"),
     "ParseResult": ("ring5._parse", "ParseResult"),
+    "ParseBatchResult": ("src.core.models.parsing_models", "ParseBatchResult"),
+    "IncrementalParseBatchResult": (
+        "src.core.models.parsing_models",
+        "IncrementalParseBatchResult",
+    ),
+    "IncrementalParseResult": ("src.core.models.parsing_models", "IncrementalParseResult"),
+    "ParserPlaygroundBatchResult": (
+        "src.core.models.parsing_models",
+        "ParserPlaygroundBatchResult",
+    ),
+    "ScanFileResult": ("src.core.models.parsing_models", "ScanFileResult"),
+    "ParsedCell": ("src.core.models.parsed_output_models", "ParsedCell"),
+    "ParsedColumn": ("src.core.models.parsed_output_models", "ParsedColumn"),
+    "ParsedFileResult": ("src.core.models.parsed_output_models", "ParsedFileResult"),
+    "ParsedOutput": ("src.core.models.parsed_output_models", "ParsedOutput"),
+    "ParsedSchema": ("src.core.models.parsed_output_models", "ParsedSchema"),
+    "DistributionGeometry": ("src.core.models.distribution_geometry", "DistributionGeometry"),
+    "DistributionColumn": ("src.core.models.native_distribution_layout", "DistributionColumn"),
+    "NativeDistributionLayout": (
+        "src.core.models.native_distribution_layout",
+        "NativeDistributionLayout",
+    ),
+    "OpaqueDistributionLayout": (
+        "src.core.models.native_distribution_layout",
+        "OpaqueDistributionLayout",
+    ),
+    "ParsedVariableResult": ("src.core.models.parsed_output_models", "ParsedVariableResult"),
+    "ParsedVariableSchema": ("src.core.models.parsed_output_models", "ParsedVariableSchema"),
+    "ResolvedParsedRows": ("src.core.models.parsed_output_models", "ResolvedParsedRows"),
+    "ParserSourceContext": ("src.core.models.source_context_models", "ParserSourceContext"),
+    "InferredCsvPolicy": ("src.core.models.source_context_models", "InferredCsvPolicy"),
+    "ReviewedCsvPolicy": ("src.core.models.source_context_models", "ReviewedCsvPolicy"),
+    "SimulationParser": ("src.parsing.parser_protocol", "SimulationParser"),
+    "resolve_parsed_output": ("ring5._parsed_output", "resolve_parsed_output"),
+    "publish_parsed_output": ("ring5._parsed_output", "publish_parsed_output"),
     "ParserPlaygroundJob": ("ring5._parse", "ParserPlaygroundJob"),
-    "ParserPlaygroundResult": ("src.core.models", "ParserPlaygroundResult"),
-    "PipelineConfigImportResult": ("src.core.models", "PipelineConfigImportResult"),
+    "ParserPlaygroundResult": ("src.core.models.parsing_models", "ParserPlaygroundResult"),
+    "PipelineConfigImportResult": ("src.core.models.data_models", "PipelineConfigImportResult"),
     "ScanJob": ("ring5._scan", "ScanJob"),
-    "ScanResult": ("src.core.models", "ScanResult"),
-    "ScannedVariable": ("src.core.models", "ScannedVariable"),
+    "ScanResult": ("src.core.models.parsing_models", "ScanResult"),
+    "ScannedVariable": ("src.core.models.parsing_models", "ScannedVariable"),
+    "ResolvedSourceKind": ("src.core.models.source_evidence", "ResolvedSourceKind"),
+    "AmbiguousSourceKind": ("src.core.models.source_evidence", "AmbiguousSourceKind"),
+    "SourceInstance": ("src.core.models.parsing_models", "SourceInstance"),
     "render_figure": ("ring5._render", "render_figure"),
     "render_dashboard": ("ring5._dashboard", "render_dashboard"),
     "apply_linked_selection": ("ring5._linked_selection", "apply_linked_selection"),
@@ -214,65 +310,101 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "export_file": ("ring5._export", "export_file"),
     "render_portfolio": ("ring5._portfolio", "render_portfolio"),
     "StatConfig": ("src.core.models.parsing_models", "StatConfig"),
-    "RestoreReport": ("src.core.models", "RestoreReport"),
-    "ColumnQuality": ("src.core.models", "ColumnQuality"),
-    "DataQualityReport": ("src.core.models", "DataQualityReport"),
-    "ColumnContract": ("src.core.models", "ColumnContract"),
-    "ColumnSemantics": ("src.core.models", "ColumnSemantics"),
-    "DatasetInfo": ("src.core.models", "DatasetInfo"),
-    "DatasetLineage": ("src.core.models", "DatasetLineage"),
-    "DatasetRevision": ("src.core.models", "DatasetRevision"),
-    "DatasetSnapshotInfo": ("src.core.models", "DatasetSnapshotInfo"),
-    "DashboardSpec": ("src.core.models", "DashboardSpec"),
-    "DrillDownResult": ("src.core.models", "DrillDownResult"),
-    "DatasetSchemaContract": ("src.core.models", "DatasetSchemaContract"),
-    "DatasetSemantics": ("src.core.models", "DatasetSemantics"),
-    "JoinCardinality": ("src.core.models", "JoinCardinality"),
-    "JoinDiagnostics": ("src.core.models", "JoinDiagnostics"),
-    "LinkedSelectionSpec": ("src.core.models", "LinkedSelectionSpec"),
-    "ConfigurationDifference": ("src.core.models", "ConfigurationDifference"),
-    "PlotConfigurationComparison": ("src.core.models", "PlotConfigurationComparison"),
-    "PlotTransferResult": ("src.core.models", "PlotTransferResult"),
-    "PortfolioDiff": ("src.core.models", "PortfolioDiff"),
-    "PortfolioDiffEntry": ("src.core.models", "PortfolioDiffEntry"),
-    "PortfolioBundleArtifact": ("src.core.models", "PortfolioBundleArtifact"),
-    "PortfolioBundleContents": ("src.core.models", "PortfolioBundleContents"),
-    "PortfolioBundleInfo": ("src.core.models", "PortfolioBundleInfo"),
-    "PortfolioBundleResult": ("src.core.models", "PortfolioBundleResult"),
-    "PortfolioIntegrityReport": ("src.core.models", "PortfolioIntegrityReport"),
-    "PortfolioIntegritySection": ("src.core.models", "PortfolioIntegritySection"),
-    "PortfolioRevisionInfo": ("src.core.models", "PortfolioRevisionInfo"),
-    "ReportFigure": ("src.core.models", "ReportFigure"),
-    "ReportNarrative": ("src.core.models", "ReportNarrative"),
-    "ReportProvenance": ("src.core.models", "ReportProvenance"),
-    "ReportTable": ("src.core.models", "ReportTable"),
-    "RecipeExport": ("src.core.models", "RecipeExport"),
-    "RecipeParameter": ("src.core.models", "RecipeParameter"),
-    "RecipePlot": ("src.core.models", "RecipePlot"),
-    "RecipeSource": ("src.core.models", "RecipeSource"),
-    "SmallMultiplesSpec": ("src.core.models", "SmallMultiplesSpec"),
-    "SchemaValidationReport": ("src.core.models", "SchemaValidationReport"),
-    "SchemaViolation": ("src.core.models", "SchemaViolation"),
-    "ScheduledReportResult": ("src.core.models", "ScheduledReportResult"),
-    "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
-    "WorkspaceSearchResponse": ("src.core.models", "WorkspaceSearchResponse"),
-    "WorkspaceSearchResult": ("src.core.models", "WorkspaceSearchResult"),
-    "WorkspaceCommand": ("src.core.models", "WorkspaceCommand"),
+    "RestoreReport": ("src.core.models.portfolio_models", "RestoreReport"),
+    "ColumnQuality": ("src.core.models.quality_models", "ColumnQuality"),
+    "DataQualityReport": ("src.core.models.quality_models", "DataQualityReport"),
+    "ColumnContract": ("src.core.models.schema_contract_models", "ColumnContract"),
+    "ColumnSemantics": ("src.core.models.semantic_metadata_models", "ColumnSemantics"),
+    "DatasetInfo": ("src.core.models.dataset_workspace_models", "DatasetInfo"),
+    "DatasetLineage": ("src.core.models.dataset_workspace_models", "DatasetLineage"),
+    "DatasetRevision": ("src.core.models.dataset_workspace_models", "DatasetRevision"),
+    "DatasetSnapshotInfo": ("src.core.models.dataset_workspace_models", "DatasetSnapshotInfo"),
+    "DashboardSpec": ("src.core.models.visualization.dashboard_spec", "DashboardSpec"),
+    "DrillDownResult": ("ring5.data", "DrillDownResult"),
+    "DatasetSchemaContract": ("src.core.models.schema_contract_models", "DatasetSchemaContract"),
+    "DatasetSemantics": ("src.core.models.semantic_metadata_models", "DatasetSemantics"),
+    "JoinCardinality": ("src.core.models.dataset_workspace_models", "JoinCardinality"),
+    "JoinDiagnostics": ("src.core.models.dataset_workspace_models", "JoinDiagnostics"),
+    "LinkedSelectionSpec": (
+        "src.core.models.visualization.linked_selection_spec",
+        "LinkedSelectionSpec",
+    ),
+    "ConfigurationDifference": (
+        "src.core.models.visualization.plot_configuration_comparison",
+        "ConfigurationDifference",
+    ),
+    "PlotConfigurationComparison": (
+        "src.core.models.visualization.plot_configuration_comparison",
+        "PlotConfigurationComparison",
+    ),
+    "PlotTransferResult": (
+        "src.core.models.visualization.plot_transfer_result",
+        "PlotTransferResult",
+    ),
+    "PortfolioDiff": ("src.core.models.portfolio_revision_models", "PortfolioDiff"),
+    "PortfolioDiffEntry": ("src.core.models.portfolio_revision_models", "PortfolioDiffEntry"),
+    "PortfolioBundleArtifact": (
+        "src.core.models.portfolio_bundle_models",
+        "PortfolioBundleArtifact",
+    ),
+    "PortfolioBundleContents": (
+        "src.core.models.portfolio_bundle_models",
+        "PortfolioBundleContents",
+    ),
+    "PortfolioBundleInfo": ("src.core.models.portfolio_bundle_models", "PortfolioBundleInfo"),
+    "PortfolioBundleResult": ("src.core.models.portfolio_bundle_models", "PortfolioBundleResult"),
+    "PortfolioIntegrityReport": (
+        "src.core.models.portfolio_integrity_models",
+        "PortfolioIntegrityReport",
+    ),
+    "PortfolioIntegritySection": (
+        "src.core.models.portfolio_integrity_models",
+        "PortfolioIntegritySection",
+    ),
+    "PortfolioRevisionInfo": ("src.core.models.portfolio_revision_models", "PortfolioRevisionInfo"),
+    "ReportFigure": ("src.core.models.report_models", "ReportFigure"),
+    "ReportNarrative": ("src.core.models.report_models", "ReportNarrative"),
+    "ReportProvenance": ("src.core.models.report_models", "ReportProvenance"),
+    "ReportTable": ("src.core.models.report_models", "ReportTable"),
+    "RecipeExport": ("src.core.models.recipe_models", "RecipeExport"),
+    "RecipeParameter": ("src.core.models.recipe_models", "RecipeParameter"),
+    "RecipePlot": ("src.core.models.recipe_models", "RecipePlot"),
+    "RecipeSource": ("src.core.models.recipe_models", "RecipeSource"),
+    "SmallMultiplesSpec": (
+        "src.core.models.visualization.small_multiples_spec",
+        "SmallMultiplesSpec",
+    ),
+    "SchemaValidationReport": ("src.core.models.schema_contract_models", "SchemaValidationReport"),
+    "SchemaViolation": ("src.core.models.schema_contract_models", "SchemaViolation"),
+    "ScheduledReportResult": ("src.core.models.scheduled_report_models", "ScheduledReportResult"),
+    "ShaperStepConfig": ("src.core.models.shaper_models", "ShaperStepConfig"),
+    "WorkspaceSearchResponse": (
+        "src.core.models.workspace_search_models",
+        "WorkspaceSearchResponse",
+    ),
+    "WorkspaceSearchResult": ("src.core.models.workspace_search_models", "WorkspaceSearchResult"),
+    "WorkspaceCommand": ("src.core.models.workspace_command_models", "WorkspaceCommand"),
     "WorkspaceCommandSearchResponse": (
-        "src.core.models",
+        "src.core.models.workspace_command_models",
         "WorkspaceCommandSearchResponse",
     ),
-    "WorkspaceArtifact": ("src.core.models", "WorkspaceArtifact"),
-    "WorkspaceArtifactResponse": ("src.core.models", "WorkspaceArtifactResponse"),
-    "AnalysisReviewEvent": ("src.core.models", "AnalysisReviewEvent"),
-    "AnalysisReviewResponse": ("src.core.models", "AnalysisReviewResponse"),
-    "AnalysisReviewTarget": ("src.core.models", "AnalysisReviewTarget"),
-    "AnalysisReviewTargetResponse": ("src.core.models", "AnalysisReviewTargetResponse"),
-    "AnalysisReviewThread": ("src.core.models", "AnalysisReviewThread"),
-    "RecoveryDraftCapture": ("src.core.models", "RecoveryDraftCapture"),
-    "RecoveryDraftInfo": ("src.core.models", "RecoveryDraftInfo"),
-    "GuidedAnalysisProgress": ("src.core.models", "GuidedAnalysisProgress"),
-    "GuidedAnalysisStage": ("src.core.models", "GuidedAnalysisStage"),
+    "WorkspaceArtifact": ("src.core.models.workspace_metadata_models", "WorkspaceArtifact"),
+    "WorkspaceArtifactResponse": (
+        "src.core.models.workspace_metadata_models",
+        "WorkspaceArtifactResponse",
+    ),
+    "AnalysisReviewEvent": ("src.core.models.analysis_review_models", "AnalysisReviewEvent"),
+    "AnalysisReviewResponse": ("src.core.models.analysis_review_models", "AnalysisReviewResponse"),
+    "AnalysisReviewTarget": ("src.core.models.analysis_review_models", "AnalysisReviewTarget"),
+    "AnalysisReviewTargetResponse": (
+        "src.core.models.analysis_review_models",
+        "AnalysisReviewTargetResponse",
+    ),
+    "AnalysisReviewThread": ("src.core.models.analysis_review_models", "AnalysisReviewThread"),
+    "RecoveryDraftCapture": ("src.core.models.recovery_models", "RecoveryDraftCapture"),
+    "RecoveryDraftInfo": ("src.core.models.recovery_models", "RecoveryDraftInfo"),
+    "GuidedAnalysisProgress": ("src.core.models.guided_analysis_models", "GuidedAnalysisProgress"),
+    "GuidedAnalysisStage": ("src.core.models.guided_analysis_models", "GuidedAnalysisStage"),
     "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
     "grouped_bar_coordinates": ("ring5.coordinates", "grouped_bar_coordinates"),
@@ -300,18 +432,22 @@ def __dir__() -> list[str]:
 
 def shutdown() -> None:
     # [impl->req~ring5.api.process-lifecycle~1]
-    """Tear down the process-wide worker pools (Perl workers + thread pool).
+    """Drain accepted file tasks, then release their Perl worker processes.
 
-    Safe to call at any time: the pools restart transparently on the next
-    parse/scan. Both also register ``atexit`` hooks, so calling this is
-    only needed for long-running processes that want to release resources
-    early.
+    The pools restart on the next parse/scan. Both register interpreter-exit
+    cleanup, so explicit shutdown releases resources early in long-running scripts.
+
+    Raises:
+        JobError: The caller cannot safely drain or close the worker pools.
     """
     from src.parsing.framework.work_pool import WorkPool
     from src.parsing.gem5.impl.strategies.perl_worker_pool import shutdown_worker_pool
 
-    shutdown_worker_pool()
-    WorkPool.get_instance().shutdown()
+    try:
+        with WorkPool.get_instance().shutdown_scope():
+            shutdown_worker_pool()
+    except RuntimeError as exc:
+        raise JobError(f"Unable to shut down worker pools: {exc}") from exc
 
 
 __all__ = [
@@ -343,12 +479,38 @@ __all__ = [
     "StatConfig",
     "ParseJob",
     "ParseResult",
+    "ParseBatchResult",
+    "IncrementalParseBatchResult",
+    "IncrementalParseResult",
+    "ParserPlaygroundBatchResult",
+    "ScanFileResult",
+    "ParsedCell",
+    "ParsedColumn",
+    "ParsedFileResult",
+    "ParsedOutput",
+    "ParsedSchema",
+    "DistributionGeometry",
+    "DistributionColumn",
+    "NativeDistributionLayout",
+    "OpaqueDistributionLayout",
+    "ParsedVariableResult",
+    "ParsedVariableSchema",
+    "ResolvedParsedRows",
+    "ParserSourceContext",
+    "InferredCsvPolicy",
+    "ReviewedCsvPolicy",
+    "SimulationParser",
+    "resolve_parsed_output",
+    "publish_parsed_output",
     "ParserPlaygroundJob",
     "ParserPlaygroundResult",
     "PipelineConfigImportResult",
     "ScanJob",
     "ScanResult",
     "ScannedVariable",
+    "ResolvedSourceKind",
+    "AmbiguousSourceKind",
+    "SourceInstance",
     "ShaperStepConfig",
     "RestoreReport",
     "ColumnQuality",
@@ -414,7 +576,6 @@ __all__ = [
     "render_portfolio",
     # typed figure config
     "FigureSpec",
-    "FigureSpecBuilder",
     "DualAxisOpts",
     "LegendOpts",
     "ReferenceLineOpts",

@@ -19,11 +19,14 @@ Architecture Note — Streamlit usage:
 """
 
 import copy
+from collections.abc import Mapping
 import logging
 from typing import Any, cast
 
 import pandas as pd
 import streamlit as st
+
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import (
@@ -31,14 +34,12 @@ from src.core.models.data_models import (
     PipelineConfigImportResult,
     PipelineStep,
 )
-from src.core.models.shaper_models import ShaperStepConfig
 from src.web.components.common.pipeline import PipelineComponent, PipelineExchangeResult
 from src.web.components.common.pipeline_step import (
     PipelineStepComponent,
     PipelineStepResult,
 )
 from src.web.models.plot_protocols import PipelineExecutor, PlotHandle
-from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,6 @@ class PipelineController:
     def __init__(
         self,
         api: ApplicationAPI,
-        ui_state: UIStateManager,
         pipeline_executor: PipelineExecutor,
     ) -> None:
         """
@@ -57,11 +57,9 @@ class PipelineController:
 
         Args:
             api: Application API for data access.
-            ui_state: UI state manager (currently unused but available).
             pipeline_executor: Pipeline operations (apply/configure shapers).
         """
         self._api: ApplicationAPI = api
-        self._ui: UIStateManager = ui_state
         self._pipeline: PipelineExecutor = pipeline_executor
 
     def render(self, plot: PlotHandle) -> None:
@@ -85,19 +83,20 @@ class PipelineController:
             PipelineComponent.render_no_data_warning()
             return
 
-        feedback_key = f"pipeline_import_feedback_{plot.plot_id}"
+        feedback_key = WidgetKeyBuilder.plot_key(plot.plot_id, "widgets.pipeline_import_feedback")
         feedback = st.session_state.pop(feedback_key, None)
         if isinstance(feedback, dict):
             PipelineComponent.render_import_success(
                 str(feedback["name"]),
-                migrated=bool(feedback["migrated"]),
                 resolution=str(feedback["resolution"]),
             )
 
         # 1. Add shaper (via component)
-        add_result: dict[str, Any] = PipelineComponent.render_add_shaper(plot.plot_id)
+        add_result: dict[str, Any] = PipelineComponent.render_add_shaper(
+            plot.plot_id, self._api.shapers.get_shaper_display_names()
+        )
         if add_result["add_clicked"]:
-            empty_config: ShaperStepConfig = cast(ShaperStepConfig, {})
+            empty_config: Mapping[str, object] = {}
             plot.pipeline.append(
                 {
                     "id": plot.pipeline_counter,
@@ -117,7 +116,7 @@ class PipelineController:
         exchange_result = PipelineComponent.render_exchange(
             plot.plot_id,
             plot.name,
-            lambda name, description: self._api.export_configuration(
+            lambda name, description: self._api.data_services.export_configuration(
                 name,
                 description,
                 [copy.deepcopy(step["config"]) for step in plot.pipeline],
@@ -128,7 +127,6 @@ class PipelineController:
             if imported is not None:
                 st.session_state[feedback_key] = {
                     "name": imported.name,
-                    "migrated": imported.migrated,
                     "resolution": imported.conflict_resolution,
                 }
                 st.rerun()
@@ -157,7 +155,7 @@ class PipelineController:
         if payload is None:
             return None
         try:
-            result = self._api.import_configuration(
+            result = self._api.data_services.import_configuration(
                 payload,
                 conflict=cast(PipelineConfigConflictPolicy, exchange["conflict"]),
             )
@@ -167,10 +165,13 @@ class PipelineController:
 
         imported_pipeline: list[PipelineStep] = []
         for config in result.shapers:
+            identifier = config["type"]
+            if not isinstance(identifier, str):
+                raise ValueError("An imported shaper type must be text.")
             imported_pipeline.append(
                 {
                     "id": plot.pipeline_counter,
-                    "type": config["type"],
+                    "type": identifier,
                     "config": copy.deepcopy(config),
                 }
             )
@@ -191,6 +192,7 @@ class PipelineController:
             raw_data: The original uploaded data (before any shapers).
         """
         # [impl->req~ring5.shaping.pipeline-editor~1]
+        labels = {value: key for key, value in self._api.shapers.get_shaper_display_names().items()}
         step_input: pd.DataFrame = raw_data
         for idx, shaper in enumerate(plot.pipeline):
             try:
@@ -199,6 +201,7 @@ class PipelineController:
                     plot_id=plot.plot_id,
                     idx=idx,
                     shaper_type=shaper["type"],
+                    display_name=labels.get(shaper["type"], shaper["type"]),
                     shaper_id=shaper["id"],
                     step_input=step_input,
                     current_config=shaper.get("config", {}),
@@ -265,10 +268,18 @@ class PipelineController:
         """
         # [impl->req~ring5.shaping.independent-pipelines~1]
         try:
-            confs: list[ShaperStepConfig] = [s["config"] for s in plot.pipeline if s["config"]]
-            processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)
-            plot.replace_source_data(raw_data)
-            plot.replace_processed_data(processed)
+            if any(
+                not step.get("config") or not step["config"].get("type") for step in plot.pipeline
+            ):
+                raise ValueError(
+                    "Every displayed pipeline step must have a valid configuration "
+                    "before finalizing."
+                )
+            confs: list[Mapping[str, object]] = [step["config"] for step in plot.pipeline]
+            processed: pd.DataFrame = self._pipeline.apply_shapers(
+                raw_data, confs, track_source_rows=True
+            )
+            plot.replace_pipeline_data(raw_data, processed)
             PipelineStepComponent.render_finalize_result(processed)
             # Finalization runs inside a fragment. An app rerun refreshes the
             # separate visualization fragment immediately with the new data.

@@ -1,24 +1,21 @@
-"""Conftest for UI AppTest tests.
-
-Streamlit 1.53.1 had a bug where ``ButtonGroup.indices`` iterated over the
-characters of a single-selection string value instead of treating it as one
-item, which previously required a monkey-patch here. That bug was fixed
-upstream in Streamlit 1.58 (``indices`` now derives from ``formatted_values``),
-so the patch is obsolete and has been removed. This file is kept as the
-package marker for the UI test suite.
-"""
+"""Isolate AppTest session resources and persistent application storage."""
 
 from __future__ import annotations
 
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 import streamlit as st
 
+from src.core.services.data_services.path_service import PathService
+
 
 @pytest.fixture(autouse=True)
-def _isolate_apptest_session_resources() -> Generator[None, None, None]:
-    """Release AppTest resources between tests.
+def _isolate_apptest_session_resources(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Generator[None, None, None]:
+    """Give each synthetic session private storage and release its resources.
 
     Streamlit's AppTest runner reuses one synthetic session identity within a
     pytest worker. Session-scoped cached resources would therefore leak an
@@ -28,7 +25,10 @@ def _isolate_apptest_session_resources() -> Generator[None, None, None]:
     cleanup path used when a browser session disconnects.
     """
     st.cache_resource.clear()
+    PathService.reset_caches()
+    monkeypatch.setenv("RING5_DATA_DIR", str(tmp_path / "ring5-data"))
     try:
         yield
     finally:
         st.cache_resource.clear()
+        PathService.reset_caches()

@@ -10,6 +10,8 @@ Complements existing integration tests by:
 - Verifying pipeline modification → re-render cycle
 """
 
+from ring5 import Session
+
 from typing import Any, cast
 
 import pandas as pd
@@ -53,7 +55,7 @@ def _create_plot_and_finalize(
 class TestDataTransformRenderChain:
     """Full chain: load data → apply shapers → build figure."""
 
-    def test_bar_plot_full_chain(self) -> None:
+    def test_bar_plot_full_chain(self, plot_session: Session) -> None:
         """Bar plot: load → column select → sort → create figure."""
         at = create_app_with_data()
         api: Any = get_api(at)
@@ -81,13 +83,14 @@ class TestDataTransformRenderChain:
             "barmode": "group",
         }
 
-        fig: go.Figure = plot.create_figure(plot.processed_data, config)
-        fig = plot.apply_common_layout(fig, config)
+        plot.processed_data = plot.processed_data
+        plot.config = config
+        fig: go.Figure = cast(go.Figure, plot_session.render(plot))
 
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) > 0
 
-    def test_grouped_bar_full_chain(self) -> None:
+    def test_grouped_bar_full_chain(self, plot_session: Session) -> None:
         """Grouped bar: load → column select → mean → create figure."""
         at = create_app_with_data()
         api: Any = get_api(at)
@@ -118,18 +121,20 @@ class TestDataTransformRenderChain:
             "title": "IPC by Config",
         }
 
-        fig: go.Figure = plot.create_figure(plot.processed_data, config)
-        fig = plot.apply_common_layout(fig, config)
+        plot.processed_data = plot.processed_data
+        plot.config = config
+        fig: go.Figure = cast(go.Figure, plot_session.render(plot))
 
         assert isinstance(fig, go.Figure)
 
-    def test_line_plot_full_chain(self) -> None:
+    def test_line_plot_full_chain(self, plot_session: Session) -> None:
         """Line plot: load → filter → sort → create figure."""
         at = create_app_with_data()
         api: Any = get_api(at)
 
         pipeline: list[dict[str, Any]] = [
             {
+                "mode": "in",
                 "type": "conditionSelector",
                 "column": "config_description",
                 "values": ["baseline"],
@@ -153,13 +158,14 @@ class TestDataTransformRenderChain:
             "ylabel": "IPC",
         }
 
-        fig: go.Figure = plot.create_figure(plot.processed_data, config)
-        fig = plot.apply_common_layout(fig, config)
+        plot.processed_data = plot.processed_data
+        plot.config = config
+        fig: go.Figure = cast(go.Figure, plot_session.render(plot))
 
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) > 0
 
-    def test_scatter_plot_full_chain(self) -> None:
+    def test_scatter_plot_full_chain(self, plot_session: Session) -> None:
         """Scatter plot: load → column select → create figure."""
         at = create_app_with_data()
         api: Any = get_api(at)
@@ -183,8 +189,9 @@ class TestDataTransformRenderChain:
             "ylabel": "Miss Rate",
         }
 
-        fig: go.Figure = plot.create_figure(plot.processed_data, config)
-        fig = plot.apply_common_layout(fig, config)
+        plot.processed_data = plot.processed_data
+        plot.config = config
+        fig: go.Figure = cast(go.Figure, plot_session.render(plot))
 
         assert isinstance(fig, go.Figure)
 
@@ -214,7 +221,7 @@ class TestPipelineModificationCycle:
         # Second pipeline: column select + filter
         shaper2 = ShaperFactory.create_shaper(
             "conditionSelector",
-            {"column": "config_description", "values": ["baseline"]},  # type: ignore
+            {"mode": "in", "column": "config_description", "values": ["baseline"]},  # type: ignore
         )
         after_filter: pd.DataFrame = shaper2(after_select)
 

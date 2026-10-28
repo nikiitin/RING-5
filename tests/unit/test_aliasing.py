@@ -1,10 +1,10 @@
-from concurrent.futures import Future
 from typing import Any, cast
 from unittest.mock import MagicMock, mock_open, patch
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import ParseBatchResult
+from src.core.models.parsing_models import ParseBatchResult
 from src.core.models.data_models import ParseVariableConfig
+from tests.helpers.parsed_values import completed_future, numeric_file
 
 
 class TestAliasing:
@@ -21,10 +21,16 @@ class TestAliasing:
         variables = cast(
             list[ParseVariableConfig],
             [
-                {"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC"},  # ALIAS!
+                {
+                    "source_name": "system.cpu.ipc",
+                    "type": "scalar",
+                    "name": "IPC",
+                    "params": {"source_type": "scalar"},
+                },  # ALIAS!
                 {
                     "name": "system.cpu.cpi",
                     "type": "scalar",
+                    "params": {"source_type": "scalar"},
                     # No alias
                 },
             ],
@@ -35,14 +41,19 @@ class TestAliasing:
         mock_submit = facade._parser.submit_parse_async
 
         # Mock futures properly
-        mock_future: Future[dict[str, str]] = Future()
-        mock_future.set_result({"data": "test"})
+        value = numeric_file("/tmp/stats/stats.txt", {"IPC": 1.0, "system.cpu.cpi": 2.0})
         mock_submit.return_value = ParseBatchResult(
-            futures=[mock_future], var_names=["IPC", "system.cpu.cpi"]
+            futures=(completed_future(value),),
+            var_names=("IPC", "system.cpu.cpi"),
+            source_paths=(value.source_path,),
+            output_dir="/tmp",
+            strategy_type="simple",
         )
 
         # Execute async parse
-        batch = facade.submit_parse_async(stats_path, stats_pattern, variables, "/tmp")
+        batch = facade.submit_parse_async(
+            stats_path, stats_pattern, facade.compile_parse_variables(variables), "/tmp"
+        )
         [f.result() for f in batch.futures]
 
         # Verify variables passed to parser
@@ -55,12 +66,12 @@ class TestAliasing:
         # Check Aliased Variable (use attribute access on StatConfig)
         ipc_var = next((v for v in passed_vars if v.name == "IPC"), None)
         assert ipc_var is not None, "Aliased variable IPC not found in config"
-        assert ipc_var.params["parsed_ids"] == [
-            "system.cpu.ipc"
-        ], "Aliased variable does not map original name"
+        assert ipc_var.source_name == "system.cpu.ipc"
+        assert ipc_var.params == {"source_type": "scalar"}
 
         # Check Non-Aliased Variable
         cpi_var = next((v for v in passed_vars if v.name == "system.cpu.cpi"), None)
         assert cpi_var is not None, "Non-aliased variable not found"
-        assert "parsed_ids" not in cpi_var.params, "Non-aliased variable should not have parsed_ids"
-        facade.close_background_jobs(wait=True)
+        assert cpi_var.source_name is None
+        assert cpi_var.params == {"source_type": "scalar"}
+        facade.close(wait=True)

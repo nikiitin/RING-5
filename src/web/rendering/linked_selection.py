@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from hashlib import sha256
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime
@@ -70,6 +71,21 @@ def _filter_point_trace(trace: Any, indices: list[int], point_count: int) -> Non
             if sliced is not value:
                 setattr(marker, field, sliced)
 
+    if marker is not None and marker.line is not None:
+        for field in ("color", "width"):
+            value = getattr(marker.line, field, None)
+            sliced = _slice_if_aligned(value, indices, point_count)
+            if sliced is not value:
+                setattr(marker.line, field, sliced)
+
+    if isinstance(trace.meta, Mapping):
+        meta = dict(trace.meta)
+        if "ring5_drilldown" in meta:
+            meta["ring5_drilldown"] = _slice_if_aligned(
+                meta["ring5_drilldown"], indices, point_count
+            )
+        trace.meta = meta
+
     for group_name in ("error_x", "error_y"):
         error = getattr(trace, group_name, None)
         if error is None:
@@ -81,26 +97,72 @@ def _filter_point_trace(trace: Any, indices: list[int], point_count: int) -> Non
                 setattr(error, field, sliced)
 
 
-def _filter_heatmap(trace: Any, axis: str, indices: list[int]) -> None:
-    """Filter heatmap rows or columns while retaining aligned labels and text."""
-    z_rows = _as_points(getattr(trace, "z", None)) or []
-    if axis == "x":
-        x_values = _as_points(getattr(trace, "x", None)) or []
-        trace.x = [x_values[index] for index in indices]
-        trace.z = [[row[index] for index in indices] for row in z_rows if isinstance(row, Sequence)]
-        text_rows = _as_points(getattr(trace, "text", None))
-        if text_rows:
-            trace.text = [
-                [row[index] for index in indices] for row in text_rows if isinstance(row, Sequence)
-            ]
-        return
+def _filter_heatmap(figure: go.Figure, trace: Any, axis: str, indices: list[int]) -> None:
+    """Filter cells and their metadata, labels, and totals separators together."""
+    old_x = list(trace.x)
+    old_y = list(trace.y)
+    old_values = old_x if axis == "x" else old_y
+    retained = {_value_key(old_values[index]) for index in indices}
+    xref, yref = trace.xaxis or "x", trace.yaxis or "y"
 
-    y_values = _as_points(getattr(trace, "y", None)) or []
-    trace.y = [y_values[index] for index in indices]
-    trace.z = [z_rows[index] for index in indices]
-    text_rows = _as_points(getattr(trace, "text", None))
-    if text_rows:
-        trace.text = [text_rows[index] for index in indices]
+    def slice_matrix(value: Any) -> Any:
+        rows = _as_points(value)
+        if rows is None or len(rows) != len(old_y):
+            return value
+        if axis == "y":
+            return [rows[index] for index in indices]
+        return [[row[index] for index in indices] for row in rows]
+
+    for field in ("z", "text", "customdata"):
+        value = getattr(trace, field, None)
+        if value is not None:
+            setattr(trace, field, slice_matrix(value))
+    if isinstance(trace.meta, Mapping):
+        meta = dict(trace.meta)
+        if "ring5_drilldown" in meta:
+            meta["ring5_drilldown"] = slice_matrix(meta["ring5_drilldown"])
+        trace.meta = meta
+    setattr(trace, axis, [old_values[index] for index in indices])
+
+    annotations = []
+    for annotation in figure.layout.annotations or ():
+        owned = (
+            re.fullmatch(r"ring5-(?:panel-\d+-)?source-label-\d+", str(annotation.name or ""))
+            is not None
+        )
+        same_axes = annotation.xref == xref and annotation.yref == yref
+        coordinate = annotation.x if axis == "x" else annotation.y
+        if not (owned and same_axes and _value_key(coordinate) not in retained):
+            annotations.append(annotation)
+    figure.layout.annotations = annotations
+
+    shapes = []
+    for shape in figure.layout.shapes or ():
+        owned = str(shape.name or "").startswith("ring5-heatmap-total-")
+        if not (owned and shape.xref == xref and shape.yref == yref):
+            shapes.append(shape)
+            continue
+        right = shape.name == "ring5-heatmap-total-right"
+        if (axis == "x" and right) or (axis == "y" and not right):
+            boundary = float(shape.x0 if right else shape.y0) + 0.5
+            total_indices = [
+                index for index in indices if (index >= boundary if right else index < boundary)
+            ]
+            if not total_indices or len(total_indices) == len(indices):
+                continue
+            position = (
+                len(indices) - len(total_indices) - 0.5 if right else len(total_indices) - 0.5
+            )
+            if right:
+                shape.x0 = shape.x1 = position
+            else:
+                shape.y0 = shape.y1 = position
+        if right:
+            shape.y0, shape.y1 = -0.5, len(trace.y) - 0.5
+        else:
+            shape.x0, shape.x1 = -0.5, len(trace.x) - 0.5
+        shapes.append(shape)
+    figure.layout.shapes = shapes
 
 
 def apply_linked_selection(
@@ -119,7 +181,7 @@ def apply_linked_selection(
     if not isinstance(figure, go.Figure):
         raise TypeError("Linked selections require a Plotly figure.")
     selected_keys = {_value_key(value) for value in values}
-    result = go.Figure(figure.to_dict())
+    result = go.Figure(figure)
     if not selected_keys:
         return result
 
@@ -131,7 +193,7 @@ def apply_linked_selection(
             index for index, value in enumerate(axis_values) if _value_key(value) in selected_keys
         ]
         if getattr(trace, "type", "") == "heatmap":
-            _filter_heatmap(trace, spec.axis, indices)
+            _filter_heatmap(result, trace, spec.axis, indices)
         elif spec.mode == "filter":
             _filter_point_trace(trace, indices, len(axis_values))
         else:

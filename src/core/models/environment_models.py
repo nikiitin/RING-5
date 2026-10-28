@@ -131,21 +131,14 @@ class EnvironmentDifference:
 class EnvironmentComparison:
     """Human-readable comparison between recorded and current environments."""
 
-    recorded: EnvironmentMetadata | None
+    recorded: EnvironmentMetadata
     current: EnvironmentMetadata
     differences: tuple[EnvironmentDifference, ...]
 
     @property
-    def recorded_available(self) -> bool:
-        """Whether the portfolio contains save-time environment metadata."""
-        return self.recorded is not None
-
-    @property
     def exact_match(self) -> bool:
         """Whether every recorded value exactly matches the current runtime."""
-        return self.recorded is not None and all(
-            item.status in {"match", "unavailable"} for item in self.differences
-        )
+        return all(item.status in {"match", "unavailable"} for item in self.differences)
 
     @property
     def changed_count(self) -> int:

@@ -5,13 +5,11 @@ parent: Architecture
 grand_parent: Developer Guide
 nav_order: 5
 permalink: /developer-guide/architecture/design-patterns/
-redirect_from:
-  - /engineering-reference/architecture/design-patterns/
 ---
 
 # Design patterns
 
-Use the patterns already carrying compatibility or ownership boundaries. Do not add pattern layers
+Use the patterns already carrying behavior or ownership boundaries. Do not add pattern layers
 only to rename a direct call.
 
 ## Facade and protocols
@@ -29,8 +27,8 @@ keys to Streamlit session state from domain code.
 ## Registry and factory
 
 Simulator, parser-strategy, plot, and shaper registries map stable identifiers to implementations.
-Factories validate identifiers and construct the selected behavior. Registry identifiers stored in
-portfolios or pipelines require migrations when renamed.
+Factories validate identifiers and construct the selected behavior. Use one exact identifier per
+implementation; replace all producers and consumers when changing the serialized contract.
 
 ## Strategy and pipeline
 

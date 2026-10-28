@@ -13,7 +13,7 @@ import ring5
 pytestmark = pytest.mark.public_api
 
 
-def _workspace(session: ring5.Session, tmp_path: Path) -> tuple[pd.DataFrame, Any, Any]:
+def _workspace(session: ring5.Session, tmp_path: Path) -> tuple[ring5.Table, Any, Any]:
     csv_path = tmp_path / "measurements.csv"
     csv_path.write_text("benchmark,ipc\na,1.0\nb,1.4\nc,1.2\n<script>,0.8\n", encoding="utf-8")
     data = session.load(str(csv_path))
@@ -30,7 +30,7 @@ def test_report_contains_every_content_type_and_is_byte_stable(tmp_path: Path) -
     # [test->req~ring5.export.batch-reports~1]
     with ring5.Session() as session:
         data, bar, line = _workspace(session, tmp_path)
-        original = data.copy(deep=True)
+        original = data.frame.copy(deep=True)
         dashboard = session.create_dashboard(
             [bar, line], title="Comparison panels", columns=2, panel_labels="auto"
         )
@@ -72,7 +72,7 @@ def test_report_contains_every_content_type_and_is_byte_stable(tmp_path: Path) -
     assert b"Showing 2 of 4 rows" in html_first
     assert pdf_first.startswith(b"%PDF-")
     assert pdf_first.count(b"/Type /Page") >= 6
-    pd.testing.assert_frame_equal(data, original)
+    pd.testing.assert_frame_equal(data.frame, original)
 
 
 def test_interactive_gallery_contains_live_plots_and_each_processed_dataframe(
@@ -82,7 +82,8 @@ def test_interactive_gallery_contains_live_plots_and_each_processed_dataframe(
     """The public API emits deterministic, self-contained plot-and-data cards."""
     with ring5.Session() as session:
         data, bar, line = _workspace(session, tmp_path)
-        line_data = data.assign(normalized_ipc=data["ipc"] / data["ipc"].max())
+        frame = data.frame
+        line_data = frame.assign(normalized_ipc=frame["ipc"] / frame["ipc"].max())
         line.replace_processed_data(line_data)
         report = session.create_report(
             "Interactive CPU review",

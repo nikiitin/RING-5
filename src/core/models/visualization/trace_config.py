@@ -15,6 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from src.core.common.opacity import require_opacity
+
 LineDash = Literal["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
 LineShape = Literal["linear", "spline", "hv", "vh", "hvh", "vhv"]
 
@@ -42,7 +44,6 @@ TraceType = Literal[
     "bar",
     "line",
     "scatter",
-    "histogram",
     "heatmap",
     "box",
     "violin",
@@ -58,8 +59,8 @@ class TraceConfig:
     """Base trace specification shared by all trace types.
 
     Attributes:
-        name: Legend label for this trace.
-        trace_type: Discriminator for sub-type dispatch.
+        name: Original series key used for style lookup, ordering and display-label projection.
+        trace_type: Engine-neutral family identifier; renderers dispatch on the concrete class.
         x: X-axis data values (categories or numeric).
         y: Y-axis data values (always numeric).
         yaxis: Which Y-axis this trace belongs to ("y" or "y2").
@@ -68,6 +69,7 @@ class TraceConfig:
         visible: Whether the trace is visible.
         show_in_legend: Whether to include in legend.
         legendgroup: Group identifier for linked legend entries.
+        legend_role: Owning trace legend, independent of the Y-axis and annotation styles.
         custom_data: Arbitrary per-trace metadata.
     """
 
@@ -81,7 +83,12 @@ class TraceConfig:
     visible: bool = True
     show_in_legend: bool = True
     legendgroup: str = ""
+    legend_role: Literal["primary", "secondary"] = "primary"
     custom_data: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Validate the concrete source opacity before native construction."""
+        self.opacity = require_opacity(self.opacity)
 
 
 @dataclass
@@ -96,7 +103,7 @@ class BarTraceConfig(TraceConfig):
 
     # Bar positioning (pre-computed)
     x_positions: list[float] = field(default_factory=list)  # center of each bar
-    bar_width: float = 0.8  # width of each bar
+    bar_width: float | list[float] = 0.8  # scalar or one width per bar
     offset: float = 0.0  # horizontal offset for grouped bars
 
     # Bar styling
@@ -148,23 +155,6 @@ class ScatterTraceConfig(TraceConfig):
 
     # Error bars
     error_y: list[float] | None = None
-
-
-@dataclass
-class HistogramTraceConfig(TraceConfig):
-    """Histogram-specific trace parameters.
-
-    Note: in RING-5, histograms are typically pre-binned and rendered
-    as ``BarTraceConfig`` with bin centres as ``x``.  This subclass
-    exists for the rare case where raw data is passed directly and
-    the binning should be done by the rendering engine.
-    """
-
-    trace_type: TraceType = "histogram"
-
-    nbins: int = 20
-    normalization: Literal["", "percent", "probability", "density"] = ""
-    cumulative: bool = False
 
 
 @dataclass
@@ -339,7 +329,7 @@ class ParallelCoordinatesTraceConfig(TraceConfig):
     dimensions: list[ParallelDimensionConfig] = field(default_factory=list)
     line_color_values: list[float] | None = None
     line_color: str = "#4c78a8"
-    colorscale: str = "Viridis"
+    colorscale: str | list[list[str | float]] = "Viridis"
     reverse_colorscale: bool = False
     color_min: float = 0.0
     color_max: float = 1.0

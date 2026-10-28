@@ -5,9 +5,12 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import detect_column_types
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _COLOR_SCALES = ["Viridis", "Cividis", "Plasma", "Inferno", "Magma", "Turbo", "RdBu"]
 _RANGE_MODES = {"Fit each dimension": "data", "Include zero on numeric axes": "zero"}
@@ -21,10 +24,6 @@ def _saved_dimensions(saved: object, columns: list[str]) -> list[str]:
     return columns[: min(4, len(columns))]
 
 
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
-
-
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
     # [impl->req~ring5.plot.parallel-coordinates~1]
     """Render ordered dimensions, numeric ranges, brushing, and color controls."""
@@ -36,7 +35,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Dimensions (drag selections to order)",
             options=all_columns,
             default=_saved_dimensions(saved_config.get("parallel_dimensions"), all_columns),
-            key=f"parallel_dimensions_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.parallel_dimensions"),
         )
         color_options: list[str | None] = [None, *all_columns]
         saved_color = saved_config.get("parallel_color")
@@ -44,7 +43,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Line color dimension (optional)",
             options=color_options,
             index=color_options.index(saved_color) if saved_color in color_options else 0,
-            key=f"parallel_color_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.parallel_color"),
         )
     with title_column:
         label_config = PlotConfigComponents.render_title_labels_section(
@@ -59,14 +58,14 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
     st.markdown("#### Dimensions and ranges")
     range_column, brush_column = st.columns(2)
     with range_column:
-        saved_mode = _saved_label(
+        saved_mode = saved_option_label(
             _RANGE_MODES, saved_config.get("parallel_range_mode"), "Fit each dimension"
         )
         range_choice = st.radio(
             "Numeric axis ranges",
             options=list(_RANGE_MODES),
             index=list(_RANGE_MODES).index(saved_mode),
-            key=f"parallel_range_mode_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.parallel_range_mode"),
         )
         st.caption(
             "Python workflows can set an exact [minimum, maximum] for each axis with "
@@ -80,7 +79,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Brush one numeric dimension (optional)",
             options=brush_options,
             index=brush_options.index(saved_brush) if saved_brush in brush_options else 0,
-            key=f"parallel_brush_dimension_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.parallel_brush_dimension"),
         )
         brush_range: tuple[float, float] | None = None
         if brush_dimension:
@@ -97,7 +96,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
                 min_value=lower,
                 max_value=upper,
                 value=default_range,
-                key=f"parallel_brush_range_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.parallel_brush_range"),
             )
 
     st.markdown("#### Brush and color scale")
@@ -112,25 +111,25 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
                 else 0
             ),
             disabled=color is None,
-            key=f"parallel_colorscale_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.parallel_colorscale"),
         )
         reverse = st.checkbox(
             "Reverse color scale",
             value=bool(saved_config.get("parallel_reverse_colorscale", False)),
             disabled=color is None,
-            key=f"parallel_reverse_colorscale_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.parallel_reverse_colorscale"),
         )
         show_colorbar = st.checkbox(
             "Show color scale legend",
             value=bool(saved_config.get("parallel_show_colorbar", True)),
             disabled=color is None,
-            key=f"parallel_show_colorbar_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.parallel_show_colorbar"),
         )
         line_color = st.color_picker(
             "Line color without a scale",
             value=str(saved_config.get("parallel_line_color", "#4c78a8")),
             disabled=color is not None,
-            key=f"parallel_line_color_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.parallel_line_color"),
         )
     with opacity_column:
         unselected_opacity = st.slider(
@@ -139,7 +138,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=0.5,
             value=float(saved_config.get("parallel_unselected_opacity", 0.08)),
             step=0.01,
-            key=f"parallel_unselected_opacity_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.parallel_unselected_opacity"),
         )
 
     return {

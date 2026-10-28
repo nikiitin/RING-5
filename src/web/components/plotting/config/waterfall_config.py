@@ -5,12 +5,14 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_xy_selectors,
 )
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 def _saved_categories(saved: object, options: list[str]) -> list[str]:
@@ -55,26 +57,26 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Steps that set an absolute level",
             options=category_options,
             default=_saved_categories(saved_config.get("waterfall_absolute"), category_options),
-            key=f"waterfall_absolute_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_absolute"),
         )
         subtotal_options = [value for value in category_options if value not in absolute]
         subtotals = st.multiselect(
             "Steps that display a subtotal",
             options=subtotal_options,
             default=_saved_categories(saved_config.get("waterfall_subtotals"), subtotal_options),
-            key=f"waterfall_subtotals_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_subtotals"),
         )
     with total_column:
         final_total = st.checkbox(
             "Add a final total",
             value=bool(saved_config.get("waterfall_final_total", True)),
-            key=f"waterfall_final_total_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_final_total"),
         )
         total_label = st.text_input(
             "Final total label",
             value=str(saved_config.get("waterfall_total_label", "Total")),
             disabled=not final_total,
-            key=f"waterfall_total_label_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_total_label"),
         )
 
     st.markdown("#### Connectors and values")
@@ -83,7 +85,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
         connectors = st.checkbox(
             "Connect each running level",
             value=bool(saved_config.get("waterfall_connectors", True)),
-            key=f"waterfall_connectors_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_connectors"),
         )
         connector_width = st.slider(
             "Connector width",
@@ -92,26 +94,26 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             value=float(saved_config.get("waterfall_connector_width", 1.0)),
             step=0.5,
             disabled=not connectors,
-            key=f"waterfall_connector_width_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_connector_width"),
         )
         connector_color = st.color_picker(
             "Connector color",
             value=str(saved_config.get("waterfall_connector_color", "#666666")),
             disabled=not connectors,
-            key=f"waterfall_connector_color_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_connector_color"),
         )
     with value_column:
         show_values = st.checkbox(
             "Show values on bars",
             value=bool(saved_config.get("waterfall_show_values", True)),
-            key=f"waterfall_show_values_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_show_values"),
         )
         number_format = st.text_input(
             "Value format",
             value=str(saved_config.get("waterfall_number_format", ".4g")),
             help="Python number format such as .2f, .3g, or ,.0f.",
             disabled=not show_values,
-            key=f"waterfall_number_format_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_number_format"),
         )
         bar_width = st.slider(
             "Bar width",
@@ -119,7 +121,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=1.0,
             value=float(saved_config.get("waterfall_bar_width", 0.7)),
             step=0.05,
-            key=f"waterfall_bar_width_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_bar_width"),
         )
         opacity = st.slider(
             "Bar opacity",
@@ -127,7 +129,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=1.0,
             value=float(saved_config.get("waterfall_opacity", 0.9)),
             step=0.05,
-            key=f"waterfall_opacity_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_opacity"),
         )
 
     st.markdown("#### Meaning colors")
@@ -136,19 +138,19 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
         increasing_color = st.color_picker(
             "Increase",
             value=str(saved_config.get("waterfall_increasing_color", "#2ca02c")),
-            key=f"waterfall_increasing_color_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_increasing_color"),
         )
     with decreasing_column:
         decreasing_color = st.color_picker(
             "Decrease",
             value=str(saved_config.get("waterfall_decreasing_color", "#d62728")),
-            key=f"waterfall_decreasing_color_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_decreasing_color"),
         )
     with semantic_total_column:
         total_color = st.color_picker(
             "Absolute and total",
             value=str(saved_config.get("waterfall_total_color", "#4c78a8")),
-            key=f"waterfall_total_color_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.waterfall_total_color"),
         )
 
     return {

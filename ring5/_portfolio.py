@@ -11,6 +11,7 @@ from pathlib import Path
 
 from src.core.common.utils import sanitize_filename
 from src.core.models.visualization.engine import EngineMode
+from src.core.models.visualization.export_options import validate_tex_system
 
 from ring5._session import Session
 from ring5.errors import PortfolioError, Ring5Error
@@ -64,14 +65,24 @@ def render_portfolio(
         for plot in plots:
             # Plot names are free-form and may collide after sanitization —
             # disambiguate with the (unique) plot id instead of overwriting.
-            stem = sanitize_filename(plot.name)
-            if stem in used_names:
-                stem = f"{stem}_{plot.plot_id}"
-            used_names.add(stem)
+            base = sanitize_filename(plot.name) or "plot"
+            stem = base
+            suffix = 0
+            while stem.casefold() in used_names:
+                suffix += 1
+                stem = f"{base}_{plot.plot_id}" + (f"_{suffix}" if suffix > 1 else "")
+            used_names.add(stem.casefold())
             target = out / f"{stem}.{effective_fmt}"
             try:
                 fig = session.render(plot, engine=engine)
-                written.append(session.export(fig, str(target), deterministic=deterministic))
+                written.append(
+                    session.export(
+                        fig,
+                        str(target),
+                        deterministic=deterministic,
+                        tex_system=validate_tex_system(plot.config.get("tex_system", "xelatex")),
+                    )
+                )
             except (OSError, ValueError, Ring5Error) as exc:
                 raise PortfolioError(
                     f"Rendering plot '{plot.name}' from portfolio '{name}' failed: {exc}"

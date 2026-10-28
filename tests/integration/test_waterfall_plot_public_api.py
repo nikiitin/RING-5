@@ -31,7 +31,9 @@ def test_public_waterfall_renders_exact_semantics_in_both_engines() -> None:
     }
 
     with ring5.Session() as session:
-        plot = session.create_plot("waterfall", data=data, config=config, name="Balance bridge")
+        plot = session.create_plot(
+            "waterfall", data=ring5.Table(data), config=config, name="Balance bridge"
+        )
         plotly_figure = session.render(plot, engine="plotly")
         matplotlib_figure = session.render(plot, engine="matplotlib")
 

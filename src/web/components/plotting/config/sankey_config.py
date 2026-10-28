@@ -7,9 +7,12 @@ from collections.abc import Sequence
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import detect_column_types
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _ARRANGEMENTS = {
     "Snap nodes into columns": "snap",
@@ -33,10 +36,6 @@ def _index(options: Sequence[object], saved: object, fallback: int = 0) -> int:
     return options.index(saved) if saved in options else fallback
 
 
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
-
-
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
     # [impl->req~ring5.plot.sankey~1]
     """Render mappings plus plain-language labels, colors, and layout controls."""
@@ -48,7 +47,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Source nodes",
             options=all_columns,
             index=_index(all_columns, saved_config.get("sankey_source")),
-            key=f"sankey_source_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_source"),
         )
         target: str = st.selectbox(
             "Target nodes",
@@ -56,20 +55,20 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             index=_index(
                 all_columns, saved_config.get("sankey_target"), min(1, len(all_columns) - 1)
             ),
-            key=f"sankey_target_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_target"),
         )
         value: str = st.selectbox(
             "Flow value",
             options=numeric_cols,
             index=_index(numeric_cols, saved_config.get("sankey_value")),
-            key=f"sankey_value_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_value"),
         )
         label_options: list[str | None] = [None, *all_columns]
         link_label: str | None = st.selectbox(
             "Link label (optional)",
             options=label_options,
             index=_index(label_options, saved_config.get("sankey_label")),
-            key=f"sankey_label_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_label"),
         )
     with label_column:
         label_config = PlotConfigComponents.render_title_labels_section(
@@ -88,48 +87,50 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Node labels",
             options=list(_LABEL_MODES),
             index=list(_LABEL_MODES).index(
-                _saved_label(_LABEL_MODES, saved_config.get("sankey_label_mode"), "Node names")
+                saved_option_label(
+                    _LABEL_MODES, saved_config.get("sankey_label_mode"), "Node names"
+                )
             ),
-            key=f"sankey_label_mode_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_label_mode"),
         )
         show_link_labels = st.checkbox(
             "Show labels on links",
             value=bool(saved_config.get("sankey_show_link_labels", bool(link_label))),
             disabled=link_label is None,
-            key=f"sankey_show_link_labels_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_show_link_labels"),
         )
         number_format = st.text_input(
             "Flow number format",
             value=str(saved_config.get("sankey_number_format", ".4g")),
             help="Used when node labels include totals.",
-            key=f"sankey_number_format_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_number_format"),
         )
     with arrangement_column:
         arrangement_choice = st.selectbox(
             "Node arrangement",
             options=list(_ARRANGEMENTS),
             index=list(_ARRANGEMENTS).index(
-                _saved_label(
+                saved_option_label(
                     _ARRANGEMENTS,
                     saved_config.get("sankey_arrangement"),
                     "Snap nodes into columns",
                 )
             ),
-            key=f"sankey_arrangement_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_arrangement"),
         )
         node_pad = st.slider(
             "Space between nodes",
             min_value=0,
             max_value=60,
             value=int(saved_config.get("sankey_node_pad", 15)),
-            key=f"sankey_node_pad_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_node_pad"),
         )
         node_thickness = st.slider(
             "Node thickness",
             min_value=5,
             max_value=60,
             value=int(saved_config.get("sankey_node_thickness", 20)),
-            key=f"sankey_node_thickness_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_node_thickness"),
         )
 
     st.markdown("#### Flow colors")
@@ -139,19 +140,19 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Link colors",
             options=list(_COLOR_MODES),
             index=list(_COLOR_MODES).index(
-                _saved_label(
+                saved_option_label(
                     _COLOR_MODES,
                     saved_config.get("sankey_color_mode"),
                     "Match each link's source",
                 )
             ),
-            key=f"sankey_color_mode_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_color_mode"),
         )
         link_color = st.color_picker(
             "Single link color",
             value=str(saved_config.get("sankey_link_color", "#7f7f7f")),
             disabled=_COLOR_MODES[color_choice] != "uniform",
-            key=f"sankey_link_color_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_link_color"),
         )
     with style_column:
         link_opacity = st.slider(
@@ -160,12 +161,12 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=1.0,
             value=float(saved_config.get("sankey_link_opacity", 0.35)),
             step=0.05,
-            key=f"sankey_link_opacity_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_link_opacity"),
         )
         node_line_color = st.color_picker(
             "Node border color",
             value=str(saved_config.get("sankey_node_line_color", "#333333")),
-            key=f"sankey_node_line_color_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_node_line_color"),
         )
         node_line_width = st.slider(
             "Node border width",
@@ -173,7 +174,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=5.0,
             value=float(saved_config.get("sankey_node_line_width", 0.5)),
             step=0.5,
-            key=f"sankey_node_line_width_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.sankey_node_line_width"),
         )
 
     return {

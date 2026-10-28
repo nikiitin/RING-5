@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.models import BackgroundJobInfo, BackgroundJobLogEntry
+from src.core.models.background_job_models import BackgroundJobInfo, BackgroundJobLogEntry
 from src.core.services.background_job_service import BackgroundJobService
 
 
@@ -229,3 +229,27 @@ def test_public_job_models_are_immutable_and_human_readable() -> None:
     assert info.progress == 1.0
     with pytest.raises(AttributeError):
         info.label = "Changed"  # type: ignore[misc]
+
+
+def test_waiting_close_can_settle_an_already_requested_shutdown() -> None:
+    service = BackgroundJobService(max_workers=1)
+    started = threading.Event()
+    release = threading.Event()
+    finished = threading.Event()
+
+    def work() -> None:
+        started.set()
+        assert release.wait(5)
+        finished.set()
+
+    try:
+        service.submit("export", "Pending export", work, retryable=False)
+        assert started.wait(5)
+        service.close(wait=False)
+        assert not finished.is_set()
+        release.set()
+        service.close(wait=True)
+        assert finished.is_set()
+    finally:
+        release.set()
+        service.close(wait=True)

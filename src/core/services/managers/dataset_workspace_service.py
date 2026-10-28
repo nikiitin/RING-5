@@ -8,7 +8,13 @@ from typing import Literal
 import pandas as pd
 from pandas.errors import MergeError
 
+from src.core.common.source_contributions import without_source_contributions
 from src.core.models.dataset_workspace_models import JoinCardinality, JoinDiagnostics
+from src.core.common.distribution_metadata import (
+    concat_distribution_layouts,
+    inspect_distribution_layouts,
+    with_distribution_layouts,
+)
 
 _JOIN_CARDINALITIES = frozenset({"one_to_one", "one_to_many", "many_to_one", "many_to_many"})
 
@@ -43,7 +49,8 @@ class DatasetWorkspaceService:
             raise ValueError("Append join must be 'outer' or 'inner'.")
         for index, frame in enumerate(frames, start=1):
             cls._validate_columns(frame, f"Dataset {index}")
-        return pd.concat(frames, axis=0, ignore_index=True, join=join, sort=False).copy()
+        result = pd.concat(frames, axis=0, ignore_index=True, join=join, sort=False)
+        return without_source_contributions(concat_distribution_layouts(frames, result))
 
     @classmethod
     def join(
@@ -73,13 +80,14 @@ class DatasetWorkspaceService:
         # [impl->req~ring5.data.multi-dataset-workspace~1]
         keys = cls._validate_join_inputs(left, right, on, how=how, suffixes=suffixes)
         try:
-            return left.merge(
+            result = left.merge(
                 right,
                 how=how,
                 on=keys,
                 sort=False,
                 suffixes=suffixes,
-            ).copy()
+            )
+            return without_source_contributions(with_distribution_layouts(result, {}))
         except (KeyError, MergeError, TypeError, ValueError) as exc:
             raise ValueError(f"Datasets cannot be joined: {exc}") from exc
 
@@ -219,6 +227,7 @@ class DatasetWorkspaceService:
 
     @staticmethod
     def _validate_columns(data: pd.DataFrame, label: str) -> None:
+        inspect_distribution_layouts(data)
         if any(not isinstance(column, str) or not column for column in data.columns):
             raise ValueError(f"{label} requires non-empty string column names.")
         if data.columns.duplicated().any():

@@ -1,9 +1,9 @@
 """
 Integration test for histogram variables with vector-style statistics.
 
-This test specifically addresses the case where gem5 outputs histogram data
-with statistical summary lines (::samples, ::mean, ::gmean, ::stdev, ::total)
-that look like vector entries but should be treated as part of the histogram.
+Native frequency labels and statistical summaries can satisfy both Histogram
+and Vector decoder contracts. Scanning retains that ambiguity; parsing uses
+an explicit compatible source/output declaration and preserves actual entries.
 
 Example from gem5 output:
     system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles::samples     256
@@ -13,16 +13,15 @@ Example from gem5 output:
     ...
 """
 
-from collections.abc import Sequence
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, cast
 
-import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.data_models import ParseVariableConfig
-from src.core.models.parsing_models import StatConfig
+from src.core.models.source_evidence import source_kind_candidates
 
 
 class TestHistogramWithStatistics:
@@ -42,14 +41,18 @@ class TestHistogramWithStatistics:
         return path
 
     @pytest.fixture
-    def facade(self) -> ApplicationAPI:
+    def facade(self) -> Generator[ApplicationAPI, None, None]:
         """Create facade instance."""
-        return ApplicationAPI()
+        api = ApplicationAPI()
+        try:
+            yield api
+        finally:
+            api.close(wait=True)
 
     def test_scan_htm_transaction_commit_cycles(
         self, facade: ApplicationAPI, stats_dir: Path
     ) -> None:
-        """Test scanning detects htm_transaction_commit_cycles as histogram."""
+        """Retain the compatible Histogram and Vector contracts without guessing."""
         # Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
@@ -62,7 +65,8 @@ class TestHistogramWithStatistics:
         )
 
         assert htm_var is not None, "htm_transaction_commit_cycles not found in scan"
-        assert htm_var.type == "histogram", f"Expected histogram type, got {htm_var.type}"
+        assert htm_var.type is None
+        assert source_kind_candidates(htm_var.source_evidence) == {"histogram", "vector"}
 
         # Check that both bucket entries and statistics are present
         entries = htm_var.entries or []
@@ -95,27 +99,25 @@ class TestHistogramWithStatistics:
         output_dir = tmp_path / "hist_stats_output"
         output_dir.mkdir()
 
-        variables: list[dict[str, Any]] = [
+        variables: list[ParseVariableConfig] = [
             {
                 "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                 "type": "histogram",
-                "useSpecialMembers": True,
-                "statistics": ["samples", "mean", "total"],
+                "params": {"source_type": "histogram", "statistics": ["samples", "mean", "total"]},
             }
         ]
 
         parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            cast("Sequence[ParseVariableConfig | StatConfig]", variables),
+            facade.compile_parse_variables(variables),
             str(output_dir),
             scanned_vars=vars_found,
         )
 
         parse_results = [f.result() for f in parse_batch.futures]
-        csv_path = facade.finalize_parsing(
-            str(output_dir), parse_results, var_names=parse_batch.var_names
-        )
+        parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         assert csv_path is not None, "Parsing failed"
         assert Path(csv_path).exists(), f"CSV file not created: {csv_path}"
@@ -141,33 +143,31 @@ class TestHistogramWithStatistics:
         output_dir.mkdir()
 
         pattern = r"system.ruby.l\d+_cntrl\d+.xact_mgr.htm_transaction_commit_cycles"
-        variables: list[dict[str, Any]] = [
+        variables: list[ParseVariableConfig] = [
             {
                 "name": pattern,
                 "type": "histogram",
-                "useSpecialMembers": True,
-                "statistics": ["samples", "mean", "total"],
+                "params": {"source_type": "histogram", "statistics": ["samples", "mean", "total"]},
             }
         ]
 
         parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            cast("Sequence[ParseVariableConfig | StatConfig]", variables),
+            facade.compile_parse_variables(variables),
             str(output_dir),
             scanned_vars=vars_found,
         )
 
         parse_results = [f.result() for f in parse_batch.futures]
-        csv_path = facade.finalize_parsing(
-            str(output_dir), parse_results, var_names=parse_batch.var_names
-        )
+        parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         assert csv_path is not None, "Parsing with regex pattern failed"
         assert Path(csv_path).exists(), f"CSV file not created: {csv_path}"
 
         # Verify data was parsed
-        df = pd.read_csv(csv_path)
+        df = ParsedOutputIO.to_frame(parsed_output)
         assert len(df) > 0, "No data in parsed CSV"
 
         # Check that columns were created for the histogram
@@ -180,7 +180,7 @@ class TestHistogramWithStatistics:
         """
         Test that both histogram buckets and statistics are correctly parsed.
 
-        When useSpecialMembers=True with specific statistics, those statistics
+        When additional statistics are selected, those statistics
         should appear as columns in the output CSV.
         """
         # Scan
@@ -192,32 +192,30 @@ class TestHistogramWithStatistics:
         output_dir = tmp_path / "hist_explicit_stats_output"
         output_dir.mkdir()
 
-        variables: list[dict[str, Any]] = [
+        variables: list[ParseVariableConfig] = [
             {
                 "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                 "type": "histogram",
-                "useSpecialMembers": True,
-                "statistics": ["samples", "mean"],
+                "params": {"source_type": "histogram", "statistics": ["samples", "mean"]},
             }
         ]
 
         parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            cast("Sequence[ParseVariableConfig | StatConfig]", variables),
+            facade.compile_parse_variables(variables),
             str(output_dir),
             scanned_vars=vars_found,
         )
 
         parse_results = [f.result() for f in parse_batch.futures]
-        csv_path = facade.finalize_parsing(
-            str(output_dir), parse_results, var_names=parse_batch.var_names
-        )
+        parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         assert csv_path is not None
 
         # Read and verify
-        df = pd.read_csv(csv_path)
+        df = ParsedOutputIO.to_frame(parsed_output)
 
         # Should have columns for the requested statistics
         expected_stats = [

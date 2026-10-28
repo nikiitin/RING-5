@@ -1,3 +1,4 @@
+from ring5 import Session
 from typing import Any, cast
 
 import pandas as pd
@@ -26,7 +27,7 @@ def sample_data() -> DataFrame:
 
 
 class TestLinePlot:
-    def test_create_figure(self, sample_data: Any) -> None:
+    def test_create_figure(self, sample_data: Any, plot_session: Session) -> None:
 
         plot = LinePlot(1, "Test Line")
         config = {
@@ -39,16 +40,18 @@ class TestLinePlot:
             "show_error_bars": True,
         }
 
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert isinstance(fig, go.Figure)
-        # Title/xlabel/ylabel are applied by the style chain, not create_figure()
+        # Each color group retains its own measured trace.
         # Check traces (should be 2, one for Low, one for High due to color split)
         assert len(list(fig.data)) == 2
 
 
 class TestScatterPlot:
-    def test_create_figure(self, sample_data: Any) -> None:
+    def test_create_figure(self, sample_data: Any, plot_session: Session) -> None:
 
         plot = ScatterPlot(2, "Test Scatter")
         config = {
@@ -60,7 +63,9 @@ class TestScatterPlot:
             "ylabel": "Val2",
         }
 
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert isinstance(fig, go.Figure)
         # Check traces (3 benchmarks -> 3 traces)
@@ -68,7 +73,7 @@ class TestScatterPlot:
 
 
 class TestGroupedStackedBarPlot:
-    def test_create_figure_grouped(self, sample_data: Any) -> None:
+    def test_create_figure_grouped(self, sample_data: Any, plot_session: Session) -> None:
 
         plot = GroupedStackedBarPlot(3, "Test GSB")
         config = {
@@ -81,7 +86,9 @@ class TestGroupedStackedBarPlot:
             "show_error_bars": False,
         }
 
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert isinstance(fig, go.Figure)
         assert fig.to_plotly_json()["layout"]["barmode"] == "stack"
@@ -100,7 +107,7 @@ class TestGroupedStackedBarPlot:
         assert totals is not None
         assert total_A_Low in totals
 
-    def test_create_figure_simple_stack(self, sample_data: Any) -> None:
+    def test_create_figure_simple_stack(self, sample_data: Any, plot_session: Session) -> None:
         """Test without sub-grouping."""
         plot = GroupedStackedBarPlot(4, "Simple Stack")
         config = {
@@ -111,7 +118,9 @@ class TestGroupedStackedBarPlot:
             "ylabel": "V",
         }
 
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert len(list(fig.data)) == 2
         # x axis should simply be the Benchmark column

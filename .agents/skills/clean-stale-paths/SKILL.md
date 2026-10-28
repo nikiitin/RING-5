@@ -5,15 +5,16 @@ description: Sweep code and docs for dead, duplicated, or stale paths/symbols an
 
 # Clean dead / duplicated / stale paths (code + docs)
 
-RING-5 has **one canonical way** to do everything ([[substitute-not-adapt-ring5]]). Anything that
+RING-5 has **one canonical contract** per operation and document kind (see [AGENTS.md](../../../AGENTS.md)). Anything that
 points at a path/symbol that no longer exists — or documents a removed feature as if it's current —
 is cruft. This skill finds and removes it, in both code and docs, and enforces the canon-only doc
-rule ([[ring5-docs-canon-only]]).
+rule defined in AGENTS.md.
 
 ## Method (the sweep that actually works)
-1. **Extract every cited path and test it for existence.** This single heuristic surfaces most rot:
+1. **Extract cited paths and test them for existence.** Treat this as a first pass, not proof that
+   a subsystem is unused:
    ```bash
-   { grep -rhoE "src/[A-Za-z0-9_./]+" docs/ AGENTS.md .agents/skills/ 2>/dev/null; } \
+   rg -o --no-filename 'src/[A-Za-z0-9_./]+' docs/ AGENTS.md .agents/skills/ \
      | sed -E 's/[.,:;`)"]+$//' | sort -u \
      | while read -r p; do [ -e "$p" ] || echo "MISSING: $p"; done
    ```
@@ -24,17 +25,21 @@ rule ([[ring5-docs-canon-only]]).
    - **Grep artifact** — a real file with a stripped suffix/symbol (`common/utils` → `utils.py`,
      `trace_to_` → `trace_to_plotly.py`, `_connector_protocol.STYLING_PIPELINE_ORDER`). → keep.
    Confirm the bucket by checking which file cites it:
-   `grep -rlF "<path>" docs/ AGENTS.md`.
-3. **Find the real location** for stale ones: `find src -name "<file>.py"` /
-   `grep -rn "class <Name>" src/`.
+   `rg -l -F "<path>" docs/ AGENTS.md .agents/skills/`.
+3. **Find the real location** for stale ones with `rg --files` and `rg -n "class <Name>" src/`.
 4. **Removed entirely vs. moved:**
    - Moved → repoint the path.
-   - Removed (no class/symbol anywhere in `src/`; a stray `__pycache__/*.pyc` with **no** sibling
-     `.py` proves the source was deleted) → **delete the doc section**. Do not leave a tombstone.
+   - Removed → verify the tracked source, imports, registries, public exports, CLI entry points,
+     callbacks, subprocess assets and packaging declarations before deleting its current guide.
+     Compiled caches are not evidence of the supported source contract.
 5. **Code-side cruft** — dead/duplicate modules and **legacy aliases/shims**. Removing these is a
    refactor: migrate **all** importers + tests to the canonical name first, then delete (substitute,
-   don't adapt). `grep -rn "<oldname>" src/ tests/` before deleting. (Verify the alias is real first —
-   a `from X import Canonical as OldName` inside a test file is a local cosmetic, not a production shim.)
+   don't adapt). Search tracked source, tests, docs, scripts and configuration with `rg` before
+   deleting. Verify callers through string references and dynamic registration too. (Verify the alias is real first —
+   a `from X import Canonical as OldName` inside a test file is a local binding, not a production shim.)
+   Current simulator variants, output-column naming and revision history remain supported features;
+   their presence alone does not establish a legacy execution path.
+   ARM64 is untested and may be unavailable; preserve its reviewed manifest entries.
 
 ## Canon-only docs (enforce while you're in there)
 - Docs and AGENTS.md state **only the current canonical way**, present tense. Delete "an earlier
@@ -46,15 +51,14 @@ rule ([[ring5-docs-canon-only]]).
 ## Verify after (must all be clean)
 ```bash
 # 1. re-run the existence sweep — only legit examples / history / artifacts may remain
-{ grep -rhoE "src/[A-Za-z0-9_./]+" docs/ AGENTS.md 2>/dev/null; } | sed -E 's/[.,:;`)"]+$//' | sort -u \
+rg -o --no-filename 'src/[A-Za-z0-9_./]+' docs/ AGENTS.md .agents/skills/ | sed -E 's/[.,:;`)"]+$//' | sort -u \
   | while read -r p; do [ -e "$p" ] || echo "MISSING: $p"; done
 # 2. removed symbols gone from docs (example)
-grep -rnE "RingConfig|ConfigValidationService|PlotInteractionService" docs/
-# 3. no dangling anchors to removed sections
-grep -rniE "deprecated.shim|backward.compat" docs/ | grep -v history.md
+rg -n 'RingConfig|ConfigValidationService|PlotInteractionService' docs/
+# 3. inspect compatibility/history wording outside the history document
+rg -ni 'deprecated.shim|backward.compat' docs/ -g '!history.md'
 ```
-Then update `MEMORY.md` / the relevant memory ([[ring5-doc-debt-followup]]) so the next sweep starts
-from the new baseline.
+Record durable contracts in the repository developer guide.
 
 ## Keep this skill sharp
 Canon, not history — edit in place when the method improves:

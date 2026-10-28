@@ -9,11 +9,16 @@ Tests exercise boundary conditions, malformed inputs, and unusual
 but valid combinations that are unlikely to appear in normal unit tests.
 """
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
+from src.core.models.parsing_models import SourceInstance
 from pathlib import Path
 from typing import cast
 from unittest.mock import patch
 
 import pytest
+import math
 
 from src.core.models.data_models import SavedConfigData, SavedConfigEntry
 from src.core.models.shaper_models import ShaperStepConfig
@@ -22,7 +27,6 @@ from src.core.services.data_services.config_service import ConfigService
 
 # Helper: Minimal ScannedVariable dataclass
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
-from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.gem5.types.distribution import Distribution
 from src.parsing.gem5.types.histogram import Histogram
 
@@ -34,17 +38,11 @@ class TestDistributionHistogramEdgeCases:
 
     def test_distribution_basic_processing(self) -> None:
         """Distribution processes a valid set of buckets."""
-        dist = Distribution(repeat=1, minimum=0, maximum=4)
+        dist = Distribution(repeat=1, minimum=0, maximum=4, bucket_size=1, zero_policy="missing")
 
-        dist.content = {
-            "underflows": 0,
-            "overflows": 5,
-            "0": 10,
-            "1": 20,
-            "2": 30,
-            "3": 15,
-            "4": 25,
-        }
+        dist.add_observation(
+            {"underflows": 0, "overflows": 5, "0": 10, "1": 20, "2": 30, "3": 15, "4": 25}
+        )
         dist.balance_content()
         dist.reduce_duplicates()
 
@@ -56,24 +54,12 @@ class TestDistributionHistogramEdgeCases:
 
     def test_distribution_with_repeats(self) -> None:
         """Distribution averages across repeated dumps."""
-        dist = Distribution(repeat=2, minimum=0, maximum=2)
+        dist = Distribution(repeat=2, minimum=0, maximum=2, bucket_size=1, zero_policy="missing")
 
         # First dump
-        dist.content = {
-            "underflows": 0,
-            "overflows": 0,
-            "0": 10,
-            "1": 20,
-            "2": 30,
-        }
+        dist.add_observation({"underflows": 0, "overflows": 0, "0": 10, "1": 20, "2": 30})
         # Second dump
-        dist.content = {
-            "underflows": 0,
-            "overflows": 0,
-            "0": 20,
-            "1": 40,
-            "2": 60,
-        }
+        dist.add_observation({"underflows": 0, "overflows": 0, "0": 20, "1": 40, "2": 60})
         dist.balance_content()
         dist.reduce_duplicates()
 
@@ -86,17 +72,13 @@ class TestDistributionHistogramEdgeCases:
     def test_distribution_maximum_too_large(self) -> None:
         """Distribution raises on absurdly large range."""
         with pytest.raises(ValueError, match="100000"):
-            Distribution(repeat=1, minimum=0, maximum=200_000)
+            Distribution(repeat=1, minimum=0, maximum=200_000, bucket_size=1, zero_policy="missing")
 
     def test_histogram_basic_processing(self) -> None:
         """Histogram processes range-keyed buckets."""
         hist = Histogram(repeat=1)
 
-        hist.content = {
-            "0-1023": 100,
-            "1024-2047": 200,
-            "2048-4095": 50,
-        }
+        hist.add_observation({"0-1023": 100, "1024-2047": 200, "2048-4095": 50})
         hist.balance_content()
         hist.reduce_duplicates()
 
@@ -109,8 +91,8 @@ class TestDistributionHistogramEdgeCases:
         """Histogram averages across repeats."""
         hist = Histogram(repeat=2)
 
-        hist.content = {"0-1023": 100, "1024-2047": 200}
-        hist.content = {"0-1023": 300, "1024-2047": 400}
+        hist.add_observation({"0-1023": 100, "1024-2047": 200})
+        hist.add_observation({"0-1023": 300, "1024-2047": 400})
 
         hist.balance_content()
         hist.reduce_duplicates()
@@ -119,17 +101,16 @@ class TestDistributionHistogramEdgeCases:
         assert result["0-1023"] == 200.0  # (100+300)/2
         assert result["1024-2047"] == 300.0  # (200+400)/2
 
-    def test_distribution_missing_boundaries_raises(self) -> None:
-        """Distribution raises when boundary buckets are missing."""
-        dist = Distribution(repeat=1, minimum=0, maximum=2)
+    def test_distribution_missing_tails_remain_missing(self) -> None:
+        """Missing policy retains omitted tails without inventing measurements."""
+        dist = Distribution(repeat=1, minimum=0, maximum=2, bucket_size=1, zero_policy="missing")
 
-        with pytest.raises((TypeError, RuntimeError)):
-            dist.content = {
-                # Missing underflows/overflows
-                "0": 10,
-                "1": 20,
-                "2": 30,
-            }
+        dist.add_observation({"0": 10, "1": 20, "2": 30})
+        assert dist.missing_measurement_count == 2
+        dist.balance_content()
+        dist.reduce_duplicates()
+        assert math.isnan(dist.reduced_content["underflows"])
+        assert math.isnan(dist.reduced_content["overflows"])
 
 
 # Test Class 2: Config service delete/reload cycle
@@ -177,7 +158,12 @@ class TestConfigServiceEdgeCases:
 
         # Valid config
         valid = config_dir / "valid.json"
-        valid.write_text('{"name": "valid", "description": "ok", "shapers": []}')
+        valid.write_text(
+            (
+                '{"format": "ring5.pipeline-configuration", "schema_version":'
+                ' 1, "name": "valid", "description": "ok", "shapers": []}'
+            )
+        )
 
         # Invalid JSON
         invalid = config_dir / "corrupt.json"
@@ -224,9 +210,27 @@ class TestPatternAggregatorEdgeCases:
     def test_simple_cpu_aggregation(self) -> None:
         r"""cpu0/cpu1/cpu2 collapse into cpu\d+ pattern."""
         variables: list[ScannedVariable] = [
-            ScannedVariable(name="system.cpu0.numCycles", type="scalar", entries=[]),
-            ScannedVariable(name="system.cpu1.numCycles", type="scalar", entries=[]),
-            ScannedVariable(name="system.cpu2.numCycles", type="scalar", entries=[]),
+            ScannedVariable(
+                name="system.cpu0.numCycles",
+                type="scalar",
+                entries=[],
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+                instances=(SourceInstance("system.cpu0.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu1.numCycles",
+                type="scalar",
+                entries=[],
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+                instances=(SourceInstance("system.cpu1.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu2.numCycles",
+                type="scalar",
+                entries=[],
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+                instances=(SourceInstance("system.cpu2.numCycles", ()),),
+            ),
         ]
 
         result: list[ScannedVariable] = PatternAggregator.aggregate_patterns(variables)
@@ -237,14 +241,30 @@ class TestPatternAggregatorEdgeCases:
         assert pattern_vars[0].name == r"system.cpu\d+.numCycles"
         # Type promoted to vector
         assert pattern_vars[0].type == "vector"
-        # Entries are the numeric IDs
-        assert sorted(pattern_vars[0].entries) == ["0", "1", "2"]
+        assert pattern_vars[0].entries == []
+        assert pattern_vars[0].instances == (
+            SourceInstance("system.cpu0.numCycles", ("0",)),
+            SourceInstance("system.cpu1.numCycles", ("1",)),
+            SourceInstance("system.cpu2.numCycles", ("2",)),
+        )
 
     def test_no_aggregation_for_single_instance(self) -> None:
         """Single-instance variables are NOT aggregated."""
         variables: list[ScannedVariable] = [
-            ScannedVariable(name="system.cpu0.numCycles", type="scalar", entries=[]),
-            ScannedVariable(name="system.memctrl.readReqs", type="scalar", entries=[]),
+            ScannedVariable(
+                name="system.cpu0.numCycles",
+                type="scalar",
+                entries=[],
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+                instances=(SourceInstance("system.cpu0.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.memctrl.readReqs",
+                type="scalar",
+                entries=[],
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+                instances=(SourceInstance("system.memctrl.readReqs", ()),),
+            ),
         ]
 
         result: list[ScannedVariable] = PatternAggregator.aggregate_patterns(variables)
@@ -262,16 +282,22 @@ class TestPatternAggregatorEdgeCases:
                 name="system.ruby.l0_cntrl0.hits",
                 type="vector",
                 entries=["read", "write"],
+                source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+                instances=(SourceInstance("system.ruby.l0_cntrl0.hits", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l0_cntrl1.hits",
                 type="vector",
                 entries=["read", "write"],
+                source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+                instances=(SourceInstance("system.ruby.l0_cntrl1.hits", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l1_cntrl0.hits",
                 type="vector",
                 entries=["read", "write"],
+                source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+                instances=(SourceInstance("system.ruby.l1_cntrl0.hits", ()),),
             ),
         ]
 
@@ -292,11 +318,15 @@ class TestPatternAggregatorEdgeCases:
                 name="system.cpu0.dcache.hits",
                 type="vector",
                 entries=["demand_accesses", "total"],
+                source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+                instances=(SourceInstance("system.cpu0.dcache.hits", ()),),
             ),
             ScannedVariable(
                 name="system.cpu1.dcache.hits",
                 type="vector",
                 entries=["demand_accesses", "total"],
+                source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+                instances=(SourceInstance("system.cpu1.dcache.hits", ()),),
             ),
         ]
 
@@ -307,22 +337,22 @@ class TestPatternAggregatorEdgeCases:
         assert pattern_vars[0].type == "vector"
         assert "demand_accesses" in pattern_vars[0].entries
 
-    def test_distribution_aggregation_preserves_minmax(self) -> None:
-        """Distribution aggregation takes min of minimums, max of maximums."""
+    def test_distribution_aggregation_preserves_observed_labels(self) -> None:
+        """Distribution aggregation retains observations without declaring a native grid."""
         variables: list[ScannedVariable] = [
-            Gem5ScannedVariable(
+            ScannedVariable(
                 name="system.cpu0.dcache.miss_latency",
                 type="distribution",
-                entries=[],
-                minimum=10.0,
-                maximum=100.0,
+                entries=["10", "100"],
+                source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
+                instances=(SourceInstance("system.cpu0.dcache.miss_latency", ()),),
             ),
-            Gem5ScannedVariable(
+            ScannedVariable(
                 name="system.cpu1.dcache.miss_latency",
                 type="distribution",
-                entries=[],
-                minimum=5.0,
-                maximum=200.0,
+                entries=["5", "200"],
+                source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
+                instances=(SourceInstance("system.cpu1.dcache.miss_latency", ()),),
             ),
         ]
 
@@ -331,10 +361,10 @@ class TestPatternAggregatorEdgeCases:
         pattern_vars: list[ScannedVariable] = [v for v in result if r"\d+" in v.name]
         assert len(pattern_vars) == 1
         pv = pattern_vars[0]
-        assert isinstance(pv, Gem5ScannedVariable)
+        assert isinstance(pv, ScannedVariable)
         assert pv.type == "distribution"
-        assert pv.minimum == 5.0  # min of (10, 5)
-        assert pv.maximum == 200.0  # max of (100, 200)
+        assert set(pv.entries) == {"5", "10", "100", "200"}
+        assert "minimum" not in pv.to_dict() and "maximum" not in pv.to_dict()
 
     def test_empty_input_returns_empty(self) -> None:
         """Empty variable list returns empty result."""
@@ -344,8 +374,20 @@ class TestPatternAggregatorEdgeCases:
     def test_no_numeric_patterns(self) -> None:
         """Variables without numeric components are returned as-is."""
         variables: list[ScannedVariable] = [
-            ScannedVariable(name="system.memctrl.readReqs", type="scalar", entries=[]),
-            ScannedVariable(name="system.memctrl.writeReqs", type="scalar", entries=[]),
+            ScannedVariable(
+                name="system.memctrl.readReqs",
+                type="scalar",
+                entries=[],
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+                instances=(SourceInstance("system.memctrl.readReqs", ()),),
+            ),
+            ScannedVariable(
+                name="system.memctrl.writeReqs",
+                type="scalar",
+                entries=[],
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+                instances=(SourceInstance("system.memctrl.writeReqs", ()),),
+            ),
         ]
 
         result: list[ScannedVariable] = PatternAggregator.aggregate_patterns(variables)

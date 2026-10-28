@@ -18,11 +18,6 @@ Usage::
 from __future__ import annotations
 
 import os
-import signal
-import socket
-import subprocess
-import sys
-import time
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any, cast
@@ -30,13 +25,17 @@ from typing import Any, cast
 import pytest
 from playwright.sync_api import (
     Browser,
-    BrowserContext,
     Page,
-    TimeoutError as PlaywrightTimeoutError,
     expect,
 )
 
 # Page objects — reuse from visual tests
+from tests.helpers.browser_capture import (
+    capture_failure_artifacts,
+    save_setup_failure,
+    shared_page_capture,
+)
+from tests.helpers.streamlit_server import free_loopback_port, running_streamlit
 from tests.visual.pages.base_page import BasePage
 from tests.visual.pages.data_managers_page import DataManagersPage
 from tests.visual.pages.data_source_page import DataSourcePage
@@ -46,11 +45,9 @@ from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
 _ROOT_DIR: Path = Path(__file__).parents[2]
 _APP_PY: Path = _ROOT_DIR / "app.py"
-_PYTHON: str = sys.executable
 _FIXTURES_DIR: Path = Path(__file__).parent / "fixtures"
 _ARTIFACTS_DIR: Path = Path(__file__).parent / "artifacts"
 _E2E_CSV: Path = _FIXTURES_DIR / "sample_data.csv"
-_LOOPBACK_HOST = "127.0.0.1"
 
 # Timeouts
 LOAD_TIMEOUT: int = 30_000
@@ -68,25 +65,6 @@ EXPORT_TIMEOUT: int = 90_000
 
 
 # Helpers
-
-
-def _free_port() -> int:
-    """Return a free IPv4 loopback TCP port."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((_LOOPBACK_HOST, 0))
-        return int(s.getsockname()[1])
-
-
-def _wait_for_server(port: int, *, timeout: float = 30.0) -> None:
-    """Block until *http://localhost:<port>* responds or timeout expires."""
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        try:
-            with socket.create_connection((_LOOPBACK_HOST, port), timeout=1.0):
-                return
-        except OSError:
-            time.sleep(0.5)
-    raise TimeoutError(f"Streamlit server did not start within {timeout}s on port {port}")
 
 
 # Session-scoped: server lifecycle
@@ -122,52 +100,35 @@ def _isolated_data_dir(tmp_path_factory: pytest.TempPathFactory) -> Generator[No
 @pytest.fixture(scope="session")
 def _streamlit_port() -> int:
     """Choose a free port once per session."""
-    return _free_port()
+    return free_loopback_port()
 
 
 @pytest.fixture(scope="session")
-def live_server_url(_streamlit_port: int, _isolated_data_dir: None) -> Generator[str]:
+def browser_stats_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Own writable synthetic simulator sources outside the frozen checkout."""
+    return tmp_path_factory.mktemp("browser-stats")
+
+
+@pytest.fixture(scope="session")
+def live_server_url(
+    _streamlit_port: int, _isolated_data_dir: None, browser_stats_root: Path
+) -> Generator[str]:
     """Start a Streamlit server and yield its base URL.
 
     Depends on ``_isolated_data_dir`` so ``RING5_DATA_DIR`` is exported before the
     server subprocess (which inherits ``os.environ``) starts.
     """
-    port = _streamlit_port
-    cmd = [
-        _PYTHON,
-        "-m",
-        "streamlit",
-        "run",
-        str(_APP_PY),
-        "--server.port",
-        str(port),
-        "--server.address",
-        _LOOPBACK_HOST,
-        "--server.headless",
-        "true",
-        "--server.fileWatcherType",
-        "none",
-        "--browser.gatherUsageStats",
-        "false",
-    ]
-    proc = subprocess.Popen(
-        cmd,
-        cwd=str(_ROOT_DIR),
-        # Inherit the test runner's streams so application startup/runtime
-        # failures remain visible in CI.  A pipe cannot be used here because
-        # this long-lived process has no consumer and can deadlock once its
-        # buffer fills.
-    )
-    try:
-        _wait_for_server(port)
-        yield f"http://{_LOOPBACK_HOST}:{port}"
-    finally:
-        proc.send_signal(signal.SIGTERM)
-        try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=5)
+    allowed_roots = [_ROOT_DIR.resolve(), browser_stats_root.resolve()]
+    private_fixtures = _ROOT_DIR / "tests" / "data"
+    if private_fixtures.is_dir():
+        # Local acceptance uses a symlink to the independently copied fixture corpus.
+        allowed_roots.append(private_fixtures.resolve())
+    environment = {
+        "RING5_ALLOWED_STATS_ROOTS": os.pathsep.join(str(root) for root in allowed_roots),
+        "RING5_ALLOWED_REMOTE_HOSTS": "",
+    }
+    with running_streamlit(_APP_PY, port=_streamlit_port, environment=environment) as url:
+        yield url
 
 
 # Browser / page configuration
@@ -207,12 +168,12 @@ def browser_type_launch_args(
 def shared_page(
     browser: Browser,
     browser_context_args: dict[str, object],
+    request: pytest.FixtureRequest,
 ) -> Generator[Page]:
     """Class-scoped page — one browser tab shared across all tests in a class."""
     context = browser.new_context(**cast(Any, browser_context_args))
-    page = context.new_page()
-    yield page
-    context.close()
+    with shared_page_capture(context, request.node) as page:
+        yield page
 
 
 # State isolation — clean slate per test class
@@ -247,51 +208,20 @@ def _reset_app_state(shared_page: Page, live_server_url: str) -> Generator[None]
 
 @pytest.fixture(autouse=True)
 def _capture_failure_artifacts(request: pytest.FixtureRequest) -> Generator[None]:
-    """Auto-capture screenshot on test failure."""
-    tracing = os.environ.get("TRACING", "").lower() in ("1", "true", "yes")
-
-    if "shared_page" in request.fixturenames:
-        active_page: Page = request.getfixturevalue("shared_page")
-    elif "page" in request.fixturenames:
-        active_page = request.getfixturevalue("page")
-    else:
+    """Capture failure artifacts through the suite's single page/trace owner."""
+    with capture_failure_artifacts(request, _ARTIFACTS_DIR):
         yield
-        return
-
-    context: BrowserContext = active_page.context
-    if tracing:
-        context.tracing.start(screenshots=True, snapshots=True, sources=True)
-
-    yield
-
-    rep_call = getattr(request.node, "rep_call", None)
-    if rep_call is not None and rep_call.failed:
-        _ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-        test_name = request.node.name
-        if not active_page.is_closed():
-            try:
-                active_page.screenshot(
-                    path=str(_ARTIFACTS_DIR / f"{test_name}_failure.png"),
-                    full_page=True,
-                    timeout=10_000,
-                )
-            except PlaywrightTimeoutError:
-                # Failure diagnostics must never hold the E2E job open.
-                pass
-        if tracing:
-            context.tracing.stop(path=str(_ARTIFACTS_DIR / f"{test_name}_trace.zip"))
-    elif tracing:
-        context.tracing.stop()
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item) -> Generator[None]:
-    """Store test result on node for ``_capture_failure_artifacts``."""
+    """Store reports and retain class setup failures before function capture."""
     import pluggy
 
     outcome: pluggy.Result = yield  # type: ignore[assignment]
     rep = outcome.get_result()
     setattr(item, f"rep_{rep.when}", rep)
+    save_setup_failure(item, rep, _ARTIFACTS_DIR)
 
 
 # Fixture path

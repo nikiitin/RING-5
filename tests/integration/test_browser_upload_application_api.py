@@ -1,11 +1,14 @@
 """Application-boundary tests for browser upload confirmation."""
 
 from __future__ import annotations
+from src.core.common.typed_table_codec import TypedTableCodec
 
 import json
 from pathlib import Path
 
 import pandas as pd
+
+from tests.helpers.portfolios import portfolio_document
 
 from src.core.application_api import ApplicationAPI
 
@@ -28,15 +31,9 @@ def test_upload_is_non_mutating_until_confirmed_load_or_restore() -> None:
         assert loaded.to_dict("records") == [{"benchmark": "alpha", "ipc": 1.25}]
 
         portfolio_bytes = json.dumps(
-            {
-                "schema_version": 3,
-                "data_csv": "benchmark,ipc\nbeta,2.5\n",
-                "plots": [],
-                "plot_counter": 0,
-                "config": {},
-                "parse_variables": [],
-                "use_parser": False,
-            }
+            portfolio_document(
+                data=TypedTableCodec.encode(pd.DataFrame({"benchmark": ["beta"], "ipc": [2.5]}))
+            )
         ).encode()
         portfolio = api.inspect_browser_upload(
             "analysis.json",

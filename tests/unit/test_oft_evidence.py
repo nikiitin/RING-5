@@ -2,10 +2,15 @@
 
 from pathlib import Path
 from typing import Any
+import zipfile
+
+import pytest
 
 from scripts.oft_evidence import (
     collect_documentation_markers,
+    collect_evidence_markers,
     collect_python_markers,
+    evidence_source_paths,
     validate_source_evidence,
 )
 
@@ -96,3 +101,56 @@ def test_validation_requires_exact_registered_markers(tmp_path: Path) -> None:
     errors = validate_source_evidence(inventory, tmp_path)
     assert any("lacks a precise locator" in error for error in errors)
     assert any("unregistered test marker" in error for error in errors)
+
+
+@pytest.mark.parametrize("suite", ["e2e", "visual"])
+def test_diagnostic_archives_and_extracted_sources_never_supply_evidence(
+    tmp_path: Path, suite: str
+) -> None:
+    """Retained browser diagnostics cannot add or replace current evidence."""
+    current = tmp_path / "tests" / "current.py"
+    current.parent.mkdir()
+    current.write_text(f"def test_current():\n    # {_source_tag('test')}\n    pass\n")
+    diagnostics = tmp_path / "tests" / suite / "artifacts"
+    diagnostics.mkdir(parents=True)
+    raw = diagnostics / "historical.py"
+    raw.write_text("invalid Python snapshot!\n")
+    manual = diagnostics / "historical.md"
+    manual.write_text("# Historical diagnostic\n")
+    archive = diagnostics / "trace.zip"
+    with zipfile.ZipFile(archive, "w") as handle:
+        handle.writestr("src/historical.py", current.read_text())
+    preserved = {path: path.read_bytes() for path in (raw, manual, archive)}
+
+    assert evidence_source_paths(tmp_path) == (current,)
+    assert [marker.reference for marker in collect_evidence_markers(tmp_path)] == [
+        "tests/current.py::test_current"
+    ]
+    assert {path: path.read_bytes() for path in preserved} == preserved
+
+
+def test_current_source_enumeration_works_without_git_and_discovers_new_files(
+    tmp_path: Path,
+) -> None:
+    """Only the current Python/manual roots are used, including newly added files."""
+    names = (
+        "app.py",
+        "ring5/public.py",
+        "src/domain.py",
+        "scripts/tool.py",
+        "tests/unit/artifacts/current.py",
+        "docs/guide.md",
+        "spec/oft/README.md",
+        "spec/oft/discovery-audit.md",
+    )
+    for name in names:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("")
+    (tmp_path / "tests" / "fixture.md").write_text("not a current manual root")
+    assert not (tmp_path / ".git").exists()
+    assert set(evidence_source_paths(tmp_path)) == {tmp_path / name for name in names}
+    added = tmp_path / "src" / "new module.py"
+    added.write_text("")
+    assert added in evidence_source_paths(tmp_path)
+    assert evidence_source_paths(tmp_path) == evidence_source_paths(tmp_path)

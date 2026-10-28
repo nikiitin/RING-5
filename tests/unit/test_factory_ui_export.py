@@ -55,9 +55,6 @@ class TestPlotFactory:
 
                 return TraceBuildResult(traces=[])
 
-            def get_legend_column(self, config: dict[str, Any]) -> None:
-                return None
-
         PlotFactory.register_plot_type("custom", CustomPlot)
         plot = PlotFactory.create_plot("custom", 1, "test_custom")
         assert plot is not None
@@ -86,23 +83,25 @@ class TestBarStyleUI:
         assert style["pattern"] == "/"
 
     @patch("src.web.pages.ui.plotting.styles.bar_ui.st")
-    def test_render_with_dict_pattern(self, mock_st: MagicMock) -> None:
+    def test_render_rejects_dict_pattern_without_mutating_style(self, mock_st: MagicMock) -> None:
         from src.web.pages.ui.plotting.styles.bar_ui import BarStyleUI
 
         ui = BarStyleUI(plot_id=1, plot_type="bar")
-        mock_st.selectbox.return_value = "x"
         style: dict[str, Any] = {"pattern": {"shape": "x"}}
 
-        ui._render_specific_series_visuals(style, "trace_0")
-        assert style["pattern"] == "x"
+        with pytest.raises(ValueError, match="exact supported string"):
+            ui._render_specific_series_visuals(style, "trace_0")
+        assert style == {"pattern": {"shape": "x"}}
+        mock_st.selectbox.assert_not_called()
 
     @patch("src.web.pages.ui.plotting.styles.bar_ui.st")
-    def test_render_with_unknown_pattern(self, mock_st: MagicMock) -> None:
+    def test_render_rejects_unknown_pattern_without_repair(self, mock_st: MagicMock) -> None:
         from src.web.pages.ui.plotting.styles.bar_ui import BarStyleUI
 
         ui = BarStyleUI(plot_id=1, plot_type="bar")
-        mock_st.selectbox.return_value = ""
         style: dict[str, Any] = {"pattern": "unknown_pat"}
 
-        ui._render_specific_series_visuals(style, "trace_0")
-        assert style["pattern"] == ""
+        with pytest.raises(ValueError, match="exact supported string"):
+            ui._render_specific_series_visuals(style, "trace_0")
+        assert style == {"pattern": "unknown_pat"}
+        mock_st.selectbox.assert_not_called()

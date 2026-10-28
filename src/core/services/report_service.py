@@ -9,7 +9,7 @@ from typing import Any, cast
 
 import pandas as pd
 
-from src.core.models import EnvironmentMetadata
+from src.core.models.environment_models import EnvironmentMetadata
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.report_models import (

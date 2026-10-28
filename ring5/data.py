@@ -1,48 +1,46 @@
-"""``ring5.Table`` — a small, opaque public data handle for figure scripts.
+"""Owned public table values and source-row snapshots for figure scripts.
 
-The goal is **self-containment**: a script imports only ``ring5`` and never ``pandas``.
-``Table`` wraps a :class:`pandas.DataFrame` (this module lives in the ``ring5/`` composition
-root, which is allowed to import pandas / ``src.*``) and exposes just the data operations the
-publication figures need — CSV/round-trip I/O, row access as plain-Python dicts, a few
-column transforms, running a RING-5 shaper, and extracting the value maps the over-cap
-labels need.
-
-Design notes:
-
-* **Opaque to the caller.** Scripts treat a ``Table`` as a handle; figure-specific math
-  (string concat, group-cardinality filters, baseline ratios) is done in *pure Python* over
-  :meth:`Table.rows` (stdlib only — never pandas/numpy), then handed back via
-  :meth:`Table.from_rows`.
-* **Byte-identical by construction.** Every method that touches numbers delegates to the
-  *exact* pandas operation the scripts used before this facade existed (e.g.
-  :meth:`sum_map` calls ``df[cols].sum(axis=1)``), so migrated figures render identically.
-* **Immutable-style.** Transforms return a *new* ``Table`` (RING-5 forbids ``inplace=True``);
-  the wrapped frame is copied defensively on the way in and out.
-
-``Session.create_plot`` and ``Session.reduce_seeds`` accept a ``Table`` directly (and
-``reduce_seeds`` returns one), so a script never has to unwrap ``.frame`` by hand.
+Session data operations consume and return Table. Use rows/from_rows for plain
+Python records and frame/Table(frame) for explicit pandas interoperability.
+Transforms return new handles and own nested cell values and metadata.
 """
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from copy import deepcopy
+from typing import Any
+from dataclasses import dataclass
 import json
 from pathlib import Path
 
 import pandas as pd
 
-from ring5.errors import ColumnNotFoundError, DataLoadError, ExportError, PipelineError
+from src.core.common.source_contributions import (
+    inspect_source_contributions,
+    without_source_contributions,
+)
+from src.core.common.semantic_metadata import semantics_to_payload
+from src.core.common.dataframe_copy import copy_dataframe
+from src.core.common.distribution_metadata import (
+    concat_distribution_layouts,
+    preserve_distribution_layouts,
+)
 
-__all__ = ["Table", "read_table"]
+from ring5.errors import (
+    ColumnNotFoundError,
+    DataLoadError,
+    DataValidationError,
+    ExportError,
+    PipelineError,
+)
 
-# A shaper is any callable that maps a DataFrame to a DataFrame (e.g. ``ring5.shapers.Mean``).
-Shaper = Callable[[pd.DataFrame], pd.DataFrame]
+__all__ = ["Table", "DrillDownResult", "read_table"]
 
 
 def _to_py(value: Any) -> Any:
     """Coerce a pandas/numpy scalar to a native Python scalar (no numpy leaks to scripts)."""
     item = getattr(value, "item", None)
-    return item() if callable(item) else value
+    return deepcopy(item() if callable(item) else value)
 
 
 class Table:
@@ -52,8 +50,27 @@ class Table:
     __slots__ = ("_df",)
 
     def __init__(self, frame: pd.DataFrame) -> None:
-        # Defensive copy so the Table owns its data and callers can't mutate it underneath.
-        self._df = frame.copy()
+        """Own an independent copy of a pandas DataFrame.
+
+        Args:
+            frame: Source data, including any retained metadata and nested object cells.
+
+        Raises:
+            TypeError: The source is not a pandas DataFrame.
+            DataValidationError: Reserved table declarations or bindings are invalid.
+        """
+        if not isinstance(frame, pd.DataFrame):
+            raise TypeError(f"Table requires a pandas DataFrame; got {type(frame).__name__}.")
+        try:
+            inspect_source_contributions(frame)
+            self._df = copy_dataframe(frame)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(f"Invalid table data or metadata: {exc}") from exc
+
+    @classmethod
+    def _from_transformed(cls, frame: pd.DataFrame) -> "Table":
+        """Own new independent data without claiming a previous plot's source relation."""
+        return cls(without_source_contributions(frame))
 
     # constructors
     @classmethod
@@ -89,8 +106,8 @@ class Table:
     # introspection
     @property
     def frame(self) -> pd.DataFrame:
-        """The underlying DataFrame (a copy) — the engine handoff for ``create_plot``."""
-        return self._df.copy()
+        """Return a defensive DataFrame copy for explicit pandas interoperability."""
+        return copy_dataframe(self._df)
 
     @property
     def is_empty(self) -> bool:
@@ -143,7 +160,7 @@ class Table:
                             {
                                 "format": "ring5.semantic-columns",
                                 "version": 1,
-                                "columns": SemanticMetadataService.to_payload(semantics),
+                                "columns": semantics_to_payload(semantics),
                             },
                             indent=2,
                             ensure_ascii=False,
@@ -170,7 +187,8 @@ class Table:
             ColumnNotFoundError: ``column`` is absent.
         """
         self._require_columns([column])
-        return Table(self._df[self._df[column] == value].reset_index(drop=True))
+        result = self._df[self._df[column] == value].reset_index(drop=True)
+        return Table._from_transformed(preserve_distribution_layouts(self._df, result))
 
     def sort(self, by: list[str]) -> "Table":
         """Sort rows stably by one or more columns.
@@ -185,9 +203,11 @@ class Table:
             ColumnNotFoundError: A requested sort column is absent.
         """
         self._require_columns(by)
-        return Table(self._df.sort_values(by).reset_index(drop=True))
+        result = self._df.sort_values(by, kind="stable").reset_index(drop=True)
+        return Table._from_transformed(preserve_distribution_layouts(self._df, result))
 
     def with_scalar_op(self, new_column: str, src_column: str, op: str, value: float) -> "Table":
+        # [impl->req~ring5.quality.immutable-data~1]
         """Add ``new_column = src_column <op> value`` for op in ``+ - * /``.
 
         Delegates to the ``deriveColumn`` shaper so the column-scalar arithmetic lives in
@@ -202,42 +222,28 @@ class Table:
         Returns:
             A table containing the derived column.
         """
-        from src.core.services.shapers.impl.derive_column import DeriveColumn
+        from src.core.services.shapers.pipeline_service import PipelineService, PipelineStepError
 
-        return self.apply(
-            DeriveColumn(
-                {
-                    "type": "deriveColumn",
-                    "op": "scalar",
-                    "dest": new_column,
-                    "sources": [src_column],
-                    "scalar_op": op,
-                    "scalar": value,
-                }
-            )
-        )
-
-    def apply(self, shaper: Shaper) -> "Table":
-        """Run a RING-5 shaper.
-
-        Args:
-            shaper: Callable that accepts and returns a DataFrame.
-
-        Returns:
-            A table containing the transformed data.
-
-        Raises:
-            ColumnNotFoundError: The shaper references an absent column.
-            PipelineError: The shaper rejects its configuration or data.
-        """
-        # [impl->req~ring5.quality.immutable-data~1]
         try:
-            return Table(shaper(self._df))
-        except KeyError as exc:
-            column = str(exc.args[0]) if exc.args else "<unknown>"
-            raise ColumnNotFoundError(column, [str(c) for c in self._df.columns]) from exc
-        except (TypeError, ValueError) as exc:
-            raise PipelineError(f"Table transformation failed: {exc}") from exc
+            return Table(
+                PipelineService.process_pipeline(
+                    self._df,
+                    [
+                        {
+                            "type": "deriveColumn",
+                            "op": "scalar",
+                            "dest": new_column,
+                            "sources": [src_column],
+                            "scalar_op": op,
+                            "scalar": value,
+                        }
+                    ],
+                )
+            )
+        except PipelineStepError as exc:
+            raise PipelineError(
+                str(exc), step_index=exc.step_index, shaper_type=exc.shaper_type
+            ) from exc
 
     def concat(self, other: "Table") -> "Table":
         """Append another table's rows.
@@ -248,7 +254,9 @@ class Table:
         Returns:
             The combined table with a fresh row index.
         """
-        return Table(pd.concat([self._df, other._df], ignore_index=True))
+        frames = [self._df, other._df]
+        result = pd.concat(frames, ignore_index=True)
+        return Table._from_transformed(concat_distribution_layouts(frames, result))
 
     # value extraction (for over-cap / dot labels)
     def value_map(self, key_columns: list[str], value_column: str) -> dict[tuple, float]:
@@ -274,7 +282,7 @@ class Table:
     def sum_map(self, key_columns: list[str], sum_columns: list[str]) -> dict[tuple, float]:
         """``{(key_columns…): float(sum of sum_columns)}`` — the over-cap bar totals.
 
-        Uses ``df[sum_columns].sum(axis=1)`` so totals match the pre-facade values exactly.
+        Missing measurements are skipped when summing each row.
 
         Args:
             key_columns: Columns forming each tuple key.
@@ -313,3 +321,36 @@ def read_table(path: str) -> Table:
         A table containing the parsed rows.
     """
     return Table.from_csv(path)
+
+
+@dataclass(frozen=True, eq=False)
+class DrillDownResult:
+    # [impl->req~ring5.plots.drill-down~1]
+    """Owned public source-row snapshot for one plot-point interaction.
+
+    Attributes:
+        plot_id: Registered plot identifier.
+        filters: Selected finalized dimensions and optional original metadata constraints.
+        rows: Independent table of matching source rows.
+    """
+
+    plot_id: int
+    filters: tuple[tuple[str, Any], ...]
+    rows: Table
+
+    def __post_init__(self) -> None:
+        """Own row data and metadata without retaining caller aliases."""
+        if not isinstance(self.rows, Table):
+            raise TypeError("DrillDownResult rows must be a ring5.Table.")
+        object.__setattr__(self, "rows", Table(self.rows.frame))
+        object.__setattr__(self, "filters", deepcopy(self.filters))
+
+    @property
+    def row_count(self) -> int:
+        """Return the number of matching source rows."""
+        return len(self.rows)
+
+    @property
+    def columns(self) -> tuple[str, ...]:
+        """Return the matching source column labels in order."""
+        return tuple(self.rows.columns())

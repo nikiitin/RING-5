@@ -2,11 +2,34 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
+from typing import Any
 
-from src.core.models import PlotProtocol
+from src.core.common.plot_render_state import PlotRenderBinding, PlotRenderState
+
+from src.core.models.plot_protocol import PlotProtocol
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class PlotRetirement:
+    """Retain the admitted object's exact render generation for later disposal."""
+
+    plot: PlotProtocol
+    state: PlotRenderState[Any]
+    binding: PlotRenderBinding[Any] | None
+
+    @classmethod
+    def capture(cls, plot: PlotProtocol) -> "PlotRetirement":
+        """Capture ownership without running foreign plot lifecycle methods."""
+        state = plot.render_state
+        return cls(plot, state, state.snapshot())
+
+    def detach(self) -> PlotRenderBinding[Any] | None:
+        """Detach the captured binding while leaving newer generations untouched."""
+        return self.state.detach(self.binding)
 
 
 class PlotRepository:
@@ -28,15 +51,28 @@ class PlotRepository:
         """
         return list(self._plots)
 
-    def set_plots(self, plots: list[PlotProtocol]) -> None:
+    def set_plots(self, plots: list[PlotProtocol]) -> tuple[PlotRetirement, ...]:
         """
         Replace the entire plot list.
 
         Args:
-            plots: New list of plot objects
+            plots: New list of plot objects.
+
+        Returns:
+            Captured removals for the state transaction owner's deferred cleanup.
         """
-        self._plots = plots
+        replacement = list(plots)
+        removed = self.removed_bindings(replacement)
+        self._plots = replacement
         logger.info("PLOT_REPO: Plots updated - %d total plots", len(plots))
+        return removed
+
+    def removed_bindings(self, retained: list[PlotProtocol]) -> tuple[PlotRetirement, ...]:
+        """Capture removed identities for the transaction owner's post-publication cleanup."""
+        # [impl->req~ring5.plots.delete~1]
+        retained_ids = {id(plot) for plot in retained}
+        removed = {id(plot): plot for plot in self._plots if id(plot) not in retained_ids}
+        return tuple(PlotRetirement.capture(plot) for plot in removed.values())
 
     def add_plot(self, plot: PlotProtocol) -> None:
         """
@@ -48,30 +84,11 @@ class PlotRepository:
         self._plots.append(plot)
         logger.info("PLOT_REPO: Plot added - ID %s, Type %s", plot.plot_id, plot.plot_type)
 
-    def remove_plot(self, plot_id: int) -> bool:
-        """
-        Remove a plot by its ID.
-
-        Args:
-            plot_id: ID of plot to remove
-
-        Returns:
-            True if plot was found and removed, False otherwise
-        """
-        initial_count = len(self._plots)
-        self._plots = [p for p in self._plots if p.plot_id != plot_id]
-
-        if len(self._plots) < initial_count:
-            logger.info("PLOT_REPO: Plot removed - ID %s", plot_id)
-            return True
-
-        logger.warning(f"PLOT_REPO: Plot not found for removal - ID {plot_id}")
-        return False
-
-    def clear_plots(self) -> None:
-        """Clear all plots from the collection."""
-        self._plots = []
+    def clear_plots(self) -> tuple[PlotRetirement, ...]:
+        """Clear the collection and return exact bindings to retire after publication."""
+        removed = self.set_plots([])
         logger.info("PLOT_REPO: All plots cleared")
+        return removed
 
     def get_plot_counter(self) -> int:
         """

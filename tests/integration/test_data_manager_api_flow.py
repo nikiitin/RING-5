@@ -168,7 +168,12 @@ class TestPreviewLifecycle:
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """set_preview stores data, get_preview retrieves it."""
-        facade.set_preview("normalize", rich_sample_data)
+        facade.set_preview(
+            "normalize",
+            rich_sample_data,
+            operation_config={},
+            inputs=facade.capture_preview_inputs(),
+        )
 
         result_or_none = facade.get_preview("normalize")
         assert result_or_none is not None
@@ -182,7 +187,9 @@ class TestPreviewLifecycle:
     ) -> None:
         """has_preview returns True after set, False before."""
         assert facade.has_preview("test_op") is False
-        facade.set_preview("test_op", rich_sample_data)
+        facade.set_preview(
+            "test_op", rich_sample_data, operation_config={}, inputs=facade.capture_preview_inputs()
+        )
         assert facade.has_preview("test_op") is True
 
     def test_clear_preview(
@@ -191,7 +198,12 @@ class TestPreviewLifecycle:
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """clear_preview removes the stored preview."""
-        facade.set_preview("to_clear", rich_sample_data)
+        facade.set_preview(
+            "to_clear",
+            rich_sample_data,
+            operation_config={},
+            inputs=facade.capture_preview_inputs(),
+        )
         assert facade.has_preview("to_clear") is True
 
         facade.clear_preview("to_clear")
@@ -205,8 +217,12 @@ class TestPreviewLifecycle:
         """Different operation names store independent previews."""
         subset: pd.DataFrame = pd.DataFrame(rich_sample_data[["benchmark_name", "system.cpu.ipc"]])
 
-        facade.set_preview("op_a", rich_sample_data)
-        facade.set_preview("op_b", subset)
+        facade.set_preview(
+            "op_a", rich_sample_data, operation_config={}, inputs=facade.capture_preview_inputs()
+        )
+        facade.set_preview(
+            "op_b", subset, operation_config={}, inputs=facade.capture_preview_inputs()
+        )
 
         result_a_or_none = facade.get_preview("op_a")
         result_b_or_none = facade.get_preview("op_b")
@@ -224,8 +240,12 @@ class TestPreviewLifecycle:
         rich_sample_data: pd.DataFrame,
     ) -> None:
         """Clearing one preview does not affect others."""
-        facade.set_preview("keep", rich_sample_data)
-        facade.set_preview("remove", rich_sample_data)
+        facade.set_preview(
+            "keep", rich_sample_data, operation_config={}, inputs=facade.capture_preview_inputs()
+        )
+        facade.set_preview(
+            "remove", rich_sample_data, operation_config={}, inputs=facade.capture_preview_inputs()
+        )
 
         facade.clear_preview("remove")
 
@@ -257,7 +277,7 @@ class TestApplyShapersPipeline:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(
+        result: pd.DataFrame = loaded_facade.shapers.process_pipeline(
             data, cast(list[ShaperStepConfig], pipeline)
         )
 
@@ -290,7 +310,7 @@ class TestApplyShapersPipeline:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(
+        result: pd.DataFrame = loaded_facade.shapers.process_pipeline(
             data, cast(list[ShaperStepConfig], pipeline)
         )
 
@@ -330,7 +350,7 @@ class TestApplyShapersPipeline:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(
+        result: pd.DataFrame = loaded_facade.shapers.process_pipeline(
             data, cast(list[ShaperStepConfig], pipeline)
         )
 

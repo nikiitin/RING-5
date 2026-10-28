@@ -5,12 +5,13 @@ from __future__ import annotations
 import threading
 import time
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import pandas as pd
 import pytest
 
 import ring5
+from tests.helpers.html_assertions import assert_plotly_document
 
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_background_jobs")]
 
@@ -25,13 +26,47 @@ def _settled(session: ring5.Session, job_id: str) -> ring5.BackgroundJobInfo:
     raise AssertionError(f"Background job {job_id} did not settle")
 
 
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_background_export_retains_requested_pgf_compiler(
+    compiler: Literal["xelatex", "pdflatex", "lualatex"],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The captured export request forwards its compiler through actual job execution."""
+    # [test->req~ring5.workspace.background-jobs~1]
+    from io import BytesIO
+
+    import matplotlib as mpl
+    from matplotlib.figure import Figure
+
+    observed: list[str] = []
+
+    def savefig(figure: Figure, buffer: BytesIO, **kwargs: Any) -> None:
+        observed.append(mpl.rcParams["pgf.texsystem"])
+        assert kwargs == {"format": "pgf", "backend": "pgf"}
+        assert mpl.rcParams["pgf.preamble"] == ""
+        buffer.write(b"Captured PGF request")
+
+    monkeypatch.setattr(Figure, "savefig", savefig)
+    with ring5.Session() as session:
+        target = tmp_path / "background.pgf"
+        job = session.export_submit(Figure(), str(target), tex_system=compiler)
+        settled = _settled(session, job.job_id)
+        assert settled.status == "completed"
+        assert session.background_job_result(settled) == str(target)
+        assert target.read_bytes() == b"Captured PGF request"
+    assert observed == [compiler]
+
+
 def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) -> None:
     # [test->req~ring5.workspace.background-jobs~1]
     frame = pd.DataFrame({"category": ["A", "B"], "value": [1.0, 2.0]})
     pipeline = [{"type": "columnSelector", "columns": ["category"]}]
 
     with ring5.Session() as session:
-        shape_job = session.shape_submit(frame, cast(list[ring5.ShaperStepConfig], pipeline))
+        shape_job = session.shape_submit(
+            ring5.Table(frame), cast(list[ring5.ShaperStepConfig], pipeline)
+        )
         frame.loc[0, "category"] = "mutated after submission"
         pipeline[0]["columns"] = ["value"]
 
@@ -41,8 +76,8 @@ def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) 
         assert shaped.status == "completed"
         assert shaped.progress == 1.0
         assert shaped.result_available
-        assert isinstance(result, pd.DataFrame)
-        assert result.to_dict(orient="list") == {"category": ["A", "B"]}
+        assert isinstance(result, ring5.Table)
+        assert result.frame.to_dict(orient="list") == {"category": ["A", "B"]}
 
         table_job = session.shape_submit(
             ring5.Table(pd.DataFrame({"x": [1.0]})),
@@ -54,7 +89,7 @@ def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) 
 
         figure = session.plot(
             "bar",
-            data=pd.DataFrame({"category": ["A"], "value": [1.0]}),
+            data=ring5.Table(pd.DataFrame({"category": ["A"], "value": [1.0]})),
             config={"x": "category", "y": "value"},
         )
         output = tmp_path / "background.html"
@@ -62,7 +97,7 @@ def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) 
         exported = _settled(session, export_job.job_id)
         assert exported.kind == "export"
         assert session.background_job_result(exported.job_id) == str(output)
-        assert output.read_text(encoding="utf-8").lstrip().startswith("<html>")
+        assert_plotly_document(output.read_text(encoding="utf-8"))
 
         jobs = session.background_jobs()
         assert isinstance(jobs[0], ring5.BackgroundJobInfo)
@@ -75,11 +110,11 @@ def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) 
 
 def test_failed_background_job_has_bounded_error_and_retries() -> None:
     # [test->req~ring5.workspace.background-jobs~1]
-    invalid_pipeline = cast(list[ring5.ShaperStepConfig], [{"type": "does-not-exist"}])
+    invalid_pipeline = [{"type": "columnSelector", "columns": ["does-not-exist"]}]
 
     with ring5.Session() as session:
         submitted = session.shape_submit(
-            pd.DataFrame({"x": [1.0]}),
+            ring5.Table(pd.DataFrame({"x": [1.0]})),
             invalid_pipeline,
             label="Invalid transformation",
         )
@@ -145,7 +180,7 @@ def test_cancellation_is_honest_and_public_errors_are_typed(
             lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("closed center")),
         )
         with pytest.raises(ring5.JobError, match="closed center"):
-            session.shape_submit(pd.DataFrame({"x": [1.0]}), [])
+            session.shape_submit(ring5.Table(pd.DataFrame({"x": [1.0]})), [])
         with pytest.raises(ring5.JobError, match="closed center"):
             session.export_submit(cast(Any, object()), "figure.html", label="Export")
         monkeypatch.setattr(session.api, "submit_background_operation", original_submit)

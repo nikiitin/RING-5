@@ -5,9 +5,6 @@ parent: Analysis Guides
 grand_parent: User Guide
 nav_order: 1
 permalink: /user-guide/guides/compare-configurations/
-redirect_from:
-  - /user-guide/tutorials/compare-simulations/
-  - /user-guide/tutorials/normalize-data/
 ---
 
 # Compare configurations
@@ -52,7 +49,8 @@ Duplicate alignment keys are rejected. Reduce repeated runs first or include the
 the alignment keys. The preview can be downloaded without changing the dataset. **Use Comparison
 Result** replaces the active table with the long-form result so it can be plotted.
 
-The public API compares separate tables and supports per-metric directions and thresholds:
+The public API compares separate `ring5.Table` values and supports per-metric directions and
+thresholds:
 
 ```python
 comparison = session.compare(
@@ -224,7 +222,7 @@ configurable. Bootstrap counts are bounded from 100 to 50,000. Statistical signi
 measure practical importance; review the observed difference, interval, effect size, sample design,
 and warnings together.
 
-The equivalent public API accepts DataFrames or `ring5.Table` values:
+The equivalent public API accepts `ring5.Table` values:
 
 ```python
 statistics = session.compare_statistics(

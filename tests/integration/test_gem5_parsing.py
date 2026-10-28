@@ -3,10 +3,12 @@ from collections.abc import Generator
 from pathlib import Path
 from typing import Any, cast
 
-import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.parsing_models import StatConfig
+from src.core.models.source_evidence import source_kind_candidates
 from src.core.models.data_models import ParseVariableConfig
 from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
@@ -41,12 +43,16 @@ class TestGem5Parsing:
         ConfigService.reset_caches()
 
     @pytest.fixture
-    def facade(self) -> ApplicationAPI:
+    def facade(self) -> Generator[ApplicationAPI, None, None]:
         """Create a ApplicationAPI instance."""
-        return ApplicationAPI()
+        api = ApplicationAPI()
+        try:
+            yield api
+        finally:
+            api.close(wait=True)
 
     @pytest.fixture
-    def output_dir(self, tmp_path: Any) -> None:
+    def output_dir(self, tmp_path: Path) -> Path:
         """Create a temporary output directory."""
         return tmp_path / "output"
 
@@ -89,11 +95,7 @@ class TestGem5Parsing:
         scan_futures = facade.submit_scan_async(str(self.TEST_DATA_DIR), "stats.txt", limit=10)
 
         # Wait for scan to complete
-        scan_results = []
-        for future in scan_futures:
-            result = future.result(timeout=SCAN_FUTURE_TIMEOUT)
-            if result:
-                scan_results.append(result)
+        scan_results = [future.result(timeout=SCAN_FUTURE_TIMEOUT) for future in scan_futures]
 
         all_variables = facade.finalize_scan(scan_results).variables
 
@@ -113,27 +115,25 @@ class TestGem5Parsing:
         batch = facade.submit_parse_async(
             stats_path=str(self.TEST_DATA_DIR),
             stats_pattern="stats.txt",
-            variables=selected_vars,
+            variables=[
+                StatConfig(name=v.name, type="scalar", params={"source_type": "scalar"})
+                for v in selected_vars
+            ],
             output_dir=str(output_dir),
             scanned_vars=all_variables,
         )
 
         # Wait for parsing to complete
-        parse_results = []
-        for future in batch.futures:
-            result = future.result(timeout=30)
-            if result:
-                parse_results.append(result)
+        parse_results = [future.result(timeout=30) for future in batch.futures]
 
-        csv_path = facade.finalize_parsing(
-            str(output_dir), parse_results, var_names=batch.var_names
-        )
+        parsed_output = facade.finalize_parsing(batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         assert csv_path is not None
         assert os.path.exists(csv_path)
 
         # Verify CSV content
-        df = pd.read_csv(csv_path)
+        df = ParsedOutputIO.to_frame(parsed_output)
 
         # Check Dimensions
         assert len(df) > 0
@@ -172,17 +172,14 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
 
             # Wait for scan to complete
-            scan_results = []
-            for future in scan_futures:
-                result = future.result(timeout=5)
-                if result:
-                    scan_results.append(result)
+            scan_results = [future.result(timeout=5) for future in scan_futures]
 
             vars_found = facade.finalize_scan(scan_results).variables
             hist_var = next((v for v in vars_found if v.name == "system.mem.ctrl"), None)
 
             assert hist_var is not None
-            assert hist_var.type == "histogram"
+            assert hist_var.type is None
+            assert "histogram" in source_kind_candidates(hist_var.source_evidence)
             assert "0-1023" in (hist_var.entries or [])
             assert "1024-2047" in (hist_var.entries or [])
 
@@ -190,29 +187,34 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             # Configure variables
             variables = cast(
                 list[ParseVariableConfig],
-                [{"name": "system.mem.ctrl", "type": "histogram"}],
+                [
+                    {
+                        "name": "system.mem.ctrl",
+                        "type": "histogram",
+                        "params": {"source_type": "histogram"},
+                    }
+                ],
             )
 
             parse_batch = facade.submit_parse_async(
-                str(stats_dir), "stats.txt", variables, str(output_dir), scanned_vars=vars_found
+                str(stats_dir),
+                "stats.txt",
+                facade.compile_parse_variables(variables),
+                str(output_dir),
+                scanned_vars=vars_found,
             )
 
             # Wait for parsing to complete
-            parse_results = []
-            for future in parse_batch.futures:
-                result = future.result(timeout=10)
-                if result:
-                    parse_results.append(result)
+            parse_results = [future.result(timeout=10) for future in parse_batch.futures]
 
-            csv_path = facade.finalize_parsing(
-                str(output_dir), parse_results, var_names=parse_batch.var_names
-            )
+            parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+            csv_path = parsed_output.csv_path
 
             assert csv_path is not None
             assert os.path.exists(csv_path)
 
             # Verify CSV Content
-            df = pd.read_csv(csv_path)
+            df = ParsedOutputIO.to_frame(parsed_output)
             # Columns should be like system.mem.ctrl..0-1023
             assert "system.mem.ctrl..0-1023" in df.columns
             assert "system.mem.ctrl..1024-2047" in df.columns
@@ -222,3 +224,5 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
 
         except Exception as e:
             pytest.fail(f"Histogram parsing failed: {e}")
+        finally:
+            facade.close(wait=True)

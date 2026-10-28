@@ -6,22 +6,23 @@ import logging
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import ParseCompletionNotice, UIStateManager
+
 from src.core.application_api import ApplicationAPI
-from src.core.models import (
+from src.core.models.parse_job_models import (
     ParseJobNotConsumableError,
     ParseJobNotFoundError,
+    ParseJobReceipt,
     ParseJobSnapshot,
     ParseJobStatus,
 )
 
-_JOB_ID_KEY = "_ring5_parse_job_id"
-_FLASH_KEY = "_ring5_parse_job_flash"
 logger = logging.getLogger(__name__)
 
 
 def remember_parse_job(snapshot: ParseJobSnapshot) -> None:
     """Make a submitted job visible across page navigation and reruns."""
-    st.session_state[_JOB_ID_KEY] = snapshot.job_id
+    UIStateManager().parse.remember_job(snapshot.job_id)
 
 
 def render_parse_job_panel(api: ApplicationAPI) -> None:
@@ -52,11 +53,18 @@ def get_visible_parse_job(api: ApplicationAPI) -> ParseJobSnapshot | None:
     return api.get_parse_job(job_id) if job_id is not None else None
 
 
-def show_parse_job_flash() -> None:
-    """Show a one-shot completion message after an application rerun."""
-    message = st.session_state.pop(_FLASH_KEY, None)
-    if isinstance(message, str):
-        st.toast(message, icon="✅")
+def render_parse_completion() -> None:
+    """Render the last consumed parse result until new work or workspace cleanup."""
+    # [impl->req~ring5.ingestion.session-background-parse~1]
+    notice = UIStateManager().parse.get_completion()
+    if notice is None:
+        return
+    with st.container(key=f"parse_completion_{notice.job_id}"):
+        message = f"Last parse: {notice.message}"
+        if notice.partial:
+            st.warning(message)
+        else:
+            st.success(message)
 
 
 @st.fragment(run_every="1s")
@@ -115,7 +123,7 @@ def _render_parse_job_panel_snapshot(
                     )
                     st.error(f"Could not load the partial parse result: {exc}")
                 else:
-                    _complete_job(job_id, f"Loaded partial CSV: {receipt.csv_path}")
+                    _complete_job(receipt, f"Loaded partial CSV: {receipt.csv_path}")
         with retry_col:
             _render_retry_button(api, snapshot)
         with dismiss_col:
@@ -168,7 +176,7 @@ def _render_sidebar_parse_job_snapshot(
         key=f"review_parse_job_{job_id}",
         width="stretch",
     ):
-        st.session_state["_nav_page"] = "Data Source"
+        UIStateManager().nav.set_current_page("Data Source")
         st.rerun(scope="app")
 
 
@@ -243,7 +251,7 @@ def _consume_success(
         _render_consumption_error(api, snapshot, source=source, error=exc)
         return
     reused = "Reused" if receipt.reused else "Loaded"
-    _complete_job(snapshot.job_id, f"{reused} parsed CSV from Recent")
+    _complete_job(receipt, f"{reused} parsed CSV from Recent")
 
 
 def _render_consumption_error(
@@ -265,20 +273,23 @@ def _render_consumption_error(
         st.rerun(scope="app")
 
 
-def _complete_job(job_id: str, message: str) -> None:
-    """Queue a one-shot completion toast and rerun the full application."""
-    _forget_job(job_id)
-    st.session_state[_FLASH_KEY] = message
+def _complete_job(receipt: ParseJobReceipt, message: str) -> None:
+    """Remember only successfully consumed output, then rerun the application."""
+    # [impl->req~ring5.ingestion.session-background-parse~1]
+    UIStateManager().parse.complete_job(
+        ParseCompletionNotice(receipt.job_id, message, receipt.status == ParseJobStatus.PARTIAL)
+    )
     st.rerun(scope="app")
 
 
 def _visible_job_id(api: ApplicationAPI) -> str | None:
     """Resolve the remembered job, falling back to the active session job."""
-    stored = st.session_state.get(_JOB_ID_KEY)
-    if isinstance(stored, str):
+    state = UIStateManager().parse
+    stored = state.get_job_id()
+    if stored is not None:
         if api.get_parse_job(stored) is not None:
             return stored
-        st.session_state.pop(_JOB_ID_KEY, None)
+        state.forget_job(stored)
     active = api.get_active_parse_job()
     if active is None:
         return None
@@ -288,5 +299,4 @@ def _visible_job_id(api: ApplicationAPI) -> str | None:
 
 def _forget_job(job_id: str) -> None:
     """Forget the visible job only when its identifier still matches."""
-    if st.session_state.get(_JOB_ID_KEY) == job_id:
-        st.session_state.pop(_JOB_ID_KEY, None)
+    UIStateManager().parse.forget_job(job_id)

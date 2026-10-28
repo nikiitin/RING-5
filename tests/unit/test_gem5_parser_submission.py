@@ -1,378 +1,200 @@
-"""Tests for gem5 parser submission, expansion, and finalization."""
+"""Submission owns exact sources and typed finalization preserves values and missingness."""
 
-import os
-from dataclasses import dataclass, field
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
+import csv
+import math
+from concurrent.futures import Future
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models.parsing_models import ScannedVariable, StatConfig
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult, ParsedVariableResult
+from src.core.models.parsing_models import (
+    ParseBatchResult,
+    ScannedVariable,
+    SourceInstance,
+    StatConfig,
+)
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
+from tests.helpers.parsed_values import completed_future, numeric_file
 
 
-@dataclass
-class FakeStatConfig:
-    name: str
-    is_regex: bool = False
-    params: dict[str, Any] = field(default_factory=dict)
-    keep_indices: bool = False
+def _batch(root: Path, names: tuple[str, ...]) -> ParseBatchResult:
+    return ParseBatchResult((Future(),), names, ("source",), str(root), "simple")
 
 
-@dataclass
-class FakeStat:
-    entries: list[str] | None = None
-    reduced_content: Any = None
-
-    def balance_content(self) -> None:
-        pass
-
-    def reduce_duplicates(self) -> None:
-        pass
-
-
-class TestSubmitParseAsync:
-    """Test submit_parse_async branches."""
-
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_path_not_found_raises(
-        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
-    ) -> None:
-        with pytest.raises(FileNotFoundError, match="does not exist"):
-            Gem5Parser.submit_parse_async(
-                str(tmp_path / "nonexistent"),
-                "stats.txt",
-                [],
-                str(tmp_path),
-            )
-
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_empty_work_items_raises(
-        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
-    ) -> None:
-        stats_dir = tmp_path / "stats"
-        stats_dir.mkdir()
-
-        strategy = MagicMock()
-        strategy.get_work_items.return_value = []
-        mock_factory.create.return_value = strategy
-
-        with pytest.raises(FileNotFoundError, match="No parse work generated"):
-            Gem5Parser.submit_parse_async(
-                str(stats_dir),
-                "stats.txt",
-                [],
-                str(tmp_path),
-            )
-
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_regex_expansion_no_match(
-        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
-    ) -> None:
-        stats_dir = tmp_path / "stats"
-        stats_dir.mkdir()
-
-        config = FakeStatConfig(name=r"system\.cpu\d+\.ipc", is_regex=True)
-        scanned = [ScannedVariable(name="system.different.stat", type="scalar")]
-
-        strategy = MagicMock()
-        strategy.get_work_items.return_value = [MagicMock()]
-        mock_factory.create.return_value = strategy
-
-        pool_instance = MagicMock()
-        pool_instance.submit_batch_async.return_value = [MagicMock()]
-        mock_pool.get_instance.return_value = pool_instance
-
-        # Should not crash — just log warning
-        Gem5Parser.submit_parse_async(
-            str(stats_dir),
-            "stats.txt",
-            [config],  # type: ignore[list-item]
-            str(tmp_path),
-            scanned_vars=scanned,
+@pytest.mark.parametrize("keep", [False, True])
+def test_submission_passes_one_resolved_plan_and_exact_output_names(
+    tmp_path: Path, keep: bool
+) -> None:
+    config = StatConfig(
+        "IPC",
+        "scalar",
+        source_name=r"cpu\d+.ipc",
+        is_regex=True,
+        keep_indices=keep,
+        params={"source_type": "scalar", "selected_sources": ["cpu1.ipc"]},
+    )
+    metadata = [
+        ScannedVariable(
+            r"cpu\d+.ipc",
+            "vector",
+            [],
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+            instances=(SourceInstance("cpu0.ipc", ("0",)), SourceInstance("cpu1.ipc", ("1",))),
         )
-
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_invalid_aggregate_scan_name_is_treated_as_a_non_match(
-        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
-    ) -> None:
-        stats_dir = tmp_path / "stats"
-        stats_dir.mkdir()
-        config = FakeStatConfig(name=r"system.cpu\d+.ipc", is_regex=True)
-        scanned = [ScannedVariable(name=r"system.cpu\d+.[invalid]", type="scalar")]
-        strategy = MagicMock()
-        strategy.get_work_items.return_value = [MagicMock()]
-        mock_factory.create.return_value = strategy
-        mock_pool.get_instance.return_value.submit_batch_async.return_value = []
-
-        Gem5Parser.submit_parse_async(
-            str(stats_dir),
-            "stats.txt",
-            [config],  # type: ignore[list-item]
-            str(tmp_path),
-            scanned_vars=scanned,
-        )
-
-        submitted_config = strategy.get_work_items.call_args.args[2][0]
-        assert submitted_config is config
-
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_regex_expansion_with_pattern_indices(
-        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
-    ) -> None:
-        stats_dir = tmp_path / "stats"
-        stats_dir.mkdir()
-
-        config = FakeStatConfig(name=r"system\.cpu\d+\.ipc", is_regex=True)
-        scanned = [
-            ScannedVariable(
-                name=r"system.cpu\d+.ipc",
-                type="scalar",
-                pattern_indices=["system.cpu0.ipc", "system.cpu1.ipc"],
-            )
+    ]
+    source = str(tmp_path / "stats.txt")
+    Path(source).write_text("cpu1.ipc 1.25\n")
+    name = "cpu1.ipc" if keep else "IPC"
+    result = numeric_file(source, {name: 1.25})
+    work = MagicMock(source_path=source, return_value=result)
+    with (
+        patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory") as factory,
+        patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool,
+    ):
+        strategy = factory.create.return_value
+        strategy.metadata_columns = ()
+        strategy.get_work_items.return_value = [work]
+        pool.get_instance.return_value.submit_many.side_effect = lambda tasks: [
+            completed_future(task()) for task in tasks
         ]
-
-        strategy = MagicMock()
-        strategy.get_work_items.return_value = [MagicMock()]
-        mock_factory.create.return_value = strategy
-
-        pool_instance = MagicMock()
-        pool_instance.submit_batch_async.return_value = [MagicMock()]
-        mock_pool.get_instance.return_value = pool_instance
-
-        Gem5Parser.submit_parse_async(
-            str(stats_dir),
-            "stats.txt",
-            [config],  # type: ignore[list-item]
-            str(tmp_path),
-            scanned_vars=scanned,
-        )
-
-        expanded = strategy.get_work_items.call_args[0][2][0]
-        assert expanded.params["parsed_ids"] == ["system.cpu0.ipc", "system.cpu1.ipc"]
-
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_regex_alias_expands_source_and_keeps_output_name(
-        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
-    ) -> None:
-        """An alias does not replace the regex used to find concrete stats."""
-        stats_dir = tmp_path / "stats"
-        stats_dir.mkdir()
-        config = StatConfig(
-            name="IPC",
-            source_name=r"system\.cpu\d+\.ipc",
-            type="scalar",
-            is_regex=True,
-        )
-        scanned = [
-            ScannedVariable(
-                name=r"system\.cpu\d+\.ipc",
-                type="scalar",
-                pattern_indices=["system.cpu0.ipc", "system.cpu1.ipc"],
-            )
-        ]
-        strategy = MagicMock()
-        strategy.get_work_items.return_value = [MagicMock()]
-        mock_factory.create.return_value = strategy
-        pool_instance = MagicMock()
-        pool_instance.submit_batch_async.return_value = [MagicMock()]
-        mock_pool.get_instance.return_value = pool_instance
-
         batch = Gem5Parser.submit_parse_async(
-            str(stats_dir),
-            "stats.txt",
-            [config],
-            str(tmp_path),
-            scanned_vars=scanned,
+            str(tmp_path), "stats.txt", [config], str(tmp_path / "out"), scanned_vars=metadata
         )
+        plan = strategy.get_work_items.call_args.args[1]
+        assert set(plan.routes) == {"cpu1.ipc"}
+        assert plan.accumulators[0].config == config
+        assert batch.var_names == (name,)
+        assert batch.source_paths == (source,)
+        assert batch.futures[0].result() == result
+        pool.get_instance.return_value.submit_many.assert_called_once()
 
-        expanded = strategy.get_work_items.call_args[0][2][0]
-        assert expanded.name == "IPC"
-        assert expanded.source_name == r"system\.cpu\d+\.ipc"
-        assert expanded.params["parsed_ids"] == ["system.cpu0.ipc", "system.cpu1.ipc"]
-        assert batch.var_names == ["IPC"]
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_invalid_regex_is_rejected(
-        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
-    ) -> None:
-        stats_dir = tmp_path / "stats"
-        stats_dir.mkdir()
-
-        config = FakeStatConfig(name=r"[invalid", is_regex=True)
-        scanned = [ScannedVariable(name="something", type="scalar")]
-
-        strategy = MagicMock()
-        strategy.get_work_items.return_value = [MagicMock()]
-        mock_factory.create.return_value = strategy
-
-        pool_instance = MagicMock()
-        pool_instance.submit_batch_async.return_value = [MagicMock()]
-        mock_pool.get_instance.return_value = pool_instance
-
-        with pytest.raises(ValueError, match="Unsafe regex"):
+@pytest.mark.parametrize("configs, message", [([], "at least one"), ([{}], "StatConfig")])
+def test_invalid_runnable_input_rejects_before_pool(
+    tmp_path: Path, configs: Any, message: str
+) -> None:
+    (tmp_path / "stats.txt").write_text("ipc 1\n")
+    with patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool:
+        with pytest.raises((ValueError, TypeError), match=message):
             Gem5Parser.submit_parse_async(
-                str(stats_dir),
-                "stats.txt",
-                [config],  # type: ignore[list-item]
-                str(tmp_path),
-                scanned_vars=scanned,
+                str(tmp_path), "stats.txt", configs, str(tmp_path / "out")
             )
+        pool.get_instance.assert_not_called()
 
-    def test_regex_candidate_budget_is_rejected(
-        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        stats_dir = tmp_path / "stats"
-        stats_dir.mkdir()
-        monkeypatch.setattr("src.parsing.gem5.impl.gem5_parser.MAX_REGEX_CANDIDATES", 1)
-        config = FakeStatConfig(name=r"system.cpu\d+.ipc", is_regex=True)
-        scanned = [
-            ScannedVariable(name="system.cpu0.ipc", type="scalar"),
-            ScannedVariable(name="system.cpu1.ipc", type="scalar"),
-        ]
 
-        with pytest.raises(ValueError, match="received 2 candidates"):
+def test_missing_pattern_sources_reject_before_work_or_pool(tmp_path: Path) -> None:
+    (tmp_path / "stats.txt").write_text("ipc 1\n")
+    with (
+        patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool,
+        patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory") as factory,
+    ):
+        factory.create.return_value.metadata_columns = ()
+        with pytest.raises(ValueError, match="source records"):
             Gem5Parser.submit_parse_async(
-                str(stats_dir),
-                "stats.txt",
-                [config],  # type: ignore[list-item]
                 str(tmp_path),
-                scanned_vars=scanned,
+                "stats.txt",
+                [StatConfig(r"cpu\d+.ipc", "scalar", params={"source_type": "scalar"})],
+                str(tmp_path / "out"),
             )
+        pool.get_instance.assert_not_called()
+        factory.create.return_value.get_work_items.assert_not_called()
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_keep_indices_rejects_selection_not_present_in_scan(
-        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
-    ) -> None:
-        stats_dir = tmp_path / "stats"
-        stats_dir.mkdir()
-        config = StatConfig(
-            name=r"system.cpu\d+.ipc",
-            type="scalar",
-            is_regex=True,
-            keep_indices=True,
-            params={"parsed_ids": ["9"]},
-        )
-        scanned = [
-            ScannedVariable(
-                name=r"system.cpu\d+.ipc",
-                type="vector",
-                pattern_indices=["0", "1"],
-            )
-        ]
 
-        with pytest.raises(ValueError, match="was not present in the scan results"):
+def test_empty_strategy_work_raises(tmp_path: Path) -> None:
+    (tmp_path / "stats.txt").write_text("ipc 1\n")
+    with patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory") as factory:
+        factory.create.return_value.metadata_columns = ()
+        factory.create.return_value.get_work_items.return_value = []
+        with pytest.raises(FileNotFoundError, match="strategy generated no work"):
             Gem5Parser.submit_parse_async(
-                str(stats_dir),
-                "stats.txt",
-                [config],
                 str(tmp_path),
-                scanned_vars=scanned,
+                "stats.txt",
+                [StatConfig("ipc", "scalar", params={"source_type": "scalar"})],
+                str(tmp_path / "out"),
             )
-
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_keep_indices_accepts_mixed_concrete_and_numeric_selections(
-        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
-    ) -> None:
-        stats_dir = tmp_path / "stats"
-        stats_dir.mkdir()
-        strategy = MagicMock()
-        strategy.get_work_items.return_value = [MagicMock()]
-        mock_factory.create.return_value = strategy
-        mock_pool.get_instance.return_value.submit_batch_async.return_value = []
-        config = StatConfig(
-            name=r"system.cpu\d+.ipc",
-            type="scalar",
-            is_regex=True,
-            keep_indices=True,
-            params={"parsed_ids": ["system.cpu0.ipc", "1"]},
-        )
-        scanned = [
-            ScannedVariable(
-                name=r"system.cpu\d+.ipc",
-                type="vector",
-                pattern_indices=["0", "1"],
-            )
-        ]
-
-        Gem5Parser.submit_parse_async(
-            str(stats_dir),
-            "stats.txt",
-            [config],
-            str(tmp_path),
-            scanned_vars=scanned,
-        )
-
-        expanded = strategy.get_work_items.call_args.args[2]
-        assert [item.name for item in expanded] == ["system.cpu0.ipc", "system.cpu1.ipc"]
 
 
 class TestFinalizeAndConstructCSV:
-    """Test finalize_parsing and construct_final_csv branches."""
+    """The submitted plan and finalized cells are the single CSV publication input."""
 
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_finalize_empty_results(self, mock_factory: MagicMock, tmp_path: Any) -> None:
-        result = Gem5Parser.finalize_parsing(str(tmp_path), [])
-        assert result is None
+    def test_finalize_empty_results(self, tmp_path: Path) -> None:
+        target = tmp_path / "results.csv"
+        target.write_bytes(b"previous-output\n")
+        with pytest.raises(ValueError, match="non-empty file result"):
+            Gem5Parser.finalize_parsing(_batch(tmp_path, ("x",)), [])
+        assert target.read_bytes() == b"previous-output\n"
 
-    def test_construct_csv_empty(self, tmp_path: Any) -> None:
-        result = Gem5Parser.construct_final_csv(str(tmp_path), [])
-        assert result is None
+    def test_construct_csv_empty(self, tmp_path: Path) -> None:
+        with pytest.raises(TypeError, match="exact ParseBatchResult"):
+            Gem5Parser.finalize_parsing(str(tmp_path), [])  # type: ignore[arg-type]
+        assert not (tmp_path / "results.csv").exists()
 
-    def test_construct_csv_with_entries(self, tmp_path: Any) -> None:
-        stat = FakeStat(entries=["0", "1"], reduced_content={"0": 10, "1": 20})
-        results = [{"ipc": stat}]
-
-        path = Gem5Parser.construct_final_csv(str(tmp_path), results)
-        assert path is not None
-        assert os.path.exists(path)
-        with open(path) as f:
-            lines = f.readlines()
-        assert "ipc..0" in lines[0]
-
-    def test_construct_csv_scalar(self, tmp_path: Any) -> None:
-        stat = FakeStat(entries=None, reduced_content="42")
-        results = [{"cycles": stat}]
-
-        path = Gem5Parser.construct_final_csv(str(tmp_path), results)
-        assert path is not None
-        with open(path) as f:
-            lines = f.readlines()
-        assert "cycles" in lines[0]
-
-    def test_construct_csv_missing_var(self, tmp_path: Any) -> None:
-        stat = FakeStat(entries=None, reduced_content="42")
-        results = [{"cycles": stat}]
-
-        path = Gem5Parser.construct_final_csv(
-            str(tmp_path), results, var_names=["cycles", "missing_var"]
+    def test_construct_csv_with_entries(self, tmp_path: Path) -> None:
+        record = ParsedFileResult(
+            "source",
+            (
+                ParsedVariableResult(
+                    "ipc",
+                    "number",
+                    "entries",
+                    (ParsedCell("ipc..0", "number", 10.0), ParsedCell("ipc..1", "number", 20.0)),
+                    layout=None,
+                ),
+            ),
         )
-        assert path is not None
-        with open(path) as f:
-            lines = f.readlines()
-        # "NaN" should appear for missing var
-        assert "NaN" in lines[1]
+        output = Gem5Parser.finalize_parsing(_batch(tmp_path, ("ipc",)), [record])
+        assert Path(output.csv_path).is_file()
+        with open(output.csv_path, newline="") as stream:
+            rows = list(csv.reader(stream))
+        assert rows == [["ipc..0", "ipc..1"], ["10.0", "20.0"]]
+        assert ParsedOutputIO.to_frame(output).to_dict("list") == {
+            "ipc..0": [10.0],
+            "ipc..1": [20.0],
+        }
 
-    def test_construct_csv_raw_data(self, tmp_path: Any) -> None:
-        """Test with raw data that lacks balance_content — hits the else branch."""
-        # Use a simple object that has entries (for header building)
-        # but no balance_content (to hit the raw data branch)
-        raw = MagicMock()
-        raw.entries = None
-        del raw.balance_content  # ensure hasattr(..., "balance_content") is False
+    def test_construct_csv_scalar(self, tmp_path: Path) -> None:
+        output = Gem5Parser.finalize_parsing(
+            _batch(tmp_path, ("cycles",)), [numeric_file("source", {"cycles": 42.0})]
+        )
+        assert ParsedOutputIO.to_frame(output).to_dict("list") == {"cycles": [42.0]}
 
-        results = [{"benchmark": raw}]
-        path = Gem5Parser.construct_final_csv(str(tmp_path), results)
-        assert path is not None
-        with open(path) as f:
-            lines = f.readlines()
-        assert "benchmark" in lines[0]
+    def test_construct_csv_missing_var(self, tmp_path: Path) -> None:
+        record = ParsedFileResult(
+            "source",
+            (
+                ParsedVariableResult(
+                    "cycles",
+                    "number",
+                    "scalar",
+                    (ParsedCell("cycles", "number", 42.0),),
+                    layout=None,
+                ),
+                ParsedVariableResult(
+                    "missing_var",
+                    "number",
+                    "scalar",
+                    (ParsedCell("missing_var", "number", math.nan),),
+                    missing_measurements=1,
+                    layout=None,
+                ),
+            ),
+        )
+        output = Gem5Parser.finalize_parsing(_batch(tmp_path, ("cycles", "missing_var")), [record])
+        frame = ParsedOutputIO.to_frame(output)
+        assert frame["cycles"].tolist() == [42.0]
+        assert math.isnan(float(frame["missing_var"].iloc[0]))
+        assert ParsedOutputIO.read(output).missing_variables == ("missing_var",)
+
+    def test_construct_csv_raw_data(self, tmp_path: Path) -> None:
+        """An object without a typed declaration never becomes a success row."""
+        raw: list[Any] = [{"benchmark": MagicMock()}]
+        with pytest.raises(TypeError, match="ParsedFileResult"):
+            Gem5Parser.finalize_parsing(_batch(tmp_path, ("benchmark",)), raw)
+        assert not (tmp_path / "results.csv").exists()

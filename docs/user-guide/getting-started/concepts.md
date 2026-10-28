@@ -33,22 +33,29 @@ flowchart LR
     G --> I
 ```
 
+Use **Reset All** in the sidebar to start a fresh session. It clears loaded data, plots and parser
+configuration, restores the default inputs, and cancels session-owned jobs. Other browser sessions
+and global rendering preferences remain independent.
+
 ## Data source
 
 The gem5 parser scans a directory tree for files that match a pattern such as `stats.txt`. A
 variable describes a statistic or configuration value to extract. Scanning discovers candidates;
 parsing writes the selected values into a CSV table.
 
-You may also load an existing CSV through `ring5.Session.load`. RING-5 requires a header and at
-least one data row, but it does not require gem5-specific column names. Each later operation checks
-the columns and data types it uses.
+The web application reviews CSV, tabular JSON, and Excel uploads before loading accepted rows.
+Python scripts can load a CSV with `ring5.Session.load`. A CSV requires a header and at least one
+data row, but no gem5-specific column names. Each later operation checks the columns and types it
+uses. The built-in [example portfolio]({{site.baseurl}}/user-guide/getting-started/showcase/) supplies synthetic data when you want to learn
+without external inputs.
 
 ## Dataset operations
 
 The **Data Managers** page changes the workspace dataset for downstream plots. Use it for operations
 such as seed reduction, outlier removal, or derived values that should apply broadly.
 
-These operations return new DataFrames in the Python API. They do not mutate caller-owned input.
+These operations return new `ring5.Table` values in the Python API. They do not mutate caller-owned
+input.
 
 ## Plot and shaper pipeline
 
@@ -82,6 +89,8 @@ checking the available downloads. See
 ## Portfolio
 
 A portfolio is a named snapshot of workspace data, plot definitions, pipelines, and related parse
-configuration. Loading a portfolio returns a restore report in the Python API because older or
-partially incompatible content may be skipped. Treat the source statistics and analysis script as
-the durable research inputs; use a portfolio to reproduce RING-5 workspace state.
+configuration. RING-5 validates the current document schema and integrity before restoration;
+unsupported versions are rejected. Restoration reports data, plot, and parser-variable outcomes,
+so inspect `RestoreReport.complete` and the reported issues before using the result. Keep the source
+statistics and analysis script as durable research inputs; use a portfolio to reproduce workspace
+state. The bundled example is read-only tutorial content until you save your own named copy.

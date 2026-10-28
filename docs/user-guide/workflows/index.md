@@ -5,9 +5,6 @@ parent: User Guide
 nav_order: 3
 has_children: true
 permalink: /user-guide/workflows/
-redirect_from:
-  - /user-guide/features/
-  - /user-guide/pages/
 ---
 
 # Workflows
@@ -19,33 +16,55 @@ Covers:
 - req~ring5.workspace.navigation~2
 -->
 
-Use these pages for recurring tasks:
+Start with [First analysis]({{site.baseurl}}/user-guide/getting-started/first-analysis/) for a complete
+web walkthrough, or [the example portfolio]({{site.baseurl}}/user-guide/getting-started/showcase/) to
+inspect configured figures. Use the task groups below for detailed procedures.
 
-- [Load and Parse Data](loading-data/) from a gem5 results tree or existing CSV.
-- [Manage Datasets](managing-datasets/) before plots share the data.
-- [Reuse Dataset Snapshots](dataset-snapshots/) across browser and Python sessions.
-- [Monitor Background Jobs](background-jobs/) for progress, cancellation, retries, and bounded errors.
-- [Search the Workspace](workspace-search/) across variables, datasets, plots, pipelines, portfolios, commands, and guides.
-- [Use the Command Palette and Shortcuts](command-palette/) for safe keyboard-driven workspace actions.
-- [Organize Favorites and Tags](favorites-tags/) across variables, datasets, plots, pipelines, and portfolios.
-- [Review an Analysis Together](collaborative-review/) with portable authored comments and statuses.
-- [Recover an Interrupted Workspace](autosave-recovery/) from bounded browser-private local drafts.
-- [Follow a Guided Analysis](guided-analysis/) from source selection through a figure download.
-- [Create and Configure Plots](plotting/) with per-plot transformation pipelines.
-- [Build Multi-panel Dashboards](multi-panel-dashboards/) from existing plots and export one grid.
-- [Style Line Charts](line-styles/) with matching connectors, dashes, widths, and markers.
-- [Link Dashboard Selections](linked-selections/) to compare matching values across Plotly panels.
-- [Explore Rows Behind a Plot](plot-drill-down/) without losing the active figure configuration.
-- [Compare Groups with Small Multiples](small-multiples/) using aligned panels and shared styling.
-- [Compare and Copy Plot Settings and Pipelines](copy-plot-settings/) with a field-level preview.
-- [Compare Distributions with Box Plots](box-plots/) with explicit quartile and outlier controls.
-- [Compare Density Shapes with Violin Plots](violin-plots/) with shared density and summary controls.
-- [Compare Cumulative Distributions with ECDF Plots](ecdf-plots/) without bins or smoothing.
-- [Show Composition with Area Charts](area-charts/) using overlay, stacked, or normalized fills.
-- [Compare Profiles with Radar Charts](radar-charts/) on one explicit shared radial scale.
-- [Explain Changes with Waterfall Charts](waterfall-charts/) using explicit step meanings and running totals.
-- [Trace Flows with Sankey Diagrams](sankey-diagrams/) using validated weighted links and shared node positions.
-- [Compare Rows with Parallel Coordinates](parallel-coordinates/) across ordered numeric and categorical axes.
-- [Manage Portfolios](portfolios/) to save and restore a workspace.
-- [Build Analysis Reports](batch-reports/) with figures, tables, findings, provenance, and runtime metadata.
-- [Automate with Python and the CLI](scripting/) for batch and CI use.
+## Load and prepare data
+
+- [Load and parse data](loading-data/): review uploaded tables, parse gem5 statistics, or reopen results.
+- [Manage datasets](managing-datasets/): inspect quality, retain named tables, validate schemas and
+  joins, reduce repeated runs, and derive columns.
+- [Reuse dataset snapshots](dataset-snapshots/): retain exact tables across browser and Python sessions.
+- [Monitor background jobs](background-jobs/): review progress, cancellation, retries, and errors.
+
+## Create and explore figures
+
+- [Create and configure plots](plotting/): create a plot, finalize its pipeline, map columns, and export.
+- [Compare and copy plot settings](copy-plot-settings/): inspect field-level changes before reusing settings.
+- [Style line charts](line-styles/): choose consistent connectors, dashes, widths, and markers.
+- [Compare groups with small multiples](small-multiples/): split a figure into aligned panels.
+- [Explore rows behind a plot](plot-drill-down/): inspect contributing data while retaining the figure.
+- [Build multi-panel dashboards](multi-panel-dashboards/): combine independent plots into one figure.
+- [Link dashboard selections](linked-selections/): inspect matching values across Plotly panels.
+- [Compose publication panels](publication-panel-composition/): add panel labels, captions, and spacing.
+
+Choose a chart by the question it answers in [Plot types]({{site.baseurl}}/user-guide/reference/plot-types/).
+The focused chart guides cover:
+
+| Question | Guide |
+| --- | --- |
+| How spread out are repeated observations? | [Box plots](box-plots/), [violin plots](violin-plots/) |
+| What fraction falls below a threshold? | [ECDF plots](ecdf-plots/) |
+| How do components change over an ordered axis? | [Area charts](area-charts/) |
+| How do profiles compare on a shared scale? | [Radar charts](radar-charts/) |
+| Which contributions explain a change? | [Waterfall charts](waterfall-charts/) |
+| Where does a measured quantity flow? | [Sankey diagrams](sankey-diagrams/) |
+| Which combinations of dimensions distinguish rows? | [Parallel coordinates](parallel-coordinates/) |
+
+## Save, share, and automate
+
+- [Manage portfolios](portfolios/): save and restore a workspace, compare versions, or reuse recipes.
+- [Build analysis reports](batch-reports/): share figures, processed tables, findings, and provenance.
+- [Review an analysis together](collaborative-review/): retain authored comments and statuses.
+- [Automate with Python and the CLI](scripting/): run scripts, parameter matrices, and repeatable exports.
+
+For end-to-end comparisons and final paper figures, use [Analysis guides]({{site.baseurl}}/user-guide/guides/).
+
+## Work efficiently in the application
+
+- [Follow a guided analysis](guided-analysis/): navigate milestones from source selection to download.
+- [Search the workspace](workspace-search/): find variables, datasets, plots, pipelines, and guides.
+- [Use the command palette and shortcuts](command-palette/): navigate and invoke workspace actions.
+- [Organize favorites and tags](favorites-tags/): keep related analysis objects discoverable.
+- [Recover an interrupted workspace](autosave-recovery/): review and restore browser-private drafts.

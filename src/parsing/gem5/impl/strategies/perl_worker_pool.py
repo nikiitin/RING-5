@@ -11,7 +11,7 @@ Features:
 """
 
 import atexit
-from contextlib import suppress
+from contextlib import ExitStack, suppress
 import logging
 import os
 import queue
@@ -21,9 +21,16 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
-from src.core.common.security_limits import MAX_PARSE_LINE_COUNT
+from src.core.common.security_limits import MAX_PARSE_LINE_COUNT, MAX_PARSE_RESULT_BYTES
+from src.parsing.gem5.impl.source_events import SOURCE_WIRE_READY
+from src.core.common.parse_failure import (
+    bounded_parse_text,
+    classify_parse_failure,
+    parse_error_text,
+)
+from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataValueError
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +71,17 @@ class WorkerStats:
     is_healthy: bool
 
 
+@dataclass
+class _WorkerGeneration:
+    """Exact process and pipe-reader handles owned by one worker generation."""
+
+    process: subprocess.Popen[str]
+    line_queue: queue.Queue[str | BaseException | None]
+    pipes: tuple[IO[str] | None, ...]
+    reader_thread: threading.Thread | None = None
+    stderr_thread: threading.Thread | None = None
+
+
 class PerlWorker:
     """
     Single Perl worker process with health monitoring.
@@ -92,8 +110,9 @@ class PerlWorker:
         self.last_used = 0.0
         self.is_busy = False
         self._lock = threading.Lock()
+        self._lifecycle_lock = threading.RLock()
         # Per-process queues prevent output from a stopped worker reaching its replacement.
-        self._line_queue: queue.Queue[str | None] | None = None
+        self._line_queue: queue.Queue[str | BaseException | None] | None = None
         self._reader_thread: threading.Thread | None = None
         self._stderr_thread: threading.Thread | None = None
 
@@ -110,74 +129,103 @@ class PerlWorker:
         check (both take ``self._lock``) can't read the queue or write stdin
         mid-restart — the race that left parses hung under heavy load.
         """
-        with self._lock:
-            try:
-                logger.info(f"[Worker-{self.worker_id}] Starting Perl worker process...")
-
-                # Start Perl server with full executable path
-                process: subprocess.Popen[str] = subprocess.Popen(
-                    [self.perl_exe, self.script_path],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    bufsize=1,  # line-buffered: correct for a text line protocol
-                    env={**os.environ, "RING5_MAX_PARSE_LINES": str(MAX_PARSE_LINE_COUNT)},
-                )
-
-                # Bind the reader to this process before publishing the generation.
-                line_queue: queue.Queue[str | None] = queue.Queue()
-                self._start_reader_thread(process.stdout, line_queue)
-                # A full stderr pipe blocks Perl and stalls stdout parsing.
-                self._start_stderr_drainer(process.stderr)
-
-                # Publish this generation.
-                self.process = process
-                self._line_queue = line_queue
-
-                # Allow slow process startup on constrained hosts.
-                timeout = 30.0
-                ready_line = self._read_line_with_timeout(timeout=timeout)
-                if ready_line != "READY":
-                    raise RuntimeError(
-                        f"Worker did not send READY signal within {timeout}s "
-                        f"(got: '{ready_line}')"
+        with self._lifecycle_lock, ExitStack() as startup:
+            with self._lock:
+                if self.process is not None:
+                    raise RuntimeError("Shut down the current generation before starting a worker.")
+                try:
+                    logger.info("[Worker-%s] Starting Perl worker process...", self.worker_id)
+                    process: subprocess.Popen[str] = subprocess.Popen(
+                        [self.perl_exe, self.script_path],
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        encoding="utf-8",
+                        errors="strict",
+                        bufsize=1,
+                        env={
+                            **os.environ,
+                            "RING5_MAX_PARSE_LINES": str(MAX_PARSE_LINE_COUNT),
+                            "RING5_MAX_SOURCE_BYTES": str(MAX_PARSE_RESULT_BYTES),
+                        },
                     )
+                    generation = _WorkerGeneration(
+                        process,
+                        queue.Queue(),
+                        (process.stdin, process.stdout, process.stderr),
+                    )
+                    startup.callback(self._retire_generation, generation)
+                    # Publication stays under the worker lock. Cleanup owns this
+                    # exact generation even if a pipe-reader startup fails.
+                    self.process = process
+                    self._line_queue = generation.line_queue
+                    self._reader_thread = None
+                    self._stderr_thread = None
+                    self.is_healthy = False
+                    try:
+                        self._start_reader_thread(process.stdout, generation.line_queue)
+                        self._start_stderr_drainer(process.stderr)
+                        timeout = 30.0
+                        ready_line = self._read_line_with_timeout(timeout=timeout)
+                        if ready_line != SOURCE_WIRE_READY:
+                            raise ParseDataRuntimeError(
+                                f"Worker did not send READY signal within {timeout}s "
+                                f"(got: '{ready_line}')"
+                            )
+                        self.is_healthy = True
+                        logger.info(
+                            "[Worker-%s] Worker started successfully (PID: %s)",
+                            self.worker_id,
+                            process.pid,
+                        )
+                    finally:
+                        generation.reader_thread = self._reader_thread
+                        generation.stderr_thread = self._stderr_thread
+                except UnicodeError as error:
+                    if classify_parse_failure(error) != "configuration":
+                        raise
+                    raise ParseDataRuntimeError(
+                        bounded_parse_text(
+                            "Perl worker startup output is not valid UTF-8: "
+                            f"{parse_error_text(error)}"
+                        )
+                    ) from error
+                except (ParseDataRuntimeError, OSError) as error:
+                    if classify_parse_failure(error) is None:
+                        raise
+                    logger.error(
+                        "[Worker-%s] FAILED to start worker: %s",
+                        self.worker_id,
+                        parse_error_text(error),
+                    )
+                    raise
+            startup.pop_all()
 
-                self.is_healthy = True
-                logger.info(
-                    f"[Worker-{self.worker_id}] Worker started successfully (PID: {process.pid})"
-                )
-
-            except Exception as e:
-                logger.error(
-                    f"[Worker-{self.worker_id}] FAILED to start worker: {e}", exc_info=True
-                )
-                self.is_healthy = False
-                raise
-
-    def _start_reader_thread(self, stdout: Any, line_queue: "queue.Queue[str | None]") -> None:
+    def _start_reader_thread(
+        self, stdout: Any, line_queue: queue.Queue[str | BaseException | None]
+    ) -> None:
         """Start a reader thread bound to ONE process generation.
 
         Reads from the explicitly-captured ``stdout`` into the explicitly-captured
         ``line_queue`` (never ``self.process``/``self._line_queue``), so a stale
         reader left over from a previous generation only drains its own dead pipe
-        into its own dead queue — which nobody reads. A ``None`` sentinel is
-        enqueued on EOF/error so readers unblock instead of hanging forever.
+        into its own dead queue. Stream errors retain their identity through the
+        queue; a final ``None`` sentinel preserves EOF after success or failure.
         """
 
         def _reader() -> None:
             try:
                 if stdout is None:
-                    line_queue.put(None)
                     return
                 while True:
                     line = stdout.readline()
                     if not line:
-                        line_queue.put(None)  # EOF — process closed stdout
                         return
                     line_queue.put(line.strip())
-            except Exception:
+            except (OSError, ValueError) as error:
+                line_queue.put(error)
+            finally:
                 line_queue.put(None)
 
         self._reader_thread = threading.Thread(
@@ -202,10 +250,15 @@ class PerlWorker:
                     return
                 for line in stderr:
                     if "ERROR" in line:
-                        logger.warning("[Worker-%s][perl] %s", self.worker_id, line.strip())
+                        logger.warning(
+                            "[Worker-%s][perl] %s", self.worker_id, bounded_parse_text(line.strip())
+                        )
             except (OSError, ValueError) as exc:
-                # Closing the worker pipes during shutdown ends the drainer.
-                logger.debug("[Worker-%s] stderr drainer stopped: %s", self.worker_id, exc)
+                if classify_parse_failure(exc) not in ("io", "configuration"):
+                    raise
+                logger.debug(
+                    "[Worker-%s] stderr drainer stopped: %s", self.worker_id, parse_error_text(exc)
+                )
 
         self._stderr_thread = threading.Thread(
             target=_drain, daemon=True, name=f"perl-stderr-{self.worker_id}"
@@ -232,16 +285,20 @@ class PerlWorker:
         """
         line_queue = self._line_queue
         if line_queue is None:
-            raise RuntimeError(f"Worker-{self.worker_id} has no active stdout queue")
+            raise ParseDataRuntimeError(f"Worker-{self.worker_id} has no active stdout queue")
 
         try:
             line = line_queue.get(timeout=timeout)
-        except queue.Empty:
+        except queue.Empty as error:
+            if classify_parse_failure(error) != "transport":
+                raise
             logger.error(f"[Worker-{self.worker_id}] Read timeout after {timeout}s")
             raise TimeoutError(f"Read timeout after {timeout}s")
 
         if line is None:
-            raise RuntimeError(f"Worker-{self.worker_id} stdout closed (EOF)")
+            raise ParseDataRuntimeError(f"Worker-{self.worker_id} stdout closed (EOF)")
+        if isinstance(line, BaseException):
+            raise line
 
         return line
 
@@ -265,11 +322,11 @@ class PerlWorker:
         """
         protocol_fields = [file_path, *variables]
         if any("||" in field or "\n" in field or "\r" in field for field in protocol_fields):
-            raise ValueError("Perl worker request contains a reserved protocol delimiter.")
+            raise ParseDataValueError("Perl worker request contains a reserved protocol delimiter.")
 
         with self._lock:
             if not self.is_healthy:
-                raise RuntimeError(f"Worker-{self.worker_id} is not healthy")
+                raise ParseDataRuntimeError(f"Worker-{self.worker_id} is not healthy")
 
             try:
                 logger.debug(f"[Worker-{self.worker_id}] Parsing file: {file_path}")
@@ -280,7 +337,7 @@ class PerlWorker:
 
                 # Send command
                 if not self.process or not self.process.stdin:
-                    raise RuntimeError("Worker stdin not available")
+                    raise ParseDataRuntimeError("Worker stdin not available")
 
                 self.process.stdin.write(command)
                 self.process.stdin.flush()
@@ -303,7 +360,9 @@ class PerlWorker:
                     if line == "END_PARSE":
                         break
                     elif line.startswith("ERROR"):
-                        logger.error(f"[Worker-{self.worker_id}] Perl error: {line}")
+                        logger.error(
+                            f"[Worker-{self.worker_id}] Perl error: {bounded_parse_text(line)}"
+                        )
                         self.errors_encountered += 1
                         protocol_error = line
                         # Continue reading to END_PARSE
@@ -321,7 +380,7 @@ class PerlWorker:
                     logger.error(
                         "[Worker-%s] Parse request failed: %s",
                         self.worker_id,
-                        protocol_error,
+                        bounded_parse_text(protocol_error),
                     )
                     return [], False
 
@@ -332,8 +391,20 @@ class PerlWorker:
 
                 return output_lines, True
 
-            except Exception as e:
-                logger.error(f"[Worker-{self.worker_id}] Parse failed: {e}", exc_info=True)
+            except UnicodeError as error:
+                if classify_parse_failure(error) != "configuration":
+                    raise
+                self.errors_encountered += 1
+                self.is_healthy = False
+                message = bounded_parse_text(
+                    f"Perl worker output is not valid UTF-8: {parse_error_text(error)}"
+                )
+                logger.error("[Worker-%s] %s", self.worker_id, message)
+                raise ParseDataRuntimeError(message) from error
+            except (ParseDataRuntimeError, OSError) as e:
+                if classify_parse_failure(e) is None:
+                    raise
+                logger.error("[Worker-%s] Parse failed: %s", self.worker_id, parse_error_text(e))
                 self.errors_encountered += 1
                 self.is_healthy = False
                 return [], False
@@ -374,8 +445,22 @@ class PerlWorker:
                     self.is_healthy = False
                     return False
 
-            except Exception as e:
-                logger.error(f"[Worker-{self.worker_id}] Health check failed: {e}")
+            except UnicodeError as error:
+                if classify_parse_failure(error) != "configuration":
+                    raise
+                logger.error(
+                    "[Worker-%s] Health check decoding failed: %s",
+                    self.worker_id,
+                    parse_error_text(error),
+                )
+                self.is_healthy = False
+                return False
+            except (ParseDataRuntimeError, OSError) as e:
+                if classify_parse_failure(e) is None:
+                    raise
+                logger.error(
+                    "[Worker-%s] Health check failed: %s", self.worker_id, parse_error_text(e)
+                )
                 self.is_healthy = False
                 return False
 
@@ -386,60 +471,72 @@ class PerlWorker:
         Returns:
             True if restart successful
         """
-        logger.warning(f"[Worker-{self.worker_id}] Restarting worker...")
+        with self._lifecycle_lock:
+            logger.warning(f"[Worker-{self.worker_id}] Restarting worker...")
 
-        # Shutdown old process
-        self.shutdown()
+            # Shutdown old process
+            self.shutdown()
 
-        # Start new process
-        try:
-            self._start_worker()
-            self.restarts += 1
-            # Reset usage so the freshly-restarted worker isn't immediately re-pinged by
-            # the health monitor (a redundant PING right after a clean restart).
-            self.last_used = time.time()
-            logger.info(f"[Worker-{self.worker_id}] Worker restarted successfully")
-            return True
-        except Exception as e:
-            logger.error(f"[Worker-{self.worker_id}] Restart failed: {e}")
-            return False
+            # Start new process
+            try:
+                self._start_worker()
+                self.restarts += 1
+                # Reset usage so the freshly-restarted worker isn't immediately re-pinged by
+                # the health monitor (a redundant PING right after a clean restart).
+                self.last_used = time.time()
+                logger.info(f"[Worker-{self.worker_id}] Worker restarted successfully")
+                return True
+            except (ParseDataRuntimeError, ParseDataValueError, OSError) as e:
+                if classify_parse_failure(e) is None:
+                    raise
+                logger.error("[Worker-%s] Restart failed: %s", self.worker_id, parse_error_text(e))
+                return False
 
     def shutdown(self) -> None:
-        """Gracefully shutdown the worker."""
+        """Reap the owned generation, close its pipes and join its readers."""
+        with self._lifecycle_lock:
+            with self._lock:
+                process = self.process
+                if process is None:
+                    return
+                generation = _WorkerGeneration(
+                    process,
+                    self._line_queue if self._line_queue is not None else queue.Queue(),
+                    (process.stdin, process.stdout, process.stderr),
+                    self._reader_thread,
+                    self._stderr_thread,
+                )
+            self._retire_generation(generation)
+
+    def _retire_generation(self, generation: _WorkerGeneration) -> None:
+        """Retire exact startup/stop handles without claiming a newer generation."""
         with self._lock:
-            if self.process is not None:
-                if self.process.poll() is None:
-                    try:
-                        # Try graceful shutdown
-                        if self.process.stdin is not None:
-                            self.process.stdin.write("SHUTDOWN\n")
-                            self.process.stdin.flush()
-                        self.process.wait(timeout=2.0)
-                        logger.info(f"[Worker-{self.worker_id}] Graceful shutdown complete")
-                    except Exception:
-                        # Force kill
-                        self.process.kill()
-                        logger.warning(f"[Worker-{self.worker_id}] Forced shutdown")
-                # Always close subprocess pipes to prevent resource leaks
-                for pipe in (
-                    self.process.stdin,
-                    self.process.stdout,
-                    self.process.stderr,
-                ):
-                    if pipe:
-                        with suppress(OSError):
-                            pipe.close()
+            if self.process is generation.process:
                 self.process = None
                 self.is_healthy = False
-            # Join the reader/stderr-drainer threads (their pipes are now closed,
-            # so they unblock on EOF). This stops a daemon thread sitting in a
-            # C-level readline during interpreter teardown — an intermittent
-            # segfault on shutdown otherwise.
-            for _t in (self._reader_thread, self._stderr_thread):
-                if _t is not None and _t.is_alive():
-                    _t.join(timeout=1.0)
-            # Drop the dead generation's queue so any stray read fails fast.
-            self._line_queue = None
+                self._line_queue = None
+        process = generation.process
+        try:
+            if process.poll() is None:
+                try:
+                    if process.stdin is not None:
+                        process.stdin.write("SHUTDOWN\n")
+                        process.stdin.flush()
+                    process.wait(timeout=2.0)
+                except (OSError, ValueError, subprocess.TimeoutExpired):
+                    with suppress(ProcessLookupError):
+                        process.kill()
+                    process.wait()
+        finally:
+            # Reaping the owned Perl child closes its write ends, so both
+            # readers finish on EOF before their parent-side pipes are closed.
+            for thread in (generation.reader_thread, generation.stderr_thread):
+                if thread is not None and thread.is_alive():
+                    thread.join()
+            for pipe in generation.pipes:
+                if pipe is not None:
+                    with suppress(OSError, ValueError):
+                        pipe.close()
 
     def get_stats(self) -> WorkerStats:
         """Get worker statistics."""
@@ -477,7 +574,7 @@ class PerlWorkerPool:
         perl_exe_path = shutil.which("perl")
         if not perl_exe_path:
             logger.error("Perl executable not found in PATH")
-            raise RuntimeError("Perl executable not found in PATH")
+            raise ParseDataRuntimeError("Perl executable not found in PATH")
         self.perl_exe: str = perl_exe_path
 
         # Locate Perl server script (in src/parsing/perl/)
@@ -487,13 +584,17 @@ class PerlWorkerPool:
             logger.error(f"Perl server script not found: {self.script_path}")
             raise FileNotFoundError(f"Perl server script not found: {self.script_path}")
 
-        self._initialize_pool()
-        self._start_health_monitor()
-        logger.info(f"Worker pool initialized with {self.pool_size} workers")
+        with ExitStack() as startup:
+            startup.callback(self.shutdown)
+            self._initialize_pool()
+            self._start_health_monitor()
+            logger.info(f"Worker pool initialized with {self.pool_size} workers")
+            startup.pop_all()
 
     def _initialize_pool(self) -> None:
         """Initialize worker processes."""
         logger.info(f"Initializing {self.pool_size} Perl workers...")
+        last_error: BaseException | None = None
 
         for i in range(self.pool_size):
             try:
@@ -503,11 +604,14 @@ class PerlWorkerPool:
                 self.workers.append(worker)
                 self.worker_queue.put(worker)
                 logger.info(f"Worker {i} initialized")
-            except Exception as e:
-                logger.error(f"Failed to initialize worker {i}: {e}")
+            except (ParseDataRuntimeError, OSError) as e:
+                if classify_parse_failure(e) is None:
+                    raise
+                last_error = e
+                logger.error("Failed to initialize worker %s: %s", i, parse_error_text(e))
 
         if not self.workers:
-            raise RuntimeError("No Perl workers could be started")
+            raise ParseDataRuntimeError("No Perl workers could be started") from last_error
 
         if len(self.workers) < self.pool_size:
             logger.warning(
@@ -592,7 +696,9 @@ class PerlWorkerPool:
                 healthy_count = sum(1 for w in self.workers if w.is_healthy)
             if healthy_count == 0 and failures > 0:
                 logger.error("Circuit breaker: no healthy workers remaining")
-                raise RuntimeError("All workers unhealthy — circuit breaker tripped")
+                raise ParseDataRuntimeError(
+                    "All workers unhealthy — circuit breaker tripped"
+                ) from last_exc
 
             try:
                 # Get available worker with per-attempt timeout
@@ -620,10 +726,14 @@ class PerlWorkerPool:
                         )
                         # Don't return worker to queue yet, health monitor will handle it
 
-                except Exception as e:
+                except (ParseDataRuntimeError, ParseDataValueError, OSError) as e:
+                    if classify_parse_failure(e) is None:
+                        raise
                     failures += 1
                     last_exc = e
-                    logger.error(f"Parse error with worker-{worker.worker_id}: {e}")
+                    logger.error(
+                        "Parse error with worker-%s: %s", worker.worker_id, parse_error_text(e)
+                    )
                 finally:
                     # Ensure busy flag is cleared even on exception
                     worker.is_busy = False
@@ -635,12 +745,14 @@ class PerlWorkerPool:
                         # Health monitor will restart it
 
             except queue.Empty as e:
+                if classify_parse_failure(e) != "transport":
+                    raise
                 logger.error("Timeout waiting for available worker")
                 raise TimeoutError("No workers available within timeout") from e
 
         # All workers failed
         logger.error("All workers failed to parse the file")
-        raise RuntimeError("All workers failed") from last_exc
+        raise ParseDataRuntimeError("All workers failed") from last_exc
 
     def get_stats(self) -> dict[str, Any]:
         """Get pool statistics."""
@@ -662,9 +774,10 @@ class PerlWorkerPool:
         self._shutdown_event.set()
 
         # Wait for health monitor thread to finish
-        if self._health_monitor_thread is not None:
-            self._health_monitor_thread.join(timeout=self._health_check_interval + 1)
-            self._health_monitor_thread = None
+        monitor = self._health_monitor_thread
+        self._health_monitor_thread = None
+        if monitor is not None and monitor.is_alive():
+            monitor.join()
 
         # Shutdown all workers
         with self._lock:

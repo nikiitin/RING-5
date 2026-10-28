@@ -1,5 +1,8 @@
 """Tests for simple plot configuration and figure creation."""
 
+from ring5 import Session
+from typing import cast
+
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -72,7 +75,7 @@ class TestBarPlotRenderConfigUI:
 class TestBarPlotCreateFigure:
     """Tests for bar-plot figure creation."""
 
-    def test_basic(self, sample_df: pd.DataFrame) -> None:
+    def test_basic(self, sample_df: pd.DataFrame, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
         plot = BarPlot(1, "test")
@@ -83,10 +86,12 @@ class TestBarPlotCreateFigure:
             "xlabel": "X",
             "ylabel": "Y",
         }
-        fig = plot.create_figure(sample_df, config)
+        plot.processed_data = sample_df
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
 
-    def test_with_error_bars(self, sample_df: pd.DataFrame) -> None:
+    def test_with_error_bars(self, sample_df: pd.DataFrame, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
         plot = BarPlot(1, "test")
@@ -98,10 +103,12 @@ class TestBarPlotCreateFigure:
             "ylabel": "Y",
             "show_error_bars": True,
         }
-        fig = plot.create_figure(sample_df, config)
+        plot.processed_data = sample_df
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
 
-    def test_with_color_and_orders(self, sample_df: pd.DataFrame) -> None:
+    def test_with_color_and_orders(self, sample_df: pd.DataFrame, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
         plot = BarPlot(1, "test")
@@ -115,21 +122,11 @@ class TestBarPlotCreateFigure:
             "xaxis_order": ["a", "b", "c"],
             "legend_order": ["x", "y", "z"],
         }
-        fig = plot.create_figure(sample_df, config)
+        plot.processed_data = sample_df
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) > 0
-
-    def test_get_legend_column_none(self) -> None:
-        from src.web.pages.ui.plotting.types.bar_plot import BarPlot
-
-        plot = BarPlot(1, "test")
-        assert plot.get_legend_column({}) is None
-
-    def test_get_legend_column_set(self) -> None:
-        from src.web.pages.ui.plotting.types.bar_plot import BarPlot
-
-        plot = BarPlot(1, "test")
-        assert plot.get_legend_column({"color": "benchmark"}) == "benchmark"
 
 
 class TestLinePlotRenderConfigUI:
@@ -176,7 +173,7 @@ class TestLinePlotRenderConfigUI:
 class TestLinePlotCreateFigure:
     """Tests for line-plot figure creation."""
 
-    def test_basic(self, sample_df: pd.DataFrame) -> None:
+    def test_basic(self, sample_df: pd.DataFrame, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
         plot = LinePlot(1, "test")
@@ -187,10 +184,12 @@ class TestLinePlotCreateFigure:
             "xlabel": "X",
             "ylabel": "Y",
         }
-        fig = plot.create_figure(sample_df, config)
+        plot.processed_data = sample_df
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
 
-    def test_with_error_bars(self, sample_df: pd.DataFrame) -> None:
+    def test_with_error_bars(self, sample_df: pd.DataFrame, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
         plot = LinePlot(1, "test")
@@ -202,10 +201,12 @@ class TestLinePlotCreateFigure:
             "ylabel": "Y",
             "show_error_bars": True,
         }
-        fig = plot.create_figure(sample_df, config)
+        plot.processed_data = sample_df
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
 
-    def test_sorts_by_x(self, sample_df: pd.DataFrame) -> None:
+    def test_sorts_by_x(self, sample_df: pd.DataFrame, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
         plot = LinePlot(1, "test")
@@ -216,15 +217,10 @@ class TestLinePlotCreateFigure:
             "xlabel": "X",
             "ylabel": "Y",
         }
-        fig = plot.create_figure(sample_df, config)
+        plot.processed_data = sample_df
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
-
-    def test_get_legend_column(self) -> None:
-        from src.web.pages.ui.plotting.types.line_plot import LinePlot
-
-        plot = LinePlot(1, "test")
-        assert plot.get_legend_column({}) is None
-        assert plot.get_legend_column({"color": "config"}) == "config"
 
 
 class TestLinePlotAdvancedOptions:
@@ -330,7 +326,7 @@ class TestScatterPlotRenderConfigUI:
 class TestScatterPlotCreateFigure:
     """Tests for scatter-plot figure creation."""
 
-    def test_basic(self, sample_df: pd.DataFrame) -> None:
+    def test_basic(self, sample_df: pd.DataFrame, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
         plot = ScatterPlot(1, "test")
@@ -341,10 +337,12 @@ class TestScatterPlotCreateFigure:
             "xlabel": "X",
             "ylabel": "Y",
         }
-        fig = plot.create_figure(sample_df, config)
+        plot.processed_data = sample_df
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
 
-    def test_with_error_bars(self, sample_df: pd.DataFrame) -> None:
+    def test_with_error_bars(self, sample_df: pd.DataFrame, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
         plot = ScatterPlot(1, "test")
@@ -356,10 +354,12 @@ class TestScatterPlotCreateFigure:
             "ylabel": "Y",
             "show_error_bars": True,
         }
-        fig = plot.create_figure(sample_df, config)
+        plot.processed_data = sample_df
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
 
-    def test_with_color(self, sample_df: pd.DataFrame) -> None:
+    def test_with_color(self, sample_df: pd.DataFrame, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
 
         plot = ScatterPlot(1, "test")
@@ -371,12 +371,7 @@ class TestScatterPlotCreateFigure:
             "ylabel": "Y",
             "color": "benchmark",
         }
-        fig = plot.create_figure(sample_df, config)
+        plot.processed_data = sample_df
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
-
-    def test_get_legend_column(self) -> None:
-        from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
-
-        plot = ScatterPlot(1, "test")
-        assert plot.get_legend_column({}) is None
-        assert plot.get_legend_column({"color": "benchmark"}) == "benchmark"

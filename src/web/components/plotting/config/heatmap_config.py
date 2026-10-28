@@ -12,13 +12,15 @@ Optionally splits the chart into one heatmap per facet value
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
 )
 from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 def _sync_auto_xlabel(saved_config: PlotConfig, plot_id: int, x_column: str) -> None:
@@ -26,7 +28,7 @@ def _sync_auto_xlabel(saved_config: PlotConfig, plot_id: int, x_column: str) -> 
     previous_x = saved_config.get("x")
     if not isinstance(previous_x, str) or previous_x == x_column:
         return
-    widget_key = f"xlabel_{plot_id}"
+    widget_key = WidgetKeyBuilder.plot_key(plot_id, "widgets.xlabel")
     current_value = st.session_state.get(widget_key, saved_config.get("xlabel"))
     if current_value == previous_x:
         st.session_state[widget_key] = x_column
@@ -68,7 +70,7 @@ def render(
             "X-axis (columns)",
             options=all_cols,
             index=x_default_idx,
-            key=f"x_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.x"),
             help="Configuration column displayed along the X-axis.",
         )
 
@@ -76,7 +78,7 @@ def render(
         default_facet = str(saved_config.get("facet_col", "") or "")
         if default_facet and default_facet in facet_options:
             facet_default_idx = facet_options.index(default_facet)
-        elif "benchmark_name" in facet_options:
+        elif "facet_col" not in saved_config and "benchmark_name" in facet_options:
             facet_default_idx = facet_options.index("benchmark_name")
         else:
             facet_default_idx = 0
@@ -85,7 +87,7 @@ def render(
             "Split by (one heatmap per value)",
             options=facet_options,
             index=facet_default_idx,
-            key=f"hm_facet_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.hm_facet"),
             help="Use benchmark_name to create one heatmap per benchmark.",
         )
         facet_col: str | None = None if facet_col_raw == "(none)" else facet_col_raw
@@ -107,7 +109,7 @@ def render(
         # Filtering invalid entries here preserves the valid subset and prevents the
         # exception from propagating — which would otherwise hide the "Show Totals"
         # checkbox rendered below and block all figure regeneration.
-        _mc_key = f"hm_metrics_{plot_id}"
+        _mc_key = WidgetKeyBuilder.plot_key(plot_id, "widgets.hm_metrics")
         if _mc_key in st.session_state:
             _mc_state = st.session_state[_mc_key]
             if isinstance(_mc_state, list):
@@ -119,7 +121,7 @@ def render(
             "Y-axis Metrics (rows)",
             options=numeric_cols,
             default=metric_defaults,
-            key=f"hm_metrics_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.hm_metrics"),
             help="Each selected numeric column becomes one row in the heatmap.",
         )
 
@@ -151,7 +153,7 @@ def render(
             "Aggregation",
             options=agg_options,
             index=agg_default_idx,
-            key=f"hm_agg_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.hm_agg"),
             help=("How to aggregate when multiple rows share " "the same (X, Y) combination."),
         )
         or "mean"

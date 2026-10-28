@@ -27,7 +27,13 @@ class AnnotationConfig:
 
     Coordinates:
       - ``xref`` / ``yref`` control the coordinate system:
-        ``"data"`` = data coordinates, ``"paper"`` = figure fraction (0–1).
+        ``"data"`` = data coordinates, ``"paper"`` = axes/panel fraction (0–1).
+      - Pixel shifts translate the complete annotation, including its arrow.
+        Positive X moves right; positive Y moves up. Matplotlib scales these
+        logical pixels with the figure's initial render DPI during export.
+
+    A ``legend_role`` resolves a font size of -1 from that legend's style.
+    Explicit sizes and the annotation's font family remain independent.
     """
 
     # Content
@@ -49,7 +55,7 @@ class AnnotationConfig:
     arrow_color: str = "#444"
 
     # Font
-    font_size: int = -1  # -1 = use element default from TypographySpec
+    font_size: float = -1  # -1 = use element default from TypographySpec
     font_color: str = "#444"
     font_bold: bool = False
 
@@ -59,6 +65,10 @@ class AnnotationConfig:
     border_pad: float = 2.0
     bgcolor: str = ""
     align: Literal["left", "center", "right"] = "left"
+    font_family: str = ""  # empty = inherit figure family
+    x_shift_pixels: float = 0.0
+    y_shift_pixels: float = 0.0
+    legend_role: Literal["secondary", "tertiary"] | None = None
 
 
 @dataclass(frozen=True)

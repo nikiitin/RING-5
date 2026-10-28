@@ -7,6 +7,8 @@ from typing import cast
 
 import pytest
 
+from src.parsing.registry import SimulatorRegistry
+
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.services.data_services.variable_service import VariableService
 
@@ -256,98 +258,46 @@ class TestFilterInternalStats:
     def test_filters_all_internal_stats(self) -> None:
         """Should remove all internal gem5 statistics."""
         entries = ["cpu0", "total", "mean", "gmean", "stdev", "samples", "overflows", "underflows"]
-        result = VariableService.filter_internal_stats(entries)
+        result = VariableService.filter_internal_stats(
+            entries, internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
         assert result == ["cpu0"]
 
-    def test_case_insensitive_filtering(self) -> None:
-        """Should filter internal stats regardless of case."""
-        entries = ["CPU0", "TOTAL", "Mean", "STDEV", "cpu1"]
-        result = VariableService.filter_internal_stats(entries)
+    def test_filters_exact_declared_roles_without_folding_source_entry_case(self) -> None:
+        """Source entries and simulator summary names are case-sensitive."""
+        entries = ["mean", "Mean", "stdev", "STDEV", "CustomSummary"]
+        internal_stats = frozenset({"mean", "stdev", "CustomSummary"})
 
-        assert "cpu1" in result
-        assert "CPU0" in result
-        assert "TOTAL" not in result
-        assert "Mean" not in result
+        result = VariableService.filter_internal_stats(entries, internal_stats)
+
+        assert result == ["Mean", "STDEV"]
+        assert entries == ["mean", "Mean", "stdev", "STDEV", "CustomSummary"]
 
     def test_preserves_non_internal_entries(self) -> None:
         """Should keep all non-internal entries."""
         entries = ["cpu0", "cpu1", "bank0", "bank1"]
-        result = VariableService.filter_internal_stats(entries)
+        result = VariableService.filter_internal_stats(
+            entries, internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
         assert sorted(result) == ["bank0", "bank1", "cpu0", "cpu1"]
 
     def test_returns_sorted_list(self) -> None:
         """Should return alphabetically sorted list."""
         entries = ["cpu2", "cpu0", "cpu1"]
-        result = VariableService.filter_internal_stats(entries)
+        result = VariableService.filter_internal_stats(
+            entries, internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
         assert result == ["cpu0", "cpu1", "cpu2"]
 
     def test_empty_list(self) -> None:
         """Should handle empty list."""
-        result = VariableService.filter_internal_stats([])
+        result = VariableService.filter_internal_stats(
+            [], internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
         assert result == []
-
-
-class TestFindVariableByName:
-    """Tests for find_variable_by_name()."""
-
-    def test_exact_match_found(self) -> None:
-        """Should find variable with exact name match."""
-        variables = cast(
-            list[ParseVariableConfig],
-            [
-                {"name": "system.cpu.ipc", "type": "scalar"},
-                {"name": "system.mem.bandwidth", "type": "vector"},
-            ],
-        )
-        result = VariableService.find_variable_by_name(variables, "system.cpu.ipc")
-
-        assert result is not None
-        assert result["type"] == "scalar"
-
-    def test_exact_match_not_found(self) -> None:
-        """Should return None if exact match not found."""
-        variables = cast(list[ParseVariableConfig], [{"name": "system.cpu.ipc", "type": "scalar"}])
-        result = VariableService.find_variable_by_name(variables, "system.mem.bandwidth")
-
-        assert result is None
-
-    def test_regex_match_found(self) -> None:
-        """Should find variable using regex pattern."""
-        variables = cast(
-            list[ParseVariableConfig],
-            [
-                {"name": "system.cpu0.ipc", "type": "scalar"},
-                {"name": "system.cpu1.ipc", "type": "scalar"},
-            ],
-        )
-        result = VariableService.find_variable_by_name(
-            variables, r"system\.cpu\d+\.ipc", exact=False
-        )
-
-        assert result is not None
-        assert "system.cpu" in result["name"]
-
-    def test_regex_match_not_found(self) -> None:
-        """Should return None if regex doesn't match."""
-        variables = cast(list[ParseVariableConfig], [{"name": "system.cpu.ipc", "type": "scalar"}])
-        result = VariableService.find_variable_by_name(variables, r"system\.mem\..*", exact=False)
-
-        assert result is None
-
-    def test_invalid_regex_fallback_to_exact(self) -> None:
-        """Should fall back to exact match on invalid regex."""
-        variables = cast(list[ParseVariableConfig], [{"name": "system[cpu", "type": "scalar"}])
-        result = VariableService.find_variable_by_name(variables, "system[cpu", exact=False)
-
-        assert result is not None
-
-    def test_empty_list(self) -> None:
-        """Should return None for empty list."""
-        result = VariableService.find_variable_by_name([], "system.cpu.ipc")
-        assert result is None
 
 
 class TestAggregateDiscoveredEntries:
@@ -361,9 +311,14 @@ class TestAggregateDiscoveredEntries:
             list[ScannedVariableDict],
             [
                 {"name": "system.cpu.vector", "entries": ["cpu0", "cpu1", "total"]},
+                {"name": "unrelated.vector", "entries": ["ignored"]},
             ],
         )
-        result = VariableService.aggregate_discovered_entries(snapshot, "system.cpu.vector")
+        result = VariableService.aggregate_discovered_entries(
+            snapshot,
+            "system.cpu.vector",
+            internal_stats=SimulatorRegistry.get_info("gem5").internal_stats,
+        )
 
         assert sorted(result) == ["cpu0", "cpu1"]
 
@@ -377,7 +332,11 @@ class TestAggregateDiscoveredEntries:
                 {"name": "system.cpu2.vector", "entries": ["entry2", "stdev"]},
             ],
         )
-        result = VariableService.aggregate_discovered_entries(snapshot, r"system\.cpu\d+\.vector")
+        result = VariableService.aggregate_discovered_entries(
+            snapshot,
+            r"system\.cpu\d+\.vector",
+            internal_stats=SimulatorRegistry.get_info("gem5").internal_stats,
+        )
 
         assert sorted(result) == ["entry0", "entry1", "entry2"]
 
@@ -390,7 +349,11 @@ class TestAggregateDiscoveredEntries:
                 {"name": "system.var2", "entries": ["cpu1", "cpu2"]},
             ],
         )
-        result = VariableService.aggregate_discovered_entries(snapshot, r"system\.var\d+")
+        result = VariableService.aggregate_discovered_entries(
+            snapshot,
+            r"system\.var\d+",
+            internal_stats=SimulatorRegistry.get_info("gem5").internal_stats,
+        )
 
         assert sorted(result) == ["cpu0", "cpu1", "cpu2"]
 
@@ -399,12 +362,17 @@ class TestAggregateDiscoveredEntries:
         snapshot = cast(
             list[ScannedVariableDict],
             [
-                {"name": "system.vec", "entries": ["cpu0", "total", "mean", "gmean"]},
+                {
+                    "name": "system.vec",
+                    "entries": ["cpu0", "total", "mean", "stdev", "gmean", "cpu1"],
+                },
             ],
         )
-        result = VariableService.aggregate_discovered_entries(snapshot, "system.vec")
+        result = VariableService.aggregate_discovered_entries(
+            snapshot, "system.vec", internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
-        assert result == ["cpu0"]
+        assert result == ["cpu0", "cpu1"]
 
     def test_no_matching_variables(self) -> None:
         """Should return empty list if no matches."""
@@ -414,94 +382,40 @@ class TestAggregateDiscoveredEntries:
                 {"name": "system.cpu", "entries": ["cpu0"]},
             ],
         )
-        result = VariableService.aggregate_discovered_entries(snapshot, "system.mem")
+        result = VariableService.aggregate_discovered_entries(
+            snapshot, "system.mem", internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
         assert result == []
 
+    def test_empty_available(self) -> None:
+        assert (
+            VariableService.aggregate_discovered_entries(
+                [], "any", SimulatorRegistry.get_info("gem5").internal_stats
+            )
+            == []
+        )
 
-class TestAggregateDistributionRange:
-    """Tests for aggregate_distribution_range()."""
+    def test_variable_without_entries(self) -> None:
+        snapshot = cast(list[ScannedVariableDict], [{"name": "system.cpu.ipc"}])
+        assert (
+            VariableService.aggregate_discovered_entries(
+                snapshot, "system.cpu.ipc", SimulatorRegistry.get_info("gem5").internal_stats
+            )
+            == []
+        )
 
-    def test_single_distribution(self) -> None:
-        """Should extract range from single distribution."""
+    def test_aggregates_repeated_literal_source_records(self) -> None:
         snapshot = cast(
             list[ScannedVariableDict],
             [
-                {"name": "system.latency", "type": "distribution", "minimum": 10, "maximum": 100},
+                {"name": "system.cpu.ipc", "entries": ["cpu0"]},
+                {"name": "system.cpu.ipc", "entries": ["cpu1"]},
             ],
         )
-        min_val, max_val = VariableService.aggregate_distribution_range(snapshot, "system.latency")
-
-        assert min_val == 10
-        assert max_val == 100
-
-    def test_multiple_distributions_find_global_range(self) -> None:
-        """Should find global min/max across multiple distributions."""
-        snapshot = cast(
-            list[ScannedVariableDict],
-            [
-                {"name": "system.latency", "type": "distribution", "minimum": 10, "maximum": 100},
-                {"name": "system.latency", "type": "distribution", "minimum": 5, "maximum": 150},
-                {"name": "system.latency", "type": "distribution", "minimum": 15, "maximum": 80},
-            ],
-        )
-        min_val, max_val = VariableService.aggregate_distribution_range(snapshot, "system.latency")
-
-        assert min_val == 5
-        assert max_val == 150
-
-    def test_regex_pattern_matching(self) -> None:
-        """Should match using regex patterns."""
-        snapshot = cast(
-            list[ScannedVariableDict],
-            [
-                {
-                    "name": "system.cpu0.latency",
-                    "type": "distribution",
-                    "minimum": 10,
-                    "maximum": 100,
-                },
-                {
-                    "name": "system.cpu1.latency",
-                    "type": "distribution",
-                    "minimum": 5,
-                    "maximum": 120,
-                },
-            ],
-        )
-        min_val, max_val = VariableService.aggregate_distribution_range(
-            snapshot, r"system\.cpu\d+\.latency"
-        )
-
-        assert min_val == 5
-        assert max_val == 120
-
-    def test_no_matching_distributions(self) -> None:
-        """Should return (None, None) if no matches."""
-        snapshot = cast(
-            list[ScannedVariableDict],
-            [
-                {"name": "system.cpu", "type": "scalar", "value": 42},
-            ],
-        )
-        min_val, max_val = VariableService.aggregate_distribution_range(snapshot, "system.latency")
-
-        assert min_val is None
-        assert max_val is None
-
-    def test_partial_range_data(self) -> None:
-        """Should handle distributions with partial range data."""
-        snapshot = cast(
-            list[ScannedVariableDict],
-            [
-                {"name": "system.latency", "type": "distribution", "minimum": 10},
-                {"name": "system.latency", "type": "distribution", "maximum": 100},
-            ],
-        )
-        min_val, max_val = VariableService.aggregate_distribution_range(snapshot, "system.latency")
-
-        assert min_val == 10
-        assert max_val == 100
+        assert VariableService.aggregate_discovered_entries(
+            snapshot, "system.cpu.ipc", SimulatorRegistry.get_info("gem5").internal_stats
+        ) == ["cpu0", "cpu1"]
 
 
 class TestParseCommaSeparatedEntries:
@@ -550,3 +464,22 @@ class TestFormatEntriesAsString:
         """Should return empty string for empty list."""
         result = VariableService.format_entries_as_string([])
         assert result == ""
+
+
+class TestHasVariableWithName:
+    """Tests for duplicate variable name detection."""
+
+    def test_found(self) -> None:
+        variables = cast(list[ParseVariableConfig], [{"name": "cpu.ipc"}, {"name": "mem.lat"}])
+        assert VariableService.has_variable_with_name(variables, "cpu.ipc") is True
+
+    def test_not_found(self) -> None:
+        variables = cast(list[ParseVariableConfig], [{"name": "cpu.ipc"}])
+        assert VariableService.has_variable_with_name(variables, "nonexistent") is False
+
+    def test_empty_list(self) -> None:
+        assert VariableService.has_variable_with_name([], "any") is False
+
+    def test_variable_without_name_key(self) -> None:
+        variables = cast(list[ParseVariableConfig], [{"type": "scalar"}])
+        assert VariableService.has_variable_with_name(variables, "cpu.ipc") is False

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import pytest
@@ -47,7 +48,7 @@ def test_playground_uses_real_parser_on_lexical_sample_without_loading_data(
         assert result.columns == ("simTicks", "config_json", "sim_path")
         assert result.rows == tuple(
             (
-                f"{100 + index}.0",
+                float(100 + index),
                 f'{{"run":{{"index":"{index}"}}}}',
                 str(source.resolve()),
             )
@@ -72,14 +73,20 @@ def test_playground_surfaces_variables_without_sampled_values(tmp_path: Path) ->
     with ring5.Session() as session:
         job = session.parser_playground_submit(
             str(inputs),
-            [ring5.StatConfig(name="misspelledTicks", type="scalar")],
+            [
+                ring5.StatConfig(
+                    name="misspelledTicks", type="scalar", params={"source_type": "scalar"}
+                )
+            ],
             pattern="gem5_stats.*",
             output_dir=str(tmp_path / "preview"),
             scan_limit=0,
         )
         result = job.finalize()
 
-    assert result.rows == (("NaN",),)
+    assert len(result.rows) == 1 and len(result.rows[0]) == 1
+    missing = result.rows[0][0]
+    assert type(missing) is float and math.isnan(missing)
     assert result.missing_variables == ("misspelledTicks",)
     assert not result.ready_for_full_parse
     assert "No sampled value was produced for: misspelledTicks." in result.diagnostics
@@ -111,7 +118,7 @@ def test_playground_expands_a_scanned_statistic_pattern(tmp_path: Path) -> None:
         r"system.cpu\d+.ipc..0",
         r"system.cpu\d+.ipc..1",
     )
-    assert result.rows == (("1.5", "2.5"),)
+    assert result.rows == ((1.5, 2.5),)
 
 
 def test_playground_rejects_an_empty_variable_selection(tmp_path: Path) -> None:
@@ -131,7 +138,10 @@ def test_playground_rejects_an_empty_variable_selection(tmp_path: Path) -> None:
 def test_playground_rejects_more_than_its_reviewable_variable_limit(tmp_path: Path) -> None:
     inputs = tmp_path / "inputs"
     _write_runs(inputs, count=1)
-    variables = [ring5.StatConfig(name=f"stat{index}", type="scalar") for index in range(65)]
+    variables = [
+        ring5.StatConfig(name=f"stat{index}", type="scalar", params={"source_type": "scalar"})
+        for index in range(65)
+    ]
 
     with ring5.Session() as session:
         with pytest.raises(ring5.ParseError, match="at most 64 variables"):

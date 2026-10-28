@@ -63,7 +63,7 @@ class TestStateManager:
         from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
-        test_config = {"shapers": cast(Any, [{"type": "test"}])}
+        test_config = {"shapers": cast(Any, [{"type": "columnSelector", "columns": ["ipc"]}])}
         mgr.set_config(test_config)
 
         retrieved = mgr.get_config()
@@ -155,7 +155,7 @@ class TestApplicationAPI:
             # we need to ensure CsvPoolService uses 'csv_pool' subdir of data_dir
             # (CsvPoolService implementation detail: data_dir / "csv_pool")
 
-            pool = api.load_csv_pool()
+            pool = api.data_services.load_csv_pool()
 
             assert isinstance(pool, list)
             assert len(pool) == 0
@@ -173,7 +173,7 @@ class TestApplicationAPI:
             return_value=self.test_dir,
         ):
             api = ApplicationAPI()
-            pool_path = api.add_to_csv_pool(str(test_csv))
+            pool_path = api.data_services.add_to_csv_pool(str(test_csv))
 
         assert Path(pool_path).exists()
         assert "parsed_" in Path(pool_path).name
@@ -189,7 +189,7 @@ class TestApplicationAPI:
 
         api = ApplicationAPI()
         # load_csv_file is static service call wrapper
-        loaded_data = api.load_csv_file(str(test_csv))
+        loaded_data = api.data_services.load_csv_file(str(test_csv))
 
         assert len(loaded_data) == 3
         assert list(loaded_data.columns) == ["a", "b"]
@@ -208,10 +208,10 @@ class TestApplicationAPI:
             "src.core.services.data_services.config_service.ConfigService.get_config_dir",
             return_value=config_dir,
         ):
-            config_path = api.save_configuration(
+            config_path = api.data_services.save_configuration(
                 name="test_config",
                 description="Test description",
-                shapers_config=cast(Any, [{"type": "test"}]),
+                shapers_config=cast(Any, [{"type": "columnSelector", "columns": ["ipc"]}]),
                 csv_path="/path/to/csv",
             )
 
@@ -233,7 +233,13 @@ class TestApplicationAPI:
         config_dir = self.test_dir / "saved_configs"
         config_dir.mkdir(parents=True, exist_ok=True)
 
-        test_config = {"name": "test", "description": "Test config", "shapers": [{"type": "test"}]}
+        test_config = {
+            "format": "ring5.pipeline-configuration",
+            "schema_version": 1,
+            "name": "test",
+            "description": "Test config",
+            "shapers": [{"type": "columnSelector", "columns": ["ipc"]}],
+        }
         config_file = config_dir / "config.json"
         with open(config_file, "w") as f:
             json.dump(test_config, f)
@@ -243,7 +249,7 @@ class TestApplicationAPI:
             "src.core.services.data_services.config_service.ConfigService.get_config_dir",
             return_value=config_dir,
         ):
-            loaded_config = api.load_configuration(str(config_file))
+            loaded_config = api.data_services.load_configuration(str(config_file))
 
         assert loaded_config["name"] == "test"
         assert loaded_config.get("description") == "Test config"
@@ -279,7 +285,7 @@ class TestApplicationAPI:
                 list[ShaperStepConfig], [{"type": "columnSelector", "columns": ["a", "b"]}]
             )
 
-            result = api.apply_shapers(test_data, shapers_config)
+            result = api.shapers.process_pipeline(test_data, shapers_config)
 
             assert len(result.columns) == 2
             assert "a" in result.columns
@@ -334,6 +340,9 @@ class TestUIComponents:
 
         # Mock API
         mock_api = MagicMock(spec=ApplicationAPI)
+        mock_api.state_manager = MagicMock()
+        mock_api.state_manager.get_simulator.return_value = "gem5"
+        mock_api.get_simulator_info.return_value.variable_types = ["histogram"]
 
         # Mock st
         with patch("src.web.components.data_source.variable_editor.st") as mock_st:
@@ -344,8 +353,19 @@ class TestUIComponents:
             # Don't trigger the add-variable buttons (this test exercises histogram config,
             # not the add path which persists via api.state_manager).
             mock_st.button.return_value = False
+            mock_st.selectbox.side_effect = lambda label, options, index=0, **kwargs: (
+                options[index] if index is not None else None
+            )
             variables = cast(
-                list[ParseVariableConfig], [{"name": "test_hist", "type": "histogram"}]
+                list[ParseVariableConfig],
+                [
+                    {
+                        "name": "test_hist",
+                        "type": "histogram",
+                        "_id": "hist",
+                        "params": {"source_type": "histogram"},
+                    }
+                ],
             )
             # Pass mock API
             VariableEditor.render(mock_api, variables)

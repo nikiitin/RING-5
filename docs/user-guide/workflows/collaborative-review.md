@@ -60,12 +60,14 @@ The public API uses the same validation and persistence path as the web interfac
 
 ```python
 import ring5
-import pandas as pd
 
 with ring5.Session() as session:
     plot = session.create_plot(
         "bar",
-        data=pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.2]}),
+        data=ring5.Table.from_rows([
+            {"benchmark": "a", "ipc": 1.0},
+            {"benchmark": "b", "ipc": 1.2},
+        ]),
         config={"x": "benchmark", "y": "ipc"},
         name="IPC comparison",
     )

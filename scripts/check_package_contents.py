@@ -12,17 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 DIST_DIR = ROOT / "dist"
 RUNTIME_FILES = frozenset(
     {
-        "src/parsing/gem5/perl/fileParser.pl",
+        "ring5/resources/chrome-for-testing.json",
+        "src/core/resources/example-portfolio.json.gz",
         "src/parsing/gem5/perl/fileParserServer.pl",
         "src/parsing/gem5/perl/statsScanner.pl",
         "src/parsing/gem5/perl/libs/TypesFormatRegex.pm",
         "src/parsing/gem5/perl/libs/Scanning/RegexUtils.pm",
-        "src/parsing/gem5/perl/libs/Scanning/Type/Configuration.pm",
-        "src/parsing/gem5/perl/libs/Scanning/Type/Distribution.pm",
-        "src/parsing/gem5/perl/libs/Scanning/Type/Histogram.pm",
-        "src/parsing/gem5/perl/libs/Scanning/Type/Scalar.pm",
-        "src/parsing/gem5/perl/libs/Scanning/Type/Summary.pm",
-        "src/parsing/gem5/perl/libs/Scanning/Type/Vector.pm",
         "src/web/components/plotting/custom_plotly/index.html",
     }
 )

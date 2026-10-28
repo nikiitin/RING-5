@@ -5,21 +5,20 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_color_selector,
     render_xy_selectors,
 )
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _MODES = {"Overlay": "overlay", "Stack values": "stack", "100% stacked": "normalize"}
 _INTERPOLATIONS = {"Linear": "linear", "Step after": "hv", "Step before": "vh"}
 _MISSING = {"Leave gaps": "gap", "Fill with zero": "zero", "Interpolate": "interpolate"}
-
-
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
 
 
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
@@ -53,9 +52,9 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Arrangement",
             options=list(_MODES),
             index=list(_MODES).index(
-                _saved_label(_MODES, saved_config.get("area_mode"), "Overlay")
+                saved_option_label(_MODES, saved_config.get("area_mode"), "Overlay")
             ),
-            key=f"area_mode_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.area_mode"),
         )
         opacity = st.slider(
             "Fill opacity",
@@ -63,28 +62,28 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=1.0,
             value=float(saved_config.get("area_opacity", 0.55)),
             step=0.05,
-            key=f"area_opacity_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.area_opacity"),
         )
     with curve_column:
         interpolation_label = st.selectbox(
             "Curve between points",
             options=list(_INTERPOLATIONS),
             index=list(_INTERPOLATIONS).index(
-                _saved_label(
+                saved_option_label(
                     _INTERPOLATIONS,
                     saved_config.get("area_interpolation"),
                     "Linear",
                 )
             ),
-            key=f"area_interpolation_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.area_interpolation"),
         )
         missing_label = st.selectbox(
             "Missing values",
             options=list(_MISSING),
             index=list(_MISSING).index(
-                _saved_label(_MISSING, saved_config.get("area_missing"), "Leave gaps")
+                saved_option_label(_MISSING, saved_config.get("area_missing"), "Leave gaps")
             ),
-            key=f"area_missing_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.area_missing"),
         )
 
     return {

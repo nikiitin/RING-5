@@ -11,9 +11,8 @@ The ordered test exercises the application workflow with production-like data:
 7. **Portfolio** — save and verify load
 8. **Widget verification** — confirm UI reflects correct state
 
-Data source: ``tests/data/results-micro26-sens/`` — gem5 HTM sensitivity analysis
-with 25 configurations × 8 STAMP benchmarks × 3 seeds = 586 stats files.
-This test uses a 3-config subset to keep parse time under ~2 minutes.
+Data source: ``tests/data/results-micro26-sens/`` — the complete gem5 HTM
+sensitivity fixture, with 586 statistics files across 25 configuration directories.
 """
 
 from __future__ import annotations
@@ -70,11 +69,14 @@ class TestFullWorkflow:
     # -- Step 0: Parse real data ------------------------------------
 
     @pytest.fixture(autouse=True, scope="class")
-    def _parse_real_data(self, shared_page: Page, live_server_url: str) -> None:
-        """Parse real gem5 data (3 configs × 8 benchmarks × 3 seeds).
-
-        Adds 6 scalar statistics and parses them from the full dataset.
-        """
+    @classmethod
+    def _parse_real_data(
+        cls,
+        shared_page: Page,
+        live_server_url: str,
+        _reset_app_state: None,
+    ) -> None:
+        """Parse six scalar statistics and the seed from the complete gem5 fixture."""
         ds = DataSourcePage(shared_page)
         ds.goto_and_wait(live_server_url)
         ds.assert_step_header_visible()
@@ -96,6 +98,8 @@ class TestFullWorkflow:
 
     # Test 1: Verify parsed data in Data Managers
 
+    # The first case also owns the shared scan, configuration and parse setup.
+    @pytest.mark.timeout(600)
     @pytest.mark.order(1)
     def test_01_verify_parsed_data(self, shared_page: Page) -> None:
         """After parsing, Data Managers should show rows and columns.
@@ -139,12 +143,7 @@ class TestFullWorkflow:
         dm.select_tab("Outlier Remover")
 
         # Select simTicks column
-        dm.outlier_column_selectbox.click()
-        shared_page.wait_for_timeout(300)
-        shared_page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
-            "simTicks", exact=True
-        ).click()
-        dm.wait_for_streamlit()
+        dm.select_outlier_column("simTicks")
 
         # Apply to see preview
         dm.apply_outlier_remover()
@@ -201,17 +200,11 @@ class TestFullWorkflow:
 
         # Select columns to merge
         mixer_multi = dm.mixer_columns_multiselect
-        mixer_multi.click()
-        shared_page.wait_for_timeout(300)
-
-        # Select simTicks, simInsts, simOps from the dropdown
+        # Require each intended column; a missing option must fail this workflow.
         for col_name in ["simTicks", "simInsts", "simOps"]:
-            option = shared_page.locator(
-                "[data-testid='stSelectboxVirtualDropdown'] li"
-            ).get_by_text(col_name, exact=True)
-            if option.count() > 0:
-                option.click()
-                shared_page.wait_for_timeout(200)
+            dm.add_mixer_column(col_name)
+            expect(mixer_multi.locator("[data-tag]", has_text=col_name)).to_have_count(1)
+        shared_page.keyboard.press("Escape")
 
         # Set a name for the new column (use exact label match to avoid
         # ambiguity with Preprocessor's "New column name" input)
@@ -299,9 +292,7 @@ class TestFullWorkflow:
         mp.assert_pipeline_step_count(1)
         mp.finalize_pipeline()
 
-        # Navigate away and back — do NOT call select_plot() because
-        # the plot is auto-selected from session_state and re-clicking
-        # the pill would deselect it.
+        # Refresh the full-page view so it sees the finalized pipeline.
         mp.navigate_to("Data Source")
         mp.navigate()
 
@@ -348,23 +339,25 @@ class TestFullWorkflow:
             has_text="Major Grouping"
         )
         expect(major_group).to_be_visible(timeout=_E2E_TIMEOUT)
+        mp.select_major_group("benchmark_name")
+        mp.select_minor_group("config_description")
+        expect(mp.viz_major_group_selectbox.get_by_role("combobox")).to_have_value(
+            "benchmark_name", timeout=_E2E_TIMEOUT
+        )
+        expect(mp.viz_minor_group_selectbox.get_by_role("combobox")).to_have_value(
+            "config_description", timeout=_E2E_TIMEOUT
+        )
 
         # Select Y-axis columns (multiselect)
         y_multi = shared_page.locator("[data-testid='stMultiSelect']").filter(
             has_text="Statistics to Stack"
         )
         expect(y_multi).to_be_visible(timeout=_E2E_TIMEOUT)
-        y_multi.click()
-        shared_page.wait_for_timeout(300)
-        # Select simTicks and system.cpu0.ipc
+        # Require the two statistics this workflow promises to plot.
         for col in ["simTicks", "system.cpu0.ipc"]:
-            opt = shared_page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
-                col, exact=True
-            )
-            if opt.count() > 0:
-                opt.click()
-                shared_page.wait_for_timeout(200)
-        # Press Escape to close the dropdown
+            mp.add_stacked_statistic(col)
+            expect(y_multi.locator("[data-tag]", has_text=col)).to_have_count(1)
+        expect(y_multi.locator("[data-tag]")).to_have_count(2)
         shared_page.keyboard.press("Escape")
 
         mp.refresh_plot()
@@ -555,18 +548,25 @@ class TestFullWorkflow:
         - Load restores session state
         - Plots are available after load
         """
+        mp = ManagePlotsPage(shared_page)
+        mp.reset_all()
+        mp.navigate()
+        mp.assert_no_plots_warning()
+        expected_plots = [
+            "E2E Bar",
+            "E2E Grouped Bar",
+            "E2E Grouped Stacked Bar",
+            "E2E Dual Axis",
+            "E2E Scatter",
+        ]
+        for name in expected_plots:
+            mp.assert_plot_pill_not_visible(name)
+
         pf = PortfolioPage(shared_page)
         pf.navigate()
 
         # Select portfolio from dropdown
-        pf.load_selector.click()
-        shared_page.wait_for_timeout(300)
-        option = shared_page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
-            "E2E_MICRO26_Portfolio", exact=True
-        )
-        expect(option).to_be_visible(timeout=_E2E_TIMEOUT)
-        option.click()
-        pf.wait_for_streamlit()
+        pf.select_portfolio("E2E_MICRO26_Portfolio")
 
         # Load — scope to main content to avoid duplicates during rerun
         load_btn = shared_page.locator("[data-testid='stMainBlockContainer']").get_by_role(
@@ -581,8 +581,11 @@ class TestFullWorkflow:
         mp.navigate()
         mp.assert_page_header_visible()
 
-        # Verify at least one of our created plots is visible
+        # Every saved plot must be restored into the verified empty session.
         mp.assert_plot_pill_visible("E2E Bar")
+        for name in expected_plots:
+            mp.assert_plot_pill_visible(name)
+        expect(mp.plot_selector_pills.get_by_role("radio")).to_have_count(len(expected_plots))
 
     # Test 15: Widget verification on loaded bar plot
 
@@ -611,6 +614,13 @@ class TestFullWorkflow:
 
         # Verify visualization section is present
         expect(mp.viz_x_axis_selectbox).to_be_visible(timeout=_E2E_TIMEOUT)
+        expect(mp.viz_x_axis_selectbox.get_by_role("combobox")).to_have_value(
+            "benchmark_name", timeout=_E2E_TIMEOUT
+        )
+        expect(mp.viz_y_axis_selectbox.get_by_role("combobox")).to_have_value(
+            "system.cpu0.ipc", timeout=_E2E_TIMEOUT
+        )
+        mp.assert_chart_visible(timeout=_CHART_TIMEOUT)
 
     # Test 16: Screenshots of final state
 

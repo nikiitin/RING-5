@@ -15,6 +15,7 @@ Data precondition:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from uuid import uuid4
 
@@ -108,9 +109,13 @@ class TestShaperPipelineOperations:
 
     @pytest.mark.order(7)
     def test_07_finalize_pipeline(self, tier1_page: Page) -> None:
-        """Finalizing refreshes the visualization without navigation."""
+        """Incomplete normalization blocks publication until the step is removed."""
         mp = ManagePlotsPage(tier1_page)
         mp.finalize_pipeline()
+        expect(mp.no_processed_data_warning).to_be_visible(timeout=E2E_TIMEOUT)
+        mp.delete_step(1)
+        mp.finalize_pipeline()
+        expect(mp.no_processed_data_warning).not_to_be_visible(timeout=E2E_TIMEOUT)
         mp.assert_visualization_section_visible()
 
 
@@ -213,10 +218,50 @@ class TestPipelineConfigurationExchange:
         name = f"Pipeline Exchange {uuid4().hex[:8]}"
         _create_bar_plot(mp, name)
         mp.add_shaper("Column Selector")
+        original_columns = ["benchmark_name", "system.cpu.ipc"]
+
+        def assert_projection(columns: list[str], *, absent: str) -> None:
+            expect(mp.column_selector_multiselect.locator("[data-tag]")).to_have_text(
+                columns, timeout=E2E_TIMEOUT
+            )
+            preview = mp.get_pipeline_step(0).get_by_test_id("stDataFrame")
+            expect(preview).to_have_count(1, timeout=E2E_TIMEOUT)
+            for column in columns:
+                expect(
+                    preview.get_by_role(
+                        "columnheader", name=column, exact=True, include_hidden=True
+                    )
+                ).to_have_count(1, timeout=E2E_TIMEOUT)
+            expect(
+                preview.get_by_role("columnheader", name=absent, exact=True, include_hidden=True)
+            ).to_have_count(0, timeout=E2E_TIMEOUT)
+
+        mp.set_multiselect_values(mp.column_selector_multiselect, original_columns)
+        assert_projection(original_columns, absent="seed")
         exchange_path = tmp_path / "pipeline.ring5-pipeline.json"
-
         mp.download_pipeline_configuration(exchange_path)
-        mp.upload_and_use_pipeline_configuration(exchange_path)
+        original = json.loads(exchange_path.read_bytes())
+        assert original == {
+            "format": "ring5.pipeline-configuration",
+            "schema_version": 1,
+            "name": name,
+            "description": "",
+            "shapers": [{"type": "columnSelector", "columns": original_columns}],
+            "csv_path": None,
+        }
 
-        expect(mp.pipeline_configuration_import_success).to_be_visible(timeout=E2E_TIMEOUT)
-        expect(mp.column_selector_multiselect).to_be_visible(timeout=E2E_TIMEOUT)
+        mp.set_multiselect_values(mp.column_selector_multiselect, ["seed"])
+        assert_projection(["seed"], absent="benchmark_name")
+        changed_path = tmp_path / "changed.ring5-pipeline.json"
+        mp.download_pipeline_configuration(changed_path)
+        assert json.loads(changed_path.read_bytes()) == {
+            **original,
+            "shapers": [{"type": "columnSelector", "columns": ["seed"]}],
+        }
+
+        mp.upload_and_use_pipeline_configuration(exchange_path)
+        mp.assert_pipeline_step_count(1)
+        assert_projection(original_columns, absent="seed")
+        restored_path = tmp_path / "restored.ring5-pipeline.json"
+        mp.download_pipeline_configuration(restored_path)
+        assert json.loads(restored_path.read_bytes()) == original

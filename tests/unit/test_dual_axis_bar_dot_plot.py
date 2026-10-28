@@ -1,5 +1,7 @@
 """Tests for the DualAxisBarDot plot type."""
 
+from ring5 import Session
+
 from typing import cast
 
 import pandas as pd
@@ -88,34 +90,46 @@ class TestDualAxisBarDotPlotCreateFigure:
     # [test->req~ring5.plot.dual-axis-bar-dot~1]
 
     def test_create_figure_returns_figure(
-        self, sample_data: pd.DataFrame, base_config: dict
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
     ) -> None:
-        """Test that create_figure returns a valid Plotly figure."""
+        """Verify public rendering returns a valid Plotly figure."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
 
-    def test_has_bar_traces(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_has_bar_traces(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that figure contains bar traces."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
         assert len(bar_traces) > 0, "Figure must contain at least one bar trace"
 
-    def test_has_dot_traces(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_has_dot_traces(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that figure contains scatter (dot) traces."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         assert len(scatter_traces) > 0, "Figure must contain at least one scatter trace"
 
     def test_dots_always_present_with_lines(
-        self, sample_data: pd.DataFrame, base_config: dict
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
     ) -> None:
         """Test that dots (markers) are always visible when lines are shown."""
         base_config["show_lines"] = True
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             # Mode should include 'markers'
@@ -124,21 +138,29 @@ class TestDualAxisBarDotPlotCreateFigure:
                 "markers" in mode
             ), f"Trace '{trace.name}' mode '{trace.mode}' must include 'markers'"
 
-    def test_dots_present_without_lines(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_dots_present_without_lines(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that dots are shown even when lines are disabled."""
         base_config["show_lines"] = False
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             assert (
                 trace.mode == "markers"
             ), f"When show_lines=False, mode should be 'markers', got '{trace.mode}'"
 
-    def test_secondary_yaxis_present(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_secondary_yaxis_present(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that the figure has a secondary y-axis for the dot series."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         # Check that scatter traces are assigned to yaxis2
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
@@ -146,20 +168,26 @@ class TestDualAxisBarDotPlotCreateFigure:
                 trace.yaxis == "y2"
             ), f"Scatter trace '{trace.name}' should use yaxis='y2', got '{trace.yaxis}'"
 
-    def test_secondary_yaxis_layout(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_secondary_yaxis_layout(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that the layout includes yaxis2 configuration."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert fig.layout.yaxis2 is not None, "Layout must have yaxis2 defined"
         assert fig.layout.yaxis2.overlaying == "y", "yaxis2 must overlay the primary y-axis"
         assert fig.layout.yaxis2.side == "right", "yaxis2 should be on the right side"
 
     def test_bar_traces_on_primary_yaxis(
-        self, sample_data: pd.DataFrame, base_config: dict
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
     ) -> None:
         """Test that bar traces use the primary y-axis."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
         for trace in bar_traces:
             # By default, bars should use y (primary) axis
@@ -172,21 +200,29 @@ class TestDualAxisBarDotPlotCreateFigure:
 class TestDualAxisBarDotPlotColorGrouping:
     """Test color and grouping behavior."""
 
-    def test_grouped_by_color(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_grouped_by_color(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that data is grouped by the color column for both bars and dots."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         # With 2 Config values (Low, High), we expect 2 bar traces + 2 dot traces
         bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         assert len(bar_traces) == 2, f"Expected 2 bar traces, got {len(bar_traces)}"
         assert len(scatter_traces) == 2, f"Expected 2 scatter traces, got {len(scatter_traces)}"
 
-    def test_no_color_grouping(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_no_color_grouping(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test figure creation without color grouping."""
         base_config["color"] = None
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         assert len(bar_traces) == 1, f"Expected 1 bar trace, got {len(bar_traces)}"
@@ -221,7 +257,7 @@ class TestDualAxisBarDotPlotAlignedLayout:
         assert result.custom_x_ticks is not None
         assert result.custom_x_ticks["vals"] == pytest.approx([0.0, 1.0, 2.6, 3.6, 5.2, 6.2])
         assert result.custom_x_ticks["text"] == ["High", "Low", "High", "Low", "High", "Low"]
-        assert [annotation["text"] for annotation in result.layout_annotations] == [
+        assert [annotation.text for annotation in result.annotations] == [
             "<b>A</b>",
             "<b>B</b>",
             "<b>C</b>",
@@ -268,11 +304,14 @@ class TestDualAxisBarDotPlotAlignedLayout:
             assert bar.x_positions == dot.x
 
     def test_plotly_uses_numeric_bar_and_dot_coordinates(
-        self, sample_data: pd.DataFrame, base_config: dict
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
     ) -> None:
         """The Plotly connector receives the same manual positions for both axes."""
         base_config.update(dot_alignment="bar", line_scope="series")
-        figure = DualAxisBarDotPlot(1, "Test").create_figure(sample_data, base_config)
+        _render_plot = DualAxisBarDotPlot(1, "Test")
+        _render_plot.processed_data = sample_data
+        _render_plot.config = base_config
+        figure = cast(go.Figure, plot_session.render(_render_plot))
         bars = [trace for trace in figure.data if isinstance(trace, go.Bar)]
         dots = [trace for trace in figure.data if isinstance(trace, go.Scatter)]
         assert list(bars[0].x) == list(dots[0].x)
@@ -294,63 +333,87 @@ class TestDualAxisBarDotPlotDotCustomization:
 
     # [test->req~ring5.plot.dual-axis-bar-dot~1]
 
-    def test_dot_size_applied(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_dot_size_applied(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that custom dot size is applied to scatter traces."""
         base_config["dot_size"] = 15
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             marker = cast(go.scatter.Marker, trace.marker)
             assert marker.size == 15
 
-    def test_dot_symbol_applied(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_dot_symbol_applied(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that custom dot symbol is applied to scatter traces."""
         base_config["dot_symbol"] = "diamond"
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             marker = cast(go.scatter.Marker, trace.marker)
             assert marker.symbol == "diamond"
 
-    def test_dot_color_applied(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_dot_color_applied(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that custom dot color is applied when specified."""
         base_config["dot_color"] = "#FF0000"
         base_config["color"] = None  # No grouping to test single color
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             marker = cast(go.scatter.Marker, trace.marker)
             assert marker.color == "#FF0000"
 
-    def test_line_width_applied(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_line_width_applied(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that custom line width is applied when lines are shown."""
         base_config["show_lines"] = True
         base_config["line_width"] = 4
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             line = cast(go.scatter.Line, trace.line)
             assert line.width == 4
 
-    def test_default_dot_size(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_default_dot_size(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that default dot size is applied when not specified."""
         del base_config["dot_size"]
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             marker = cast(go.scatter.Marker, trace.marker)
             assert marker.size == 10  # Default size should be 10
 
-    def test_default_dot_symbol(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_default_dot_symbol(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that default dot symbol is circle."""
         del base_config["dot_symbol"]
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             marker = cast(go.scatter.Marker, trace.marker)
@@ -360,22 +423,30 @@ class TestDualAxisBarDotPlotDotCustomization:
 class TestDualAxisBarDotPlotErrorBars:
     """Test error bar support."""
 
-    def test_bar_error_bars(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_bar_error_bars(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test error bars on bar traces when enabled."""
         base_config["show_error_bars"] = True
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
         for trace in bar_traces:
             assert trace.error_y is not None
             error_y = cast(go.bar.ErrorY, trace.error_y)
             assert error_y.visible is True
 
-    def test_dot_error_bars(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_dot_error_bars(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test error bars on dot traces when enabled."""
         base_config["show_error_bars"] = True
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             assert trace.error_y is not None
@@ -386,17 +457,14 @@ class TestDualAxisBarDotPlotErrorBars:
 class TestDualAxisBarDotPlotLegend:
     """Test legend behavior."""
 
-    def test_get_legend_column(self) -> None:
-        """Test getting legend column."""
-        plot = DualAxisBarDotPlot(1, "Test")
-        assert plot.get_legend_column({"color": "Config"}) == "Config"
-        assert plot.get_legend_column({"color": None}) is None
-        assert plot.get_legend_column({}) is None
-
-    def test_legend_group_pairing(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_legend_group_pairing(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """Test that bar and dot traces with the same group have matching legendgroup."""
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
 
@@ -437,13 +505,15 @@ class TestDualAxisBarDotPlotIsolateLastGroup:
     """Test isolate_last_group behavior on dot traces."""
 
     def test_isolated_last_no_line_to_last(
-        self, sample_data: pd.DataFrame, base_config: dict
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
     ) -> None:
         """When isolate_last_group=True, the last x-category dot must be markers-only."""
         base_config["isolate_last_group"] = True
         base_config["show_lines"] = True
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
 
         # There should be extra traces for the isolated last element
@@ -455,14 +525,16 @@ class TestDualAxisBarDotPlotIsolateLastGroup:
         assert len(isolated_traces) == 2, f"Expected 2 isolated traces, got {len(isolated_traces)}"
 
     def test_isolated_last_markers_only_no_color(
-        self, sample_data: pd.DataFrame, base_config: dict
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
     ) -> None:
         """Without color grouping, isolation still splits last category."""
         base_config["isolate_last_group"] = True
         base_config["show_lines"] = True
         base_config["color"] = None
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
 
         main_traces = [t for t in scatter_traces if t.mode == "lines+markers"]
@@ -470,34 +542,44 @@ class TestDualAxisBarDotPlotIsolateLastGroup:
         assert len(main_traces) == 1
         assert len(isolated_traces) == 1
 
-    def test_no_isolation_all_lines(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_no_isolation_all_lines(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """When isolate_last_group=False, all dots have lines."""
         base_config["isolate_last_group"] = False
         base_config["show_lines"] = True
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             assert trace.mode == "lines+markers"
 
-    def test_isolation_with_lines_off(self, sample_data: pd.DataFrame, base_config: dict) -> None:
+    def test_isolation_with_lines_off(
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
+    ) -> None:
         """When show_lines=False, isolation has no extra effect — all are markers."""
         base_config["isolate_last_group"] = True
         base_config["show_lines"] = False
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for trace in scatter_traces:
             assert trace.mode == "markers"
 
     def test_isolated_dot_has_same_legendgroup(
-        self, sample_data: pd.DataFrame, base_config: dict
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
     ) -> None:
         """Isolated dot traces share legendgroup with their bar counterparts."""
         base_config["isolate_last_group"] = True
         base_config["show_lines"] = True
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
 
@@ -506,13 +588,15 @@ class TestDualAxisBarDotPlotIsolateLastGroup:
         assert bar_groups == scatter_groups
 
     def test_isolated_dot_showlegend_false(
-        self, sample_data: pd.DataFrame, base_config: dict
+        self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
     ) -> None:
         """Isolated dot traces should not create duplicate legend entries."""
         base_config["isolate_last_group"] = True
         base_config["show_lines"] = True
         plot = DualAxisBarDotPlot(1, "Test")
-        fig = plot.create_figure(sample_data, base_config)
+        plot.processed_data = sample_data
+        plot.config = base_config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         isolated_traces = [t for t in scatter_traces if t.mode == "markers"]
         for trace in isolated_traces:

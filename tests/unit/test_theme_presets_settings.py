@@ -10,9 +10,11 @@ from src.web.components.plotting.settings.theme_presets_settings import (
 )
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.plotting.settings.theme_presets_settings.st")
 def test_apply_dark_theme_refreshes_and_clears_only_stale_appearance_widgets(
     mock_st: MagicMock,
+    mock_ui_st: MagicMock,
 ) -> None:
     # [test->req~ring5.figure.theme-presets~1]
     mock_st.selectbox.return_value = "dark"
@@ -20,27 +22,32 @@ def test_apply_dark_theme_refreshes_and_clears_only_stale_appearance_widgets(
     mock_st.file_uploader.return_value = None
     mock_st.text_input.return_value = "Dark review"
     mock_st.session_state = {
-        "theme_title_sz_7": 8,
-        "palette_select_7": "wong",
-        "theme_title_sz_8": 99,
-        "x_7": "phase",
+        "plot.7.widgets.appearance.theme_title_sz": 8,
+        "plot.7.widgets.appearance.palette_select": "wong",
+        "plot.8.widgets.appearance.theme_title_sz": 99,
+        "plot.7.widgets.x": "phase",
     }
 
+    mock_ui_st.session_state = mock_st.session_state
     result = ThemePresetsSettingsComponent(7, "bar").render({"x": "phase", "y": "ipc"})
 
     assert result["figure_theme_id"] == "dark"
     assert result["plot_bgcolor"] == "#202633"
     assert result["x"] == "phase"
     assert result["_ring5_request_refresh"] is True
-    assert "theme_title_sz_7" not in mock_st.session_state
-    assert "palette_select_7" not in mock_st.session_state
-    assert mock_st.session_state["theme_title_sz_8"] == 99
-    assert mock_st.session_state["x_7"] == "phase"
+    assert "plot.7.widgets.appearance.theme_title_sz" not in mock_st.session_state
+    assert "plot.7.widgets.appearance.palette_select" not in mock_st.session_state
+    assert mock_st.session_state["plot.8.widgets.appearance.theme_title_sz"] == 99
+    assert mock_st.session_state["plot.7.widgets.x"] == "phase"
     mock_st.download_button.assert_called_once()
+    assert mock_st.download_button.call_args.kwargs["on_click"] == "ignore"
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.plotting.settings.theme_presets_settings.st")
-def test_imported_theme_can_be_reviewed_and_applied(mock_st: MagicMock) -> None:
+def test_imported_theme_can_be_reviewed_and_applied(
+    mock_st: MagicMock, mock_ui_st: MagicMock
+) -> None:
     # [test->req~ring5.figure.theme-presets~1]
     uploaded = MagicMock()
     uploaded.getvalue.return_value = FigureThemeService.dumps(FigureThemeService.get("paper"))
@@ -50,6 +57,7 @@ def test_imported_theme_can_be_reviewed_and_applied(mock_st: MagicMock) -> None:
     mock_st.text_input.return_value = "Imported review"
     mock_st.session_state = {}
 
+    mock_ui_st.session_state = mock_st.session_state
     result = ThemePresetsSettingsComponent(2, "line").render({"x": "phase", "y": "ipc"})
 
     assert result["figure_theme_id"] == "paper"
@@ -60,8 +68,11 @@ def test_imported_theme_can_be_reviewed_and_applied(mock_st: MagicMock) -> None:
     )
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.plotting.settings.theme_presets_settings.st")
-def test_invalid_import_is_explained_without_changing_the_plot(mock_st: MagicMock) -> None:
+def test_invalid_import_is_explained_without_changing_the_plot(
+    mock_st: MagicMock, mock_ui_st: MagicMock
+) -> None:
     # [test->req~ring5.figure.theme-presets~1]
     uploaded = MagicMock()
     uploaded.getvalue.return_value = b"not-json"
@@ -71,6 +82,7 @@ def test_invalid_import_is_explained_without_changing_the_plot(mock_st: MagicMoc
     mock_st.text_input.return_value = "Current theme"
     mock_st.session_state = {}
 
+    mock_ui_st.session_state = mock_st.session_state
     result = ThemePresetsSettingsComponent(3, "scatter").render({"x": "phase"})
 
     assert result == {}

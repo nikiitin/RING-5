@@ -4,9 +4,11 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pytest
 
 from src.core.models.shaper_models import ShaperStepConfig
 from tests.ui_logic.conftest import StubPlotHandle
+from src.core.services.shapers.shapers_impl import DefaultShapersAPI
 
 
 # PlotLifecycleAdapter
@@ -115,26 +117,43 @@ class TestPlotTypeRegistryAdapter:
 class TestPipelineExecutorAdapter:
     """Verify PipelineExecutorAdapter delegates to shaper functions."""
 
-    def test_apply_shapers_delegates(self, sample_data: pd.DataFrame) -> None:
-        """apply_shapers passes data and configs through."""
+    @pytest.mark.parametrize(
+        "track_source_rows", [None, False, True], ids=["default", "preview", "finalization"]
+    )
+    def test_apply_shapers_delegates(
+        self, sample_data: pd.DataFrame, track_source_rows: bool | None
+    ) -> None:
+        """Preserve the caller's provenance policy and return the facade's actual output."""
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
-        adapter = PipelineExecutorAdapter()
-        configs = cast(list[ShaperStepConfig], [{"type": "sort", "config": {}}])
+        adapter = PipelineExecutorAdapter(DefaultShapersAPI())
+        configs = cast(
+            list[ShaperStepConfig],
+            [{"type": "sort", "order_dict": {"benchmark_name": ["xalancbmk", "mcf"]}}],
+        )
+        transformed = sample_data.iloc[::-1].copy()
 
         with patch(
-            "src.web.pages.plot_adapters.apply_shapers",
-            return_value=sample_data,
+            "src.core.services.shapers.shapers_impl.DefaultShapersAPI.process_pipeline",
+            return_value=transformed,
         ) as mock_apply:
-            result = adapter.apply_shapers(sample_data, configs)
-            mock_apply.assert_called_once_with(sample_data, configs)
-            assert result is sample_data
+            if track_source_rows is None:
+                result = adapter.apply_shapers(sample_data, configs)
+            else:
+                result = adapter.apply_shapers(
+                    sample_data, configs, track_source_rows=track_source_rows
+                )
+            mock_apply.assert_called_once_with(
+                sample_data, configs, track_source_rows=bool(track_source_rows)
+            )
+            assert result is transformed
+            assert result is not sample_data
 
     def test_configure_shaper_delegates(self, sample_data: pd.DataFrame) -> None:
         """configure_shaper passes all args including optional owner_id."""
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
-        adapter = PipelineExecutorAdapter()
+        adapter = PipelineExecutorAdapter(DefaultShapersAPI())
         existing = cast(ShaperStepConfig, {"type": "normalize"})
 
         with patch(
@@ -142,21 +161,35 @@ class TestPipelineExecutorAdapter:
             return_value=cast(ShaperStepConfig, {"type": "normalize", "target": "x"}),
         ) as mock_cfg:
             result = adapter.configure_shaper("normalize", sample_data, 1, existing, owner_id=5)
-            mock_cfg.assert_called_once_with("normalize", sample_data, 1, existing, owner_id=5)
+            mock_cfg.assert_called_once_with(
+                "normalize",
+                sample_data,
+                1,
+                existing,
+                owner_id=5,
+                display_names=DefaultShapersAPI().get_shaper_display_names(),
+            )
             assert result.get("type") == "normalize"
 
-    def test_configure_shaper_no_owner_id(self, sample_data: pd.DataFrame) -> None:
-        """configure_shaper defaults owner_id to None."""
+    def test_configure_shaper_preserves_zero_owner_id(self, sample_data: pd.DataFrame) -> None:
+        """Plot zero owns its widgets like every other plot identifier."""
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
-        adapter = PipelineExecutorAdapter()
+        adapter = PipelineExecutorAdapter(DefaultShapersAPI())
 
         with patch(
             "src.web.pages.plot_adapters.configure_shaper",
             return_value=cast(ShaperStepConfig, {"type": "sort"}),
         ) as mock_cfg:
-            adapter.configure_shaper("sort", sample_data, 2, None)
-            mock_cfg.assert_called_once_with("sort", sample_data, 2, None, owner_id=None)
+            adapter.configure_shaper("sort", sample_data, 2, None, owner_id=0)
+            mock_cfg.assert_called_once_with(
+                "sort",
+                sample_data,
+                2,
+                None,
+                owner_id=0,
+                display_names=DefaultShapersAPI().get_shaper_display_names(),
+            )
 
 
 # Protocol conformance
@@ -184,6 +217,6 @@ class TestAdapterProtocolConformance:
         """PipelineExecutorAdapter has apply_shapers and configure_shaper."""
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
-        adapter = PipelineExecutorAdapter()
+        adapter = PipelineExecutorAdapter(DefaultShapersAPI())
         assert callable(getattr(adapter, "apply_shapers", None))
         assert callable(getattr(adapter, "configure_shaper", None))

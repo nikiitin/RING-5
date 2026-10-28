@@ -5,14 +5,13 @@ parent: Subsystems
 grand_parent: Developer Guide
 nav_order: 5
 permalink: /developer-guide/subsystems/portfolios/
-redirect_from:
-  - /developer-guide/web/portfolio-system/
 ---
 
 # Portfolio subsystem
 
 `PortfolioService` serializes workspace state to JSON under the application data directory. The
-embedded DataFrame is stored as CSV text; plots serialize through `BasePlot.to_dict`; configuration,
+embedded DataFrame uses the shared typed table codec; plots serialize through `BasePlot.to_dict`;
+configuration,
 parser provenance, histories, and save-time environment metadata remain plain JSON-compatible data.
 
 `PortfolioIntegrityService` creates a canonical-JSON SHA-256 digest for the body and separate input,
@@ -20,48 +19,59 @@ configuration, and output digests. Its optional signature is HMAC-SHA-256 over t
 statement. The service returns `PortfolioIntegrityReport`; checksum validity and signature validity
 remain separate so no caller can accidentally describe unsigned content as authenticated.
 
-`PortfolioMigrator` upgrades older schema versions before restore. `StateManager.restore_session`
+`validate_portfolio_schema` accepts only the current serialized format before restore. `StateManager.restore_session`
 restores items independently and returns `RestoreReport`, which makes skipped plots, malformed parse
 variables, and data errors visible.
 
 `ring5.render_portfolio` uses the same restore path, then renders and exports every restored plot.
-The CLI upgrade command re-saves only a complete restore.
 
-## Compatibility rules
+
+## Schema contract
 
 <!--
-`uman~ring5.portfolio.migration.documentation~1`
+`uman~ring5.portfolio.schema.documentation~1`
 
 Covers:
-- req~ring5.portfolio.migration~1
+- req~ring5.portfolio.schema~1
 
 -->
 
-- Increment and migrate the schema for a breaking serialized change.
-- Schema V3 adds environment metadata. V1/V2 migration records it as `null`; historical values must
-  never be inferred from the machine performing migration.
-- Schema V4 adds `integrity_manifest`. V1–V3 migration records it as `null`; generating checksums
-  during migration would create false historical evidence.
-- Preserve plot and shaper identifiers or translate them during migration.
-- Keep plot configuration JSON-compatible and retain figure-config enrichment where required.
-- Treat portfolio JSON as untrusted input: sanitize names, validate paths, and validate fields.
-- Test old fixtures, partial restore reporting, duplicate names, and current round trips.
+The supported portfolio schema is version 13. Serialized files declare `schema_version: 13`,
+`version: "13.0"`, their parser strategy and simulator, environment metadata, and an integrity
+manifest. Missing or unsupported schema versions raise a typed version error before restoration.
+No reader infers old defaults, translates keys, or rewrites a file into the current schema.
+Editable plot configuration uses `legend2_*` for a separate right legend and
+`anchor_x`/`anchor_y` in every legend tier. Retired `dual_legend_*` and tier
+`xanchor`/`yanchor` configuration keys in every tier, including the primary legend, fail before
+plot restoration. Built-in heatmap configurations use `color_palette`, `reverse_colorscale`
+and `show_values`; their key admission uses the explicit plot type so plugin-owned keys and
+typed trace colorscales remain independent. Recipe schema 8 shares the same key admission
+while retaining unmaterialized parameter values. Concrete common values
+use a separate `validate_plot_config_values` stage: every legend orientation is exactly
+`horizontal` or `vertical`. Recipe save/load retain template values; materialization applies
+the concrete-value guard after parameter substitution.
+Per-series styles map text names to style mappings, with a current string `pattern` value.
+A present `opacity` is a finite real scalar in `[0, 1]`; omission preserves source opacity, while
+explicit `0` and `1` override it. Present `null`, booleans and strings are rejected after recipe
+materialization. Template admission retains opacity placeholders before materialization.
+The same pure admission runs before plot enrichment, portfolio publication and restoration.
 
-Do not silently drop incompatible state while overwriting a portfolio.
+Treat portfolio JSON as untrusted input: sanitize names, validate paths, and verify content before
+restoration. Test current writer round trips, partial restore reporting, duplicate names, and
+rejection of unsupported schemas. Do not overwrite a partial restore without reviewing its report.
 
 ## Integrity trust boundary
 
 New saves always create a checksum manifest. `PortfolioService`, `PortfolioRevisionService`, and
-`BrowserUploadService` verify the manifest before migration or restoration; mismatched and malformed
-content must not reach `StateManager.restore_session`. Legacy portfolios remain readable with the
-explicit `legacy-unverified` result.
+`BrowserUploadService` validate the schema and verify the manifest before restoration. Missing, mismatched, or malformed
+manifests must not reach `StateManager.restore_session`.
 
 The whole-document digest excludes only `integrity_manifest`. Named sections are diagnostic subsets:
 
-- inputs: embedded CSV and semantics plus CSV/parser provenance;
+- inputs: embedded typed workspace data plus CSV/parser provenance;
 - configuration: application configuration, histories, plot definitions, and pipelines, excluding
   plot result data;
-- outputs: plot IDs, processed CSV data, and processed semantics.
+- outputs: plot IDs and typed source and processed frames.
 
 The whole digest also covers schema/version, timestamp, environment metadata, and any unknown
 top-level field, so an unchanged named-section table does not imply an unchanged document.
@@ -83,6 +93,37 @@ and Python requirements. One exact `.ring5-snapshot` and bounded files below `re
 
 Readers reject duplicate, encrypted, unsupported-compression, absolute, backslash, traversal,
 undeclared, oversized, or checksum-mismatched members before returning content. The nested snapshot
-is decoded and fingerprint-verified in memory. The portfolio integrity policy runs before migration
-or `restore_session`. Neither ZIP layer is extracted to a filesystem, and browser inspection remains
+is decoded and fingerprint-verified in memory. The portfolio schema and integrity checks run before
+`restore_session`. Neither ZIP layer is extracted to a filesystem, and browser inspection remains
 non-mutating until explicit restoration.
+
+
+## Typed frame persistence
+
+`TypedTableCodec` owns the current `ring5.typed-table` payload. A portfolio's `data` field and
+each plot's `source_data` and `processed_data` fields contain that payload or `null`. Empty frames
+remain present tables. The codec retains typed values, nullable dtypes, category order, exact axes
+and supported attributes. It rejects unknown schema keys, unsupported types and coercing
+reconstructions before publication. Plot sources remain distinct from their transformed results.
+
+Dataset snapshots use the same codec inside their own archive container. CSV remains available
+for input and export. Integrity manifests checksum the complete typed JSON documents; logical
+frame fingerprints identify scientific content and remain a separate contract. The source manifest
+records a SHA-256 digest of the canonical serialized typed payload under `embedded_table_sha256`.
+
+
+Typed table admission checks decoded allocation budgets before constructing pandas axes or arrays.
+Each table supports at most 1,000,000 axis entries, 10,000 columns and 5,000,000 cells, within
+10,000,000 aggregate items, 64 MiB of estimated encoded graph or decoded storage, and 32 nesting
+levels. Encoding charges nodes incrementally before emitting them and iterates frame values
+without bulk list conversion.
+The budget includes category and MultiIndex levels, compact range axes, padded dtypes and nested
+attribute arrays. Container byte limits remain independent; a compact file cannot declare an
+unbounded decoded table.
+
+Plot documents use the fields admitted by `src/core/common/plot_payload.py`. Legend names live in
+`config.legend_labels`; copies, comparisons and portfolio restoration use that same configuration.
+Unknown plot fields raise errors before restoration or publication. Explicit `FigureConfig.from_dict`
+and nested styling decoding reject unsupported fields and malformed supplied containers while
+preserving omitted-field defaults and current scalar construction policies. A saved `figure_spec`
+records resolved styling metadata for inspection; restoration uses the plot configuration.

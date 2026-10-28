@@ -64,3 +64,39 @@ def test_entry_walk_is_bounded(stats_tree: Path, monkeypatch: pytest.MonkeyPatch
 
     with pytest.raises(FileDiscoveryLimitError, match="exceeded 1 entries"):
         find_stats_files(str(stats_tree), pattern="missing.txt")
+
+
+@pytest.mark.parametrize("pattern", ["", "../stats.txt", "nested/stats.txt", " stats.txt"])
+def test_invalid_pattern_cannot_select_the_default_file(tmp_path: Path, pattern: str) -> None:
+    """Invalid requests fail even when stats.txt exists or the root is missing."""
+    # [test->req~ring5.ingestion.file-discovery~1]
+    (tmp_path / "stats.txt").write_text("cycles 1\n")
+    for root in (tmp_path, tmp_path / "missing"):
+        with pytest.raises(ValueError, match="Stats pattern"):
+            find_stats_files(str(root), pattern)
+
+
+def test_request_fingerprint_and_discovery_use_the_exact_validated_pattern(tmp_path: Path) -> None:
+    """The durable request identifies the same explicitly selected input files."""
+    from src.core.models.parsing_models import StatConfig
+    from src.core.services.parse_job_service import build_parse_job_request
+
+    (tmp_path / "stats.txt").write_text("cycles 99\n")
+    selected = tmp_path / "stats-run1.txt"
+    selected.write_text("cycles 3\n")
+    request = build_parse_job_request(
+        stats_path=str(tmp_path),
+        stats_pattern="stats-*.txt",
+        variables=[StatConfig("cycles", "scalar", params={"source_type": "scalar"})],
+        strategy_type="simple",
+    )
+    assert request.source_context.stats_pattern == "stats-*.txt"
+    assert [record.path for record in request.file_signatures] == [str(selected)]
+    assert find_stats_files(str(tmp_path), request.source_context.stats_pattern) == [str(selected)]
+    with pytest.raises(ValueError, match="Stats pattern"):
+        build_parse_job_request(
+            stats_path=str(tmp_path),
+            stats_pattern="path/stats.txt",
+            variables=[StatConfig("cycles", "scalar", params={"source_type": "scalar"})],
+            strategy_type="simple",
+        )

@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 235
-- Live capability bindings: 879
+- Live capability bindings: 863
 
 ## Requirements by feature group
 
@@ -35,16 +35,15 @@ This file is informative; normative items are in the other generated files.
 
 ## Drift-checked capability sources
 
-- `application_api_members`: 107
+- `application_api_members`: 101
 - `axes_config_fields`: 11
-- `axis_config_fields`: 31
+- `axis_config_fields`: 32
 - `cli_commands`: 7
-- `cli_options`: 38
+- `cli_options`: 39
 - `colorbar_config_fields`: 9
 - `data_label_config_fields`: 12
-- `data_services_api_members`: 54
+- `data_services_api_members`: 49
 - `dimension_config_fields`: 7
-- `figure_builder_members`: 18
 - `figure_config_fields`: 22
 - `figure_decoration_members`: 12
 - `figure_spec_fields`: 58
@@ -54,31 +53,31 @@ This file is informative; normative items are in the other generated files.
 - `margin_config_fields`: 5
 - `matplotlib_formats`: 4
 - `navigation_pages`: 4
-- `parse_job_members`: 2
-- `parse_variable_fields`: 18
+- `parse_job_members`: 4
+- `parse_variable_fields`: 9
 - `parser_strategies`: 2
 - `plot_types`: 17
 - `plotly_formats`: 4
-- `public_exports`: 124
-- `public_shaper_exports`: 15
+- `public_exports`: 149
+- `public_shaper_exports`: 4
 - `render_engines`: 2
 - `restore_report_fields`: 5
 - `scan_job_members`: 2
 - `scan_result_fields`: 3
-- `scanned_variable_fields`: 4
-- `series_style_config_fields`: 9
-- `session_methods`: 116
+- `scanned_variable_fields`: 5
+- `series_style_config_fields`: 8
+- `session_methods`: 117
 - `settings_sections`: 8
 - `shaper_config_fields`: 13
 - `shaper_types`: 13
-- `shapers_api_members`: 3
+- `shapers_api_members`: 5
 - `simulator_file_patterns`: 1
 - `simulator_internal_stats`: 13
 - `simulators`: 1
 - `stat_config_fields`: 8
-- `table_members`: 14
+- `table_members`: 13
 - `typography_config_fields`: 14
-- `variable_type_params`: 4
+- `variable_type_params`: 6
 - `variable_types`: 5
 
 ## Future requirements by implementation branch
@@ -92,7 +91,26 @@ This file is informative; normative items are in the other generated files.
 | --- | ---: | --- | --- |
 | `workspace.navigation` | 1 | Semantic | Replaced Documentation routing with a direct link to the published site. |
 | `workspace.documentation-hub` | 1 | Semantic | Replaced the duplicate application page with direct links to the canonical published documentation. |
+| `ingestion.csv-contract` | 1 | Semantic | Define explicit typed parser schema, physical ownership, exact row encoding and schema-bound content integrity; genuine CSV ingestion retains its separate inference contract. |
+| `ingestion.variable-scan` | 1 | Semantic | Replace priority-based physical-kind guesses and inferred extrema with shared decoder evidence and explicit request geometry. |
+| `ingestion.distribution` | 1 | Semantic | Full native frequency parsing now requires explicit geometry and omission guarantees; summaries remain grid-free. |
+| `ingestion.session-background-parse` | 1 | Evidence only | Bind consumed-result notices, fresh cache receipt identities, retry/reset ownership and repeated UI parsing workflows. |
+| `data.error-propagation` | 1 | Semantic | Define canonical SD propagation for missing contributors, weighted repeated sources, mean scaling, and undefined estimates. |
+| `plot.histogram` | 1 | Semantic | Native storage cells have discrete mass semantics and explicit bindings rather than inferred continuous interval widths. |
 | `figure.ordering-renaming` | 1 | Semantic | Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes. |
+| `figure.numbered-xaxis` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `figure.dual-axis-controls` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `figure.histogram-controls` | 1 | Semantic | Native layouts require distinct truthful controls and zero-mass normalized views must fail visibly. |
+| `api.doctor` | 1 | Semantic | Describe the shared authoritative browser selection and selected compiler preflight contract. |
+| `cli.install-chrome` | 1 | Semantic | Restricts native installation to Linux and rejects archive and installed-tree links. |
+| `ingestion.distribution-range-scan` | 1 | Semantic | Observed labels do not establish hidden native grid bounds or uniquely identify a physical producer class. |
+| `figure.stack-totals` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `figure.histogram-cumulative` | 1 | Semantic | Normalized cumulative views cannot fabricate probabilities from zero or unrepresentable selected totals. |
+| `figure.alternate-category-shading` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `figure.series-styling` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `figure.series-styling` | 1 | Semantic | Define explicit source-opacity presence, intrinsic and family alpha composition, source-owned companion behavior and atomic native capability failures across both engines. |
+| `api.plot-validation` | 1 | Evidence only | Bind public plot validation to the live style-value admission regression covering pattern and opacity. |
+| `quality.performance-regression-gates` | 1 | Evidence only | Retain live benchmark evidence after removing the unused timing decorator. |
 | `trace.requirement-history` | 1 | Semantic | Specified complete semantic snapshots and reviewer-facing history views. |
 | `trace.requirement-history` | 2 | Evidence only | Recorded implementation, verification, and documentation evidence without changing revision 2. |
 

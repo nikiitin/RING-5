@@ -14,11 +14,9 @@ Categories:
     - Cache monitoring: CacheStatsEntry, CacheStatsInfo
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal, Required, TypedDict
-
-# ShaperStepConfig is referenced by SavedConfigData and PipelineStep below.
-from src.core.models.shaper_models import ShaperStepConfig
 
 # CSV Pool
 
@@ -85,7 +83,7 @@ class SavedConfigData(TypedDict, total=False):
     schema_version: int
     description: str
     timestamp: str
-    shapers: Required[list["ShaperStepConfig"]]
+    shapers: Required[list[Mapping[str, object]]]
     csv_path: str | None
 
 
@@ -105,7 +103,6 @@ class PipelineConfigImportResult:
         shapers: Validated ordered shaper configurations.
         csv_path: Optional source CSV association carried by the document.
         schema_version: Current portable document schema version.
-        migrated: Whether the input used the legacy unversioned shape.
         conflict_resolution: Conflict action actually taken.
     """
 
@@ -113,10 +110,9 @@ class PipelineConfigImportResult:
     name: str
     original_name: str
     description: str
-    shapers: tuple[ShaperStepConfig, ...]
+    shapers: tuple[Mapping[str, object], ...]
     csv_path: str | None
     schema_version: int
-    migrated: bool
     conflict_resolution: PipelineConfigConflictResolution
 
 
@@ -124,72 +120,41 @@ class PipelineConfigImportResult:
 
 
 class ParseVariableConfig(TypedDict, total=False):
-    """Configuration for a simulator variable to parse.
+    """Editable StatConfig fields with UI identity and incomplete current values.
 
-    Created by the variable editor UI and stored in
-    ``StateManager.get_parse_variables()``.  Consumed by the parser
-    layer and by portfolio serialization.
-
-    ``name``, ``type``, and ``_id`` are always set when created through
-    the UI.
+    All statistic options use the nested params dictionary. Missing fields and
+    empty text are allowed while editing; runnable compilation validates them.
     """
 
-    # Required (always present)
-    name: Required[str]
-    type: Required[str]
-    _id: Required[str]
-
-    # Optional: alias
-    alias: str
-
-    # Optional: vector / histogram entries
-    vectorEntries: list[str] | str
-    useSpecialMembers: bool
-    statisticsOnly: bool
-
-    # Optional: distribution / histogram statistics
-    statistics: list[str]
-
-    # Optional: distribution range
-    minimum: float
-    maximum: float
-
-    # Optional: histogram rebinning
-    enableRebin: bool
-    bins: int
-    max_range: float
-
-    # Optional: configuration type
-    onEmpty: str
-
-    # Optional: Perl parser repeat count
-    repeat: str
-
-    # Optional: pattern index selection
-    patternSelection: list[str]
-    parsed_ids: list[str]
-    keepIndices: bool
+    name: str
+    type: str
+    _id: str
+    source_name: str | None
+    params: dict[str, str | int | float | bool | list[str] | None]
+    repeat: int
+    statistics_only: bool
+    keep_indices: bool
+    is_regex: bool
 
 
 # Scanned Variable (dict form)
 
 
-class ScannedVariableDict(TypedDict, total=False):
-    """Dictionary form of a ``ScannedVariable`` dataclass.
+class SourceInstanceDict(TypedDict):
+    """One concrete statistic source and its numeric display coordinates."""
 
-    Produced by ``ScannedVariable.to_dict()``; consumed by state
-    management, variable service, and portfolio serialization.
+    source_name: str
+    indices: list[str]
 
-    ``name``, ``type``, and ``entries`` are always present.
-    """
 
-    name: Required[str]
-    type: Required[str]
-    entries: Required[list[str]]
-    minimum: float
-    maximum: float
-    pattern_indices: list[str]
-    count: int
+class ScannedVariableDict(TypedDict):
+    """Current owned scanner payload; ambiguous sources have no output suggestion."""
+
+    name: str
+    type: str | None
+    entries: list[str]
+    source_evidence: dict[str, object]
+    instances: list[SourceInstanceDict]
 
 
 # Pipeline Steps (stored in plots)
@@ -199,15 +164,16 @@ class PipelineStep(TypedDict):
     """A single step in a plot's data processing pipeline.
 
     This is the **nested** format stored in ``BasePlot.pipeline``,
-    where the shaper parameters are inside a ``config`` sub-dict.
+    where draft shaper parameters are inside a ``config`` mapping. Drafts may be incomplete;
+    execution and standalone pipeline exchange validate the complete runnable contract.
 
-    Distinct from ``ShaperStepConfig`` which is the **flat** format
+    The config mapping contains the **flat** current operation format
     used by ``PipelineService`` for JSON persistence.
     """
 
     id: int
     type: str
-    config: ShaperStepConfig
+    config: Mapping[str, object]
 
 
 # Column Info (DataFrame summary for UI)

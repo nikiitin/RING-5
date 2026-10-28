@@ -1,154 +1,44 @@
-"""
-Condition Selector - Row-Level Filtering by Predicates.
+"""Row filtering through one explicit predicate and its validated operands."""
 
-Filters DataFrame rows based on numeric or categorical conditions.
-Supports comparisons, range queries, categorical inclusion, and substring matching.
-Part of the selector algorithm family for flexible data filtering.
-"""
-
+import operator
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
 import pandas as pd
 
-from src.core.common.security_limits import MAX_SEARCH_TERM_LENGTH
-from src.core.models.shaper_models import ConditionSelectorConfig
+from src.core.services.shapers.definition import PREDICATE_OPERANDS
 from src.core.services.shapers.impl.selector import Selector
+
+_COMPARISONS: dict[str, Callable[[Any, Any], Any]] = {
+    "greater_than": operator.gt,
+    "less_than": operator.lt,
+    "greater_or_equal": operator.ge,
+    "less_or_equal": operator.le,
+    "equals": operator.eq,
+    "not_equals": operator.ne,
+}
 
 
 class ConditionSelector(Selector):
-    """
-    Shaper that filters rows based on numeric or categorical conditions.
-
-    Supports:
-    - Numeric comparisons (greater_than, less_than, equals)
-    - Range queries (min <= x <= max)
-    - Categorical inclusion (isin list)
-    - Substring matching (contains)
-    - Legacy direct comparison strings (<, >, ==, etc.)
-    """
-
-    def __init__(self, params: dict[str, Any]) -> None:
-        """
-        Initialize ConditionSelector.
-
-        Args:
-            params: Dictionary containing 'column' and one or more filter definitions:
-                - mode (str): 'greater_than', 'less_than', 'equals', 'contains', 'legacy'
-                - threshold (float): threshold for numeric modes
-                - range (list[float]): [min, max] for range mode
-                - values (list[str]): Allowed values for categorical mode
-                - condition (str): operator for legacy mode
-                - value (str | float | int): comparison value for legacy/equals/contains mode
-        """
-        config = cast(ConditionSelectorConfig, params)
-        # Load parameters with defaults BEFORE super().__init__
-        # because super().__init__ calls _verify_params which uses these.
-        self.mode: str = config.get("mode", "legacy")
-        self.condition: str | None = params.get("condition")  # Legacy
-        self.value: str | float | int | None = params.get("value")  # Legacy
-        self.threshold: float | None = config.get("threshold")
-        self.range: list[float] | None = config.get("range")
-        self.values: list[str] | None = config.get("values")
-
-        super().__init__(params)
-
-    def _verify_params(self) -> bool:
-        """Validate that the parameter combination is sufficient for filtering."""
-        super()._verify_params()
-        config = cast(ConditionSelectorConfig, self.params)
-
-        if config.get("values") is not None:
-            if not isinstance(config.get("values"), list):
-                raise TypeError("ConditionSelector: 'values' must be a list.")
-
-        elif config.get("range") is not None:
-            r = config.get("range")
-            if not isinstance(r, list) or len(r) != 2:
-                raise ValueError("ConditionSelector: 'range' must be a list of 2 values.")
-
-        elif self.mode == "greater_than" or self.mode == "less_than":
-            if config.get("threshold") is None:
-                raise ValueError(f"ConditionSelector: '{self.mode}' mode requires 'threshold'.")
-
-        elif self.mode == "equals" or self.mode == "contains":
-            # value is required for these modes
-            if config.get("value") is None:
-                raise ValueError(f"ConditionSelector: '{self.mode}' mode requires 'value'.")
-            if self.mode == "contains" and len(str(config.get("value"))) > MAX_SEARCH_TERM_LENGTH:
-                raise ValueError(
-                    f"ConditionSelector contains values cannot exceed "
-                    f"{MAX_SEARCH_TERM_LENGTH} characters."
-                )
-
-        elif self.condition is not None and self.value is not None:
-            valid_ops = ["<", ">", "<=", ">=", "==", "!="]
-            if self.condition not in valid_ops:
-                raise ValueError(f"ConditionSelector: Invalid legacy operator '{self.condition}'.")
-
-        return True
+    """Filter rows with an explicit comparison, range, membership, or substring mode."""
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        """Filter the dataframe, always returning an independent copy (not a view)."""
-        return self._apply(data_frame).copy()
-
-    def _apply(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        """Execute the filtering logic (the result may be a view of *data_frame*)."""
+        """Return an independent filtered frame without changing the input."""
         # [impl->req~ring5.shaping.condition-selector~1]
         self._verify_preconditions(data_frame)
-
-        col = self.column
-        # Precedence (documented, by design): a direct selection wins over ``mode`` —
-        # ``values`` > ``range`` > ``mode`` (greater_than/less_than/equals/contains) >
-        # legacy operator/value. The UI only ever sets one of these, so the order matters
-        # only for hand-built configs; it is fixed here so behavior is predictable.
-        # 1. Categorical inclusion
-        if self.values is not None:
-            return data_frame[data_frame[col].isin(self.values)]
-
-        # 2. Numeric Range
-        if self.range is not None:
-            v_min, v_max = self.range
-            mask = (data_frame[col] >= v_min) & (data_frame[col] <= v_max)
-            return data_frame[mask]
-
-        # 3. Explicit UI Modes
-        match self.mode:
-            case "greater_than":
-                return data_frame[data_frame[col] > self.threshold]
-            case "less_than":
-                return data_frame[data_frame[col] < self.threshold]
-            case "equals":
-                return data_frame[data_frame[col] == self.value]
-            case "contains":
-                mask = (
-                    data_frame[col].astype(str).str.contains(str(self.value), na=False, regex=False)
-                )
-                return data_frame[mask]
-
-        # 4. Legacy Operator/Value pair
-        if self.condition is not None and self.value is not None:
-            # Handle potential quoted strings in legacy values if they come from old UI/Configs
-            val = self.value
-            if isinstance(val, str) and len(val) >= 2:
-                if (val.startswith("'") and val.endswith("'")) or (
-                    val.startswith('"') and val.endswith('"')
-                ):
-                    val = val[1:-1]
-
-            ops = {
-                "<": lambda x, y: x < y,
-                ">": lambda x, y: x > y,
-                "<=": lambda x, y: x <= y,
-                ">=": lambda x, y: x >= y,
-                "==": lambda x, y: x == y,
-                "!=": lambda x, y: x != y,
-            }
-            typed_ops: dict[str, Callable[[Any, Any], Any]] = ops
-            if self.condition in typed_ops:
-                # Lambda returns Any - cast to document DataFrame return
-                return cast(
-                    pd.DataFrame, data_frame[typed_ops[self.condition](data_frame[col], val)]
-                )
-
-        return data_frame
+        values = data_frame[self.column]
+        mode = self.params["mode"]
+        if mode == "in":
+            mask = values.isin(self.params["values"])
+        elif mode == "range":
+            lower, upper = self.params["range"]
+            mask = (values >= lower) & (values <= upper)
+        elif mode == "contains":
+            mask = values.astype(str).str.contains(self.params["value"], na=False, regex=False)
+        else:
+            mask = _COMPARISONS[mode](values, self.params[PREDICATE_OPERANDS[mode]])
+        if self._source_tracker is not None:
+            self._source_tracker.select(
+                position for position, keep in enumerate(mask.fillna(False)) if keep
+            )
+        return data_frame[mask].copy()

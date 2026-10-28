@@ -7,10 +7,32 @@ merge with standard deviation propagation. Used to create derived
 metrics from base statistics.
 """
 
+from collections import Counter
+
 import numpy as np
 import pandas as pd
 
 from src.core.common.dataframe_utils import concat_columns
+from src.core.common.distribution_metadata import (
+    inspect_distribution_layouts,
+    preserve_distribution_layouts,
+)
+from src.core.common.numerical_operations import aggregate_rows, apply_binary, divide_columns
+from src.core.models.arithmetic_models import ArithmeticOperation, MixerOperation
+
+
+def _missing_values(values: pd.Series) -> pd.Series:
+    """Include numerical NaNs independently of a dtype's missing-value mask."""
+    missing = values.isna()
+    comparable = values.mask(missing, 0)
+    return missing | comparable.ne(comparable).fillna(True)
+
+
+def _sd_magnitude(values: pd.Series, present: pd.Series) -> pd.Series:
+    """Return magnitudes for contributing measurements without squaring SDs."""
+    values = values.mask(_missing_values(values), np.nan).infer_objects()
+    magnitude = pd.Series(np.hypot(0.0, values), index=values.index)
+    return magnitude.where(present, 0.0)
 
 
 class ArithmeticService:
@@ -19,7 +41,7 @@ class ArithmeticService:
     @staticmethod
     def list_operators() -> list[str]:
         """Return the list of supported binary arithmetic operators."""
-        return ["Division", "Sum", "Subtraction", "Multiplication"]
+        return [operation.value for operation in ArithmeticOperation]
 
     @staticmethod
     def apply_operation(
@@ -28,24 +50,28 @@ class ArithmeticService:
         """Apply arithmetic operation between two columns."""
         # [impl->req~ring5.data.arithmetic~1]
         # [impl->req~ring5.quality.immutable-data~1]
+        inspect_distribution_layouts(df)
         result = df.copy()
 
         s1 = result[src1]
         s2 = result[src2]
 
-        op = operation.lower()
-        if op in ["division", "divide", "/"]:
-            result[dest] = s1 / s2.replace(0, np.nan)
-        elif op in ["sum", "add", "+"]:
-            result[dest] = s1 + s2
-        elif op in ["subtraction", "subtract", "minus", "-"]:
-            result[dest] = s1 - s2
-        elif op in ["multiplication", "multiply", "*"]:
-            result[dest] = s1 * s2
+        try:
+            op = ArithmeticOperation(operation)
+        except ValueError as exc:
+            raise ValueError(f"Unknown operation: {operation}") from exc
+        if op == ArithmeticOperation.DIVISION:
+            result[dest] = divide_columns(s1, s2)
+        elif op == ArithmeticOperation.SUM:
+            result[dest] = apply_binary(s1, s2, "+")
+        elif op == ArithmeticOperation.SUBTRACTION:
+            result[dest] = apply_binary(s1, s2, "-")
+        elif op == ArithmeticOperation.MULTIPLICATION:
+            result[dest] = apply_binary(s1, s2, "*")
         else:
-            raise ValueError(f"Unknown operation: {operation}")
+            raise ValueError(f"Unsupported arithmetic operation: {op}")
 
-        return result
+        return preserve_distribution_layouts(df, result, invalidated_columns=(dest,))
 
     @staticmethod
     def apply_mixer(
@@ -57,15 +83,18 @@ class ArithmeticService:
     ) -> pd.DataFrame:
         """Merge multiple columns into a destination column with SD propagation.
 
-        Supports Sum, Mean, Mean (Average), and Concatenate operations.
+        Supports Sum, Mean, and Concatenate operations.
         For numeric operations, automatically propagates standard deviation
-        columns (.sd or _stdev suffixes).
+        columns with the canonical .sd suffix. Missing source values are skipped;
+        unknown SDs of contributing values remain unknown. Mean SDs use each
+        row's nonmissing source count. Repeated selections use correlated weights;
+        an undefined estimate keeps its uncertainty missing.
 
         Args:
             df: Source DataFrame.
             dest_col: Name of the new merged column.
             source_cols: List of columns to merge.
-            operation: One of 'Sum', 'Mean', 'Mean (Average)', 'Concatenate'.
+            operation: One of 'Sum', 'Mean', or 'Concatenate'.
             separator: Separator string for concatenation.
 
         Returns:
@@ -75,67 +104,83 @@ class ArithmeticService:
             ValueError: If the operation is not supported.
         """
         # [impl->req~ring5.data.configuration-mixer~1]
-        # [impl->req~ring5.data.error-propagation~1]
+        # [impl->req~ring5.data.error-propagation~2]
         # [impl->req~ring5.data.numeric-mixer~1]
+        try:
+            op = MixerOperation(operation)
+        except ValueError as exc:
+            raise ValueError(f"Unknown mixer operation: {operation}") from exc
         if not source_cols:
-            return df
+            raise ValueError("At least one source column must be selected.")
 
+        inspect_distribution_layouts(df)
         result = df.copy()
+        invalidated = [dest_col]
+        source_values = df[source_cols]
 
-        if operation == "Sum":
-            result[dest_col] = result[source_cols].sum(axis=1)
-        elif operation in ("Mean", "Mean (Average)"):
-            result[dest_col] = result[source_cols].mean(axis=1)
-        elif operation == "Concatenate":
-            result[dest_col] = concat_columns(result, source_cols, separator)
+        if op == MixerOperation.SUM:
+            result[dest_col] = aggregate_rows(source_values, "sum")
+        elif op == MixerOperation.MEAN:
+            result[dest_col] = aggregate_rows(source_values, "mean")
+        elif op == MixerOperation.CONCATENATE:
+            result[dest_col] = concat_columns(df, source_cols, separator)
         else:
-            raise ValueError(f"Unknown mixer operation: {operation}")
+            raise ValueError(f"Unsupported mixer operation: {op}")
 
-        if operation in ("Sum", "Mean", "Mean (Average)"):
-            variance_series = None
-            has_sd = False
+        if op in (MixerOperation.SUM, MixerOperation.MEAN):
+            deviation = ArithmeticService._mixer_deviation(df, source_cols, result[dest_col], op)
+            if deviation is not None:
+                result[f"{dest_col}.sd"] = deviation
+                invalidated.append(f"{dest_col}.sd")
 
-            for col in source_cols:
-                potential_sds = [f"{col}.sd", f"{col}_stdev"]
-                sd_col = next((s for s in potential_sds if s in result.columns), None)
-
-                if sd_col:
-                    has_sd = True
-                    variance = result[sd_col] ** 2
-                    if variance_series is None:
-                        variance_series = variance
-                    else:
-                        variance_series = variance_series.fillna(0) + variance.fillna(0)
-
-            if has_sd and variance_series is not None:
-                new_sd_col = f"{dest_col}.sd"
-                if operation == "Sum":
-                    result[new_sd_col] = np.sqrt(variance_series)
-                else:  # Mean
-                    n = len(source_cols)
-                    result[new_sd_col] = np.sqrt(variance_series) / n
-
-        return result
+        return preserve_distribution_layouts(df, result, invalidated_columns=invalidated)
 
     @staticmethod
-    def merge_columns(
-        df: pd.DataFrame,
-        columns: list[str],
-        operation: str,
-        new_column_name: str,
-        separator: str = "_",
-    ) -> pd.DataFrame:
-        """Merge multiple columns into a single column.
+    def _mixer_deviation(
+        frame: pd.DataFrame,
+        source_cols: list[str],
+        estimate: pd.Series,
+        operation: MixerOperation,
+    ) -> pd.Series | None:
+        # [impl->req~ring5.data.error-propagation~2]
+        """Combine distinct-source SDs with correlated repeated-source weights.
 
-        Convenience wrapper around :meth:`apply_mixer`.
+        Row scaling avoids intermediate overflow and premature underflow. Two streaming
+        passes keep memory proportional to the row count, not the column count.
         """
-        return ArithmeticService.apply_mixer(
-            df=df,
-            dest_col=new_column_name,
-            source_cols=columns,
-            operation=operation,
-            separator=separator,
-        )
+        multiplicities = Counter(source_cols)
+        companions = [col for col in multiplicities if f"{col}.sd" in frame.columns]
+        if not companions:
+            return None
+
+        scale = pd.Series(0.0, index=frame.index)
+        unknown = pd.Series(False, index=frame.index)
+        infinite = pd.Series(False, index=frame.index)
+        count = pd.Series(0, index=frame.index, dtype="int64")
+        for col, weight in multiplicities.items():
+            present = ~_missing_values(frame[col])
+            if operation == MixerOperation.MEAN:
+                count = count + present.astype("int64") * weight
+            if f"{col}.sd" in frame.columns:
+                magnitude = _sd_magnitude(frame[f"{col}.sd"], present)
+                unknown = unknown | _missing_values(magnitude)
+                infinite = infinite | magnitude.eq(np.inf).fillna(False)
+                scale = pd.Series(np.fmax(scale, magnitude), index=frame.index)
+
+        undefined = _missing_values(estimate)
+        active = ~(unknown | infinite | undefined)
+        safe_scale = scale.where(active & scale.ne(0), 1.0)
+        normalized = pd.Series(0.0, index=frame.index)
+        for col in companions:
+            magnitude = _sd_magnitude(frame[f"{col}.sd"], ~_missing_values(frame[col]))
+            component = (magnitude / safe_scale).where(active, 0.0)
+            normalized = pd.Series(
+                np.hypot(normalized, component * multiplicities[col]), index=frame.index
+            )
+        if operation == MixerOperation.MEAN:
+            normalized = normalized / count.where(count.ne(0))
+        deviation = safe_scale * normalized
+        return deviation.mask(infinite, np.inf).mask(unknown | undefined)
 
     @staticmethod
     def validate_merge_inputs(
@@ -144,7 +189,7 @@ class ArithmeticService:
         operation: str,
         new_column_name: str,
     ) -> list[str]:
-        """Validate inputs for merge_columns / apply_mixer operations.
+        """Validate inputs for the column mixer.
 
         Args:
             df: The DataFrame to validate against.
@@ -166,7 +211,7 @@ class ArithmeticService:
         if missing:
             errors.append(f"Columns not found in DataFrame: {', '.join(missing)}")
 
-        valid_ops = {"Sum", "Mean", "Mean (Average)", "Concatenate"}
+        valid_ops = [op.value for op in MixerOperation]
         if operation not in valid_ops:
             errors.append(f"Invalid operation: '{operation}'. Valid: {', '.join(valid_ops)}")
 

@@ -5,13 +5,18 @@ parent: User Guide
 nav_order: 4
 has_children: true
 permalink: /user-guide/guides/
-redirect_from:
-  - /user-guide/tutorials/
 ---
 
 # Analysis guides
 
-- [Compare Configurations](compare-configurations/) reduces repeated runs, normalizes against a
-  baseline, and renders a grouped comparison.
-- [Prepare Publication Output](publication-export/) sets the target size, checks typography and
-  accessibility, and exports through the selected engine.
+These guides connect individual operations into a research task:
+
+| Your question | Guide | Check before proceeding |
+| --- | --- | --- |
+| Does a candidate improve on the baseline? | [Compare configurations](compare-configurations/) | Runs align on the intended keys; direction, tolerance, and missing observations are explicit. |
+| Is the result ready for a paper? | [Prepare publication output](publication-export/) | Dimensions, units, typography, and the actual exported engine match the publication. |
+
+For a complete first web example, use [First analysis]({{site.baseurl}}/user-guide/getting-started/first-analysis/).
+For chart choices and synthetic examples, use [the example portfolio tour]({{site.baseurl}}/user-guide/getting-started/showcase/).
+Detailed controls and contracts remain in [Workflows]({{site.baseurl}}/user-guide/workflows/) and
+[Reference]({{site.baseurl}}/user-guide/reference/).

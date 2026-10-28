@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.source_evidence import AmbiguousSourceKind, source_kind_candidates
 
 
 class TestScannerFunctional:
@@ -24,13 +25,11 @@ class TestScannerFunctional:
         pytest.skip("Test data not found")
         return None  # Unreachable, but makes return type explicit
 
-    def test_scan_real_stats(self, test_data_path: Any) -> None:
+    def test_scan_real_stats(self, test_data_path: Any, facade: ApplicationAPI) -> None:
         """
         Test scanning actual gem5 stats files using valid futures.
         """
-        # [test->req~ring5.ingestion.variable-scan~1]
-        facade = ApplicationAPI()
-
+        # [test->req~ring5.ingestion.variable-scan~2]
         # Submit Scan
         futures = facade.submit_scan_async(test_data_path, "stats.txt", limit=5)
 
@@ -54,4 +53,6 @@ class TestScannerFunctional:
         # Check integrity of a variable
         sample_var = scanned_vars[0]
         assert sample_var.name is not None
-        assert sample_var.type is not None
+        assert source_kind_candidates(sample_var.source_evidence)
+        if isinstance(sample_var.source_evidence, AmbiguousSourceKind):
+            assert sample_var.type is None

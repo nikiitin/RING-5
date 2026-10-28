@@ -66,15 +66,18 @@ def run_app() -> None:
         """Return the mutable application facade owned by this browser session."""
         return ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 
+    from src.web.state.ui_state_manager import UIStateManager
+
+    ui_state = UIStateManager()
     api = get_api()
     st.session_state.api = api
 
     from src.web.components.data_source.parse_job_status import (
         render_sidebar_parse_job,
-        show_parse_job_flash,
+        render_parse_completion,
     )
 
-    show_parse_job_flash()
+    render_parse_completion()
 
     # Sidebar - Navigation
     with st.sidebar:
@@ -90,8 +93,8 @@ def run_app() -> None:
             "Save/Load Portfolio",
         ]
 
-        if st.session_state.get("_nav_page") not in _NAV_OPTIONS:
-            st.session_state["_nav_page"] = _NAV_OPTIONS[0]
+        if ui_state.nav.get_current_page() not in _NAV_OPTIONS:
+            ui_state.nav.set_current_page(_NAV_OPTIONS[0])
 
         from src.web.components.command_palette import CommandPaletteComponent
         from src.web.components.analysis_review import AnalysisReviewComponent
@@ -109,7 +112,7 @@ def run_app() -> None:
         st.markdown("---")
 
         for _nav_item in _NAV_OPTIONS:
-            _is_active = st.session_state["_nav_page"] == _nav_item
+            _is_active = ui_state.nav.get_current_page() == _nav_item
             _nav_clicked = st.button(
                 _nav_item,
                 key=f"nav_{_nav_item}",
@@ -117,7 +120,7 @@ def run_app() -> None:
                 type="primary" if _is_active else "tertiary",
             )
             if _nav_clicked and not _is_active:
-                st.session_state["_nav_page"] = _nav_item
+                ui_state.nav.set_current_page(_nav_item)
                 st.rerun()
 
         # [impl->req~ring5.workspace.documentation-hub~2]
@@ -128,7 +131,7 @@ def run_app() -> None:
             help="Open the published RING-5 documentation",
         )
 
-        page = st.session_state["_nav_page"]
+        page = ui_state.nav.get_current_page()
 
         st.markdown("---")
 
@@ -141,22 +144,13 @@ def run_app() -> None:
 
         # [impl->req~ring5.workspace.reset~1]
         if st.button(
-            "Clear Data",
-            width="stretch",
-            type="tertiary",
-            help="Clear loaded CSV data and plots",
-        ):
-            api.reset_session()
-            st.session_state.pop(GuidedAnalysisComponent.EXPORT_STATE_KEY, None)
-            st.rerun()
-
-        if st.button(
             "Reset All",
             width="stretch",
             type="secondary",
-            help="Reset entire application to defaults",
+            help="Reset data, plots, parser inputs and session state to defaults",
         ):
             api.reset_session()
+            ui_state.cleanup_all()
             st.session_state.pop(GuidedAnalysisComponent.EXPORT_STATE_KEY, None)
             st.rerun()
 
@@ -173,15 +167,17 @@ def run_app() -> None:
         if current_view["raw_data"] is not None and not current_view["raw_data"].empty:
             col1, col2, col3 = st.columns(3)
             data = current_view["raw_data"]
-            config = current_view["config"]
 
             with col1:
                 st.metric("Rows", len(data), border=True)
             with col2:
                 st.metric("Columns", len(data.columns), border=True)
             with col3:
-                csv_path = config.get("csv_path")
-                if csv_path:
+                dataset_name = current_view["selected_dataset_name"]
+                csv_path = current_view["csv_path"]
+                if dataset_name:
+                    st.metric("Source", dataset_name, border=True)
+                elif csv_path:
                     st.metric("Source", Path(csv_path).name, border=True)
                 else:
                     st.metric("Source", "Uploaded", border=True)

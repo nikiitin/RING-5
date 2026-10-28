@@ -1,8 +1,9 @@
 """Edge contracts that keep the public API's exact coverage gate honest."""
 
 from __future__ import annotations
+from src.core.models.parsing_models import SourceInstance
+from src.core.models.source_evidence import ResolvedSourceKind
 
-import builtins
 import importlib
 import runpy
 import sys
@@ -15,6 +16,7 @@ from unittest.mock import MagicMock, patch
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from src.core.common.stat_config_codec import StatConfigCodec
 import plotly.graph_objects as go
 import pytest
 from kaleido.errors import ChromeNotFoundError
@@ -25,15 +27,19 @@ import ring5.cli as ring5_cli
 from ring5 import _doctor, _export, _parse, _plot_validation, _portfolio
 from ring5._session import Session, _remove_directory_when_settled
 from ring5.errors import Ring5Error
-from ring5.figure_spec import DualAxisOpts, FigureSpec, FigureSpecBuilder, LegendOpts
-from src.core.models import (
+from ring5.figure_spec import DualAxisOpts, FigureSpec, LegendOpts
+from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
-    RestoreReport,
+    ParseBatchResult,
     ScanFileResult,
     ScanResult,
     StatConfig,
 )
-from src.parsing.gem5.models import Gem5ScannedVariable
+from src.core.models.portfolio_models import RestoreReport
+from src.core.models.parsing_models import ScannedVariable
+
+from src.core.common.parsed_output import ParsedOutputIO
+from tests.helpers.parsed_values import numeric_file, numeric_output, parser_context
 
 pytestmark = pytest.mark.public_api
 
@@ -59,8 +65,8 @@ def test_lazy_module_fallback_directory_and_shutdown() -> None:
     importlib.reload(ring5)
 
 
-def test_doctor_report_and_browser_fallbacks() -> None:
-    # [test->req~ring5.api.doctor~1]
+def test_doctor_report_and_browser_selection() -> None:
+    # [test->req~ring5.api.doctor~2]
     found = _doctor.DependencyStatus("x", True, "/x", "tests", "install")
     missing = _doctor.DependencyStatus("y", False, None, "tests", "install y")
     all_found = _doctor.DoctorReport(found, found, found)
@@ -70,18 +76,15 @@ def test_doctor_report_and_browser_fallbacks() -> None:
     assert partial.essential_found
     assert "install y" in str(partial)
 
-    real_import = builtins.__import__
+    from src.core.common.browser_selection import BrowserSelection
 
-    def fail_choreographer(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "choreographer.browsers.chromium":
-            raise ImportError("moved")
-        return real_import(name, *args, **kwargs)
-
-    with patch("builtins.__import__", side_effect=fail_choreographer):
-        with patch("ring5._doctor.shutil.which", side_effect=lambda name: f"/{name}"):
-            assert _doctor._find_chrome() == "/chrome"
+    with patch("ring5._doctor.select_browser", return_value=BrowserSelection("", None)):
         with patch("ring5._doctor.shutil.which", return_value=None):
-            assert _doctor._find_chrome() is None
+            report = _doctor.doctor(tex_system="pdflatex")
+    assert not report.chrome.found
+    assert report.chrome.path == ""
+    assert "empty BROWSER_PATH" in str(report)
+    assert report.tex_compiler.name == "pdflatex"
 
 
 def test_export_error_normalization(tmp_path: Path) -> None:
@@ -95,7 +98,10 @@ def test_export_error_normalization(tmp_path: Path) -> None:
     with patch("ring5._export.plotly_download_bytes", side_effect=ValueError("bad image")):
         with pytest.raises(ring5.ExportError, match="bad image"):
             _export.export_bytes(plotly, "png")
-    with patch("ring5._export.matplotlib_download_bytes", side_effect=RuntimeError("xelatex gone")):
+    with patch(
+        "ring5._export.matplotlib_download_bytes",
+        side_effect=RuntimeError("'xelatex' not found; install it"),
+    ):
         with pytest.raises(ring5.DependencyMissingError):
             _export.export_bytes(mpl, "pgf")
     with patch("ring5._export.matplotlib_download_bytes", side_effect=ValueError("bad figure")):
@@ -109,8 +115,17 @@ def test_export_error_normalization(tmp_path: Path) -> None:
             _export.export_file(mpl, str(tmp_path / "out.pdf"))
 
 
-def _parse_job(api: MagicMock, futures: list[Future[Any]]) -> _parse.ParseJob:
-    return _parse.ParseJob(api, futures, ["x"], "out", "simple", "runs", "stats.txt")
+def _parse_job(
+    api: MagicMock, futures: list[Future[Any]], names: tuple[str, ...] = ("x",)
+) -> _parse.ParseJob:
+    batch = ParseBatchResult(
+        tuple(futures),
+        tuple(names),
+        tuple(f"source-{i}" for i in range(len(futures))),
+        "out",
+        "simple",
+    )
+    return _parse.ParseJob(api, batch, parser_context(names))
 
 
 def test_parse_job_failure_edges(tmp_path: Path) -> None:
@@ -119,22 +134,24 @@ def test_parse_job_failure_edges(tmp_path: Path) -> None:
         _parse_job(api, [_future(error=RuntimeError("boom"))]).finalize()
 
     api.finalize_parsing.return_value = None
-    with pytest.raises(ring5.ParseError, match="produced no CSV"):
-        _parse_job(api, [_future({})]).finalize()
+    with pytest.raises(ring5.ParseError, match="requires a ParsedOutput"):
+        _parse_job(api, [_future(numeric_file("source-0", {"x": 1.0}))]).finalize()
 
-    api.finalize_parsing.side_effect = None
-    api.finalize_parsing.return_value = str(tmp_path / "result.csv")
-    with patch("ring5._parse.pd.read_csv", side_effect=UnicodeError("encoding")):
+    api.finalize_parsing.return_value = numeric_output(tmp_path / "result.csv", {"x": 1.0})
+    with patch("ring5._parse.ParsedOutputIO.read", side_effect=UnicodeError("encoding")):
         with pytest.raises(ring5.ParseError, match="validate parser output"):
-            _parse_job(api, [_future({})]).finalize()
+            _parse_job(api, [_future(numeric_file("source-0", {"x": 1.0}))]).finalize()
 
-    csv_path = tmp_path / "missing.csv"
-    pd.DataFrame({"x": [float("nan")]}).to_csv(csv_path, index=False)
-    api.finalize_parsing.return_value = str(csv_path)
+    output = numeric_output(tmp_path / "missing.csv", {"x": float("nan"), "absent": float("nan")})
+    api.finalize_parsing.return_value = output
     with pytest.raises(ring5.MissingStatError) as error:
-        _parse_job(api, [_future({})]).finalize()
-    assert error.value.missing == ["x"]
-    assert _parse._find_missing_stats(str(csv_path), ["x", "absent"]) == ["x", "absent"]
+        _parse_job(
+            api,
+            [_future(numeric_file("source-0", {"x": float("nan"), "absent": float("nan")}))],
+            ("x", "absent"),
+        ).finalize()
+    assert error.value.missing == ["x", "absent"]
+    assert ParsedOutputIO.read(output).missing_variables == ("x", "absent")
 
 
 def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
@@ -143,30 +160,53 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
     with pytest.raises(ring5.ScanError, match="cannot scan"):
         _parse.build_stat_configs(api, "runs", ["x"])
 
-    distribution = Gem5ScannedVariable(
-        name="dist", type="distribution", entries=["0"], minimum=0, maximum=4
+    distribution = ScannedVariable(
+        name="dist",
+        type="distribution",
+        entries=["0"],
+        source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
+        instances=(SourceInstance("dist", ()),),
     )
     api.submit_scan_async.side_effect = None
     api.submit_scan_async.return_value = [_future(ScanFileResult("stats", [distribution]))]
     api.finalize_scan.return_value = ScanResult([distribution], scanned_files=1)
+    api.draft_from_scanned_variable.side_effect = lambda variable: StatConfigCodec.from_scanned(
+        variable, frozenset()
+    )
+    with pytest.raises(ValueError, match="complete Distribution grid"):
+        _parse.build_stat_configs(api, "runs", ["dist"])
     configs, _ = _parse.build_stat_configs(
         api,
         "runs",
         [
-            StatConfig(name=r"cpu\d+", type="scalar"),
-            StatConfig(name="plain", type="scalar"),
-            "dist",
+            StatConfig(name="cpu\\d+", type="scalar", params={"source_type": "scalar"}),
+            StatConfig(name="plain", type="scalar", params={"source_type": "scalar"}),
+            StatConfig(
+                name="dist",
+                type="distribution",
+                params={
+                    "minimum": 0,
+                    "maximum": 4,
+                    "source_type": "distribution",
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
+                },
+            ),
         ],
     )
     assert configs[0].is_regex  # type: ignore[union-attr]
     assert not configs[1].is_regex  # type: ignore[union-attr]
-    assert configs[2] == {
-        "name": "dist",
-        "type": "distribution",
-        "entries": ["0"],
-        "minimum": 0,
-        "maximum": 4,
-    }
+    assert configs[2] == StatConfig(
+        name="dist",
+        type="distribution",
+        params={
+            "minimum": 0,
+            "maximum": 4,
+            "source_type": "distribution",
+            "bucket_size": 1,
+            "zero_policy": "missing",
+        },
+    )
 
 
 def test_plot_validation_rejects_each_invalid_shape() -> None:
@@ -218,8 +258,8 @@ def test_portfolio_replay_edges(tmp_path: Path) -> None:
                 _portfolio.render_portfolio("p", str(tmp_path))
 
     plots = [
-        SimpleNamespace(name="same/name", plot_id=1),
-        SimpleNamespace(name="same_name", plot_id=2),
+        SimpleNamespace(name="same/name", plot_id=1, config={}),
+        SimpleNamespace(name="same_name", plot_id=2, config={}),
     ]
     session = _portfolio_session(plots)
     with patch("ring5._portfolio.Session", return_value=session):
@@ -227,7 +267,7 @@ def test_portfolio_replay_edges(tmp_path: Path) -> None:
     assert written[0] != written[1]
     assert written[1].endswith("_2.pdf")
 
-    session = _portfolio_session([SimpleNamespace(name="bad", plot_id=1)])
+    session = _portfolio_session([SimpleNamespace(name="bad", plot_id=1, config={})])
     session.render.side_effect = Ring5Error("render failed")
     with patch("ring5._portfolio.Session", return_value=session):
         with pytest.raises(ring5.PortfolioError, match="Rendering plot 'bad'"):
@@ -307,14 +347,14 @@ def test_session_lifecycle_and_submission_edges(tmp_path: Path) -> None:
             assert session._incremental_output_dirs[unrelated_key] == "other-output"
 
         incremental_batch = IncrementalParseBatchResult(
-            futures=[],
-            var_names=["x"],
+            futures=(),
+            var_names=("x",),
             output_dir="/unused",
             strategy_type="simple",
             cache_path="/unused/cache.json",
             configuration_hash="a" * 64,
-            fingerprints=(),
-            cached_rows=(),
+            fingerprints=(("source", "a" * 64),),
+            cached_results=(numeric_file("source", {"x": 1.0}),),
             changed_files=(),
             removed_files=(),
         )
@@ -332,9 +372,11 @@ def test_session_lifecycle_and_submission_edges(tmp_path: Path) -> None:
             with pytest.raises(ring5.DataLoadError, match="produced no data"):
                 session.load("empty.csv")
 
-    with patch.object(session.api, "apply_shapers", side_effect=ValueError("bad pipeline")):
+    with patch.object(
+        session.api.shapers, "process_pipeline", side_effect=ValueError("bad pipeline")
+    ):
         with pytest.raises(ring5.PipelineError, match="bad pipeline"):
-            session.shape(pd.DataFrame({"x": [1]}), [])
+            session.shape(ring5.Table.from_rows([{"x": 1}]), [])
     session.close()
 
 
@@ -344,40 +386,42 @@ def test_session_manager_edge_paths() -> None:
         reduced = session.reduce_seeds(ring5.Table(frame), ["group"], ["x"])
         assert isinstance(reduced, ring5.Table)
         with pytest.raises(ring5.DataValidationError):
-            session.reduce_seeds(frame, [], [])
+            session.reduce_seeds(ring5.Table(frame), [], [])
         with patch.object(session.api.managers, "reduce_seeds", side_effect=ValueError("reduce")):
             with pytest.raises(ring5.DataValidationError, match="reduce"):
-                session.reduce_seeds(frame, ["group"], ["x"])
+                session.reduce_seeds(ring5.Table(frame), ["group"], ["x"])
 
         assert isinstance(session.remove_outliers(ring5.Table(frame), "x"), ring5.Table)
         with patch.object(
             session.api.managers, "remove_outliers", side_effect=ValueError("outliers")
         ):
             with pytest.raises(ring5.DataValidationError, match="outliers"):
-                session.remove_outliers(frame, "x")
+                session.remove_outliers(ring5.Table(frame), "x")
 
         with pytest.raises(ring5.DataValidationError, match="cannot be empty"):
-            session.apply_operation(frame, "Sum", "x", "y", "")
+            session.apply_operation(ring5.Table(frame), "Sum", "x", "y", "")
         with pytest.raises(ring5.DataValidationError, match="Unknown operation"):
-            session.apply_operation(frame, "Nope", "x", "y", "z")
+            session.apply_operation(ring5.Table(frame), "Nope", "x", "y", "z")
         assert isinstance(
             session.apply_operation(ring5.Table(frame), "Sum", "x", "y", "z"), ring5.Table
         )
 
         with patch.object(session.api.managers, "apply_mixer", side_effect=ValueError("mixer")):
             with pytest.raises(ring5.DataValidationError, match="mixer"):
-                session.mix_columns(frame, "z", ["x", "y"])
+                session.mix_columns(ring5.Table(frame), "z", ["x", "y"])
 
 
 def test_session_plot_and_portfolio_error_edges() -> None:
     with Session() as session:
-        with pytest.raises(ring5.DataValidationError, match="Plot data"):
+        with pytest.raises(ring5.DataValidationError, match="ring5.Table"):
             session.create_plot(
                 "bar", data=[], config={"x": "x", "y": "y"}  # type: ignore[arg-type]
             )
         with pytest.raises(ring5.DataValidationError, match="must be a mapping"):
             session.create_plot(
-                "bar", data=pd.DataFrame({"x": [1], "y": [2]}), config=1  # type: ignore[arg-type]
+                "bar",
+                data=ring5.Table.from_rows([{"x": 1, "y": 2}]),
+                config=1,  # type: ignore[arg-type]
             )
 
         with patch.object(session.api.data_services, "save_portfolio", side_effect=OSError("disk")):
@@ -396,7 +440,7 @@ def test_session_plot_and_portfolio_error_edges() -> None:
                     session.load_portfolio("p")
 
 
-def test_cli_warning_restore_details_file_error_and_module_entry(
+def test_cli_warning_file_error_and_module_entry(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # [test->req~ring5.cli.parse~1]
@@ -405,7 +449,9 @@ def test_cli_warning_restore_details_file_error_and_module_entry(
     fake_session = MagicMock()
     fake_session.__enter__.return_value = fake_session
     fake_session.__exit__.return_value = None
-    fake_session.parse.return_value = _parse.ParseResult(str(source), ["x"])
+    fake_session.parse.return_value = _parse.ParseResult(
+        numeric_output(source, {"x": float("nan")}), parser_context(), ("x",), parsed_files=0
+    )
     with patch("ring5._session.Session", return_value=fake_session):
         assert (
             ring5_cli.main(
@@ -414,14 +460,6 @@ def test_cli_warning_restore_details_file_error_and_module_entry(
             == 0
         )
     assert "warning" in capsys.readouterr().out
-
-    fake_session.load_portfolio.return_value = RestoreReport(
-        data_error="bad csv", parse_variables_skipped=2
-    )
-    with patch("ring5._session.Session", return_value=fake_session):
-        assert ring5_cli.main(["upgrade", "p"]) == 2
-    error_text = capsys.readouterr().err
-    assert "bad csv" in error_text and "2 malformed" in error_text
 
     with patch("ring5._portfolio.render_portfolio", side_effect=FileNotFoundError("gone")):
         assert ring5_cli.main(["render", "p", "-o", str(tmp_path)]) == 2
@@ -442,9 +480,9 @@ def test_table_io_and_shaper_error_edges(tmp_path: Path) -> None:
         with pytest.raises(ring5.ExportError, match="disk"):
             table.to_csv(str(tmp_path / "x.csv"))
     with pytest.raises(ring5.ColumnNotFoundError):
-        table.apply(lambda frame: frame["missing"])
-    with pytest.raises(ring5.PipelineError, match="transform"):
-        table.apply(lambda _frame: (_ for _ in ()).throw(ValueError("transform")))
+        table.filter_eq("missing", 1)
+    with pytest.raises(ring5.PipelineError, match="scalar_op"):
+        table.with_scalar_op("out", "x", "unsupported", 1.0)
 
 
 def test_error_payloads_and_complete_figure_spec() -> None:
@@ -481,9 +519,17 @@ def test_error_payloads_and_complete_figure_spec() -> None:
     assert config["xaxis_order"] == ["b", "a"]
     assert config["group_order"] == ["g2", "g1"]
     assert config["legend_handletextpad"] == 0.3
-    assert config["dual_legend_handletextpad"] == 0.3
+    assert config["legend2_handletextpad"] == 0.3
 
-    built = FigureSpecBuilder().title("Title", 12, "serif").bars("stack", 0.1, 0.2, 1).build()
+    built = FigureSpec(
+        title="Title",
+        title_font_size=12,
+        font_family="serif",
+        barmode="stack",
+        bargap=0.1,
+        bargroupgap=0.2,
+        bar_border_width=1,
+    )
     assert built.title == "Title" and built.bar_border_width == 1
 
 

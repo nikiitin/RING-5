@@ -1,6 +1,6 @@
 """Ordering settings component — reorder axes, groups, and facets.
 
-Extracted from ``BasePlot._render_ordering_ui``.
+Renders ordering controls for the selected plot.
 """
 
 import pandas as pd
@@ -10,7 +10,7 @@ from src.web.components.common.reorderable_list import (
     render_reorderable_list,
 )
 from src.web.components.common.bounded_options import bounded_unique_strings
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class OrderingSettingsComponent:
@@ -125,13 +125,3 @@ class OrderingSettingsComponent:
                 config["facet_order"] = order_f
                 if renames_f != (saved_config.get("facet_labels") or {}):
                     config["facet_labels"] = renames_f
-
-
-def render_ordering_ui(
-    plot_id: int,
-    saved_config: PlotConfig,
-    data: pd.DataFrame,
-    config: PlotConfig,
-) -> None:
-    """Deprecated: use OrderingSettingsComponent."""
-    OrderingSettingsComponent(plot_id, "").render(saved_config, data, config)

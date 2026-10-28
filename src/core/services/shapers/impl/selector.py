@@ -1,5 +1,6 @@
 """Base shaper for filtering rows by column values."""
 
+from abc import abstractmethod
 from typing import Any, override
 
 import pandas as pd
@@ -20,17 +21,7 @@ class Selector(UniDfShaper):
             params: Must contain 'column'.
         """
         super().__init__(params)
-        self.column: str = params["column"]
-
-    @override
-    def _verify_params(self) -> bool:
-        """Verify mandatory 'column' parameter exists."""
-        super()._verify_params()
-        if "column" not in self.params:
-            raise ValueError("Selector requires 'column' parameter.")
-        if not self.params["column"]:
-            raise ValueError("Selector 'column' parameter cannot be empty.")
-        return True
+        self.column: str = self.params["column"]
 
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """Verify that the selected column exists in the dataframe."""
@@ -40,6 +31,7 @@ class Selector(UniDfShaper):
         return True
 
     @override
+    @abstractmethod
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Filter the dataframe."""
         return super().__call__(data_frame)

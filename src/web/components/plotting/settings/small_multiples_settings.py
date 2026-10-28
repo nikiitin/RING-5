@@ -5,7 +5,9 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from src.web.models.plot_models import PlotConfig
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
+from src.core.models.plot_config import PlotConfig
 
 
 class SmallMultiplesSettingsComponent:
@@ -21,7 +23,9 @@ class SmallMultiplesSettingsComponent:
         enabled = st.toggle(
             "Split this plot into comparable panels",
             value=bool(saved_config.get("small_multiples_enabled", False)),
-            key=f"small_multiples_enabled_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(
+                self.plot_id, "widgets.appearance.small_multiples_enabled"
+            ),
             help="Repeat this plot for each category while keeping its styling and scales aligned.",
         )
         config: PlotConfig = {"small_multiples_enabled": enabled}
@@ -47,7 +51,7 @@ class SmallMultiplesSettingsComponent:
             "Create one panel for each combination of",
             options=categorical,
             default=saved_columns,
-            key=f"small_multiples_by_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.small_multiples_by"),
             help=(
                 "Choose columns from broadest to most specific; their values form each panel label."
             ),
@@ -75,7 +79,9 @@ class SmallMultiplesSettingsComponent:
             max_value=max_columns,
             value=min(max(1, saved_grid_columns), max_columns),
             step=1,
-            key=f"small_multiples_columns_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(
+                self.plot_id, "widgets.appearance.small_multiples_columns"
+            ),
         )
         config["small_multiples_columns"] = int(grid_columns)
 
@@ -84,19 +90,25 @@ class SmallMultiplesSettingsComponent:
             config["small_multiples_shared_xaxes"] = st.checkbox(
                 "Share X scale",
                 value=bool(saved_config.get("small_multiples_shared_xaxes", True)),
-                key=f"small_multiples_shared_x_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, "widgets.appearance.small_multiples_shared_x"
+                ),
             )
         with c2:
             config["small_multiples_shared_yaxes"] = st.checkbox(
                 "Share Y scale",
                 value=bool(saved_config.get("small_multiples_shared_yaxes", True)),
-                key=f"small_multiples_shared_y_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, "widgets.appearance.small_multiples_shared_y"
+                ),
             )
         with c3:
             config["small_multiples_shared_legend"] = st.checkbox(
                 "One legend",
                 value=bool(saved_config.get("small_multiples_shared_legend", True)),
-                key=f"small_multiples_shared_legend_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, "widgets.appearance.small_multiples_shared_legend"
+                ),
             )
         config["small_multiples_panel_height"] = int(
             st.number_input(
@@ -105,7 +117,9 @@ class SmallMultiplesSettingsComponent:
                 max_value=800,
                 value=int(saved_config.get("small_multiples_panel_height", 320)),
                 step=20,
-                key=f"small_multiples_panel_height_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, "widgets.appearance.small_multiples_panel_height"
+                ),
             )
         )
         return config

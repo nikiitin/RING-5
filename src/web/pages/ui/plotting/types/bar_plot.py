@@ -7,7 +7,7 @@ import pandas as pd
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config.base_plot_config import render_common_with_color
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import (
     build_drill_down_payload,
@@ -71,9 +71,3 @@ class BarPlot(BasePlot):
 
         traces = build_color_grouped_traces(data, config, _make_trace)
         return TraceBuildResult(traces=traces)
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Get legend column for bar plot."""
-        result = config.get("color")
-        return str(result) if result is not None else None

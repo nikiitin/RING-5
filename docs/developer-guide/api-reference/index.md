@@ -5,9 +5,6 @@ parent: Developer Guide
 nav_order: 6
 has_children: true
 permalink: /developer-guide/api-reference/
-redirect_from:
-  - /engineering-reference/reference/
-  - /engineering-reference/quick-reference/error-patterns/
 ---
 
 # Stable interfaces
@@ -15,6 +12,10 @@ redirect_from:
 The supported user API is the `ring5` package. Internal protocols documented here are stable enough
 to coordinate layers and extensions, but they are not a compatibility promise for third-party
 scripts.
+
+Repository code imports internal symbols from their defining modules, such as
+`src.core.models.parsing_models.StatConfig`. User scripts access supported values through `ring5`;
+its lazy public exports preserve the same types without loading unrelated service packages.
 
 - [Public Python API](public-python-api/) covers sessions, tables, figure specifications, portfolio
   replay, dependency checks, and typed errors.

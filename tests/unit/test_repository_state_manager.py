@@ -3,8 +3,7 @@ Tests for RepositoryStateManager delegation and state lifecycle.
 
 Covers all delegation methods: data, config, parser, plot, preview, and history
 management. Since RepositoryStateManager delegates to SessionRepository, these
-tests verify the delegation wiring plus any logic in the manager itself
-(type enforcement in set_data, temp dir cleanup in clear_data).
+tests verify delegation, frame ownership, and temporary-directory cleanup.
 """
 
 import tempfile
@@ -15,6 +14,8 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models.preview_models import PreviewContext
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -77,10 +78,10 @@ class TestDataManagement:
         manager.set_data(None)
         assert manager.get_data() is None
 
-    def test_set_data_type_enforcement_for_config_vars(
+    def test_set_data_preserves_frame_types_despite_parser_editor(
         self, manager: RepositoryStateManager
     ) -> None:
-        """Configuration variables should be cast to str."""
+        """Generic frame publication retains numeric data and the unrelated editor."""
         manager.set_parse_variables(
             cast(
                 list[ParseVariableConfig],
@@ -90,12 +91,15 @@ class TestDataManagement:
                 ],
             )
         )
+        editor = manager.get_parse_variables()
         df = pd.DataFrame({"benchmark": [1, 2], "value": [3.0, 4.0]})
         manager.set_data(df)
         result = manager.get_data()
         assert result is not None
-        assert pd.api.types.is_string_dtype(result["benchmark"])  # cast to string
+        assert pd.api.types.is_integer_dtype(result["benchmark"])
         assert result["value"].dtype == float  # unchanged
+        pd.testing.assert_frame_equal(result, df)
+        assert manager.get_parse_variables() == editor
 
     def test_set_data_with_on_change_callback(self, manager: RepositoryStateManager) -> None:
         callback = MagicMock()
@@ -232,7 +236,19 @@ class TestParserManagement:
         assert manager.get_scanned_variables() == []
         scanned: list[ScannedVariableDict] = cast(
             list[ScannedVariableDict],
-            [{"name": "cpu.ipc", "entries": ["0", "1"]}],
+            [
+                {
+                    "name": "cpu.ipc",
+                    "type": "vector",
+                    "entries": ["0", "1"],
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "vector",
+                        "basis": "backend_metadata",
+                    },
+                    "instances": [{"source_name": "cpu.ipc", "indices": []}],
+                }
+            ],
         )
         manager.set_scanned_variables(scanned)
         assert manager.get_scanned_variables() == scanned
@@ -292,16 +308,20 @@ class TestPreviewManagement:
         assert manager.has_preview("normalize") is False
         assert manager.get_preview("normalize") is None
 
-    def test_set_and_get_preview(self, manager: RepositoryStateManager) -> None:
+    def test_set_and_get_preview(
+        self, manager: RepositoryStateManager, preview_context: PreviewContext
+    ) -> None:
         df = pd.DataFrame({"x": [1, 2, 3]})
-        manager.set_preview("normalize", df)
+        manager.set_preview("normalize", df, context=preview_context)
         assert manager.has_preview("normalize") is True
         result = manager.get_preview("normalize")
         assert result is not None
         assert len(result) == 3
 
-    def test_clear_preview(self, manager: RepositoryStateManager) -> None:
-        manager.set_preview("filter", pd.DataFrame({"x": [1]}))
+    def test_clear_preview(
+        self, manager: RepositoryStateManager, preview_context: PreviewContext
+    ) -> None:
+        manager.set_preview("filter", pd.DataFrame({"x": [1]}), context=preview_context)
         manager.clear_preview("filter")
         assert manager.has_preview("filter") is False
 
@@ -349,12 +369,31 @@ class TestRestoreSession:
         portfolio_data: PortfolioData = cast(
             PortfolioData,
             {
-                "parse_variables": [{"name": "ipc", "type": "scalar"}],
+                "parser_strategy": "simple",
+                "loaded_origin": None,
+                "simulator": "gem5",
+                "parse_variables": [
+                    StatConfigCodec.to_snapshot(
+                        {"name": "ipc", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
+                ],
                 "stats_path": "/data/stats.txt",
                 "stats_pattern": "stats*.txt",
                 "csv_path": "/output.csv",
                 "use_parser": True,
-                "scanned_variables": [{"name": "cpu.cycles"}],
+                "scanned_variables": [
+                    {
+                        "name": "cpu.cycles",
+                        "type": "scalar",
+                        "entries": [],
+                        "source_evidence": {
+                            "state": "resolved",
+                            "kind": "scalar",
+                            "basis": "backend_metadata",
+                        },
+                        "instances": [{"source_name": "cpu.cycles", "indices": []}],
+                    }
+                ],
                 "plots": [],
                 "plot_counter": 3,
                 "config": {"theme": "dark"},

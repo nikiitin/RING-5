@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -10,20 +12,32 @@ import ring5
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_portfolios")]
 
 
-def test_public_search_finds_dynamic_and_static_workspace_content(portfolios_dir) -> None:
+def test_public_search_finds_dynamic_and_static_workspace_content(portfolios_dir: Path) -> None:
     # [test->req~ring5.workspace.global-search~1]
     data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.2]})
     with ring5.Session() as session:
-        session.add_dataset("nightly experiment", data)
+        session.add_dataset("nightly experiment", ring5.Table(data))
         session.api.state_manager.set_parse_variables(
-            [{"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC", "_id": "v1"}]
+            [{"source_name": "system.cpu.ipc", "type": "scalar", "name": "IPC", "_id": "v1"}]
         )
         session.api.state_manager.set_scanned_variables(
-            [{"name": "system.cpu.ipc", "type": "scalar", "entries": []}]
+            [
+                {
+                    "name": "system.cpu.ipc",
+                    "type": "scalar",
+                    "entries": [],
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "scalar",
+                        "basis": "backend_metadata",
+                    },
+                    "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
+                }
+            ]
         )
         plot = session.create_plot(
             "bar",
-            data=data,
+            data=ring5.Table(data),
             config={"x": "benchmark", "y": "ipc"},
             name="Nightly IPC",
         )

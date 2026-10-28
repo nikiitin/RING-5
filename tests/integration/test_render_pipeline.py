@@ -1,13 +1,4 @@
-"""Integration tests for the figure rendering pipeline.
-
-Covers Scenario #1 (Figure rendering E2E).
-
-Tests:
-    - PlotFactory + StyleApplicator with all 8 plot types using real data
-    - StyleApplicator applied inline
-    - Legend label overrides
-    - Config variations (error bars, color grouping, etc.)
-"""
+"""Real data transformations feed registered neutral strategies and native artifacts."""
 
 from typing import Any, cast
 
@@ -17,9 +8,9 @@ import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
-from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
+from src.web.rendering.plot_renderer import build_render_artifact
 
-# Helper: build figure inline using PlotFactory + StyleApplicator
+# Build through the same canonical artifact owner used by native consumers.
 
 
 def _build_figure(
@@ -28,21 +19,22 @@ def _build_figure(
     config: dict[str, Any],
     legend_labels: dict[str, str] | None = None,
 ) -> go.Figure:
-    """Build a figure using PlotFactory inline (replaces FigureEngine)."""
+    """Build a real registered strategy through the canonical preparation boundary."""
     plot = PlotFactory.create_plot(plot_type, plot_id=99, name=f"test_{plot_type}")
-    styler = StyleApplicator(plot_type)
-    fig: go.Figure = plot.create_figure(data, config)
-    fig = styler.apply_styles(fig, config)
+    plot.processed_data = data
+    owned_config = dict(config)
     if legend_labels:
-        fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
-    return fig
+        owned_config["legend_labels"] = dict(legend_labels)
+    artifact = build_render_artifact(plot, owned_config, "plotly")
+    assert isinstance(artifact.figure, go.Figure)
+    return artifact.figure
 
 
 # Test Class 1: Render pipeline integration with all plot types
 
 
 class TestFigureEngineIntegration:
-    """Test PlotFactory + StyleApplicator produces valid figures for every plot type."""
+    """Registered plot strategies preserve actual source data in native figures."""
 
     def test_build_bar_plot(
         self,
@@ -115,9 +107,9 @@ class TestFigureEngineIntegration:
         histogram_data = pd.DataFrame(
             {
                 "benchmark_name": ["mcf", "omnetpp", "xalancbmk"],
-                "system.cpu.ipc..0-1": [10, 20, 15],
-                "system.cpu.ipc..1-2": [30, 25, 35],
-                "system.cpu.ipc..2-3": [20, 15, 10],
+                "system.cpu.ipc..[0,1)": [10, 20, 15],
+                "system.cpu.ipc..[1,2)": [30, 25, 35],
+                "system.cpu.ipc..[2,3)": [20, 15, 10],
             }
         )
         config: dict[str, Any] = {
@@ -314,8 +306,7 @@ class TestFullDataToRenderE2E:
             "xlabel": "Benchmark",
             "ylabel": "Normalized IPC",
         }
-        plot = PlotFactory.create_plot("grouped_bar", plot_id=10, name="Norm Plot")
-        fig: go.Figure = plot.create_figure(result_data, config)
+        fig = _build_figure("grouped_bar", result_data, config)
 
         assert isinstance(fig, go.Figure)
         # Should have traces for each config_description
@@ -371,8 +362,7 @@ class TestFullDataToRenderE2E:
             "xlabel": "Benchmark",
             "ylabel": "IPC",
         }
-        plot = PlotFactory.create_plot("bar", plot_id=11, name="Mean Plot")
-        fig: go.Figure = plot.create_figure(result_data, config)
+        fig = _build_figure("bar", result_data, config)
 
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) > 0

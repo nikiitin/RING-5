@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from src.core.models import AnalysisRecipe, RecipeParameter, RecipeSource
+from src.core.models.recipe_models import AnalysisRecipe, RecipeParameter, RecipeSource
 from src.core.services.analysis_recipe_automation_service import (
     AnalysisRecipeAutomationService,
 )
@@ -109,3 +109,25 @@ def test_exports_validate_recipes_and_document_recipes_without_parameters() -> N
         AnalysisRecipeAutomationService.export_script("bad")  # type: ignore[arg-type]
     with pytest.raises(TypeError, match="Analysis recipe must"):
         AnalysisRecipeAutomationService.export_notebook("bad")  # type: ignore[arg-type]
+
+
+def test_reserved_help_parameter_keeps_cli_help_and_unique_options() -> None:
+    recipe = AnalysisRecipe(
+        name="Reserved parameters",
+        parameters=(
+            RecipeParameter("help", "string", default="value"),
+            RecipeParameter("parameter_help", "string", default="other"),
+        ),
+        source=RecipeSource(kind="csv", path="data.csv"),
+    )
+    source = AnalysisRecipeAutomationService.export_script(recipe).decode()
+    namespace = {"__name__": "generated_recipe"}
+    exec(compile(source, "recipe.py", "exec"), namespace)
+    parser = namespace["_build_parser"]()
+    values = vars(
+        parser.parse_args(["--parameter-parameter-help", "first", "--parameter-help", "second"])
+    )
+    assert values == {"help": "first", "parameter_help": "second"}
+    with pytest.raises(SystemExit) as caught:
+        parser.parse_args(["--help"])
+    assert caught.value.code == 0

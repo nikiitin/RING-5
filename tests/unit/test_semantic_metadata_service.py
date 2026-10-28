@@ -3,7 +3,8 @@
 import pandas as pd
 import pytest
 
-from src.core.models import ColumnSemantics, DatasetSemantics
+from src.core.common.semantic_metadata import semantics_from_payload
+from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.services.managers.schema_contract_service import SchemaContractService
 
@@ -14,7 +15,7 @@ def _annotated() -> pd.DataFrame:
         DatasetSemantics(
             (
                 ColumnSemantics("benchmark", "Workload"),
-                ColumnSemantics("latency", "Mean latency", "milliseconds"),
+                ColumnSemantics("latency", "Mean latency", "ms"),
             )
         ),
     )
@@ -99,3 +100,31 @@ def test_schema_inference_retains_existing_semantic_metadata() -> None:
     assert contract.columns[0].semantic_label == "Workload"
     assert contract.columns[1].semantic_label == "Mean latency"
     assert contract.columns[1].unit == "ms"
+
+
+@pytest.mark.parametrize(
+    "unit", ["µs", "μs", "µm", "microseconds", "milliseconds", "seconds", "celsius", "percent"]
+)
+def test_unit_aliases_are_rejected_at_metadata_and_conversion_boundaries(unit: str) -> None:
+    """An unsupported spelling cannot be retained or converted silently."""
+    source = pd.DataFrame({"latency": [1.0]})
+    semantics = DatasetSemantics((ColumnSemantics("latency", "Latency", unit),))
+    with pytest.raises(ValueError, match="Unsupported unit"):
+        SemanticMetadataService.attach(source, semantics)
+    assert source.attrs == {}
+    with pytest.raises(ValueError, match="Unsupported unit"):
+        semantics_from_payload({"latency": {"label": "Latency", "unit": unit}})
+    annotated = _annotated()
+    with pytest.raises(ValueError, match="Unsupported unit"):
+        SemanticMetadataService.convert(annotated, "latency", unit)
+    assert SemanticMetadataService.inspect(annotated).for_column("latency").unit == "ms"
+
+
+@pytest.mark.parametrize("target,expected", [("KB", 1.024), ("KiB", 1.0)])
+def test_decimal_and_binary_units_keep_their_distinct_scales(target: str, expected: float) -> None:
+    source = SemanticMetadataService.attach(
+        pd.DataFrame({"size": [1024.0]}), DatasetSemantics((ColumnSemantics("size", unit="B"),))
+    )
+    result = SemanticMetadataService.convert(source, "size", target)
+    assert result["size"].tolist() == pytest.approx([expected])
+    assert source["size"].tolist() == [1024.0]

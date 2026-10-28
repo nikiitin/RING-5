@@ -11,29 +11,32 @@ A plot type is correct only if it is **engine-agnostic** and fully wired. To *bu
 `src/web/pages/ui/plotting/plot_factory.py::PlotFactory`.
 
 ## Checklist
-1. **BasePlot contract** — the class subclasses `BasePlot` and implements **both** abstract methods:
+1. **BasePlot contract** — the class subclasses `BasePlot` and implements the plot hooks:
    - `create_traces(self, data, config) -> TraceBuildResult`
-   - `get_legend_column(self, config) -> str | None`
-   `create_figure()` is inherited — only overridden with good reason. (`GroupedStackedBarPlot`
-   extends `StackedBarPlot`, not `BasePlot` directly — that's allowed.)
+   - `render_config_ui(self, data, saved_config) -> PlotConfig`
+   The rendering layer prepares and builds the chosen native engine. Plot subclasses may
+   inherit trace construction from another registered family.
 2. **Engine-agnostic** — the plot builds `TraceConfig`/`TraceBuildResult` only. **No `go.*` and no
    `plt.*` inside the plot class.** Styling is not the plot's job (it lives in `FigureConfig` + the
    connectors — see `rendering-figureconfig`).
-3. **`plot_type` set before `super().__init__`** in `__init__`.
+3. **Constructor** calls `super().__init__(plot_id, name, "my_plot")` with its exact registry ID.
 4. **Registered (snake_case)** — present in `PlotFactory._plot_classes` with a snake_case key
    (`grouped_bar`, not `groupedBar` — shapers use camelCase, plots use snake_case) **and** a matching
    `_plot_metadata` entry (`display_name`, `icon`, `category` ∈ `basic|comparison|distribution`).
 5. **Exported** from `src/web/pages/ui/plotting/types/__init__.py` (so registration runs).
-6. **Dual-engine** — renders under both Plotly and Matplotlib (toggle `ring5_engine_mode`); the trace
-   converters are `trace_to_plotly.py` / `matplotlib_trace_renderer.py`.
+6. **Dual-engine** — configured and restored plots render through public
+   `Session.render(plot, engine="plotly")` and `Session.render(plot, engine="matplotlib")`;
+   the trace converters are `trace_to_plotly.py` / `matplotlib_trace_renderer.py`.
 7. **Config UI** — if it needs options beyond the shared X/Y/color selectors, a component under
    `src/web/components/plotting/config/` is wired via `plot_config_ui.py`/`PlotConfigUIMixin`, with
-   per-plot-unique widget keys `f"{prefix}_{field}_{plot_id}"`.
-8. **Serialization round-trips** — `BasePlot.to_dict`/`from_dict` + `PlotFactory` rebuild it; any new
-   state is plain/JSON-serializable so portfolios survive save/load.
+   per-plot widget keys from `WidgetKeyBuilder.plot_key(plot_id, "widgets.<field>")`.
+8. **Serialization round-trips** — `BasePlot.to_dict` + `PlotFactory.from_dict` rebuild state.
+   Plot tables use the shared typed table codec; persistent fields are admitted by
+   `src/core/common/plot_payload.py` and explicitly restored.
 9. **Conventions** — default palette `wong`; error-bar column is `{y}.sd`.
-10. **Coverage** — there is a unit test exercising `create_traces`/`create_figure` with `sample_data`.
-    `dual_axis_bar_dot` is WIP and intentionally excluded from coverage — don't count it as a model.
+10. **Coverage** — there is a unit test asserting scientific `create_traces` output with `sample_data`.
+    Every registered built-in, including `dual_axis_bar_dot`, participates in dual-engine catalog
+    and restored-portfolio rendering tests.
 
 ```bash
 # registry sanity
@@ -46,8 +49,8 @@ grep -rn "import plotly\|plotly.graph_objects\|matplotlib\|plt\." src/web/pages/
 Canon, not history — edit in place when the plot contract moves:
 - The abstract methods and registry shape above mirror `base_plot.py` and `plot_factory.py`. If a new
   abstract method is added or the metadata schema changes, update this checklist.
-- New conformance failure caught in review? Add it here (and to `add-plot-type` if it's a build step);
-  durable facts → a memory.
+- New conformance failure caught in review? Add its check here and to `add-plot-type` when it affects
+  implementation. Document durable contracts in the repository developer guide.
 
 ## Verify after
 `make arch-check && ./python_venv/bin/mypy src/ && ./python_venv/bin/pytest tests/unit -k plot -q`

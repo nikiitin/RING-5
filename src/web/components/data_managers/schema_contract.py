@@ -8,15 +8,11 @@ from typing import cast
 import pandas as pd
 import streamlit as st
 
-from src.core.models import (
-    ColumnContract,
-    ColumnSemantics,
-    DatasetSchemaContract,
-    DatasetSemantics,
-)
+from src.core.models.schema_contract_models import ColumnContract, DatasetSchemaContract
+from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.models.schema_contract_models import ContractValue, SchemaDataType
 from src.web.components.data_managers.data_manager import DataManager
-from src.web.state.ui_state_manager import WidgetKeyBuilder
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
 
 _DATA_TYPES = ["any", "numeric", "integer", "boolean", "datetime", "string"]
 
@@ -34,6 +30,9 @@ class SchemaContractManager(DataManager):
         # [impl->req~ring5.data.schema-contracts~1]
         # [impl->req~ring5.data.semantic-units~1]
         st.markdown("### Dataset Schema Contract")
+        notice = UIStateManager().manager.consume_success_notice("schema_contract")
+        if notice is not None:
+            st.success(notice)
         st.info(
             "Define the table shape that downstream analysis may rely on. Start from inferred "
             "rules, then make required columns, nullability, numeric bounds, and accepted "
@@ -115,9 +114,11 @@ class SchemaContractManager(DataManager):
                     )
                 )
                 annotated = self.api.managers.attach_semantics(data, semantics)
-                self.set_data(annotated, operation="Apply semantic labels and units")
-                st.success("Semantic labels and units are retained with the active dataset.")
-                self._render_conversion(annotated)
+                self._publish(
+                    annotated,
+                    operation="Apply semantic labels and units",
+                    notice="Semantic labels and units are retained with the active dataset.",
+                )
                 return
             report = self.api.managers.validate_schema(data, contract)
         except (TypeError, ValueError) as exc:
@@ -165,10 +166,20 @@ class SchemaContractManager(DataManager):
         ):
             try:
                 converted = self.api.managers.convert_unit(data, column, target)
-                self.set_data(converted, operation=f"Convert {column} to {target}")
-                st.success(f"Converted {column} to {target}; the prior revision remains undoable.")
+                self._publish(
+                    converted,
+                    operation=f"Convert {column} to {target}",
+                    notice=f"Converted {column} to {target}; the prior revision remains undoable.",
+                )
             except (KeyError, TypeError, ValueError) as exc:
                 st.error(str(exc))
+
+    def _publish(self, data: pd.DataFrame, *, operation: str, notice: str) -> None:
+        """Publish a revision and refresh every tab that displays the active dataset."""
+        self.set_data(data, operation=operation)
+        UIStateManager().manager.set_success_notice("schema_contract", notice)
+        # Sibling fragments capture their dataframe during the full page render.
+        st.rerun(scope="app")
 
     @classmethod
     def _build_contract(

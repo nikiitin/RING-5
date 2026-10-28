@@ -15,6 +15,9 @@ Tests cover:
 - __str__ method
 """
 
+import math
+from typing import Any, cast
+
 import pytest
 
 from src.parsing.gem5.types.base import StatTypeRegistry
@@ -24,14 +27,19 @@ from src.parsing.gem5.types.histogram import Histogram
 class TestHistogramInitialization:
     """Test Histogram object creation and initialization."""
 
+    def test_required_params_empty(self) -> None:
+        required = Histogram.required_params
+
+        assert required == []
+
     def test_init_with_defaults(self) -> None:
         hist = Histogram()
 
         assert hist._repeat == 1
         assert hist._bins == 0
         assert hist._max_range == 0.0
-        assert object.__getattribute__(hist, "_entries") is None
-        assert hist._statistics == []
+        assert object.__getattribute__(hist, "_entries") == ()
+        assert hist._statistics == ()
         assert hist.content == {}
 
     def test_init_with_custom_repeat(self) -> None:
@@ -53,20 +61,14 @@ class TestHistogramInitialization:
     def test_init_with_statistics(self) -> None:
         hist = Histogram(statistics=["mean", "total"])
 
-        assert hist._statistics == ["mean", "total"]
+        assert hist._statistics == ("mean", "total")
         # Statistics pre-initialized in content
         assert "mean" in hist.content
         assert "total" in hist.content
 
-    def test_init_with_comma_separated_statistics(self) -> None:
-        hist = Histogram(statistics="mean, total, samples")
-
-        assert hist._statistics == ["mean", "total", "samples"]
-
-    def test_required_params_empty(self) -> None:
-        required = Histogram.required_params
-
-        assert required == []
+    def test_string_statistics_schema_is_rejected(self) -> None:
+        with pytest.raises(TypeError, match="list of text entry names"):
+            Histogram(statistics="mean, total, samples")
 
 
 class TestHistogramEntriesProperty:
@@ -86,8 +88,8 @@ class TestHistogramEntriesProperty:
 
         # bin_width = 30 / (3-1) = 15
         assert result is not None
-        assert "0-15" in result
-        assert "15-30" in result
+        assert "0-14" in result
+        assert "15-29" in result
         assert "30+" in result
         assert len(result) == 3
 
@@ -97,12 +99,12 @@ class TestHistogramEntriesProperty:
         result = hist.entries
 
         assert result is not None
-        assert "0-10" in result
+        assert "0+" in result
         assert len(result) == 1
 
     def test_entries_priority_3_discovered_buckets(self) -> None:
         hist = Histogram()
-        hist.content = {"0-10": 5, "10-20": 10, "20-30": 3}
+        hist.add_observation({"0-10": 5, "10-20": 10, "20-30": 3})
 
         result = hist.entries
 
@@ -113,7 +115,7 @@ class TestHistogramEntriesProperty:
 
     def test_entries_includes_statistics(self) -> None:
         hist = Histogram(statistics=["mean", "samples"])
-        hist.content = {"0-10": 5}
+        hist.add_observation({"0-10": 5})
 
         result = hist.entries
 
@@ -123,7 +125,7 @@ class TestHistogramEntriesProperty:
 
 
 class TestHistogramContentProperty:
-    """Test content property getter and setter."""
+    """Test defensive content snapshots and typed observation ingestion."""
 
     def test_content_getter(self) -> None:
         hist = Histogram()
@@ -132,88 +134,94 @@ class TestHistogramContentProperty:
 
         assert isinstance(result, dict)
 
-    def test_content_setter_non_dict_raises(self) -> None:
+    def test_add_observation_non_dict_raises(self) -> None:
         hist = Histogram()
 
-        with pytest.raises(TypeError, match="HISTOGRAM.*Content must be dict"):
-            hist.content = [1, 2, 3]
+        with pytest.raises(TypeError, match="HISTOGRAM.*numeric entry mapping"):
+            hist.add_observation(cast(Any, [1, 2, 3]))
 
-    def test_content_setter_non_numeric_values_raises(self) -> None:
+    def test_add_observation_non_numeric_values_raises(self) -> None:
         hist = Histogram()
 
-        with pytest.raises(TypeError, match="Value non-convertible to number"):
-            hist.content = {"0-10": ["invalid"]}
+        with pytest.raises(TypeError, match="one numeric measurement"):
+            hist.add_observation({"0-10": ["invalid"]})
 
 
 class TestHistogramContentSetting:
-    """Test content setter with valid data."""
+    """Test complete numeric observation frames."""
 
-    def test_content_setter_with_single_values(self) -> None:
+    def test_add_observation_with_single_values(self) -> None:
         hist = Histogram()
 
-        hist.content = {"0-10": 5, "10-20": 10}
+        hist.add_observation({"0-10": 5, "10-20": 10})
 
         assert hist.content["0-10"] == [5.0]
         assert hist.content["10-20"] == [10.0]
 
-    def test_content_setter_aggregates_list_values(self) -> None:
+    def test_numeric_frame_values_are_retained(self) -> None:
         hist = Histogram()
 
-        hist.content = {"0-10": [5, 10, 15]}
+        hist.add_observation({"0-10": 30.0})
 
         assert hist.content["0-10"] == [30.0]
 
-    def test_content_setter_multiple_assignments_extend(self) -> None:
+    def test_add_observation_multiple_assignments_extend(self) -> None:
         hist = Histogram()
 
-        hist.content = {"0-10": 5}
-        hist.content = {"0-10": 10}
+        hist.add_observation({"0-10": 5})
+        hist.add_observation({"0-10": 10})
 
         assert hist.content["0-10"] == [5.0, 10.0]
 
-    def test_content_setter_dynamic_bucket_discovery(self) -> None:
+    def test_add_observation_dynamic_bucket_discovery(self) -> None:
         hist = Histogram()
 
-        hist.content = {"0-100": 10}
-        hist.content = {"100-200": 20}
+        hist.add_observation({"0-100": 10})
+        hist.add_observation({"100-200": 20})
 
         assert "0-100" in hist.content
         assert "100-200" in hist.content
 
-    def test_content_setter_with_statistics(self) -> None:
+    def test_add_observation_with_statistics(self) -> None:
         hist = Histogram(statistics=["mean"])
 
-        hist.content = {"0-10": 5, "mean": 7.5}
+        hist.add_observation({"0-10": 5, "mean": 7.5})
 
         assert hist.content["mean"] == [7.5]
 
 
 class TestHistogramBalanceContent:
-    """Test balance_content method (padding per bucket)."""
+    """Test logical missing measurements while retaining actual frames."""
 
-    def test_balance_empty_buckets_pads_with_zeros(self) -> None:
+    def test_balance_missing_observations_records_logical_count(self) -> None:
         hist = Histogram(repeat=3)
-        hist.content = {"0-10": 5}
+        hist.add_observation({"0-10": 5})
         # 0-10 has 1 value, needs 2 more
 
         hist.balance_content()
 
         assert hist.is_balanced is True
-        assert hist.content["0-10"] == [5.0, 0.0, 0.0]
+        assert hist.content == {"0-10": [5.0]}
+        assert hist.padded_count == hist.missing_measurement_count == 2
+        hist.reduce_duplicates()
+        assert math.isnan(hist.reduced_content["0-10"])
 
-    def test_balance_partial_buckets_pads_remainder(self) -> None:
+    def test_balance_partial_buckets_retains_actual_frames(self) -> None:
         hist = Histogram(repeat=4)
-        hist.content = {"0-10": 10}
-        hist.content = {"0-10": 20}
+        hist.add_observation({"0-10": 10})
+        hist.add_observation({"0-10": 20})
 
         hist.balance_content()
 
-        assert hist.content["0-10"] == [10.0, 20.0, 0.0, 0.0]
+        assert hist.content == {"0-10": [10.0, 20.0]}
+        assert hist.padded_count == hist.missing_measurement_count == 2
+        hist.reduce_duplicates()
+        assert math.isnan(hist.reduced_content["0-10"])
 
     def test_balance_exact_count_no_change(self) -> None:
         hist = Histogram(repeat=2)
-        hist.content = {"0-10": 5}
-        hist.content = {"0-10": 10}
+        hist.add_observation({"0-10": 5})
+        hist.add_observation({"0-10": 10})
 
         hist.balance_content()
 
@@ -221,20 +229,24 @@ class TestHistogramBalanceContent:
 
     def test_balance_too_many_values_raises(self) -> None:
         hist = Histogram(repeat=1)
-        hist.content = {"0-10": 5}
-        hist.content = {"0-10": 10}
+        hist.add_observation({"0-10": 5})
+        hist.add_observation({"0-10": 10})
 
-        with pytest.raises(RuntimeError, match="more values than expected"):
+        with pytest.raises(RuntimeError, match="More observations.*than expected"):
             hist.balance_content()
 
     def test_balance_initializes_missing_statistics(self) -> None:
         hist = Histogram(repeat=2, statistics=["mean"])
-        hist.content = {"0-10": 5}
+        hist.add_observation({"0-10": 5})
         # mean not provided
 
         hist.balance_content()
 
-        assert hist.content["mean"] == [0.0, 0.0]
+        assert len(hist.content["mean"]) == 1
+        assert math.isnan(hist.content["mean"][0])
+        assert hist.padded_count == hist.missing_measurement_count == 3
+        hist.reduce_duplicates()
+        assert math.isnan(hist.reduced_content["mean"])
 
 
 class TestHistogramReduceDuplicates:
@@ -244,7 +256,7 @@ class TestHistogramReduceDuplicates:
 
     def test_reduce_single_value_per_bucket(self) -> None:
         hist = Histogram()
-        hist.content = {"0-10": 100, "10-20": 200}
+        hist.add_observation({"0-10": 100, "10-20": 200})
         hist.balance_content()
 
         hist.reduce_duplicates()
@@ -255,7 +267,8 @@ class TestHistogramReduceDuplicates:
 
     def test_reduce_multiple_values_calculates_mean(self) -> None:
         hist = Histogram(repeat=3)
-        hist.content = {"0-10": [10, 20, 30], "10-20": [100, 200, 300]}
+        for value in (1, 2, 3):
+            hist.add_observation({"0-10": value * 10, "10-20": value * 100})
         hist.balance_content()
 
         hist.reduce_duplicates()
@@ -278,13 +291,13 @@ class TestHistogramRebinning:
     def test_reduce_with_rebinning_enabled(self) -> None:
         hist = Histogram(repeat=1, bins=2, max_range=20.0)
         # Provide raw data: 0-10 has 5, 10-20 has 10
-        hist.content = {"0-10": 5, "10-20": 10}
+        hist.add_observation({"0-9": 5, "10-19": 10})
         hist.balance_content()
 
         hist.reduce_duplicates()
 
         # bins=2 means 1 standard bin + 1 overflow: bin_width=20/(2-1)=20
-        assert "0-20" in hist.reduced_content
+        assert "0-19" in hist.reduced_content
         assert "20+" in hist.reduced_content
 
     def test_rebinning_proportional_distribution(self) -> None:
@@ -292,32 +305,32 @@ class TestHistogramRebinning:
         # bin_width = 30/(3-1) = 15
         # Target buckets: 0-15, 15-30, 30+
         # Raw bucket 0-30 has value 30
-        hist.content = {"0-30": 30}
+        hist.add_observation({"0-29": 30})
         hist.balance_content()
 
         hist.reduce_duplicates()
 
         # 0-15 gets 15/30 * 30 = 15
         # 15-30 gets 15/30 * 30 = 15
-        assert hist.reduced_content["0-15"] == 15.0
-        assert hist.reduced_content["15-30"] == 15.0
+        assert hist.reduced_content["0-14"] == 15.0
+        assert hist.reduced_content["15-29"] == 15.0
 
     def test_rebinning_overflow_bucket(self) -> None:
         hist = Histogram(repeat=1, bins=2, max_range=10.0)
         # bin_width = 10/(2-1) = 10
         # Target: 0-10, 10+
         # Raw: 0-20 with value 20
-        hist.content = {"0-20": 20}
+        hist.add_observation({"0-19": 20})
         hist.balance_content()
 
         hist.reduce_duplicates()
 
-        assert hist.reduced_content["0-10"] == 10.0
+        assert hist.reduced_content["0-9"] == 10.0
         assert hist.reduced_content["10+"] == 10.0
 
     def test_rebinning_preserves_summary_stats(self) -> None:
         hist = Histogram(repeat=1, bins=2, max_range=10.0, statistics=["mean"])
-        hist.content = {"0-10": 5, "mean": 7.5}
+        hist.add_observation({"0-9": 5, "mean": 7.5})
         hist.balance_content()
 
         hist.reduce_duplicates()
@@ -326,12 +339,12 @@ class TestHistogramRebinning:
 
     def test_rebinning_single_bin_no_overflow(self) -> None:
         hist = Histogram(repeat=1, bins=1, max_range=10.0)
-        hist.content = {"0-20": 20}
+        hist.add_observation({"0-19": 20})
         hist.balance_content()
 
         hist.reduce_duplicates()
 
-        assert "0-10" in hist.reduced_content
+        assert hist.reduced_content == {"0+": 20.0}
 
 
 class TestHistogramRangeParser:
@@ -373,7 +386,7 @@ class TestHistogramReducedContentAccess:
 
     def test_access_reduced_content_before_balance_raises(self) -> None:
         hist = Histogram()
-        hist.content = {"0-10": 5}
+        hist.add_observation({"0-10": 5})
         # Don't call balance_content()
 
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
@@ -381,7 +394,7 @@ class TestHistogramReducedContentAccess:
 
     def test_access_reduced_content_before_reduce_raises(self) -> None:
         hist = Histogram()
-        hist.content = {"0-10": 5}
+        hist.add_observation({"0-10": 5})
         hist.balance_content()
         # Don't call reduce_duplicates()
 
@@ -390,7 +403,7 @@ class TestHistogramReducedContentAccess:
 
     def test_access_reduced_content_after_both_succeeds(self) -> None:
         hist = Histogram()
-        hist.content = {"0-10": 50}
+        hist.add_observation({"0-10": 50})
         hist.balance_content()
         hist.reduce_duplicates()
 
@@ -430,7 +443,7 @@ class TestHistogramStrMethod:
 
     def test_str_method_with_buckets(self) -> None:
         hist = Histogram()
-        hist.content = {"0-10": 5, "10-20": 10}
+        hist.add_observation({"0-10": 5, "10-20": 10})
 
         result = str(hist)
 
@@ -444,7 +457,7 @@ class TestHistogramEdgeCases:
     def test_zero_value_buckets(self) -> None:
         hist = Histogram()
 
-        hist.content = {"0-10": 0}
+        hist.add_observation({"0-10": 0})
         hist.balance_content()
         hist.reduce_duplicates()
 
@@ -453,7 +466,7 @@ class TestHistogramEdgeCases:
     def test_float_bucket_values(self) -> None:
         hist = Histogram()
 
-        hist.content = {"0-10": 5.5, "10-20": 10.7}
+        hist.add_observation({"0-10": 5.5, "10-20": 10.7})
 
         assert hist.content["0-10"] == [5.5]
         assert hist.content["10-20"] == [10.7]
@@ -461,31 +474,25 @@ class TestHistogramEdgeCases:
     def test_large_bucket_values(self) -> None:
         hist = Histogram()
 
-        hist.content = {"0-1000000": 999999}
+        hist.add_observation({"0-1000000": 999999})
         hist.balance_content()
         hist.reduce_duplicates()
 
         assert hist.reduced_content["0-1000000"] == 999999.0
 
-    def test_rebinning_with_zero_span_bucket(self) -> None:
+    def test_rebinning_preserves_singleton_bucket(self) -> None:
         hist = Histogram(repeat=1, bins=2, max_range=10.0)
-        # Zero span buckets are skipped during rebinning (raw_span <= 0 check)
-        hist.content = {"10-10": [5.0]}  # Zero span - will be skipped
+        # Inclusive integer singleton at the overflow threshold.
+        hist.add_observation({"10-10": 5.0})
         hist.balance_content()
 
         hist.reduce_duplicates()
 
-        # bins=2, max_range=10 → num_std_bins=1, bin_width=10 → "0-10" + "10+"
-        assert "10-10" not in hist.reduced_content
-        assert "0-10" in hist.reduced_content
-        assert "10+" in hist.reduced_content
-        # All values are 0.0 since the zero-span bucket was skipped
-        assert hist.reduced_content["0-10"] == 0.0
-        assert hist.reduced_content["10+"] == 0.0
+        assert hist.reduced_content == {"0-9": 0.0, "10+": 5.0}
 
     def test_entries_property_sorted_order(self) -> None:
         hist = Histogram()
-        hist.content = {"100-200": 1, "0-100": 2, "200-300": 3}
+        hist.add_observation({"100-200": 1, "0-100": 2, "200-300": 3})
 
         result = hist.entries
 

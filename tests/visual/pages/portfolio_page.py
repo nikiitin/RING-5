@@ -9,10 +9,12 @@ Covers:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from playwright.sync_api import (
+    Download,
     Locator,
     Page,
-    TimeoutError as PlaywrightTimeoutError,
     expect,
 )
 
@@ -61,7 +63,7 @@ class PortfolioPage(BasePage):
     @property
     def load_button(self) -> Locator:
         """'Load Portfolio' button."""
-        return self.page.get_by_role("button", name="Load Portfolio")
+        return self.page.get_by_role("button", name="Load Portfolio", exact=True)
 
     @property
     def environment_expander(self) -> Locator:
@@ -140,13 +142,6 @@ class PortfolioPage(BasePage):
         return self.analysis_recipes_expander.get_by_role("button", name="Save analysis recipe")
 
     @property
-    def recipe_saved_success(self) -> Locator:
-        """Persistent recipe-save confirmation."""
-        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
-            has_text="Saved analysis recipe"
-        )
-
-    @property
     def saved_recipes_tab(self) -> Locator:
         """Saved recipe inspection tab."""
         return self.analysis_recipes_expander.get_by_role("tab", name="Saved", exact=True)
@@ -167,6 +162,120 @@ class PortfolioPage(BasePage):
         return self.analysis_recipes_expander.get_by_role(
             "button", name="Download Jupyter notebook"
         )
+
+    @property
+    def save_column(self) -> Locator:
+        """Owning save controls, excluding a selected portfolio's verification secret."""
+        return self.page.get_by_test_id("stColumn").filter(
+            has=self.page.get_by_role("heading", name="Save Portfolio", exact=True)
+        )
+
+    @property
+    def saved_recipe_selectbox(self) -> Locator:
+        """Selector for one exact saved recipe."""
+        return self.analysis_recipes_expander.get_by_test_id("stSelectbox").filter(
+            has=self.page.get_by_text("Saved recipe", exact=True)
+        )
+
+    @property
+    def recipe_import_uploader(self) -> Locator:
+        """File input belonging only to recipe import."""
+        return self.analysis_recipes_expander.get_by_test_id("stFileUploader").locator("input")
+
+    @property
+    def recipe_import_button(self) -> Locator:
+        """Validate and persist the uploaded recipe."""
+        return self.analysis_recipes_expander.get_by_role(
+            "button", name="Import analysis recipe", exact=True
+        )
+
+    @property
+    def recipe_delete_button(self) -> Locator:
+        """Delete the currently selected saved recipe."""
+        return self.analysis_recipes_expander.get_by_role(
+            "button", name="Delete recipe", exact=True
+        )
+
+    def set_checkbox(self, scope: Locator, label: str, checked: bool) -> None:
+        """Set one labeled checkbox without toggling an already-correct value."""
+        checkbox = scope.get_by_role("checkbox", name=label, exact=True)
+        if checkbox.is_checked() != checked:
+            scope.get_by_test_id("stCheckbox").filter(
+                has=self.page.get_by_text(label, exact=True)
+            ).locator("label").click()
+            self.wait_for_streamlit(expect_rerun=True)
+        if checked:
+            expect(checkbox).to_be_checked(timeout=self.RENDER_TIMEOUT)
+        else:
+            expect(checkbox).not_to_be_checked(timeout=self.RENDER_TIMEOUT)
+
+    def save_portfolio(self, name: str, *, signing_secret: str | None = None) -> None:
+        """Save the live workspace and select its reviewable persisted document."""
+        self.save_name_input.fill(name)
+        self.set_checkbox(self.save_column, "Sign integrity manifest", signing_secret is not None)
+        if signing_secret is not None:
+            secret = self.save_column.get_by_role("textbox", name="Signing secret", exact=True)
+            secret.fill(signing_secret)
+            secret.press("Enter")
+            expect(secret).to_have_value(signing_secret, timeout=self.RENDER_TIMEOUT)
+        expect(self.save_button).to_be_enabled(timeout=self.RENDER_TIMEOUT)
+        with self.expect_script_rerun():
+            self.save_button.click()
+        expect(self.managed_portfolio(name)).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self.select_portfolio(name)
+
+    def download_portable_bundle(self, path: Path) -> None:
+        """Prepare and transfer the selected portfolio's real bundle bytes."""
+        self.prepare_portable_bundle()
+        with self.page.expect_download(timeout=self.RENDER_TIMEOUT) as pending:
+            self.download_bundle_button.click()
+        assert pending.value.failure() is None
+        pending.value.save_as(str(path))
+
+    def select_saved_recipe(self, name: str) -> None:
+        """Open Saved and select the exact recipe without changing workspace data."""
+        self.open_analysis_recipes()
+        self.saved_recipes_tab.click()
+        self._open_and_select(self.saved_recipe_selectbox, name)
+        saved = self.analysis_recipes_expander.get_by_role("tabpanel", name="Saved", exact=True)
+        expect(
+            saved.get_by_test_id("stMarkdownContainer").get_by_text(name, exact=True)
+        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def import_recipe(self, path: Path, *, overwrite: bool = False) -> None:
+        """Submit a file through recipe import without assuming it will be accepted."""
+        self.open_analysis_recipes()
+        self.analysis_recipes_expander.get_by_role("tab", name="Import", exact=True).click()
+        self.set_checkbox(
+            self.analysis_recipes_expander,
+            "Replace a saved recipe with the imported name",
+            overwrite,
+        )
+        self.recipe_import_uploader.set_input_files(str(path))
+        expect(self.analysis_recipes_expander.get_by_title(path.name, exact=True)).to_be_visible(
+            timeout=self.RENDER_TIMEOUT
+        )
+        expect(
+            self.analysis_recipes_expander.get_by_test_id("stFileChipIconSpinner")
+        ).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+        expect(
+            self.analysis_recipes_expander.get_by_role("tab", name="Import", exact=True)
+        ).to_have_attribute("aria-selected", "true")
+        expect(self.recipe_import_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(self.recipe_import_button).to_be_enabled(timeout=self.RENDER_TIMEOUT)
+        self.recipe_import_button.click()
+
+    def download_recipe_artifact(self, kind: str) -> Download:
+        """Transfer JSON, Python, or notebook bytes from the selected saved recipe."""
+        controls = {
+            "json": self.download_recipe_button,
+            "python": self.download_recipe_script_button,
+            "notebook": self.download_recipe_notebook_button,
+        }
+        with self.page.expect_download(timeout=self.RENDER_TIMEOUT) as pending:
+            controls[kind].click()
+        assert pending.value.failure() is None
+        return pending.value
 
     def managed_portfolio(self, name: str) -> Locator:
         """Return the management expander for one named portfolio."""
@@ -213,7 +322,8 @@ class PortfolioPage(BasePage):
     def open_report_composer(self) -> None:
         """Open the collapsed analysis-report workflow."""
         expect(self.report_expander).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.report_expander.locator("summary").click()
+        if not self.report_title_input.is_visible():
+            self.report_expander.locator("summary").click()
         expect(self.report_title_input).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def prepare_portable_bundle(self) -> None:
@@ -226,21 +336,24 @@ class PortfolioPage(BasePage):
         if not self.download_bundle_button.is_visible():
             self.portable_bundle_expander.locator("summary").click()
         expect(self.download_bundle_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.page.wait_for_timeout(1_000)
 
     def open_analysis_recipes(self) -> None:
         """Open the recipe workflow when it is collapsed."""
-        if not self.recipe_name_input.is_visible():
+        tabs = self.analysis_recipes_expander.get_by_role("tab", name="Save current", exact=True)
+        if not tabs.is_visible():
             self.analysis_recipes_expander.locator("summary").click()
-        expect(self.recipe_name_input).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(tabs).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def save_current_as_recipe(self, name: str) -> None:
-        """Capture the current source and plots under *name*."""
+        """Capture the workspace and select its exact persisted recipe for inspection."""
         self.open_analysis_recipes()
+        self.analysis_recipes_expander.get_by_role("tab", name="Save current", exact=True).click()
         self.recipe_name_input.fill(name)
-        self.save_recipe_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
-        self.page.wait_for_timeout(500)
+        self.recipe_name_input.press("Enter")
+        expect(self.recipe_name_input).to_have_value(name, timeout=self.RENDER_TIMEOUT)
+        with self.expect_script_rerun():
+            self.save_recipe_button.click()
+        self.select_saved_recipe(name)
 
     def open_saved_portfolio(self, name: str) -> None:
         """Expand the management panel for *name*."""
@@ -256,22 +369,21 @@ class PortfolioPage(BasePage):
         self.compare_saved_versions_button(name).click()
         self.wait_for_streamlit()
 
+    def download_saved_version_changes(self, name: str) -> bytes:
+        """Download the visible comparison table through its CSV toolbar action."""
+        panel = self.managed_portfolio(name)
+        comparison = panel.locator("[data-testid='stDataFrame']").last
+        expect(comparison).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        comparison.hover()
+        # Headless tests observe browser downloads, not native OS file pickers.
+        self.page.evaluate(
+            "Object.defineProperty(window, 'showSaveFilePicker', "
+            "{configurable: true, value: undefined})"
+        )
+        with self.page.expect_download(timeout=self.RENDER_TIMEOUT) as downloaded:
+            panel.get_by_role("button", name="Download as CSV", exact=True).last.click()
+        return downloaded.value.path().read_bytes()
+
     def select_portfolio(self, name: str) -> None:
         """Select *name* through the labeled portfolio control."""
-        combobox = self.page.get_by_role("combobox", name="Select Portfolio", exact=True)
-        expect(combobox).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        if (combobox.text_content() or "").strip() == name:
-            return
-        option = self.page.get_by_role("option", name=name, exact=True)
-        for attempt in range(3):
-            combobox.click()
-            try:
-                option.wait_for(state="visible", timeout=5_000)
-                option.click(timeout=5_000)
-            except PlaywrightTimeoutError:
-                self.page.keyboard.press("Escape")
-                if attempt == 2:
-                    raise
-                continue
-            self.wait_for_streamlit()
-            return
+        self._open_and_select(self.load_selector, name)

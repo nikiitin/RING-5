@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from src.core.models.visualization.palettes import PALETTE_REGISTRY
 from src.core.services.visualization.palette_service import (
     get_palette_names,
@@ -62,15 +64,23 @@ class TestPaletteRegistry:
 class TestResolvePalette:
     """Tests for resolve_palette()."""
 
+    @pytest.mark.parametrize("name", get_palette_names())
+    def test_every_advertised_palette_resolves_to_registered_copy(self, name: str) -> None:
+        colors = resolve_palette(name)
+        assert colors == PALETTE_REGISTRY[name]
+        assert colors is not PALETTE_REGISTRY[name]
+        assert colors and all(_HEX_RE.fullmatch(color) for color in colors)
+
     def test_resolve_known_name(self) -> None:
         colors = resolve_palette("wong")
         assert len(colors) == 8
         assert colors[0] == "#000000"
 
-    def test_resolve_plotly_name(self) -> None:
-        colors = resolve_palette("D3")
+    @pytest.mark.parametrize("name, first", [("D3", "#1F77B4"), ("Plotly", "#636EFA")])
+    def test_resolve_plotly_name(self, name: str, first: str) -> None:
+        colors = resolve_palette(name)
         assert len(colors) == 10
-        assert colors[0] == "#1F77B4"
+        assert colors[0] == first
 
     def test_resolve_case_insensitive(self) -> None:
         colors_lower = resolve_palette("d3")
@@ -136,6 +146,21 @@ class TestIsColorblindSafe:
     """Tests for is_colorblind_safe()."""
 
     # [test->req~ring5.figure.colors~1]
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "ring5_accessible",
+            "ring5_accessible_dark",
+            "wong",
+            "okabe_ito",
+            "tol_bright",
+            "viridis_8",
+            "seaborn_cb",
+        ],
+    )
+    def test_declared_safe_palette_is_marked(self, name: str) -> None:
+        assert is_colorblind_safe(name) is True
 
     def test_wong_is_colorblind_safe(self) -> None:
         assert is_colorblind_safe("wong") is True

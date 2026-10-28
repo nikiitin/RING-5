@@ -1,8 +1,4 @@
-"""Shared helpers for building color-grouped traces.
-
-Eliminates the duplicated grouping/error-bar pattern across
-BarPlot, LinePlot, and ScatterPlot.
-"""
+"""Category selection, grouping and source metadata shared by trace builders."""
 
 from __future__ import annotations
 
@@ -13,8 +9,13 @@ from typing import Any
 import pandas as pd
 
 from src.core.models.visualization.trace_config import TraceConfig
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.utils.ordering import order_with_overrides
+
+
+def group_mask(series: pd.Series, value: Any) -> pd.Series:
+    """Select a scalar category, matching missing categories with missing rows."""
+    return series.isna() if pd.isna(value) else series == value
 
 
 def _browser_scalar(value: Any) -> Any:

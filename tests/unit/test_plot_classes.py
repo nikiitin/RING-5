@@ -1,6 +1,8 @@
 """Tests for the new plot class hierarchy."""
 
-from typing import Any, cast
+from ring5 import Session
+
+from typing import Any, Literal, cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -15,6 +17,7 @@ from src.web.pages.ui.plotting import (
     PlotFactory,
     ScatterPlot,
 )
+from src.web.rendering.figure_preparation import PreparedFigure
 
 
 @pytest.fixture
@@ -92,7 +95,7 @@ class TestBarPlot:
         assert plot.config == {}
         assert plot.processed_data is None
 
-    def test_create_figure(self, sample_data: Any) -> None:
+    def test_create_figure(self, sample_data: Any, plot_session: Session) -> None:
         """Test creating a figure."""
         plot = BarPlot(1, "Test")
         config = {
@@ -104,18 +107,11 @@ class TestBarPlot:
             "ylabel": "Value",
             "show_error_bars": False,
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert fig is not None
         assert len(list(fig.data)) > 0
-
-    def test_get_legend_column(self) -> None:
-        """Test getting legend column."""
-        plot = BarPlot(1, "Test")
-        config = {"color": "category"}
-        assert plot.get_legend_column(config) == "category"
-
-        config = {"color": None}
-        assert plot.get_legend_column(config) is None
 
     def test_to_dict(self, sample_data: Any) -> None:
         """Test serialization to dictionary."""
@@ -129,14 +125,14 @@ class TestBarPlot:
         assert data_dict["name"] == "Test"
         assert data_dict["plot_type"] == "bar"
         assert data_dict["config"] == {"x": "category", "y": "value"}
-        assert isinstance(data_dict["processed_data"], str)  # CSV string
+        assert data_dict["processed_data"]["format"] == "ring5.typed-table"
         assert data_dict["pipeline"] == [{"id": 0, "type": "columnSelector", "config": {}}]
 
 
 class TestGroupedBarPlot:
     """Test GroupedBarPlot functionality."""
 
-    def test_create_figure(self, sample_data: Any) -> None:
+    def test_create_figure(self, sample_data: Any, plot_session: Session) -> None:
         """Test creating a grouped bar figure."""
         plot = GroupedBarPlot(1, "Test")
         config = {
@@ -148,21 +144,17 @@ class TestGroupedBarPlot:
             "ylabel": "Value",
             "show_error_bars": False,
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert fig is not None
         assert len(list(fig.data)) >= 2  # Multiple groups
-
-    def test_get_legend_column(self) -> None:
-        """Test getting legend column for grouped bar."""
-        plot = GroupedBarPlot(1, "Test")
-        config = {"group": "group_column"}
-        assert plot.get_legend_column(config) == "group_column"
 
 
 class TestGroupedStackedBarPlot:
     """Test GroupedStackedBarPlot functionality."""
 
-    def test_create_figure(self, sample_data: Any) -> None:
+    def test_create_figure(self, sample_data: Any, plot_session: Session) -> None:
         """Test creating a grouped stacked bar figure."""
         plot = GroupedStackedBarPlot(1, "Test")
         config = {
@@ -175,20 +167,16 @@ class TestGroupedStackedBarPlot:
             "ylabel": "Value",
             "show_error_bars": False,
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert fig is not None
-
-    def test_get_legend_column(self) -> None:
-        """Test getting legend column for grouped stacked bar."""
-        plot = GroupedStackedBarPlot(1, "Test")
-        config = {"stack": "stack_column"}
-        assert plot.get_legend_column(config) is None
 
 
 class TestLinePlot:
     """Test LinePlot functionality."""
 
-    def test_create_figure(self, sample_data: Any) -> None:
+    def test_create_figure(self, sample_data: Any, plot_session: Session) -> None:
         """Test creating a line figure."""
         plot = LinePlot(1, "Test")
         config = {
@@ -200,14 +188,16 @@ class TestLinePlot:
             "ylabel": "Value",
             "show_error_bars": False,
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert fig is not None
 
 
 class TestScatterPlot:
     """Test ScatterPlot functionality."""
 
-    def test_create_figure(self, sample_data: Any) -> None:
+    def test_create_figure(self, sample_data: Any, plot_session: Session) -> None:
         """Test creating a scatter figure."""
         plot = ScatterPlot(1, "Test")
         config = {
@@ -219,7 +209,9 @@ class TestScatterPlot:
             "ylabel": "Value",
             "show_error_bars": False,
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert fig is not None
 
 
@@ -235,7 +227,7 @@ class TestPlotSerialization:
         plot.pipeline = [
             {"id": 0, "type": "columnSelector", "config": {"columns": ["category", "value"]}}  # type: ignore  # noqa: E501
         ]
-        plot.legend_mappings = {"A": "Label A", "B": "Label B"}
+        plot.config = {**plot.config, "legend_labels": {"A": "Label A", "B": "Label B"}}
 
         # Serialize
         data_dict = plot.to_dict()
@@ -248,7 +240,7 @@ class TestPlotSerialization:
         assert restored_plot.plot_type == plot.plot_type
         assert restored_plot.config == plot.config
         assert restored_plot.pipeline == plot.pipeline
-        assert restored_plot.legend_mappings == plot.legend_mappings
+        assert restored_plot.config["legend_labels"] == plot.config["legend_labels"]
         assert restored_plot.processed_data is not None
         assert plot.processed_data is not None
         assert restored_plot.processed_data.equals(plot.processed_data)
@@ -257,7 +249,7 @@ class TestPlotSerialization:
 class TestPlotCommonLayout:
     """Test common layout application."""
 
-    def test_apply_common_layout(self, sample_data: Any) -> None:
+    def test_public_render_common_layout(self, sample_data: Any, plot_session: Session) -> None:
         """Test applying common layout settings."""
         plot = BarPlot(1, "Test")
         config = {
@@ -272,8 +264,9 @@ class TestPlotCommonLayout:
             "show_error_bars": False,
         }
 
-        fig = plot.create_figure(sample_data, config)
-        fig = plot.apply_common_layout(fig, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig.to_plotly_json()["layout"]["width"] == 1000
         assert fig.to_plotly_json()["layout"]["height"] == 600
@@ -284,9 +277,14 @@ class TestPlotCommonLayout:
 class TestPlotLegendLabels:
     """Test legend label customization."""
 
-    def test_legend_labels_applied_to_both_engines(self, sample_data: Any) -> None:
-        """Custom legend labels (in config) rename trace names once, so the Plotly
-        figure AND the engine-agnostic last_traces (matplotlib source) both show them."""
+    @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+    def test_legend_labels_applied_to_both_engines(
+        self, sample_data: Any, plot_session: Session, engine: Literal["plotly", "matplotlib"]
+    ) -> None:
+        """Retain raw names and values while projecting actual native legend text."""
+        from matplotlib.patches import Rectangle
+        from src.core.models.visualization.trace_config import BarTraceConfig
+
         plot = BarPlot(1, "Test")
         config = {
             "x": "category",
@@ -298,13 +296,32 @@ class TestPlotLegendLabels:
             "show_error_bars": False,
             "legend_labels": {"G1": "Group One", "G2": "Group Two"},
         }
-
-        fig = plot.create_figure(sample_data, config)
-
-        # Plotly figure trace names are renamed.
-        fig_names = [cast(go.Bar, trace).name for trace in fig.data]
-        assert "Group One" in fig_names or "Group Two" in fig_names
-        # The engine-agnostic traces (consumed by the matplotlib connector) too.
-        assert plot.last_traces is not None
-        trace_names = [t.name for t in plot.last_traces.traces]
-        assert "Group One" in trace_names or "Group Two" in trace_names
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = plot_session.render(plot, engine=engine)
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        result = prepared.trace_result
+        assert result is not None
+        assert [trace.name for trace in result.traces] == ["G1", "G2"]
+        for trace, expected in zip(result.traces, [[10, 20, 15], [12, 18, 16]], strict=True):
+            assert isinstance(trace, BarTraceConfig)
+            assert trace.y == expected
+        if isinstance(fig, go.Figure):
+            names = []
+            for native in fig.data:
+                assert isinstance(native, go.Bar)
+                names.append(native.name)
+            assert names == ["Group One", "Group Two"]
+            assert fig.layout.title.text == "Test"
+        else:
+            legend = fig.axes[0].get_legend()
+            assert legend is not None
+            assert [text.get_text() for text in legend.texts] == ["Group One", "Group Two"]
+            heights = []
+            for patch in fig.axes[0].patches:
+                assert isinstance(patch, Rectangle)
+                heights.append(patch.get_height())
+            assert heights == [10, 20, 15, 12, 18, 16]
+            assert fig.axes[0].get_title() == "Test"
+        assert plot.config == config

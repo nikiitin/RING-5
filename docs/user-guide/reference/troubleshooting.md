@@ -5,9 +5,6 @@ parent: Reference
 grand_parent: User Guide
 nav_order: 5
 permalink: /user-guide/reference/troubleshooting/
-redirect_from:
-  - /user-guide/reference/faq/
-  - /user-guide/reference/keyboard-shortcuts/
 ---
 
 # Troubleshooting and FAQ
@@ -40,7 +37,7 @@ then use **Deep Scan** when variables differ between runs. Parsing needs Perl; c
 
 If the path is outside the allowed web roots, start RING-5 from the results parent directory or set
 `RING5_ALLOWED_STATS_ROOTS` before starting the server. The Data Source page lists the active roots.
-Separate multiple roots with `:` on Linux and macOS or `;` on Windows.
+Separate multiple roots with `:`.
 
 If a scan reports a line, file-size, file-count, or timeout limit, narrow the selected results tree
 or split the analysis. The scanner fails that file visibly; it never returns the first part of an
@@ -81,16 +78,22 @@ are not supported; use literal ASCII statistic-name characters and `\d+` placeho
 ## A CSV does not load
 
 <!--
-`uman~ring5.ingestion.csv-contract.documentation~1`
+`uman~ring5.ingestion.csv-contract.documentation~2`
 
 Covers:
-- req~ring5.ingestion.csv-contract~1
+- req~ring5.ingestion.csv-contract~2
 
 -->
 
 Confirm that the file is readable, has a non-empty header, contains a data row, and uses consistent
 row widths. RING-5 does not require specific gem5 columns. Operations later validate the columns and
 types they need.
+
+For parser results, pass the complete `ParseResult` to `session.load` to retain declared numeric and
+text types. Typed loading verifies the exact schema, CSV row encoding and schema-bound digest;
+missing or changed output fails visibly. Passing the result's CSV pathname instead uses ordinary
+CSV inference and null handling. Literal text such as `NA`, empty strings and `001` remains exact
+through typed loading or the reviewed import workflow with explicit text corrections.
 
 ## A plot is blank or reports missing columns
 
@@ -107,7 +110,10 @@ normalize step.
 ## Static Plotly export fails
 
 Plotly PNG, SVG, and PDF require a Chrome-family browser. Use Plotly HTML, switch to Matplotlib, or
-install the browser dependency reported by `ring5 doctor`.
+run `ring5 install-chrome` and set `BROWSER_PATH` to the printed executable path before starting
+RING-5. An existing empty or invalid `BROWSER_PATH` must be corrected or unset; it remains
+authoritative. See [installation]({{site.baseurl}}/user-guide/getting-started/installation/#install-chrome-for-plotly-static-exports)
+for Linux shell instructions and installation-cache options.
 
 ## PGF export fails or becomes PDF
 
@@ -116,9 +122,9 @@ as PGF; the web application warns and downloads PDF instead.
 
 ## A portfolio restores partially
 
-Read every `RestoreReport` field in Python or every warning in the web application. Do not upgrade
-or overwrite the source portfolio until the data and all intended plots restore. Newer portfolio
-schema versions cannot be loaded by older RING-5 releases.
+Read every `RestoreReport` field in Python or every warning in the web application. Do not overwrite the source
+portfolio until the data and all intended plots restore. Only the current portfolio schema is
+accepted.
 
 ## Are there application keyboard shortcuts?
 

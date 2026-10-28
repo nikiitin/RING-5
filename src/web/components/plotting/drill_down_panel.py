@@ -6,6 +6,8 @@ from typing import Any
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.models.visualization.drill_down_result import DrillDownResult
 
 
@@ -18,7 +20,7 @@ class DrillDownPanel:
         return st.toggle(
             "Explore source rows",
             value=False,
-            key=f"plot.{plot_id}.drill_down.enabled",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.drill_down.enabled"),
             help="Click a plotted value to inspect the source rows that contribute to it.",
         )
 
@@ -32,7 +34,7 @@ class DrillDownPanel:
             st.caption(title)
             if result.filters:
                 dimensions = " · ".join(f"{column} = {value}" for column, value in result.filters)
-                st.caption(f"Matched dimensions: {dimensions}")
+                st.caption(f"Selected plot dimensions: {dimensions}")
             else:
                 st.caption("This aggregate uses all source rows in the plot snapshot.")
             st.metric("Matching rows", result.row_count)
@@ -42,12 +44,13 @@ class DrillDownPanel:
                 height=min(520, 90 + max(1, result.row_count) * 35),
             )
             st.caption(
-                "This is a read-only snapshot. The source dataset and active figure settings "
-                "remain unchanged."
+                "These are original input rows retained by the finalized pipeline. "
+                "Supporting inputs, such as normalization baselines, can have different labels "
+                "from the selected plot value. The dataset and figure settings remain unchanged."
             )
             return st.button(
                 ":material/arrow_back: Back to full plot",
-                key=f"plot.{result.plot_id}.drill_down.close",
+                key=WidgetKeyBuilder.plot_key(result.plot_id, "widgets.drill_down.close"),
             )
 
     @staticmethod

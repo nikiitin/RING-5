@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+from ring5 import Session
+
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pytest
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+from matplotlib.colors import to_rgba
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
 from src.web.pages.ui.plotting.types.heatmap_plot import HeatmapPlot
+from src.web.rendering._color_utils import css_color_to_matplotlib
 from src.web.rendering.trace_to_plotly import traces_to_plotly
+from src.web.rendering.figure_preparation import PreparedFigure
 
 
 @patch("src.web.components.plotting.config.heatmap_config.st")
@@ -18,35 +23,35 @@ def test_heatmap_generated_xlabel_follows_x_mapping(mock_st: MagicMock) -> None:
     # [test->req~ring5.figure.heatmap-controls~1]
     from src.web.components.plotting.config.heatmap_config import _sync_auto_xlabel
 
-    mock_st.session_state = {"xlabel_7": "benchmark_name"}
+    mock_st.session_state = {"plot.7.widgets.xlabel": "benchmark_name"}
     _sync_auto_xlabel(
         cast(Any, {"x": "benchmark_name", "xlabel": "benchmark_name"}),
         7,
         "config_description",
     )
 
-    assert mock_st.session_state["xlabel_7"] == "config_description"
+    assert mock_st.session_state["plot.7.widgets.xlabel"] == "config_description"
 
 
-def test_faceted_heatmap_labels_only_bottom_x_axis() -> None:
+def test_faceted_heatmap_labels_only_bottom_x_axis(plot_session: Session) -> None:
     # [test->req~ring5.figure.heatmap-controls~1]
     plot = HeatmapPlot(plot_id=7, name="Heatmap")
-    plot.last_traces = TraceBuildResult(
-        traces=[
-            HeatmapTraceConfig(name=name, col_labels=["A"], row_labels=["metric"], z=[[1.0]])
-            for name in ("one", "two", "three")
-        ]
+    plot.processed_data = pd.DataFrame(
+        {
+            "configuration": ["A", "A", "A"],
+            "facet": ["one", "two", "three"],
+            "metric": [1.0, 2.0, 3.0],
+        }
     )
-    figure = make_subplots(rows=3, cols=1)
-    for row in range(1, 4):
-        figure.add_trace(go.Heatmap(z=[[1.0]]), row=row, col=1)
-
-    with patch(
-        "src.web.pages.ui.plotting.types.heatmap_plot.BasePlot.apply_common_layout",
-        return_value=figure,
-    ):
-        result = plot.apply_common_layout(figure, cast(Any, {"xlabel": "Configuration"}))
-
+    plot.config = {
+        "x": "configuration",
+        "facet_col": "facet",
+        "metric_columns": ["metric"],
+        "xlabel": "Configuration",
+    }
+    result = plot_session.render(plot)
+    assert isinstance(result, go.Figure)
+    assert [list(cast(Any, trace).z[0]) for trace in result.data] == [[1.0], [3.0], [2.0]]
     assert result.layout.xaxis.title.text is None
     assert result.layout.xaxis2.title.text is None
     assert result.layout.xaxis3.title.text == "Configuration"
@@ -74,7 +79,7 @@ def test_heatmap_plot_creates_trace_per_benchmark() -> None:
             "facet_col": "benchmark_name",
             "metric_columns": ["l0_ctrl0_aborted_cycles", "l0_ctrl1_aborted_cycles"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
         },
     )
 
@@ -109,7 +114,7 @@ def test_heatmap_plot_aggregates_duplicate_rows() -> None:
             "facet_col": "benchmark_name",
             "metric_columns": ["l0_ctrl0_aborted_cycles", "l0_ctrl1_aborted_cycles"],
             "aggregation": "mean",
-            "show_cell_values": False,
+            "show_values": False,
         },
     )
 
@@ -138,7 +143,7 @@ def test_multiple_heatmap_traces_render_as_subplots() -> None:
         ]
     )
 
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
 
     assert len(cast(tuple[Any, ...], fig.data)) == 2
     assert fig.layout.xaxis2 is not None
@@ -160,7 +165,7 @@ def test_heatmap_x_filter_restricts_columns() -> None:
             "x": "cfg",
             "metric_columns": ["metric1"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
             "x_filter": ["A", "B"],
         },
     )
@@ -211,17 +216,16 @@ def test_heatmap_plotly_annotations_have_contrast_colors() -> None:
         ]
     )
 
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
     annotations = list(fig.layout.annotations)
     assert len(annotations) == 2
 
-    # Cell (0,0) z=1.0 is in the lower half → black text
+    # Viridis maps the minimum to dark purple and maximum to light yellow.
     ann_a = next(a for a in annotations if a.x == "A")
-    assert ann_a.font.color == "black"
+    assert to_rgba(css_color_to_matplotlib(ann_a.font.color)) == to_rgba("white")
 
-    # Cell (0,1) z=100.0 is in the upper half → white text
     ann_b = next(a for a in annotations if a.x == "B")
-    assert ann_b.font.color == "white"
+    assert to_rgba(css_color_to_matplotlib(ann_b.font.color)) == to_rgba("black")
 
 
 def test_heatmap_subplot_annotations_use_correct_axis_refs() -> None:
@@ -247,7 +251,7 @@ def test_heatmap_subplot_annotations_use_correct_axis_refs() -> None:
         ]
     )
 
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
     annotations = list(fig.layout.annotations)
 
     # make_subplots adds subplot_titles as annotations; filter to cell annotations
@@ -280,7 +284,7 @@ def test_heatmap_totals_right_adds_column() -> None:
             "x": "cfg",
             "metric_columns": ["m1", "m2"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
             "show_totals": True,
             "totals_position": "right",
             "totals_aggregation": "mean",
@@ -310,7 +314,7 @@ def test_heatmap_totals_top_adds_row() -> None:
             "x": "cfg",
             "metric_columns": ["m1", "m2"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
             "show_totals": True,
             "totals_position": "top",
             "totals_aggregation": "mean",
@@ -340,7 +344,7 @@ def test_heatmap_totals_sum_aggregation() -> None:
             "x": "cfg",
             "metric_columns": ["m1"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
             "show_totals": True,
             "totals_position": "right",
             "totals_aggregation": "sum",
@@ -368,7 +372,7 @@ def test_heatmap_totals_with_none_values() -> None:
             "x": "cfg",
             "metric_columns": ["m1"],
             "aggregation": "mean",
-            "show_cell_values": True,
+            "show_values": True,
             "show_totals": True,
             "totals_position": "right",
             "totals_aggregation": "mean",
@@ -381,12 +385,12 @@ def test_heatmap_totals_with_none_values() -> None:
     assert trace.z[0][3] == 20.0
 
 
-def test_heatmap_apply_common_layout_restricts_xaxis_categories() -> None:
-    """apply_common_layout overrides categoryarray to filtered col_labels only.
+def test_heatmap_public_render_restricts_xaxis_categories(plot_session: Session) -> None:
+    """Public rendering restricts categoryarray to filtered col_labels only.
 
     When the ordering settings provide xaxis_order with ALL unique X values
     (including filtered-out ones), the Plotly connector sets categoryarray to
-    that full list.  HeatmapPlot.apply_common_layout must restrict it to the
+    that full list.  The canonical prepared metadata must restrict it to the
     col_labels actually present in the trace data so that filtered-out ticks
     don't appear and cells are not displaced.
     """
@@ -401,26 +405,23 @@ def test_heatmap_apply_common_layout_restricts_xaxis_categories() -> None:
         "x": "cfg",
         "metric_columns": ["m1"],
         "aggregation": "mean",
-        "show_cell_values": True,
+        "show_values": True,
         "x_filter": ["A", "C"],
         "xaxis_order": ["A", "B", "C", "D"],
     }
-    fig = plot.create_figure(data, config)
+    plot.processed_data = data
+    plot.config = config
+    fig = cast(go.Figure, plot_session.render(plot))
 
-    # At this point last_traces should have col_labels ["A", "C"] only
-    assert plot.last_traces is not None
-    first = plot.last_traces.traces[0]
+    # The owned preparation should have col_labels ["A", "C"] only
+    prepared = plot.render_artifact.preparation
+    assert isinstance(prepared, PreparedFigure)
+    assert prepared.trace_result is not None
+    first = prepared.trace_result.traces[0]
     assert isinstance(first, HeatmapTraceConfig)
     assert first.col_labels == ["A", "C"]
 
-    # Simulate a Plotly figure that has categoryarray set to ALL values
-    # (this is what the base apply_common_layout would do via the connector)
-    fig.update_xaxes(categoryorder="array", categoryarray=["A", "B", "C", "D"])
-
-    # Now apply the heatmap override
-    fig = plot.apply_common_layout(fig, config)
-
-    # The override should restrict categoryarray to only the filtered values
+    # The prepared native figure excludes filtered-out categories.
     xaxis_layout = fig.layout.xaxis
     assert list(xaxis_layout.categoryarray) == ["A", "C"]
     assert xaxis_layout.categoryorder == "array"
@@ -597,22 +598,12 @@ def test_heatmap_colorscale_reverse_list() -> None:
     assert t_normal.colorscale[0][1] == t_reversed.colorscale[-1][1]
 
 
-def test_heatmap_colorscale_legacy_string() -> None:
-    """Legacy string colorscale is preserved when no palette is set."""
+@pytest.mark.parametrize("key,value", [("colorscale", "Viridis"), ("show_cell_values", True)])
+def test_heatmap_rejects_retired_flat_fields(key: str, value: object) -> None:
     data = pd.DataFrame({"cfg": ["A"], "m1": [1.0]})
-    plot = HeatmapPlot(plot_id=62, name="LegacyCS")
-    result = plot.create_traces(
-        data,
-        {
-            "x": "cfg",
-            "metric_columns": ["m1"],
-            "aggregation": "mean",
-            "colorscale": "Viridis",
-        },
-    )
-    trace = result.traces[0]
-    assert isinstance(trace, HeatmapTraceConfig)
-    assert trace.colorscale == "Viridis"
+    plot = HeatmapPlot(plot_id=62, name="CurrentCS")
+    with pytest.raises(ValueError, match="Unsupported heatmap configuration keys"):
+        plot.create_traces(data, {"x": "cfg", "metric_columns": ["m1"], key: value})
 
 
 # R4: Totals separator metadata
@@ -695,7 +686,7 @@ def test_heatmap_plotly_separator_line_right() -> None:
             ),
         ]
     )
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
     shapes = list(fig.layout.shapes)
     # Should have at least one vertical separator line
     sep_shapes = [s for s in shapes if s.type == "line"]
@@ -718,7 +709,7 @@ def test_heatmap_plotly_separator_line_top() -> None:
             ),
         ]
     )
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
     shapes = list(fig.layout.shapes)
     sep_shapes = [s for s in shapes if s.type == "line"]
     assert len(sep_shapes) >= 1
@@ -738,7 +729,7 @@ def test_heatmap_plotly_no_separator_without_totals() -> None:
             ),
         ]
     )
-    fig = traces_to_plotly(result)
+    fig = traces_to_plotly(result).figure
     shapes = list(fig.layout.shapes or [])
     assert len(shapes) == 0
 
@@ -757,8 +748,8 @@ def test_plotly_shared_colorbar_zmin_zmax_match() -> None:
 
     fig = go.Figure(
         data=[
-            go.Heatmap(x=["A", "B"], y=["m1"], z=[[1.0, 5.0]], name="hm1"),
-            go.Heatmap(x=["A", "B"], y=["m1"], z=[[2.0, 8.0]], name="hm2"),
+            go.Heatmap({"x": ["A", "B"], "y": ["m1"], "z": [[1.0, 5.0]], "name": "hm1"}),
+            go.Heatmap({"x": ["A", "B"], "y": ["m1"], "z": [[2.0, 8.0]], "name": "hm2"}),
         ]
     )
     legend = LegendConfig(
@@ -793,8 +784,8 @@ def test_plotly_individual_colorbar_mode() -> None:
 
     fig = go.Figure(
         data=[
-            go.Heatmap(x=["A", "B"], y=["m1"], z=[[1.0, 5.0]], name="hm1"),
-            go.Heatmap(x=["A", "B"], y=["m1"], z=[[2.0, 8.0]], name="hm2"),
+            go.Heatmap({"x": ["A", "B"], "y": ["m1"], "z": [[1.0, 5.0]], "name": "hm1"}),
+            go.Heatmap({"x": ["A", "B"], "y": ["m1"], "z": [[2.0, 8.0]], "name": "hm2"}),
         ]
     )
     legend = LegendConfig(
@@ -821,7 +812,7 @@ def test_plotly_colorbar_title_side_is_top() -> None:
 
     fig = go.Figure(
         data=[
-            go.Heatmap(x=["A", "B"], y=["m1"], z=[[1.0, 5.0]], name="hm1"),
+            go.Heatmap({"x": ["A", "B"], "y": ["m1"], "z": [[1.0, 5.0]], "name": "hm1"}),
         ]
     )
     legend = LegendConfig(

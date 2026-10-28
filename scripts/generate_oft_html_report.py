@@ -9,14 +9,9 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
-if __package__:
-    from scripts.generate_oft_inventory import load_inventory, validate_inventory
-    from scripts.oft_evidence import collect_evidence_markers
-    from scripts.oft_html_report import OftHtmlReportError, enhance_oft_html
-else:
-    from generate_oft_inventory import load_inventory, validate_inventory
-    from oft_evidence import collect_evidence_markers
-    from oft_html_report import OftHtmlReportError, enhance_oft_html
+from scripts.generate_oft_inventory import load_inventory, validate_inventory
+from scripts.oft_evidence import collect_evidence_markers
+from scripts.oft_html_report import OftHtmlReportError, enhance_oft_html
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -90,7 +85,7 @@ def main(argv: list[str] | None = None) -> int:
             execution_results,
         )
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(report, encoding="utf-8")
+        args.output.write_text(report.rstrip() + "\n", encoding="utf-8")
     except (OSError, OftHtmlReportError, ValueError) as exc:
         print(f"error: {exc}")
         return 2

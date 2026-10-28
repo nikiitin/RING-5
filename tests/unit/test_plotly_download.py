@@ -6,10 +6,18 @@ with correct headers/magic bytes for PNG, SVG, and PDF formats.
 
 from __future__ import annotations
 
+import csv
+from io import StringIO
+import json
+from pathlib import Path
+import re
+from typing import Any, cast
+
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
+from src.core.common.browser_selection import BrowserSelection
 from src.web.rendering.figure_export import (
     get_plotly_extension,
     get_plotly_mime,
@@ -82,13 +90,17 @@ class TestPlotlyHTML:
     ) -> None:
         # [test->req~ring5.export.plotly-html-source-data~1]
         """Workspace HTML can carry searchable data without executable cell HTML."""
+        unsafe_note = '</script><script>alert(1)</script> & "quoted",\r\nnext line'
         source = pd.DataFrame(
             {
                 "benchmark": ["mcf", "omnetpp"],
                 "ipc": [2.1, 1.85],
-                "note": ["safe", "</script><script>alert(1)</script>"],
+                "identifier": [2**63 - 1, 2**53 + 1],
+                "optional": [None, "—"],
+                "note": ["safe", unsafe_note],
             }
         )
+        before = source.copy(deep=True)
 
         text = plotly_download_bytes(
             simple_bar_figure,
@@ -101,11 +113,27 @@ class TestPlotlyHTML:
         assert "Interactive source dataframe" in text
         assert "Filter rows" in text
         assert "Download source data as CSV" in text
-        assert "2 rows × 3 columns" in text
-        assert '"benchmark"' in text
-        assert "mcf" in text
-        assert "</script><script>alert(1)</script>" not in text
-        assert "\\u003c\\/script\\u003e" in text
+        assert "2 rows × 5 columns" in text
+        payloads = re.findall(
+            r'<script id="ring5-source-data-payload" type="application/json">(.*?)</script>',
+            text,
+            flags=re.DOTALL,
+        )
+        assert len(payloads) == 1
+        encoded = payloads[0]
+        assert "<" not in encoded and ">" not in encoded and "&" not in encoded
+        payload = json.loads(encoded)
+        assert payload["columns"] == ["benchmark", "ipc", "identifier", "optional", "note"]
+        assert payload["data"] == [
+            ["mcf", 2.1, 2**63 - 1, None, "safe"],
+            ["omnetpp", 1.85, 2**53 + 1, "—", unsafe_note],
+        ]
+        assert list(csv.reader(StringIO(payload["csv"], newline=""))) == [
+            ["benchmark", "ipc", "identifier", "optional", "note"],
+            ["mcf", "2.1", str(2**63 - 1), "", "safe"],
+            ["omnetpp", "1.85", str(2**53 + 1), "—", unsafe_note],
+        ]
+        pd.testing.assert_frame_equal(source, before)
 
     def test_dataframe_html_export_remains_deterministic(
         self, simple_bar_figure: go.Figure
@@ -258,25 +286,37 @@ class TestChromeNotFound:
     # [test->req~ring5.export.plotly-static~1]
     """A missing browser must fail fast with the actionable upstream error."""
 
-    def test_chrome_not_found_propagates_without_retry(self, simple_bar_figure: go.Figure) -> None:
+    def test_chrome_not_found_propagates_without_retry(
+        self, simple_bar_figure: go.Figure, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """ChromeNotFoundError carries install instructions; retrying cannot
         help and wrapping it as a generic RuntimeError buries the fix."""
         from unittest.mock import patch
 
         from kaleido.errors import ChromeNotFoundError
 
+        monkeypatch.setattr(
+            "src.web.rendering.figure_export.select_browser",
+            lambda: BrowserSelection("selected", "/selected"),
+        )
         with patch(
             "src.web.rendering.figure_export.kaleido.calc_fig_sync",
-            side_effect=ChromeNotFoundError("Chrome not found — run kaleido_get_chrome"),
+            side_effect=ChromeNotFoundError("Chrome not found — run ring5 install-chrome"),
         ) as mock_calc:
             with pytest.raises(ChromeNotFoundError):
                 plotly_download_bytes(simple_bar_figure, "png")
             mock_calc.assert_called_once()  # no pointless retries
 
-    def test_transient_failures_still_retry(self, simple_bar_figure: go.Figure) -> None:
+    def test_transient_failures_still_retry(
+        self, simple_bar_figure: go.Figure, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Non-Chrome failures keep the bounded retry-then-RuntimeError contract."""
         from unittest.mock import patch
 
+        monkeypatch.setattr(
+            "src.web.rendering.figure_export.select_browser",
+            lambda: BrowserSelection("selected", "/selected"),
+        )
         with patch(
             "src.web.rendering.figure_export.kaleido.calc_fig_sync",
             side_effect=TimeoutError("stalled"),
@@ -288,12 +328,16 @@ class TestChromeNotFound:
     def test_configured_browser_path_is_forwarded(
         self,
         simple_bar_figure: go.Figure,
+        tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """An administrator-selected browser must override Kaleido's local cache."""
         from unittest.mock import patch
 
-        browser_path = "/opt/ring5/chrome"
+        browser = tmp_path / "chrome.exe"
+        browser.write_text("not executed", encoding="utf-8")
+        browser.chmod(0o700)
+        browser_path = str(browser)
         monkeypatch.setenv("BROWSER_PATH", browser_path)
         with patch(
             "src.web.rendering.figure_export.kaleido.calc_fig_sync",
@@ -322,7 +366,7 @@ class TestDeterministicSvg:
     def test_colorbar_heatmap_svg_deterministic(self) -> None:
         """Colorbar gradients embed a SECOND random id (g<uid>-<8hex>) that
         the normalizer must remap — a single-uid replace is not enough."""
-        fig = go.Figure(data=go.Heatmap(z=[[1, 2], [3, 4]], showscale=True))
+        fig = go.Figure(data=go.Heatmap(z=cast(Any, [[1, 2], [3, 4]]), showscale=True))
         a = plotly_download_bytes(fig, "svg", deterministic=True)
         b = plotly_download_bytes(fig, "svg", deterministic=True)
         assert a == b
@@ -333,7 +377,7 @@ class TestDeterministicSvg:
         import base64
         import re as _re
 
-        fig = go.Figure(data=go.Heatmap(z=[[i * j for j in range(8)] for i in range(8)]))
+        fig = go.Figure(data=go.Heatmap(z=cast(Any, [[i * j for j in range(8)] for i in range(8)])))
         raw = plotly_download_bytes(fig, "svg", deterministic=False)
         norm = plotly_download_bytes(fig, "svg", deterministic=True)
 

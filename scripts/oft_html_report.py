@@ -15,14 +15,9 @@ from collections.abc import Mapping
 from collections.abc import Sequence
 from typing import Any, cast
 
-if __package__:
-    from scripts.oft_evidence import EvidenceMarker
-    from scripts.oft_readiness import assess_requirement_readiness
-    from scripts.oft_status import requirement_status_views
-else:
-    from oft_evidence import EvidenceMarker
-    from oft_readiness import assess_requirement_readiness
-    from oft_status import requirement_status_views
+from scripts.oft_evidence import EvidenceMarker
+from scripts.oft_readiness import assess_requirement_readiness
+from scripts.oft_status import requirement_status_views
 
 
 class OftHtmlReportError(ValueError):
@@ -148,14 +143,18 @@ def _native_evidence_targets(native_html: str) -> dict[tuple[str, str, int, str]
     """Map source origins to their native OFT artifact anchors."""
     targets: dict[tuple[str, str, int, str], str] = {}
     for artifact_id, artifact_type, body in _ARTIFACT_SECTION.findall(native_html):
-        origin = _ARTIFACT_ORIGIN.search(body)
-        cover = _ARTIFACT_COVER.search(body)
-        if origin is None or cover is None:
-            continue
-        requirement_id, revision = cover.groups()
-        targets[(artifact_type, requirement_id, int(revision), html.unescape(origin.group(1)))] = (
-            artifact_id
-        )
+        origins = _ARTIFACT_ORIGIN.findall(body)
+        covers = dict.fromkeys(_ARTIFACT_COVER.findall(body))
+        if len(origins) != 1 or not covers:
+            raise OftHtmlReportError(
+                f"Native OFT evidence item {artifact_id!r} requires "
+                "one origin and a requirement cover."
+            )
+        for requirement_id, revision in covers:
+            key = (artifact_type, requirement_id, int(revision), html.unescape(origins[0]))
+            if key in targets:
+                raise OftHtmlReportError(f"Native OFT HTML has a duplicate evidence origin: {key}")
+            targets[key] = artifact_id
     return targets
 
 
@@ -1008,18 +1007,16 @@ _HUMAN_SCRIPT = r"""
 """
 
 
-def enhance_oft_html(
+def validate_native_evidence(
     native_html: str,
     inventory: Mapping[str, Any],
-    evidence_markers: Sequence[EvidenceMarker] = (),
-    execution_results: Mapping[str, str] | None = None,
-) -> str:
-    """Insert the RING-5 summary into native OFT HTML while retaining its trace graph."""
-    # [impl->req~ring5.trace.human-html-report~1]
-    coverage = extract_oft_coverage(native_html, inventory)
-    if "</style>" not in native_html or "<body>" not in native_html or "<main>" not in native_html:
-        raise OftHtmlReportError("Native OFT HTML does not have the expected document structure.")
+    evidence_markers: Sequence[EvidenceMarker],
+) -> dict[tuple[str, str, int, str], str]:
+    """Resolve required current evidence and reject foreign native origins.
 
+    Raises:
+        OftHtmlReportError: A required origin is absent or a foreign origin is imported.
+    """
     native_targets = _native_evidence_targets(native_html)
     marker_index = {
         (marker.artifact_type, marker.requirement_id, marker.revision, marker.reference): marker
@@ -1052,6 +1049,37 @@ def enhance_oft_html(
         raise OftHtmlReportError(
             "Native OFT HTML is missing exact evidence origins: " + ", ".join(missing_targets)
         )
+
+    if evidence_markers:
+        expected_origins = {
+            (
+                marker.artifact_type,
+                marker.requirement_id,
+                marker.revision,
+                f"{marker.path}:{marker.line}",
+            )
+            for marker in evidence_markers
+        }
+        unexpected = sorted(set(native_targets) - expected_origins)
+        if unexpected:
+            origins = ", ".join(origin for _, _, _, origin in unexpected)
+            raise OftHtmlReportError("Native OFT HTML has unexpected evidence origins: " + origins)
+    return native_targets
+
+
+def enhance_oft_html(
+    native_html: str,
+    inventory: Mapping[str, Any],
+    evidence_markers: Sequence[EvidenceMarker] = (),
+    execution_results: Mapping[str, str] | None = None,
+) -> str:
+    """Insert the RING-5 summary into native OFT HTML while retaining its trace graph."""
+    # [impl->req~ring5.trace.human-html-report~1]
+    coverage = extract_oft_coverage(native_html, inventory)
+    if "</style>" not in native_html or "<body>" not in native_html or "<main>" not in native_html:
+        raise OftHtmlReportError("Native OFT HTML does not have the expected document structure.")
+
+    native_targets = validate_native_evidence(native_html, inventory, evidence_markers)
 
     fingerprint = inventory_fingerprint(inventory)
     report = native_html.replace(

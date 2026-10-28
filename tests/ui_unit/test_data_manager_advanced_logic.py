@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pyarrow as pa
 import pytest
 from pandas import DataFrame
 
@@ -68,8 +69,8 @@ def test_mixer_render_numeric_op(mock_streamlit: Any, mock_api: Any, sample_data
     mock_st, _ = mock_streamlit
 
     manager = MixerManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
-    manager.set_data = MagicMock()
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
+    setattr(manager, "set_data", MagicMock())
 
     # Interaction parameters.
     mock_st.radio.return_value = "Numerical Operations"
@@ -87,7 +88,14 @@ def test_mixer_render_numeric_op(mock_streamlit: Any, mock_api: Any, sample_data
 
     mock_api.managers.apply_mixer.assert_called()
     # Check result stored via api
-    mock_api.set_preview.assert_called_once_with("mixer", result_df)
+    mock_api.set_preview.assert_called_once()
+    assert mock_api.set_preview.call_args.args[0] == "mixer"
+    assert mock_api.set_preview.call_args.args[1] is result_df
+    assert "operation_config" in mock_api.set_preview.call_args.kwargs
+    assert (
+        mock_api.set_preview.call_args.kwargs["inputs"]
+        is mock_api.capture_preview_inputs.return_value
+    )
     mock_st.success.assert_called()
 
 
@@ -96,7 +104,7 @@ def test_mixer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> 
     mock_st, _ = mock_streamlit
 
     manager = MixerManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
 
     # Pre-populate result
     result_df = pd.DataFrame({"merged": [1]})
@@ -108,39 +116,72 @@ def test_mixer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> 
     # Configure mock_api
     mock_api.has_preview.return_value = True
     mock_api.get_preview.return_value = result_df
+    mock_api.confirm_preview.return_value = result_df
+    mock_api.get_preview_config.return_value = {
+        "operation": "Sum",
+        "source_cols": ["value"],
+        "dest_col": "merged",
+        "categorical_cols": ["benchmark"],
+        "statistic_cols": ["value"],
+    }
 
     manager.render()
 
     # Check state updated via api orchestrator
-    mock_api.update_selected_dataset.assert_called_once()
-    pd.testing.assert_frame_equal(mock_api.update_selected_dataset.call_args.args[0], result_df)
-    assert mock_api.update_selected_dataset.call_args.kwargs["operation"].startswith("Mixer:")
-    mock_api.clear_preview.assert_called_once_with("mixer")
+    mock_api.confirm_preview.assert_called_once()
+    assert mock_api.confirm_preview.call_args.args == ("mixer",)
+    assert mock_api.confirm_preview.call_args.kwargs["operation"].startswith("Mixer:")
 
 
-def test_preprocessor_render_op(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:
-    """Test Preprocessor operation workflow."""
+@pytest.mark.parametrize(
+    ("right", "ratio", "columns"),
+    [
+        ("B", 0.25, ["A", "B", "new_col"]),
+        ("A", 1.0, ["A", "new_col"]),
+    ],
+)
+def test_preprocessor_render_op(
+    mock_streamlit: Any,
+    mock_api: Any,
+    sample_data: Any,
+    right: str,
+    ratio: float,
+    columns: list[str],
+) -> None:
+    """Distinct and repeated operands publish an Arrow-serializable preview."""
     _, mock_st = mock_streamlit
 
     manager = PreprocessorManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
 
     # Interaction parameters.
-    mock_st.selectbox.side_effect = ["A", "Divide", "B"]
+    mock_st.selectbox.side_effect = ["A", "Divide", right]
     mock_st.text_input.return_value = "new_col"
     preview_key = WidgetKeyBuilder.manager_key("preprocessor", "preview")
     mock_st.button.side_effect = lambda label, key=None, **kwargs: key == preview_key
 
     mock_api.managers.list_operators.return_value = ["Divide"]
-    result_df = pd.DataFrame({"A": [1], "B": [4], "new_col": [0.25]})
+    result_df = pd.DataFrame({"A": [1], "B": [4], "new_col": [ratio]})
     mock_api.managers.apply_operation.return_value = result_df
+    mock_st.dataframe.side_effect = lambda frame, **kwargs: pa.Table.from_pandas(frame)
 
     manager.render()
 
     mock_api.managers.apply_operation.assert_called()
+    mock_st.exception.assert_not_called()
+    preview = mock_st.dataframe.call_args_list[0].args[0]
+    assert preview.columns.tolist() == columns
+    assert preview["new_col"].tolist() == [ratio]
 
     # Check result stored via api
-    mock_api.set_preview.assert_called_once_with("preprocessor", result_df)
+    mock_api.set_preview.assert_called_once()
+    assert mock_api.set_preview.call_args.args[0] == "preprocessor"
+    assert mock_api.set_preview.call_args.args[1] is result_df
+    assert "operation_config" in mock_api.set_preview.call_args.kwargs
+    assert (
+        mock_api.set_preview.call_args.kwargs["inputs"]
+        is mock_api.capture_preview_inputs.return_value
+    )
 
 
 def test_preprocessor_no_numeric_cols(mock_streamlit: Any, mock_api: Any) -> None:
@@ -149,7 +190,7 @@ def test_preprocessor_no_numeric_cols(mock_streamlit: Any, mock_api: Any) -> Non
 
     manager = PreprocessorManager(mock_api)
     # Only string data
-    manager.get_data = MagicMock(return_value=pd.DataFrame({"S": ["x"]}))
+    setattr(manager, "get_data", MagicMock(return_value=pd.DataFrame({"S": ["x"]})))
 
     manager.render()
 

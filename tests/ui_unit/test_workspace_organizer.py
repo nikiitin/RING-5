@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import WorkspaceArtifact, WorkspaceArtifactResponse
+from src.core.models.workspace_metadata_models import WorkspaceArtifact, WorkspaceArtifactResponse
 
 
 def _response(artifact: WorkspaceArtifact) -> WorkspaceArtifactResponse:
@@ -25,8 +25,11 @@ def _response(artifact: WorkspaceArtifact) -> WorkspaceArtifactResponse:
     )
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.workspace_organizer.st")
-def test_render_filters_and_saves_canonical_metadata(mock_st: MagicMock) -> None:
+def test_render_filters_and_saves_canonical_metadata(
+    mock_st: MagicMock, mock_ui_st: MagicMock
+) -> None:
     # [test->req~ring5.workspace.favorites-tags~1]
     from src.web.components.workspace_organizer import WorkspaceOrganizerComponent
 
@@ -53,25 +56,42 @@ def test_render_filters_and_saves_canonical_metadata(mock_st: MagicMock) -> None
     mock_st.rerun.assert_called_once()
 
 
+@pytest.mark.parametrize("workspace_replacements", [0, 1, 2])
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.workspace_organizer.st")
-def test_activate_opens_each_artifact_kind_and_rejects_stale_plots(mock_st: MagicMock) -> None:
+def test_activate_opens_each_artifact_kind_and_rejects_stale_plots(
+    mock_st: MagicMock, mock_ui_st: MagicMock, workspace_replacements: int
+) -> None:
     from src.web.components.workspace_organizer import WorkspaceOrganizerComponent
 
-    mock_st.session_state = {"plot_selector": "old"}
+    mock_st.session_state = {}
+    mock_ui_st.session_state = mock_st.session_state
+    from src.web.state.ui_state_manager import UIStateManager
+
+    for _ in range(workspace_replacements):
+        UIStateManager().cleanup_all()
     api = MagicMock()
     api.state_manager.get_plots.return_value = [MagicMock(plot_id=7)]
 
     WorkspaceOrganizerComponent.activate(
         api, WorkspaceArtifact("variable", "system.cpu.ipc", "IPC")
     )
-    assert mock_st.session_state["_nav_page"] == "Data Source"
+    key = (
+        f"var_search_box.__reset_{workspace_replacements}__search"
+        if workspace_replacements
+        else "var_search_box__search"
+    )
+    assert mock_st.session_state[key] == "system.cpu.ipc"
+    if workspace_replacements:
+        assert "var_search_box__search" not in mock_st.session_state
+    assert mock_st.session_state["nav.current_page"] == "Data Source"
     WorkspaceOrganizerComponent.activate(api, WorkspaceArtifact("dataset", "nightly", "Nightly"))
     api.select_dataset.assert_called_once_with("nightly")
     WorkspaceOrganizerComponent.activate(api, WorkspaceArtifact("pipeline", "7:11", "Sort"))
     api.state_manager.set_current_plot_id.assert_called_once_with(7)
-    assert "plot_selector" not in mock_st.session_state
+    assert mock_st.session_state["nav.current_page"] == "Manage Plots"
     WorkspaceOrganizerComponent.activate(api, WorkspaceArtifact("portfolio", "paper", "Paper"))
-    assert mock_st.session_state["_nav_page"] == "Save/Load Portfolio"
+    assert mock_st.session_state["nav.current_page"] == "Save/Load Portfolio"
 
     with pytest.raises(ValueError, match="invalid plot identifier"):
         WorkspaceOrganizerComponent.activate(api, WorkspaceArtifact("plot", "bad", "Bad"))

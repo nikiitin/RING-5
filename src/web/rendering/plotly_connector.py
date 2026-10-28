@@ -1,17 +1,20 @@
 """
 Plotly connector — translate resolved FigureConfig into go.Figure updates.
 
-``StyleApplicator.apply_styles()`` delegates to ``ConfigSpecBuilder`` to
+The neutral preparation owner delegates to ``ConfigSpecBuilder`` to
 build a FigureConfig and then calls this connector to apply it.
 
 Usage:
-    from src.web.rendering import FigureSpecToPlotly
+    from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
     resolved = resolve_config(spec)
-    fig = FigureSpecToPlotly.apply(resolved, fig)
+    # ``rendered`` is the explicit result of traces_to_plotly or build_plotly_figure.
+    FigureSpecToPlotly.apply(resolved, rendered)
 """
 
 from __future__ import annotations
+
+from src.web.rendering._appearance import prepare_plotly_appearance, apply_plotly_appearance
 
 from typing import TYPE_CHECKING, Any
 
@@ -20,7 +23,10 @@ import plotly.graph_objects as go
 from src.core.common.safe_format import plotly_numeric_template
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import LegendConfig
-from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent
+from src.web.rendering._color_utils import color_with_alpha
+from src.web.rendering._hatch_utils import plotly_hatch
+from src.web.rendering._render_result import PlotlyRenderResult
+from src.web.rendering._legend_projection import project_plotly_shared
 
 if TYPE_CHECKING:
     from src.core.models.visualization.axis_config import AxisConfig
@@ -68,19 +74,22 @@ class FigureSpecToPlotly:
     """
 
     @staticmethod
-    def apply(spec: FigureConfig, fig: go.Figure) -> go.Figure:
+    def apply(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
         # [impl->req~ring5.render.plotly~1]
         # [impl->req~ring5.extension.render-connector~1]
         """Apply the full FigureConfig to a Plotly figure.
 
         Args:
             spec: A resolved FigureConfig (no sentinel values).
-            fig: The Plotly figure to update in place.
+            rendered: Explicit native root and source-to-trace associations.
 
-        Returns:
-            The same figure, updated.
+        Raises:
+            ValueError: Any source, native membership or generated role is invalid.
         """
         # Pipeline order: see _connector_protocol.STYLING_PIPELINE_ORDER
+        rendered.validate()
+        appearance = prepare_plotly_appearance(spec, rendered)
+        fig = rendered.figure
         FigureSpecToPlotly._apply_dimensions(spec, fig)
         FigureSpecToPlotly._apply_backgrounds(spec, fig)
         FigureSpecToPlotly._apply_title(spec, fig)
@@ -94,11 +103,13 @@ class FigureSpecToPlotly:
         FigureSpecToPlotly._apply_font_family(spec, fig)
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
         FigureSpecToPlotly._apply_data_labels(spec, fig)
-        FigureSpecToPlotly._apply_series_styling(spec, fig)
-        FigureSpecToPlotly._apply_trace_overrides(spec, fig)
-        FigureSpecToPlotly._apply_stripes(spec, fig)
+        FigureSpecToPlotly._apply_stripes(spec, rendered)
+        apply_plotly_appearance(appearance)
+        FigureSpecToPlotly._apply_series_styling(spec, rendered)
+        FigureSpecToPlotly._apply_trace_overrides(spec, rendered)
         FigureSpecToPlotly._apply_axis_colors(spec, fig)
-        return fig
+        FigureSpecToPlotly._project_labels(spec, rendered)
+        project_plotly_shared(rendered)
 
     @staticmethod
     def _apply_dimensions(spec: FigureConfig, fig: go.Figure) -> None:
@@ -224,7 +235,7 @@ class FigureSpecToPlotly:
 
         update: dict[str, Any] = {}
 
-        if y_axis.label:
+        if y_axis.label and y_axis.title_angle is None:
             update["title"] = dict(
                 text=y_axis.label,
                 font=dict(size=typo.font_size_ylabel),
@@ -234,11 +245,12 @@ class FigureSpecToPlotly:
             # Note: vshift (title_vshift) is Matplotlib-only — Plotly's
             # yaxis.Title only supports text, font, standoff.  Vertical
             # repositioning is handled via Matplotlib's set_label_coords.
+        elif y_axis.title_angle is not None:
+            update["title"] = dict(text="")
 
         update["tickfont"] = dict(size=typo.font_size_yticks)
 
-        if y_axis.tick_angle != 0:
-            update["tickangle"] = y_axis.tick_angle
+        update["tickangle"] = y_axis.tick_angle
 
         if y_axis.range is not None:
             update["range"] = y_axis.range
@@ -280,15 +292,20 @@ class FigureSpecToPlotly:
             "side": "right",
         }
 
-        if y2.label:
+        if y2.label and y2.title_angle is None:
             update["title"] = dict(
                 text=y2.label,
                 font=dict(size=typo.font_size_y2label),
             )
             if y2.label_standoff >= 0:
                 update["title"]["standoff"] = int(y2.label_standoff)  # type: ignore[index]
+        elif y2.title_angle is not None:
+            update["title"] = dict(text="")
 
-        update["tickfont"] = dict(size=typo.font_size_y2ticks)
+        update["tickfont"] = dict(
+            size=typo.font_size_y2ticks, color=y2.tick_font_color or y2.axis_color
+        )
+        update["tickangle"] = y2.tick_angle
 
         if y2.range is not None:
             update["range"] = y2.range
@@ -319,10 +336,10 @@ class FigureSpecToPlotly:
         fig.update_layout(legend=legend_update)
 
         # Secondary legends (legend2, legend3) if multi-legend layout
-        for i, legend in enumerate(spec.legends[1:], start=2):
+        for legend in spec.legends[1:]:
             if not legend.visible:
                 continue
-            legend_key = f"legend{i}"
+            legend_key = "legend2" if legend.role == "secondary" else "legend3"
             legend_dict = FigureSpecToPlotly._build_legend_dict(legend)
             fig.update_layout(**{legend_key: legend_dict})  # type: ignore[arg-type]
 
@@ -346,13 +363,9 @@ class FigureSpecToPlotly:
         if not heatmap_traces:
             return
 
-        # Determine z-range
-        if cbar.range_mode == "manual" and cbar.zmin is not None and cbar.zmax is not None:
-            zmin, zmax = float(cbar.zmin), float(cbar.zmax)
-        else:
-            # Auto mode: scan all heatmap z-values, apply nice rounding
-            raw_min, raw_max = compute_z_extent(heatmap_traces)
-            zmin, zmax, _ = compute_nice_range(raw_min, raw_max, cbar.nticks)
+        from src.web.rendering._heatmap_utils import heatmap_ranges
+
+        limits = heatmap_ranges(heatmap_traces, cbar)
 
         # Build colorbar dict
         title_text = primary.title.replace("\n", "<br>") if primary.title else ""
@@ -372,6 +385,9 @@ class FigureSpecToPlotly:
             },
             "nticks": cbar.nticks,
             "tickformat": tick_format,
+            "x": None,
+            "y": None,
+            "orientation": "h" if primary.orientation == "horizontal" else "v",
         }
 
         if cbar.tick_angle != 0.0:
@@ -384,29 +400,14 @@ class FigureSpecToPlotly:
             colorbar_dict["x"] = primary.position_x
         if primary.custom_position and primary.position_y >= 0:
             colorbar_dict["y"] = primary.position_y
-        if primary.orientation == "horizontal":
-            colorbar_dict["orientation"] = "h"
 
-        # Apply to traces
-        if cbar.shared:
-            # Shared mode: all traces get same zmin/zmax, only last shows colorbar
-            for i, trace in enumerate(heatmap_traces):
-                trace.update(zmin=zmin, zmax=zmax)
-                if i < len(heatmap_traces) - 1:
-                    trace.update(showscale=False)
-                else:
-                    trace.update(showscale=True, colorbar=colorbar_dict)
-        else:
-            # Individual mode: each trace gets its own nice range + colorbar
-            for trace in heatmap_traces:
-                t_min, t_max = compute_z_extent([trace])
-                t_zmin, t_zmax, _ = compute_nice_range(t_min, t_max, cbar.nticks)
-                trace.update(
-                    zmin=t_zmin,
-                    zmax=t_zmax,
-                    showscale=True,
-                    colorbar=colorbar_dict,
-                )
+        for index, (trace, (lower, upper)) in enumerate(zip(heatmap_traces, limits, strict=True)):
+            trace.update(
+                zmin=lower,
+                zmax=upper,
+                showscale=not cbar.shared or index == len(heatmap_traces) - 1,
+                colorbar=colorbar_dict,
+            )
 
     @staticmethod
     def _build_legend_dict(legend: LegendConfig) -> dict[str, Any]:
@@ -422,6 +423,11 @@ class FigureSpecToPlotly:
             "font": font_dict,
             "orientation": "h" if legend.orientation == "horizontal" else "v",
             "itemsizing": legend.itemsizing,
+            # None clears a prior explicit value when automatic placement returns.
+            "x": None,
+            "y": None,
+            "xanchor": None,
+            "yanchor": None,
         }
 
         if legend.itemwidth > 0:
@@ -471,7 +477,13 @@ class FigureSpecToPlotly:
             result["yanchor"] = legend.anchor_y
 
         if legend.bgcolor:
-            result["bgcolor"] = legend.bgcolor
+            result["bgcolor"] = (
+                color_with_alpha(legend.bgcolor, legend.bgalpha)
+                if legend.bgalpha >= 0
+                else legend.bgcolor
+            )
+        elif legend.bgalpha >= 0:
+            result["bgcolor"] = color_with_alpha("#FFFFFF", legend.bgalpha)
         if legend.border_width > 0:
             result["borderwidth"] = legend.border_width
             result["bordercolor"] = legend.border_color
@@ -587,28 +599,32 @@ class FigureSpecToPlotly:
             if isinstance(trace, (go.Heatmap, go.Box, go.Violin, go.Sankey, go.Parcoords)):
                 continue
 
-            update: dict[str, Any] = {
-                "texttemplate": texttemplate,
-                "textposition": text_position,
-                "textangle": rotation,
-                "textfont": dict(size=font_size),
-            }
-
-            # Custom color
+            textfont: dict[str, Any] = {"size": font_size}
             if dl.color_mode == "custom" and dl.custom_color:
-                update["textfont"]["color"] = dl.custom_color
-
-            # Constraint handling
-            if dl.size_constraint == "inside":
-                update["constraintext"] = "inside"
-                update["textposition"] = "inside"
+                textfont["color"] = dl.custom_color
+            update: dict[str, Any] = {"texttemplate": texttemplate, "textfont": textfont}
+            if isinstance(trace, (go.Bar, go.Waterfall)):
+                update.update(
+                    textposition=text_position,
+                    textangle=rotation,
+                    constraintext="inside" if dl.size_constraint == "inside" else "none",
+                )
+                if dl.size_constraint == "inside":
+                    update["textposition"] = "inside"
+                if update["textposition"] == "inside" and dl.anchor in ("top", "middle", "bottom"):
+                    update["insidetextanchor"] = dl.anchor
+            elif isinstance(trace, (go.Scatter, go.Scatterpolar)):
+                update["textposition"] = (
+                    "middle center" if text_position == "inside" else "top center"
+                )
+                mode = str(trace.mode or "lines")
+                parts = [part for part in mode.split("+") if part not in ("text", "none")]
+                parts.append("text")
+                update["mode"] = "+".join(parts) or "none"
+                if isinstance(trace, go.Scatterpolar):
+                    update["texttemplate"] = texttemplate.replace("%{y", "%{r")
             else:
-                update["constraintext"] = "none"
-
-            # Inside text anchor (only for "inside" position)
-            is_inside = text_position == "inside" or dl.size_constraint == "inside"
-            if is_inside and dl.anchor in ("top", "middle", "bottom"):
-                update["insidetextanchor"] = dl.anchor
+                continue
 
             trace.update(**update)
 
@@ -620,20 +636,19 @@ class FigureSpecToPlotly:
             )
 
     @staticmethod
-    def _apply_series_styling(spec: FigureConfig, fig: go.Figure) -> None:
-        """Apply per-trace line_width, marker, opacity from series_styles."""
-        # [impl->req~ring5.figure.series-styling~1]
+    def _apply_series_styling(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
+        """Apply per-trace dimensions and patterns after appearance projection."""
+        # [impl->req~ring5.figure.series-styling~2]
         if not spec.series_styles:
             return
 
-        for i, trace in enumerate(_fig_traces(fig)):
+        for binding in (item for panel in rendered.panel_bindings for item in panel):
+            trace = binding.native_trace
             # Use modular index to cycle through styles
-            style = spec.series_styles[i % len(spec.series_styles)]
+            style = spec.series_styles[binding.source_ordinal % len(spec.series_styles)]
             trace_type = str(getattr(trace, "type", ""))
 
             update: dict[str, Any] = {}
-            if style.opacity > 0 and not isinstance(trace, (go.Sankey, go.Parcoords)):
-                update["opacity"] = style.opacity
             if style.line_width > 0 and not isinstance(trace, go.Parcoords):
                 if hasattr(trace, "line"):
                     update["line"] = dict(width=style.line_width)
@@ -645,17 +660,21 @@ class FigureSpecToPlotly:
                     update["marker"] = marker_update
             if style.bar_border_width > 0 and hasattr(trace, "marker"):
                 marker_update = update.get("marker", {})
-                marker_update["line"] = dict(
-                    width=style.bar_border_width,
-                    color=style.bar_border_color or "#000",
-                )
+                marker_update["line"] = dict(width=style.bar_border_width)
+                update["marker"] = marker_update
+            if style.hatching_pattern is not None and trace_type in ("bar", "histogram"):
+                marker_update = update.get("marker", {})
+                marker_update["pattern"] = {
+                    **plotly_hatch(style.hatching_pattern),
+                    "fillmode": "replace",
+                }
                 update["marker"] = marker_update
 
             if update:
                 trace.update(**update)
 
     @staticmethod
-    def _apply_stripes(spec: FigureConfig, fig: go.Figure) -> None:
+    def _apply_stripes(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
         """Alternating row background shapes."""
         if not spec.enable_stripes:
             return
@@ -663,13 +682,16 @@ class FigureSpecToPlotly:
         # Apply hatching pattern to bar-like traces only (scatter doesn't
         # support marker.pattern).
         if spec.hatching_sequence:
-            for i, trace in enumerate(_fig_traces(fig)):
+            for binding in (item for panel in rendered.panel_bindings for item in panel):
+                trace = binding.native_trace
                 if not isinstance(trace, (go.Bar, go.Histogram)):
                     continue
-                pattern = spec.hatching_sequence[i % len(spec.hatching_sequence)]
+                pattern = spec.hatching_sequence[
+                    binding.source_ordinal % len(spec.hatching_sequence)
+                ]
                 trace.update(
                     marker=dict(
-                        pattern=dict(shape=pattern, fillmode="replace"),
+                        pattern={**plotly_hatch(pattern), "fillmode": "replace"},
                     )
                 )
 
@@ -788,7 +810,7 @@ class FigureSpecToPlotly:
 
     # Per-trace overrides and axis aliases
     @staticmethod
-    def _apply_trace_overrides(spec: FigureConfig, fig: go.Figure) -> None:
+    def _apply_trace_overrides(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
         """Apply per-trace styling overrides keyed by trace name.
 
         ``spec.trace_overrides`` maps original trace names to typed
@@ -798,45 +820,29 @@ class FigureSpecToPlotly:
         if not spec.trace_overrides:
             return
 
-        for trace in _fig_traces(fig):
+        for binding in (item for panel in rendered.panel_bindings for item in panel):
+            trace = binding.native_trace
             trace_type = str(getattr(trace, "type", ""))
-            t_name = str(getattr(trace, "name", ""))
+            t_name = binding.original_name
             if t_name not in spec.trace_overrides:
                 continue
             style = spec.trace_overrides[t_name]
 
-            if style.display_name:
-                trace.name = style.display_name
-
-            if style.color and trace_type not in (
-                "heatmap",
-                "waterfall",
-                "sankey",
-                "parcoords",
-            ):
-                trace.update(marker=dict(color=style.color))
-                if hasattr(trace, "line") and trace_type in (
-                    "scatter",
-                    "scattergl",
-                    "scatterpolar",
-                ):
-                    trace.update(line=dict(color=style.color))
-                elif trace_type in ("box", "violin"):
-                    trace.update(fillcolor=style.color, line=dict(color=style.color))
-
-            if style.symbol and trace_type not in (
-                "heatmap",
-                "waterfall",
-                "sankey",
-                "parcoords",
+            if style.symbol and trace_type in (
+                "scatter",
+                "scattergl",
+                "scatterpolar",
+                "box",
+                "violin",
             ):
                 trace.update(marker=dict(symbol=style.symbol))
 
-            if style.marker_size > 0 and trace_type not in (
-                "heatmap",
-                "waterfall",
-                "sankey",
-                "parcoords",
+            if style.marker_size > 0 and trace_type in (
+                "scatter",
+                "scattergl",
+                "scatterpolar",
+                "box",
+                "violin",
             ):
                 trace.update(marker=dict(size=style.marker_size))
 
@@ -849,15 +855,50 @@ class FigureSpecToPlotly:
             ):
                 trace.update(line=dict(width=style.line_width))
 
-            if style.hatching_pattern and trace_type in ("bar", "histogram"):
+            if style.hatching_pattern is not None and trace_type in ("bar", "histogram"):
                 trace.update(
                     marker=dict(
-                        pattern=dict(
-                            shape=style.hatching_pattern,
-                            fillmode="replace",
-                        ),
+                        pattern={**plotly_hatch(style.hatching_pattern), "fillmode": "replace"},
                     )
                 )
+
+    @staticmethod
+    def _project_labels(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
+        """Project text after styling without changing source or linked-group identity."""
+        # [impl->req~ring5.figure.ordering-renaming~2]
+        role_visibility = {legend.role: legend.visible for legend in spec.legends}
+        for panel in rendered.panel_bindings:
+            for binding in panel:
+                trace = binding.native_trace
+                trace.name = spec.legend_labels.get(binding.original_name, binding.original_name)
+                if isinstance(
+                    trace,
+                    (
+                        go.Bar,
+                        go.Histogram,
+                        go.Scatter,
+                        go.Scattergl,
+                        go.Scatterpolar,
+                        go.Box,
+                        go.Violin,
+                        go.Waterfall,
+                    ),
+                ):
+                    trace.showlegend = (
+                        binding.show_in_legend
+                        and trace.visible is not False
+                        and role_visibility.get(binding.legend_role, True)
+                    )
+        annotations = {
+            annotation.name: annotation
+            for annotation in rendered.figure.layout.annotations or ()
+            if annotation.name is not None
+        }
+        for role in rendered.layout_roles:
+            if role.appearance is not None:
+                continue
+            source = role.source.original_name
+            annotations[role.role_name].text = spec.legend_labels.get(source, source)
 
     @staticmethod
     def _apply_label_aliases(
@@ -871,8 +912,8 @@ class FigureSpecToPlotly:
         in ``AxisConfig.label_aliases`` and resolved here into ``tickmode``,
         ``tickvals``, and ``ticktext``.
 
-        When ``category_order`` is also set, the order is used for
-        ``tickvals``; otherwise, values are sorted alphabetically.
+        Explicit category order comes first, followed by unlisted values in
+        encounter order. Without an explicit order, values are alphabetical.
         """
 
         if not axis.label_aliases:
@@ -880,20 +921,28 @@ class FigureSpecToPlotly:
 
         mapping: dict[str, str] = axis.label_aliases
 
-        # Determine order: explicit category_order if set, else sorted unique
+        # Grouped geometry already owns numeric positions and their display labels.
+        # Apply aliases to those labels without replacing positions with trace X values.
+        if axis.tick_values is not None and axis.tick_text is not None:
+            update["tickmode"] = "array"
+            update["tickvals"] = list(axis.tick_values)
+            update["ticktext"] = [mapping.get(text, text) for text in axis.tick_text]
+            return
+
+        unique_vals: list[str] = []
+        seen: set[str] = set()
+        for trace in _fig_traces(fig):
+            if hasattr(trace, "x") and trace.x is not None:
+                for x_val in trace.x:
+                    key = str(x_val)
+                    if key not in seen:
+                        unique_vals.append(key)
+                        seen.add(key)
+
         if axis.category_order is not None:
-            ordered = list(axis.category_order)
+            ordered = list(dict.fromkeys(axis.category_order))
+            ordered.extend(value for value in unique_vals if value not in ordered)
         else:
-            # Collect unique x-values from traces
-            unique_vals: list[str] = []
-            seen: set[str] = set()
-            for trace in _fig_traces(fig):
-                if hasattr(trace, "x") and trace.x is not None:
-                    for x_val in trace.x:
-                        key = str(x_val)
-                        if key not in seen:
-                            unique_vals.append(key)
-                            seen.add(key)
             ordered = sorted(unique_vals)
 
         # Build tickvals/ticktext: map through aliases, preserving originals

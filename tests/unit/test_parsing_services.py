@@ -4,18 +4,26 @@ These are mid-layer modules that sit between raw parsing and the
 ApplicationAPI facade.
 """
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
 from collections.abc import Generator
 from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, patch
+import os
 
 import pytest
 
-from src.core.models import ScanFileResult, ScannedVariable, StatConfig
+from src.core.models.parsing_models import SourceInstance
+
+from src.core.common.stat_config_codec import StatConfigCodec
+
+from src.core.models.parsing_models import ScanFileResult, ScannedVariable, StatConfig
 from src.core.models.parsing_models import StatParamValue
 from src.core.services.data_services.path_service import PathService
-from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.gem5.types.type_mapper import TypeMapper
+from src.parsing.gem5.impl.source_bindings import resolve_sources
 
 # TypeMapper
 
@@ -23,90 +31,78 @@ from src.parsing.gem5.types.type_mapper import TypeMapper
 class TestTypeMapper:
     """Tests for TypeMapper — stat type normalization and creation."""
 
-    def test_normalize_type_lowercase(self) -> None:
-        assert TypeMapper.normalize_type("SCALAR") == "scalar"
-        assert TypeMapper.normalize_type("Vector") == "vector"
-        assert TypeMapper.normalize_type("Histogram") == "histogram"
-
-    def test_normalize_type_already_lowercase(self) -> None:
-        assert TypeMapper.normalize_type("scalar") == "scalar"
-
-    def test_map_scan_result_normalizes_type(self) -> None:
-        result = {"name": "ipc", "type": "SCALAR", "entries": []}
-        mapped = TypeMapper.map_scan_result(result)
-        assert mapped["type"] == "scalar"
-
-    def test_map_scan_result_no_type_key(self) -> None:
-        result = {"name": "ipc"}
-        mapped = TypeMapper.map_scan_result(result)
-        assert mapped["type"] == ""
-
-    @pytest.mark.parametrize(
-        "type_name,expected",
-        [
-            ("vector", True),
-            ("distribution", True),
-            ("histogram", True),
-            ("scalar", False),
-            ("configuration", False),
-            ("VECTOR", True),
-        ],
-    )
-    def test_is_entry_type(self, type_name: str, expected: bool) -> None:
-        assert TypeMapper.is_entry_type(type_name) is expected
-
     def test_create_stat_scalar(self) -> None:
-        config = StatConfig(name="ipc", type="scalar")
-        stat = TypeMapper.create_stat(config)
+        config = StatConfig(name="ipc", type="scalar", params={"source_type": "scalar"})
+        stat = TypeMapper.create_stat(
+            resolve_sources([config], [], file_count=1, metadata_columns=()).accumulators[0]
+        )
         assert stat is not None
 
     def test_create_stat_from_dict(self) -> None:
         config = cast(dict[str, StatParamValue], {"name": "ipc", "type": "scalar"})
-        stat = TypeMapper.create_stat(config)
-        assert stat is not None
+        with pytest.raises(TypeError, match="AccumulatorSpec"):
+            TypeMapper.create_stat(config)  # type: ignore[arg-type]
 
     def test_create_stat_vector_with_entries(self) -> None:
         config = StatConfig(
             name="dcache.hits",
             type="vector",
-            params={"entries": ["0", "1", "2"]},
+            params={"source_type": "vector", "entries": ["0", "1", "2"]},
         )
-        stat = TypeMapper.create_stat(config)
+        stat = TypeMapper.create_stat(
+            resolve_sources([config], [], file_count=1, metadata_columns=()).accumulators[0]
+        )
         assert stat is not None
 
     def test_create_stat_distribution(self) -> None:
-        config = {
-            "type": "distribution",
-            "name": "latency",
-            "minimum": 0,
-            "maximum": 200,
-        }
-        stat = TypeMapper.create_stat(config)
+        config = StatConfig(
+            name="latency",
+            type="distribution",
+            params={
+                "source_type": "distribution",
+                "minimum": 0,
+                "maximum": 200,
+                "bucket_size": 1,
+                "zero_policy": "missing",
+            },
+        )
+        stat = TypeMapper.create_stat(
+            resolve_sources([config], [], file_count=1, metadata_columns=()).accumulators[0]
+        )
         assert stat is not None
 
     def test_create_stat_histogram(self) -> None:
-        config = {
-            "type": "histogram",
-            "name": "mem_ctrl.readLatency",
-            "bins": 5,
-            "max_range": 200.0,
-            "entries": ["0-39", "40-79", "80-119", "120-159", "160-199"],
-        }
-        stat = TypeMapper.create_stat(config)
+        config = StatConfig(
+            name="mem_ctrl.readLatency",
+            type="histogram",
+            params={
+                "source_type": "histogram",
+                "bins": 5,
+                "max_range": 200.0,
+                "entries": ["0-39", "40-79", "80-119", "120-159", "160-199"],
+            },
+        )
+        stat = TypeMapper.create_stat(
+            resolve_sources([config], [], file_count=1, metadata_columns=()).accumulators[0]
+        )
         assert stat is not None
 
     def test_create_stat_configuration(self) -> None:
-        config = StatConfig(name="benchmark_name", type="configuration")
-        stat = TypeMapper.create_stat(config)
+        config = StatConfig(
+            name="benchmark_name", type="configuration", params={"source_type": "configuration"}
+        )
+        stat = TypeMapper.create_stat(
+            resolve_sources([config], [], file_count=1, metadata_columns=()).accumulators[0]
+        )
         assert stat is not None
 
     def test_create_stat_missing_type_raises(self) -> None:
         with pytest.raises(ValueError, match="type"):
-            TypeMapper.create_stat({"name": "x"})
+            StatConfigCodec.from_draft({"name": "x"})
 
     def test_create_stat_empty_type_raises(self) -> None:
         with pytest.raises(ValueError, match="type"):
-            TypeMapper.create_stat({"name": "x", "type": ""})
+            StatConfigCodec.from_draft({"name": "x", "type": ""})
 
 
 # ScannerService
@@ -134,9 +130,9 @@ class TestScannerService:
         paths = [str(tmp_path / f"run-{index:03d}" / "stats.txt") for index in range(257)]
         with (
             patch("src.parsing.gem5.impl.gem5_parser.find_stats_files", return_value=paths) as find,
-            patch("src.parsing.gem5.impl.gem5_parser.ScanWorkPool") as pool,
+            patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool,
         ):
-            pool.get_instance.return_value.submit_batch_async.return_value = [MagicMock()] * 257
+            pool.get_instance.return_value.submit_many.return_value = [MagicMock()] * 257
             futures = ScannerService.submit_scan_async(str(tmp_path), "stats.txt", limit=0)
 
         assert len(futures) == 257
@@ -165,7 +161,13 @@ class TestScannerService:
     def test_aggregate_single_file(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
-        var = ScannedVariable(name="simTicks", type="scalar", entries=[])
+        var = ScannedVariable(
+            name="simTicks",
+            type="scalar",
+            entries=[],
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+            instances=(SourceInstance("simTicks", ()),),
+        )
         result = ScannerService.aggregate_scan_results([ScanFileResult("f0", [var])])
         assert len(result.variables) >= 1
         names = [v.name for v in result.variables]
@@ -177,7 +179,13 @@ class TestScannerService:
     def test_aggregate_preserves_partial_scan_metadata(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
-        var = ScannedVariable(name="simTicks", type="scalar", entries=[])
+        var = ScannedVariable(
+            name="simTicks",
+            type="scalar",
+            entries=[],
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+            instances=(SourceInstance("simTicks", ()),),
+        )
         result = ScannerService.aggregate_scan_results(
             [
                 ScanFileResult("good", [var]),
@@ -193,37 +201,62 @@ class TestScannerService:
     def test_aggregate_merges_vector_entries(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
-        v1 = ScannedVariable(name="cpu.hits", type="vector", entries=["0", "1"])
-        v2 = ScannedVariable(name="cpu.hits", type="vector", entries=["1", "2"])
+        v1 = ScannedVariable(
+            name="cpu.hits",
+            type="vector",
+            entries=["0", "1"],
+            source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+            instances=(SourceInstance("cpu.hits", ()),),
+        )
+        v2 = ScannedVariable(
+            name="cpu.hits",
+            type="vector",
+            entries=["1", "2"],
+            source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+            instances=(SourceInstance("cpu.hits", ()),),
+        )
         result = ScannerService.aggregate_scan_results(
             [ScanFileResult("f0", [v1]), ScanFileResult("f1", [v2])]
         )
         hit_var = next(v for v in result.variables if v.name == "cpu.hits")
         assert set(hit_var.entries) == {"0", "1", "2"}
 
-    def test_aggregate_merges_distribution_range(self) -> None:
+    def test_aggregate_merges_distribution_observed_entries(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
-        d1 = Gem5ScannedVariable(
-            name="latency", type="distribution", entries=[], minimum=10, maximum=100
+        d1 = ScannedVariable(
+            name="latency",
+            type="distribution",
+            entries=["10", "100"],
+            source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
+            instances=(SourceInstance("latency", ()),),
         )
-        d2 = Gem5ScannedVariable(
-            name="latency", type="distribution", entries=[], minimum=5, maximum=200
+        d2 = ScannedVariable(
+            name="latency",
+            type="distribution",
+            entries=["5", "200"],
+            source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
+            instances=(SourceInstance("latency", ()),),
         )
         result = ScannerService.aggregate_scan_results(
             [ScanFileResult("f0", [d1]), ScanFileResult("f1", [d2])]
         )
         lat_var = next(v for v in result.variables if v.name == "latency")
-        assert lat_var.minimum == 5  # type: ignore
-        assert lat_var.maximum == 200  # type: ignore
+        assert set(lat_var.entries) == {"5", "10", "100", "200"}
+        assert "minimum" not in lat_var.to_dict() and "maximum" not in lat_var.to_dict()
 
     def test_merge_variable_model_input(self) -> None:
         """_merge_variable accepts ScannedVariable models."""
-        from src.core.models.parsing_models import ScannedVariable
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
         registry: dict[str, ScannedVariable] = {}
-        var = ScannedVariable(name="ipc", type="scalar", entries=[])
+        var = ScannedVariable(
+            name="ipc",
+            type="scalar",
+            entries=[],
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+            instances=(SourceInstance("ipc", ()),),
+        )
         ScannerService._merge_variable(registry, var)
         assert "ipc" in registry
         assert registry["ipc"].type == "scalar"
@@ -238,9 +271,11 @@ class TestPathService:
     @pytest.fixture(autouse=True)
     def reset_path_caches(self) -> Generator[None, None, None]:
         """Reset PathService class-level caches for test isolation."""
-        PathService.reset_caches()
-        yield
-        PathService.reset_caches()
+        with patch.dict(os.environ):
+            os.environ.pop("RING5_DATA_DIR", None)
+            PathService.reset_caches()
+            yield
+            PathService.reset_caches()
 
     def test_get_root_dir_returns_path(self) -> None:
         root = PathService.get_root_dir()
@@ -280,26 +315,36 @@ class TestPathService:
             PathService.get_data_dir()  # Second call should not raise
 
 
-class TestDistributionRangeMerge:
-    """_merge_variable must not discard a legitimate 0.0 minimum (falsy-or bug)."""
+class TestObservedEntryMerge:
+    """An observed zero label remains data through either merge order."""
 
-    def test_zero_minimum_survives_merge_with_none(self) -> None:
+    def test_zero_label_survives_merge_with_empty_entries(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-        from src.parsing.gem5.models import Gem5ScannedVariable
 
         registry: dict = {}
-        no_range = Gem5ScannedVariable(name="d", type="distribution")
-        with_zero_min = Gem5ScannedVariable(name="d", type="distribution", minimum=0.0, maximum=5.0)
+        no_range = ScannedVariable(
+            name="d",
+            type="distribution",
+            source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
+            instances=(SourceInstance("d", ()),),
+        )
+        with_zero_min = ScannedVariable(
+            name="d",
+            type="distribution",
+            entries=["0", "5"],
+            source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
+            instances=(SourceInstance("d", ()),),
+        )
 
         # Order A: None-range first, 0.0 arrives as the incoming side
         Gem5Parser._merge_variable(registry, no_range)
         Gem5Parser._merge_variable(registry, with_zero_min)
-        assert registry["d"].minimum == 0.0
-        assert registry["d"].maximum == 5.0
+        assert registry["d"].entries == ["0", "5"]
+        assert "minimum" not in registry["d"].to_dict()
 
         # Order B: reversed
         registry.clear()
         Gem5Parser._merge_variable(registry, with_zero_min)
         Gem5Parser._merge_variable(registry, no_range)
-        assert registry["d"].minimum == 0.0
-        assert registry["d"].maximum == 5.0
+        assert registry["d"].entries == ["0", "5"]
+        assert "minimum" not in registry["d"].to_dict()

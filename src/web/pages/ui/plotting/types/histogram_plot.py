@@ -1,30 +1,37 @@
 """Histogram plot implementation."""
 
-from typing import Any, cast, override
+from typing import cast, override
+
+import math
 
 import pandas as pd
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.common.distribution_metadata import inspect_distribution_layouts
+from src.core.models.native_distribution_layout import (
+    NativeDistributionLayout,
+    OpaqueDistributionLayout,
+)
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import histogram_config
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload
 from src.web.pages.ui.plotting.utils.ordering import order_with_overrides
+from src.web.pages.ui.plotting.utils.histogram_bins import (
+    HistogramBin,
+    aggregate_histogram_observations,
+    rebin_histogram,
+    sum_histogram_counts,
+    histogram_mass_ratio,
+    cumulative_histogram_counts,
+)
 
 
 class HistogramPlot(BasePlot):
-    """
-    Histogram plot for visualizing distribution data.
+    """Render native storage-cell mass or explicit generic intervals through neutral bars."""
 
-    Supports:
-    - Single or multiple histograms (grouped by categorical variable)
-    - Configurable bucket sizes (rebinning)
-    - Multiple normalization modes (count, probability, percent)
-    - Histogram variables with bucket ranges
-    """
-
-    def __init__(self, plot_id: int, name: str):
+    def __init__(self, plot_id: int, name: str) -> None:
         """
         Initialize histogram plot.
 
@@ -52,276 +59,185 @@ class HistogramPlot(BasePlot):
             TraceBuildResult with BarTraceConfig traces and barmode
 
         Raises:
-            ValueError: If histogram variable not found in data
+            ValueError: Selection, frequency data, arithmetic or the requested view is invalid.
         """
-        # [impl->req~ring5.figure.histogram-controls~1]
-        # [impl->req~ring5.plot.histogram~1]
+        # [impl->req~ring5.figure.histogram-controls~2]
+        # [impl->req~ring5.plot.histogram~2]
         histogram_var = config.get("histogram_variable")
         if not histogram_var:
             raise ValueError("No histogram variable specified")
 
-        # Extract histogram bucket columns
-        bucket_cols = [
-            col
-            for col in data.columns
-            if col.startswith(f"{histogram_var}..") and not col.endswith(".sd")
-        ]
-
-        if not bucket_cols:
-            raise ValueError(f"No histogram bucket columns found for variable: {histogram_var}")
-
-        # Parse bucket ranges and prepare data
-        bucket_data = self._extract_bucket_data(data, bucket_cols, config)
-
-        # Build traces
-        if config.get("group_by"):
-            # Multiple histograms grouped by categorical variable
-            traces = self._add_grouped_histograms(bucket_data, config)
-            barmode = "overlay"
+        layouts = inspect_distribution_layouts(data)
+        layout = layouts.get(str(histogram_var))
+        if type(layout) is OpaqueDistributionLayout:
+            raise ValueError(
+                "Native Distribution labels alone do not declare storage-cell geometry; "
+                "select Distribution output with an explicit full grid and zero_policy."
+            )
+        native = type(layout) is NativeDistributionLayout
+        if native:
+            assert isinstance(layout, NativeDistributionLayout)
+            if config.get("bucket_size") is not None:
+                raise ValueError(
+                    "Native Distribution storage cells do not support continuous rebinning."
+                )
+            frequencies = [column for column in layout.columns if column.role != "summary"]
+            columns = [column.column for column in frequencies]
+            labels = [column.source_label for column in frequencies]
         else:
-            # Single histogram
-            traces = self._add_single_histogram(bucket_data, config)
-            barmode = "relative"
-
+            columns = [
+                col
+                for col in data.columns
+                if col.startswith(f"{histogram_var}..") and not col.endswith(".sd")
+            ]
+            if not columns:
+                raise ValueError(f"No histogram bucket columns found for variable: {histogram_var}")
+            if any(
+                column.column in columns
+                for declared in layouts.values()
+                for column in declared.columns
+            ):
+                raise ValueError(
+                    "Histogram prefix overlaps declared Native Distribution bindings; "
+                    "select the layout's logical variable instead."
+                )
+            labels = [column.split("..", 1)[1] for column in columns]
+        group_by = config.get("group_by")
+        if group_by and group_by not in data.columns:
+            raise ValueError(f"Histogram grouping column is missing: {group_by!r}.")
+        groups = (
+            order_with_overrides(data[str(group_by)].dropna().unique(), config.get("legend_order"))
+            if group_by
+            else [""]
+        )
+        if native and not groups:
+            raise ValueError("Native Distribution requires at least one observed selected group.")
+        traces: list[BarTraceConfig] = []
+        display_bins: list[HistogramBin] = []
+        centers: list[float] = []
+        for group in groups:
+            source = data[data[str(group_by)].astype(str) == str(group)] if group_by else data
+            numeric = source[columns].apply(pd.to_numeric, errors="raise")
+            rows = numeric.to_numpy(dtype=float, na_value=float("nan")).tolist()
+            if native:
+                if not rows or any(
+                    not math.isfinite(value) or value < 0 for row in rows for value in row
+                ):
+                    raise ValueError(
+                        "Every selected Native Distribution cell must be measured, finite "
+                        "and nonnegative."
+                    )
+                values = [
+                    sum_histogram_counts(row[index] for row in rows)
+                    for index in range(len(columns))
+                ]
+                widths: list[float | None] = [1.0] * len(columns)
+                centers = [float(index) for index in range(len(columns))]
+                display_labels = labels
+                fallback_width = 1.0
+            else:
+                observed_bins, values = aggregate_histogram_observations(labels, rows)
+                requested_width = config.get("bucket_size")
+                display_bins, values = rebin_histogram(
+                    observed_bins,
+                    values,
+                    float(requested_width) if requested_width is not None else None,
+                )
+                widths = [bucket.width for bucket in display_bins]
+                fallback_width = next((width for width in widths if width is not None), 1.0)
+                centers = [
+                    (
+                        bucket.lower + (bucket.upper - bucket.lower) / 2
+                        if bucket.lower is not None and bucket.upper is not None
+                        else (
+                            bucket.lower + fallback_width / 2
+                            if bucket.lower is not None
+                            else cast(float, bucket.upper) - fallback_width / 2
+                        )
+                    )
+                    for bucket in display_bins
+                ]
+                if any(not math.isfinite(center) for center in centers):
+                    raise ValueError("Histogram display positions must remain finite.")
+                display_labels = [
+                    bucket.label or str(center)
+                    for bucket, center in zip(display_bins, centers, strict=True)
+                ]
+            drilldown = (
+                build_drill_down_payload(source.head(1), [str(group_by)]) if group_by else [{}]
+            )
+            traces.append(
+                BarTraceConfig(
+                    name=str(group) if group_by else str(histogram_var),
+                    x=[label for label in display_labels],
+                    x_positions=centers,
+                    y=self._normalize_values(values, config, widths, native=native),
+                    bar_width=[width if width is not None else fallback_width for width in widths],
+                    opacity=0.7 if group_by else 1.0,
+                    border_width=1.0,
+                    border_color="white",
+                    custom_data={
+                        "drilldown": [drilldown[0] if drilldown else {} for _ in display_labels]
+                    },
+                )
+            )
+        ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
+        if native:
+            ticks = {"vals": centers, "text": labels}
+        elif any(bucket.width is None for bucket in display_bins):
+            ticks = {"vals": centers, "text": display_labels}
         return TraceBuildResult(
             traces=traces,
-            barmode=barmode,
+            barmode="overlay" if group_by else "relative",
+            custom_x_ticks=ticks,
+            default_x_axis_label="Native bucket" if native else None,
         )
 
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """
-        Get legend column for histogram plot.
-
-        Args:
-            config: Plot configuration
-
-        Returns:
-            Column name for legend grouping, or None
-        """
-        result = config.get("group_by")
-        return str(result) if result is not None else None
-
-    # ========== Helper Methods ==========
-
-    def _detect_histogram_variables(self, data: pd.DataFrame) -> list[str]:
-        """
-        Detect histogram variables from DataFrame columns.
-
-        Args:
-            data: DataFrame to analyze
-
-        Returns:
-            List of histogram variable names (base names without bucket suffixes)
-        """
-        histogram_vars: set[str] = set()
-
-        for col in data.columns:
-            if ".." in col and not col.endswith(".sd"):
-                # Extract base variable name (before "..")
-                base_name = col.split("..")[0]
-                histogram_vars.add(base_name)
-
-        return sorted(list(histogram_vars))
-
-    def _extract_bucket_data(
+    def _normalize_values(
         self,
-        data: pd.DataFrame,
-        bucket_cols: list[str],
+        values: list[float],
         config: PlotConfig,
-    ) -> dict[str, Any]:
+        widths: list[float | None] | None = None,
+        *,
+        native: bool = False,
+    ) -> list[float]:
+        """Normalize finite cell mass; cumulative density is a CDF.
+
+        Raw count does not require a representable total. Normalized views need
+        positive finite mass, and native storage cells do not define density.
+
+        Raises:
+            ValueError: Density has no width or an output/required total is invalid.
         """
-        Extract and process bucket data from DataFrame.
-
-        gem5 histogram buckets are flattened into columns named
-        ``"{var}..{start}-{end}"`` (e.g. ``latency..0-99``, ``latency..100-199``).
-        This parses ``start``/``end`` out of each column's ``..start-end`` suffix
-        and pairs them with the row values. This per-bin reshape is intentionally
-        kept here (not in the shaper pipeline): it is histogram-specific view
-        prep that depends on the gem5 column-naming convention, not a reusable
-        data transform (deferred B5 — documented rather than extracted).
-
-        Args:
-            data: Source DataFrame
-            bucket_cols: List of bucket column names (``{var}..{start}-{end}``)
-            config: Plot configuration
-
-        Returns:
-            Dictionary with processed bucket data
-        """
-        # [impl->req~ring5.plot.histogram~1]
-        # Parse bucket ranges
-        buckets: list[tuple[float, float]] = []
-        for col in bucket_cols:
-            bucket_part = col.split("..")[1]
-            if "-" in bucket_part:
-                parts = bucket_part.split("-")
-                try:
-                    start = float(parts[0])
-                    end = float(parts[1])
-                    buckets.append((start, end))
-                except ValueError:
-                    # Skip malformed bucket names
-                    continue
-
-        if not buckets:
-            raise ValueError("No valid bucket ranges found")
-
-        # Sort buckets by start value
-        buckets.sort(key=lambda x: x[0])
-
-        # Extract counts/values for each bucket
-        group_by = cast(str | None, config.get("group_by"))
-
-        if group_by and group_by in data.columns:
-            # Group data
-            groups = data[group_by].dropna().unique()
-            result: dict[str, Any] = {
-                "buckets": buckets,
-                "groups": groups,
-                "data": {},
-                "drilldown": {},
-            }
-
-            for group in groups:
-                group_data = data[data[group_by] == group]
-                values = [
-                    group_data[col].sum() if col in group_data.columns else 0 for col in bucket_cols
-                ]
-                result["data"][str(group)] = values
-                group_filters = build_drill_down_payload(group_data.head(1), [str(group_by)])
-                result["drilldown"][str(group)] = [
-                    group_filters[0] if group_filters else {} for _ in buckets
-                ]
-
-            return result
-        else:
-            # Single histogram
-            values = [data[col].sum() if col in data.columns else 0 for col in bucket_cols]
-            return {
-                "buckets": buckets,
-                "groups": None,
-                "data": {"": values},
-                "drilldown": {"": [{} for _ in buckets]},
-            }
-
-    def _add_single_histogram(
-        self,
-        bucket_data: dict[str, Any],
-        config: PlotConfig,
-    ) -> list[BarTraceConfig]:
-        """
-        Build a single histogram trace.
-
-        Args:
-            bucket_data: Processed bucket data
-            config: Plot configuration
-
-        Returns:
-            List containing a single BarTraceConfig
-        """
-        buckets = bucket_data["buckets"]
-        values = bucket_data["data"][""]
-
-        # Create bin edges and centers
-        x_centers = [(b[0] + b[1]) / 2 for b in buckets]
-
-        # Apply normalization
-        values_normalized = self._normalize_values(values, config)
-
-        trace = BarTraceConfig(
-            name=config.get("histogram_variable", "Histogram"),
-            x=[str(c) for c in x_centers],
-            y=values_normalized,
-            x_positions=x_centers,
-            border_width=1.0,
-            border_color="white",
-            custom_data={"drilldown": bucket_data["drilldown"][""]},
-        )
-        return [trace]
-
-    def _add_grouped_histograms(
-        self,
-        bucket_data: dict[str, Any],
-        config: PlotConfig,
-    ) -> list[BarTraceConfig]:
-        """
-        Build multiple grouped histogram traces.
-
-        Args:
-            bucket_data: Processed bucket data
-            config: Plot configuration
-
-        Returns:
-            List of BarTraceConfig, one per group
-        """
-        buckets = bucket_data["buckets"]
-        groups = order_with_overrides(
-            (str(group) for group in bucket_data["groups"]),
-            config.get("legend_order"),
-        )
-
-        x_centers = [(b[0] + b[1]) / 2 for b in buckets]
-        traces: list[BarTraceConfig] = []
-
-        for group in groups:
-            values = bucket_data["data"].get(str(group), [])
-            values_normalized = self._normalize_values(values, config)
-
-            trace = BarTraceConfig(
-                name=str(group),
-                x=[str(c) for c in x_centers],
-                y=values_normalized,
-                x_positions=x_centers,
-                opacity=0.7,
-                border_width=1.0,
-                border_color="white",
-                custom_data={"drilldown": bucket_data["drilldown"][str(group)]},
-            )
-            traces.append(trace)
-
-        return traces
-
-    def _normalize_values(self, values: list[float], config: PlotConfig) -> list[float]:
-        """
-        Normalize histogram values according to config.
-
-        Args:
-            values: Raw histogram counts
-            config: Plot configuration with normalization mode
-
-        Returns:
-            Normalized values
-        """
-        # [impl->req~ring5.figure.histogram-cumulative~1]
+        # [impl->req~ring5.figure.histogram-cumulative~2]
         normalization = config.get("normalization", "count")
-        cumulative = config.get("cumulative", False)
-
-        # Convert to list of floats
-        vals = [float(v) for v in values]
-
-        # Apply normalization
-        total = sum(vals)
-        if total == 0:
-            return vals
-
-        if normalization == "probability":
-            vals = [v / total for v in vals]
-        elif normalization == "percent":
-            vals = [(v / total) * 100 for v in vals]
-        elif normalization == "density":
-            # Density = count / (total * bin_width)
-            # Assuming uniform bin width for simplicity
-            bin_width = config.get("bucket_size", 1)
-            vals = [v / (total * bin_width) for v in vals]
-
-        # Apply cumulative if requested
+        cumulative = bool(config.get("cumulative", False))
+        if normalization == "density" and not cumulative:
+            if native:
+                raise ValueError(
+                    "Native Distribution storage cells do not define continuous density."
+                )
+            if (
+                widths is None
+                or len(widths) != len(values)
+                or any(width is None or not math.isfinite(width) or width <= 0 for width in widths)
+            ):
+                raise ValueError(
+                    "Histogram density requires finite positive bucket widths; "
+                    "tails have unknown widths."
+                )
+        if normalization in {"probability", "percent", "density"}:
+            total = sum_histogram_counts(values)
+            if total <= 0:
+                raise ValueError("Histogram normalization requires finite positive selected mass.")
+            if normalization == "density" and not cumulative:
+                assert widths is not None
+                return [
+                    histogram_mass_ratio(value, 1.0, total, cast(float, width))
+                    for value, width in zip(values, widths, strict=True)
+                ]
+            scale = 100.0 if normalization == "percent" else 1.0
+            values = [histogram_mass_ratio(value, scale, total) for value in values]
         if cumulative:
-            cumulative_vals = []
-            cum_sum = 0.0
-            for v in vals:
-                cum_sum += v
-                cumulative_vals.append(cum_sum)
-            vals = cumulative_vals
-
-        return vals
+            return cumulative_histogram_counts(values)
+        return values

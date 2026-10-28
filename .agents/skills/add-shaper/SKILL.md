@@ -5,54 +5,54 @@ description: Add a new data-transformation shaper to RING-5's pipeline (subclass
 
 # Add a new shaper
 
-Shapers are the no-code transform steps. They are **stateless, immutable, composable**: each takes a
-DataFrame and returns a *new* DataFrame (`result = data.copy()` first; never `inplace=True`). They
-live entirely in Layer B (`src/core/services/shapers/`) — no Streamlit there.
+Shapers are **stateless and composable**: each takes a DataFrame and returns a *new* DataFrame
+without mutating its input. Copy before assigning into an input's cells; never use `inplace=True`.
+They live in `src/core/services/shapers/`, without Streamlit dependencies.
 
 **Best starting move:** copy the closest existing impl in
 `src/core/services/shapers/impl/` (e.g. `sort.py`, `normalize.py`, `mean.py`) and adapt.
 
 ## Steps
 
-1. **Implement** — `src/core/services/shapers/impl/<name>.py`:
-   ```python
-   from src.core.services.shapers.shaper import Shaper        # or UniDfShaper for single-frame ops
+1. **Implement** `src/core/services/shapers/impl/<name>.py`, subclassing `Shaper` or
+   `UniDfShaper`. The base constructor validates against the exact registered implementation.
+   Keep data-dependent requirements in `_verify_preconditions`; `__call__` returns a new frame.
+2. **Typed configuration**: define a per-type TypedDict in `src/core/models/shaper_models.py` with
+   `type: Required[Literal["myShaper"]]`. Include built-ins in `ShaperStepConfig`. Runtime validation
+   derives required/optional fields, exact value types and allowed keys from this schema.
+   Supported annotations are JSON scalars, Literal/union, typed list, string-keyed dict, nested
+   TypedDict and field-level Required/NotRequired. Registration preflights them recursively.
+   Runtime value graphs are bounded and acyclic before schema traversal or ownership copying.
+3. **Semantics**: add a data-independent validator in `definition.py` for field relationships.
+   Do not duplicate schema validation or defaults in constructors, imports, or UI components.
+4. **Register** one `ShaperDefinition(identifier, implementation, label, config_type, validate,
+   display_order)` in `factory.py`. Preserve built-in discovery and editor order. IDs, implementations,
+   labels and editor positions are unique. Dynamic plugins use the same public definition contract:
+   `from ring5.shapers import Shaper, ShaperDefinition, register_shaper`. API-only plugins omit
+   `display_order`; a UI entry also requires a web renderer.
+5. **UI**: add the component and `CONFIG_DISPATCH` entry. Obtain display metadata through
+   `api.shapers.get_shaper_display_names()`, then pass it into presentation components.
+6. **Finalized contributors**: implement the exact row relation through `self._source_tracker`
+   when it is present. Use the operation's actual selection, group positions, baseline rows or
+   branch join; `source_contributions.py` owns the bounded DAG. Record identity positions for a
+   row-preserving operation. Place hooks outside numerical caches and let `_call_with_source_rows`
+   scope the tracker. Add the exact implementation class to the reviewed tracked types in
+   `PipelineService._execute`; factory registration and subclassing do not grant tracked execution.
+   Update the Distribution policy separately according to coordinate semantics.
+7. **Tests**: verify constructor/factory/import/pipeline agreement, unknown keys, wrong types and
+   modes, data preconditions, immutability and adjacent pipeline interactions. SplitApply uses one
+   shared 100-step/20-level validation budget. Assert identical scientific output with tracking
+   enabled, exact original positions through adjacent/nested transforms, input ownership and typed
+   table round trips. Plugin subclasses need their own explicit definition.
 
-   class MyShaper(Shaper):
-       def _verify_params(self) -> bool:        # static validation of self params (ctor-time)
-           ...
-       def _verify_preconditions(self, df: pd.DataFrame) -> bool:   # data-dependent validation
-           ...
-       def __call__(self, df: pd.DataFrame) -> pd.DataFrame:
-           result = df.copy()
-           # ... transform ...
-           return result
-   ```
-   The shaper is constructed with its config dict: `shaper_class(dict(params))`. NaN-handling
-   convention: mirror `impl/mean.py`'s `_safe_gmean`/`_safe_hmean` (dropna, reject non-positive,
-   return `np.nan` on edge cases) if doing aggregation.
-
-2. **Typed config** — add a `MyShaperConfig(BaseShaperConfig)` `TypedDict` to
-   `src/core/models/shaper_models.py`, and add it to the `ShaperStepConfig` union. The `type`
-   field is the discriminator.
-
-3. **Register** in `src/core/services/shapers/factory.py`:
-   - add to `ShaperFactory._registry` with a **camelCase** key (e.g. `"myShaper"`);
-   - add a human label to `_display_names`.
-
-4. **Validation** — if it needs extra checks, extend `src/core/services/shapers/validation.py`.
-
-5. **UI config** — add `src/web/components/shapers/<name>_config.py` rendering the widgets and
-   returning the config dict; wire it into `src/web/pages/ui/shaper_config.py` /
-   `selector_transformer_configs.py` dispatch. Per-step unique keys: `f"{prefix}_{field}_{shaper_id}"`.
-
-6. **Tests** — unit in `tests/unit/` (transform correctness + both `_verify_*` paths), plus a
-   pipeline/integration test if it interacts with other steps. Import path is
-   `src.core.services.shapers.impl.<name>` (NOT `src.web...`).
+`Session.shape` supports registered application plugins. Plot **Finalize** and per-plot analysis
+recipe pipelines require reviewed source contributions and reject an unreviewed implementation
+explicitly. A web editor entry alone does not make a plugin eligible. Do not infer contributors
+from final labels, replay a mutable draft or substitute processed rows for original inputs.
 
 ## Rules & gotchas
 - Immutable always (`.copy()`), no `inplace=True`, no bare `except`.
-- One transform per shaper (atomic + composable). Shapers run via `pipeline_service.py` which
-  fingerprint-caches results — keep `__call__` pure (no hidden state).
-- Display names have a single source of truth (`ShaperFactory._display_names`) — don't duplicate them.
+- One transform per shaper (atomic + composable). Shapers run via `pipeline_service.py`; Mean and Normalize
+  fingerprint-cache their results — keep `__call__` pure (no hidden state).
+- Display names have a single source of truth (`ShaperDefinition`) — don't duplicate them.
 - Verify after: `make arch-check && ./python_venv/bin/mypy src/ && make test-unit`.

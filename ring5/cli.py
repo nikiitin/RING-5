@@ -3,13 +3,12 @@
 Subcommands::
 
     ring5 doctor                          # dependency preflight
+    ring5 install-chrome                  # reviewed Stable browser; prints its path
     ring5 parse DIR -v simTicks -o out.csv
     ring5 render PORTFOLIO -o figs/       # regenerate every figure
     ring5 recipe-matrix RECIPE -m MATRIX -o out/
     ring5 regression-gate BASE.csv CAND.csv -k benchmark -m ipc
     ring5 report-schedule RECIPE -o report.html
-    ring5 upgrade PORTFOLIO               # persist a portfolio at the
-                                          # current schema version
 """
 
 from __future__ import annotations
@@ -26,9 +25,11 @@ from typing import TYPE_CHECKING, Any, Literal, NoReturn, cast
 from ring5.errors import DataValidationError, ExportError, RecipeError, Ring5Error
 
 from src.core.common.security_limits import MAX_ANALYSIS_RECIPE_MATRIX_BYTES
+from src.core.models.visualization.export_options import TEX_SYSTEMS
 
 if TYPE_CHECKING:
-    from src.core.models import AnalysisRecipeMatrixResult, ScheduledReportResult
+    from src.core.models.recipe_matrix_models import AnalysisRecipeMatrixResult
+    from src.core.models.scheduled_report_models import ScheduledReportResult
 
 
 _INCOMPLETE_REGRESSION_OUTCOMES = frozenset(
@@ -39,11 +40,25 @@ _INCOMPLETE_REGRESSION_OUTCOMES = frozenset(
 def _cmd_doctor(args: argparse.Namespace) -> int:
     from ring5._doctor import doctor
 
-    report = doctor()
+    report = doctor(tex_system=args.tex_system)
     print(report)
-    # Only a missing required dependency (Perl) makes the command fail; Chrome and XeLaTeX
+    # Only a missing required dependency (Perl) makes the command fail; browser/compiler tools
     # gate optional export formats and shouldn't fail a `ring5 doctor && ...` gate.
     return 0 if report.essential_found else 1
+
+
+def _cmd_install_chrome(args: argparse.Namespace) -> int:
+    # [impl->req~ring5.cli.install-chrome~2]
+    from ring5._chrome_install import install_chrome
+
+    executable = install_chrome(cache_directory=args.cache_dir)
+    print(executable)
+    print(
+        "Set BROWSER_PATH to the path printed above before starting RING-5. "
+        "The installer does not change browser selection or launch Chrome.",
+        file=sys.stderr,
+    )
+    return 0
 
 
 def _cmd_parse(args: argparse.Namespace) -> int:
@@ -82,37 +97,6 @@ def _cmd_render(args: argparse.Namespace) -> int:
     )
     for path in written:
         print(f"wrote {path}")
-    return 0
-
-
-def _cmd_upgrade(args: argparse.Namespace) -> int:
-    # [impl->req~ring5.portfolio.upgrade-protection~1]
-    from ring5._session import Session
-
-    with Session() as session:
-        report = session.load_portfolio(args.portfolio)
-        if not report.complete:
-            # Re-saving a partial restore would permanently destroy whatever
-            # could not be loaded (data, plots, parse variables) — refuse.
-            print(
-                f"error: refusing to upgrade '{args.portfolio}' — the restore "
-                "was incomplete and re-saving would permanently drop:",
-                file=sys.stderr,
-            )
-            for reason in report.plots_skipped:
-                print(f"  plot not restored — {reason}", file=sys.stderr)
-            if report.data_error:
-                print(f"  data not restored — {report.data_error}", file=sys.stderr)
-            if report.parse_variables_skipped:
-                print(
-                    f"  {report.parse_variables_skipped} malformed parse-variable "
-                    "entries would be dropped",
-                    file=sys.stderr,
-                )
-            print("fix the portfolio (or this RING-5 version) first", file=sys.stderr)
-            return 2
-        session.save_portfolio(args.portfolio, overwrite=True)
-    print(f"portfolio '{args.portfolio}' re-saved at the current schema version")
     return 0
 
 
@@ -213,7 +197,7 @@ def _cmd_regression_gate(args: argparse.Namespace) -> int:
         payload = session.export_regression_results(comparison, args.format)
 
     _emit_regression_result(payload, args.output)
-    outcomes = set(comparison["outcome"].astype(str))
+    outcomes = {str(row["outcome"]) for row in comparison.rows()}
     if outcomes & _INCOMPLETE_REGRESSION_OUTCOMES:
         return 3
     return 1 if "regression" in outcomes else 0
@@ -374,7 +358,20 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     doctor_p = sub.add_parser("doctor", help="check external dependencies")
+    doctor_p.add_argument(
+        "--tex-system", choices=TEX_SYSTEMS, default="xelatex", help="PGF compiler to check"
+    )
     doctor_p.set_defaults(func=_cmd_doctor)
+
+    chrome_p = sub.add_parser(
+        "install-chrome", help="install the reviewed Chrome for Testing Stable"
+    )
+    chrome_p.add_argument(
+        "--cache-dir",
+        default=None,
+        help="installation cache (default: platform user cache for ring5/chrome)",
+    )
+    chrome_p.set_defaults(func=_cmd_install_chrome)
 
     parse_p = sub.add_parser("parse", help="parse a stats tree to a CSV")
     parse_p.add_argument("stats_path", help="directory containing gem5 runs")
@@ -415,10 +412,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="skip the byte-stable output knobs",
     )
     render_p.set_defaults(func=_cmd_render)
-
-    upgrade_p = sub.add_parser("upgrade", help="re-save a portfolio at the current schema version")
-    upgrade_p.add_argument("portfolio", help="portfolio name")
-    upgrade_p.set_defaults(func=_cmd_upgrade)
 
     matrix_p = sub.add_parser(
         "recipe-matrix",

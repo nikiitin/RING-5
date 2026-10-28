@@ -44,12 +44,13 @@ def test_grouped_radar_resolves_one_scale_order_and_missing_value_without_mutati
     first, second = result.traces
     assert isinstance(first, RadarTraceConfig)
     assert first.categories == ["size", "speed", "energy"]
-    assert first.values == [0.5, 0.9, 0.0]
+    assert first.values[:2] == [0.5, 0.9]
+    assert pd.isna(first.values[2])
+    assert not first.fill_area
     assert first.radial_min == second.radial_min == 0.0
     assert first.radial_max == second.radial_max == 0.9
     assert second.color == "#336699"
     assert len(first.custom_data["drilldown"]) == 3
-    assert RadarPlot(1, "Radar").get_legend_column({"color": "variant"}) == "variant"
     pd.testing.assert_frame_equal(data, original)
 
 
@@ -80,7 +81,6 @@ def test_custom_radar_geometry_and_profile_controls() -> None:
     assert trace.start_angle == 30 and not trace.clockwise
     assert not trace.fill_area and not trace.show_markers
     assert trace.opacity == 0.6 and trace.line_width == 3
-    assert RadarPlot(2, "Radar").get_legend_column({}) is None
 
 
 @pytest.mark.parametrize(

@@ -1,10 +1,10 @@
-"""Conftest for tests/integration/ — integration tests.
+"""Shared integration fixtures for application lifetimes and service storage.
 
-Provides fixtures that wrap the synthetic gem5 data with ready-to-use
-ApplicationAPI and ParseService instances. Synthetic gem5 data fixtures
-are registered via ``tests/helpers/gem5_fixtures.py`` in the root conftest.
+Synthetic gem5 data fixtures come from ``tests/helpers/gem5_fixtures.py``,
+registered in the root conftest.
 """
 
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, Dict
 
@@ -33,9 +33,30 @@ def _reset_service_caches() -> Any:
 
 
 @pytest.fixture
-def facade() -> ApplicationAPI:
+def facade() -> Iterator[ApplicationAPI]:
     """Create a fresh ApplicationAPI instance for each test."""
-    return ApplicationAPI()
+    api = ApplicationAPI()
+    try:
+        yield api
+    finally:
+        api.close(wait=True)
+
+
+@pytest.fixture
+def isolated_application_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
+    """Keep opted-in persistent service work beneath this test's temporary directory."""
+    directory = tmp_path / "application-data"
+    directory.mkdir()
+    PathService.reset_caches()
+    CsvPoolService.clear_caches()
+    ConfigService.reset_caches()
+    monkeypatch.setattr(PathService, "get_data_dir", staticmethod(lambda: directory))
+    try:
+        yield directory
+    finally:
+        PathService.reset_caches()
+        CsvPoolService.clear_caches()
+        ConfigService.reset_caches()
 
 
 @pytest.fixture

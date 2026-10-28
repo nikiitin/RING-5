@@ -34,7 +34,7 @@ def test_preview_is_non_mutating_and_loads_only_reviewed_rows(tmp_path: Path) ->
         assert session.api.state_manager.get_data() is None
         loaded = session.load_import(preview)
 
-        pd.testing.assert_frame_equal(session.api.state_manager.get_data(), loaded)
+        pd.testing.assert_frame_equal(session.api.state_manager.get_data(), loaded.frame)
         assert session.api.state_manager.get_csv_path() == str(source.resolve())
         assert session.api.state_manager.is_using_parser() is False
 
@@ -46,9 +46,9 @@ def test_preview_is_non_mutating_and_loads_only_reviewed_rows(tmp_path: Path) ->
     assert preview.accepted_row_count == 2
     assert preview.rejected_row_count == 1
     assert preview.rejected_rows[0].line_number == 4
-    assert list(loaded["benchmark"]) == ["alpha", "gamma"]
-    assert list(loaded["ipc"]) == [1.25, 1.75]
-    assert str(loaded["stable"].dtype) == "boolean"
+    assert list(loaded.frame["benchmark"]) == ["alpha", "gamma"]
+    assert list(loaded.frame["ipc"]) == [1.25, 1.75]
+    assert str(loaded.frame["stable"].dtype) == "boolean"
 
 
 def test_preview_failures_use_the_public_data_error(tmp_path: Path) -> None:

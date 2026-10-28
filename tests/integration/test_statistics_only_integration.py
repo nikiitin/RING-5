@@ -1,10 +1,10 @@
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
-from src.core.models import StatConfig
-from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+from src.core.models.parsing_models import StatConfig
+from src.core.common.parsed_output import ParsedOutputIO
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
 
 class TestStatisticsOnlyIntegration:
@@ -15,36 +15,33 @@ class TestStatisticsOnlyIntegration:
     @pytest.fixture
     def stats_file(self, tmp_path: Path) -> Path:
         """Create a sample stats.txt file with distribution data."""
-        stats_content = """
----------- Begin Simulation Statistics ----------
-simTicks                                  1000000
-system.cpu.numCycles                           100
-system.mem.latency_dist::samples               500
-system.mem.latency_dist::mean             10.5
-system.mem.latency_dist::stdev             2.3
-system.mem.latency_dist::underflows            5
-system.mem.latency_dist::0                    10
-system.mem.latency_dist::1                    20
-system.mem.latency_dist::2                    30
-system.mem.latency_dist::3                    40
-system.mem.latency_dist::4                    50
-system.mem.latency_dist::5                    60
-system.mem.latency_dist::6                    70
-system.mem.latency_dist::7                    80
-system.mem.latency_dist::8                    90
-system.mem.latency_dist::9                   100
-system.mem.latency_dist::10                   45
-system.mem.latency_dist::overflows             5
-system.mem.latency_dist::total               500
----------- End Simulation Statistics   ----------
-"""
+        stats_content = (
+            "\n---------- Begin Simulation Statistics ----------\nsimTicks "
+            "                                 1000000\nsystem.cpu.numCycle"
+            "s                           100\nsystem.mem.latency_dist::sam"
+            "ples               500\nsystem.mem.latency_dist::mean        "
+            "     10.5\nsystem.mem.latency_dist::stdev             2.3\nsys"
+            "tem.mem.latency_dist::underflows            5\nsystem.mem.lat"
+            "ency_dist::0                    10\nsystem.mem.latency_dist::"
+            "1                    20\nsystem.mem.latency_dist::2          "
+            "          30\nsystem.mem.latency_dist::3                    4"
+            "0\nsystem.mem.latency_dist::4                    50\nsystem.me"
+            "m.latency_dist::5                    60\nsystem.mem.latency_d"
+            "ist::6                    70\nsystem.mem.latency_dist::7     "
+            "               80\nsystem.mem.latency_dist::8                "
+            "    90\nsystem.mem.latency_dist::9                   100\nsyst"
+            "em.mem.latency_dist::10                   45\nsystem.mem.late"
+            "ncy_dist::overflows             5\nsystem.mem.latency_dist::t"
+            "otal               500\n---------- End Simulation Statistics "
+            "  ----------\n"
+        )
         stats_path = tmp_path / "stats.txt"
         stats_path.write_text(stats_content)
         return stats_path
 
     def test_distribution_statistics_only_parsing(self, stats_file: Path, tmp_path: Path) -> None:
         """Test parsing distribution with only statistics (no buckets)."""
-        # Configure variable with statisticsOnly=True
+        # Configure variable with statistics_only=True
         variables = [
             StatConfig(
                 name="system.mem.latency_dist",
@@ -54,6 +51,7 @@ system.mem.latency_dist::total               500
                     "minimum": 0,
                     "maximum": 10,
                     "statistics": ["samples", "mean", "stdev", "total"],
+                    "source_type": "distribution",
                 },
             )
         ]
@@ -62,20 +60,19 @@ system.mem.latency_dist::total               500
         Path(output_dir).mkdir()
 
         # Parse with statistics-only mode
-        batch = ParseService.submit_parse_async(
+        batch = Gem5Parser.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables,
             output_dir=output_dir,
         )
         parse_results = [f.result() for f in batch.futures]
-        csv_path = ParseService.construct_final_csv(
-            output_dir, parse_results, var_names=batch.var_names
-        )
+        parsed_output = Gem5Parser.finalize_parsing(batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         # Load and verify CSV
         assert csv_path is not None
-        df = pd.read_csv(csv_path)
+        df = ParsedOutputIO.to_frame(parsed_output)
 
         # Should have 1 row (1 simpoint)
         assert len(df) == 1
@@ -97,8 +94,8 @@ system.mem.latency_dist::total               500
         assert df["system.mem.latency_dist..total"].iloc[0] == 500
 
     def test_distribution_full_mode_parsing(self, stats_file: Path, tmp_path: Path) -> None:
-        """Test parsing distribution with full buckets (statisticsOnly=False)."""
-        # Configure variable with statisticsOnly=False
+        """Test parsing distribution with full buckets (statistics_only=False)."""
+        # Configure variable with statistics_only=False
         variables = [
             StatConfig(
                 name="system.mem.latency_dist",
@@ -108,6 +105,9 @@ system.mem.latency_dist::total               500
                     "minimum": 0,
                     "maximum": 10,
                     "statistics": ["samples", "mean", "stdev", "total"],
+                    "source_type": "distribution",
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
                 },
             )
         ]
@@ -116,20 +116,19 @@ system.mem.latency_dist::total               500
         Path(output_dir).mkdir()
 
         # Parse with full mode
-        batch = ParseService.submit_parse_async(
+        batch = Gem5Parser.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables,
             output_dir=output_dir,
         )
         parse_results = [f.result() for f in batch.futures]
-        csv_path = ParseService.construct_final_csv(
-            output_dir, parse_results, var_names=batch.var_names
-        )
+        parsed_output = Gem5Parser.finalize_parsing(batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         # Load and verify CSV
         assert csv_path is not None
-        df = pd.read_csv(csv_path)
+        df = ParsedOutputIO.to_frame(parsed_output)
 
         # Should have 1 row (1 simpoint)
         assert len(df) == 1
@@ -152,6 +151,9 @@ system.mem.latency_dist::total               500
                     "minimum": 0,
                     "maximum": 10,
                     "statistics": ["samples", "mean", "stdev", "total"],
+                    "source_type": "distribution",
+                    "bucket_size": 1,
+                    "zero_policy": "missing",
                 },
             )
         ]
@@ -165,6 +167,7 @@ system.mem.latency_dist::total               500
                     "minimum": 0,
                     "maximum": 10,
                     "statistics": ["samples", "mean", "stdev", "total"],
+                    "source_type": "distribution",
                 },
             )
         ]
@@ -173,35 +176,33 @@ system.mem.latency_dist::total               500
         Path(output_dir_full).mkdir()
 
         # Parse full mode
-        batch_full = ParseService.submit_parse_async(
+        batch_full = Gem5Parser.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables_full,
             output_dir=output_dir_full,
         )
         results_full = [f.result() for f in batch_full.futures]
-        csv_full = ParseService.construct_final_csv(
-            output_dir_full, results_full, var_names=batch_full.var_names
-        )
+        output_full = Gem5Parser.finalize_parsing(batch_full, results_full)
+        csv_full = output_full.csv_path
         assert csv_full is not None
-        df_full = pd.read_csv(csv_full)
+        df_full = ParsedOutputIO.to_frame(output_full)
 
         output_dir_stats = str(tmp_path / "stats_only_stats")
         Path(output_dir_stats).mkdir()
 
         # Parse statistics-only mode
-        batch_stats = ParseService.submit_parse_async(
+        batch_stats = Gem5Parser.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables_stats_only,
             output_dir=output_dir_stats,
         )
         results_stats = [f.result() for f in batch_stats.futures]
-        csv_stats = ParseService.construct_final_csv(
-            output_dir_stats, results_stats, var_names=batch_stats.var_names
-        )
+        output_stats = Gem5Parser.finalize_parsing(batch_stats, results_stats)
+        csv_stats = output_stats.csv_path
         assert csv_stats is not None
-        df_stats = pd.read_csv(csv_stats)
+        df_stats = ParsedOutputIO.to_frame(output_stats)
 
         # Statistics-only should have fewer columns
         # Full mode will have all bucket columns (underflows, 0-10, overflows)

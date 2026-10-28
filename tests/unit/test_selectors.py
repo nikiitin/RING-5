@@ -117,7 +117,7 @@ class TestConditionSelector:
 
     def test_values_list_filter(self, sample_dataframe: Any) -> None:
         """Test filtering with list of values."""
-        selector = ConditionSelector({"column": "system_id", "values": ["S1", "S3"]})
+        selector = ConditionSelector({"mode": "in", "column": "system_id", "values": ["S1", "S3"]})
         result = selector(sample_dataframe)
 
         assert len(result) == 4
@@ -125,24 +125,28 @@ class TestConditionSelector:
 
     def test_range_filter(self, sample_dataframe: Any) -> None:
         """Test range filter."""
-        selector = ConditionSelector({"column": "throughput", "range": [85.0, 100.0]})
+        selector = ConditionSelector(
+            {"mode": "range", "column": "throughput", "range": [85.0, 100.0]}
+        )
         result = selector(sample_dataframe)
 
         # Should include 90, 95, 100
         assert len(result) == 3
         assert all((result["throughput"] >= 85) & (result["throughput"] <= 100))
 
-    def test_legacy_condition_greater_equal(self, sample_dataframe: Any) -> None:
-        """Test legacy condition with >=."""
-        selector = ConditionSelector({"column": "throughput", "condition": ">=", "value": 100.0})
+    def test_named_greater_or_equal(self, sample_dataframe: Any) -> None:
+        """Test the named inclusive comparison."""
+        selector = ConditionSelector(
+            {"column": "throughput", "mode": "greater_or_equal", "threshold": 100.0}
+        )
         result = selector(sample_dataframe)
 
         assert len(result) == 2  # 100, 105
         assert all(result["throughput"] >= 100)
 
-    def test_legacy_condition_not_equal_quoted(self, sample_dataframe: Any) -> None:
-        """Test legacy condition with != and quotes."""
-        selector = ConditionSelector({"column": "system_id", "condition": "!=", "value": "'S1'"})
+    def test_named_not_equals(self, sample_dataframe: Any) -> None:
+        """Test the named inequality comparison."""
+        selector = ConditionSelector({"column": "system_id", "mode": "not_equals", "value": "S1"})
         result = selector(sample_dataframe)
 
         assert "S1" not in result["system_id"].values

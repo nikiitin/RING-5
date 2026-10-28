@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from src.core.models import AnalysisRecipe, RecipeParameter
+from src.core.models.recipe_models import AnalysisRecipe, RecipeParameter
 from src.core.services.data_services.analysis_recipe_service import AnalysisRecipeService
 
 
@@ -30,8 +30,20 @@ def _parse_boolean(value: str) -> bool:
         return False
     raise argparse.ArgumentTypeError("expected true/false, yes/no, or 1/0")
 '''
+        options = {
+            parameter.name: "--" + parameter.name.replace("_", "-")
+            for parameter in recipe.parameters
+        }
+        reserved = {"--help", *options.values()}
+        for name, option in options.items():
+            if option == "--help":
+                option = "--parameter-help"
+                while option in reserved:
+                    option = "--parameter-" + option[2:]
+                options[name] = option
+                reserved.add(option)
         arguments = "\n".join(
-            AnalysisRecipeAutomationService._script_argument(parameter)
+            AnalysisRecipeAutomationService._script_argument(parameter, options[parameter.name])
             for parameter in recipe.parameters
         )
         source = f'''#!/usr/bin/env python3
@@ -145,8 +157,8 @@ result
         )
 
     @staticmethod
-    def _script_argument(parameter: RecipeParameter) -> str:
-        option = "--" + parameter.name.replace("_", "-")
+    def _script_argument(parameter: RecipeParameter, option: str | None = None) -> str:
+        option = option or "--" + parameter.name.replace("_", "-")
         parser_type = {
             "string": "str",
             "path": "str",

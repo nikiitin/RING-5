@@ -34,6 +34,7 @@ class ComparisonManager(DataManager):
             "numeric metrics to compare. Missing and non-comparable values remain visible."
         )
 
+        preview_inputs = self.api.capture_preview_inputs()
         data = self.get_data()
         if data is None or data.empty:
             st.warning("Load a non-empty dataset before creating a comparison.")
@@ -201,6 +202,17 @@ class ComparisonManager(DataManager):
                 minimum_sample_size,
             )
 
+        operation_config = {
+            "group_column": group_column,
+            "baseline_value": baseline_value,
+            "candidate_value": candidate_value,
+            "key_columns": key_columns,
+            "metric_columns": metric_columns,
+            "method": method_label,
+            "threshold_options": threshold_options,
+            "statistics_options": statistics_options,
+        }
+
         if baseline_value == candidate_value:
             st.warning("Baseline and candidate must be different groups.")
         elif st.button(
@@ -250,12 +262,14 @@ class ComparisonManager(DataManager):
                 except (TypeError, ValueError) as exc:
                     st.error(str(exc))
                 else:
-                    self.api.set_preview(_PREVIEW_NAME, result)
+                    self._store_preview(_PREVIEW_NAME, result, operation_config, preview_inputs)
                     # Recompute the sidebar guide from the stored result before
                     # presenting the preview and its next workflow action.
                     st.rerun(scope="app")
                     return
 
+        if not self._preview_available(_PREVIEW_NAME, operation_config):
+            return
         preview = self.api.get_preview(_PREVIEW_NAME)
         if preview is None:
             return
@@ -292,6 +306,7 @@ class ComparisonManager(DataManager):
             file_name="ring5-comparison.csv",
             mime="text/csv",
             key=WidgetKeyBuilder.manager_key("comparison", "download"),
+            on_click="ignore",
         )
         if "outcome" in preview:
             # [impl->req~ring5.automation.machine-readable-regression~1]
@@ -303,6 +318,7 @@ class ComparisonManager(DataManager):
                     file_name="ring5-regression-results.json",
                     mime="application/json",
                     key=WidgetKeyBuilder.manager_key("comparison", "download_json"),
+                    on_click="ignore",
                 )
             with export_columns[1]:
                 st.download_button(
@@ -311,21 +327,29 @@ class ComparisonManager(DataManager):
                     file_name="ring5-regression-results.xml",
                     mime="application/xml",
                     key=WidgetKeyBuilder.manager_key("comparison", "download_junit"),
+                    on_click="ignore",
                 )
         if st.button(
             "Use Comparison Result",
             key=WidgetKeyBuilder.manager_key("comparison", "confirm"),
         ):
-            self.set_data(
-                preview,
-                operation=(f"{method_label} comparison: {baseline_value} with {candidate_value}"),
+            confirmation = self._confirm_preview(
+                _PREVIEW_NAME,
+                operation_config,
+                f"{method_label} comparison: {baseline_value} with {candidate_value}",
             )
-            self.api.clear_preview(_PREVIEW_NAME)
+            if confirmation is None:
+                return
+            confirmed_data, confirmed_config = confirmation
             record: OperationRecord = {
-                "source_columns": [group_column] + list(key_columns) + list(metric_columns),
-                "dest_columns": list(preview.columns),
+                "source_columns": [confirmed_config["group_column"]]
+                + list(confirmed_config["key_columns"])
+                + list(confirmed_config["metric_columns"]),
+                "dest_columns": list(confirmed_data.columns),
                 "operation": (
-                    f"{method_label} comparison: {baseline_value} with {candidate_value}"
+                    f"{confirmed_config['method']} comparison: "
+                    f"{confirmed_config['baseline_value']} with "
+                    f"{confirmed_config['candidate_value']}"
                 ),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }

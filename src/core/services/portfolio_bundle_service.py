@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import mimetypes
 from collections.abc import Mapping
 from io import BytesIO
@@ -11,22 +12,24 @@ from pathlib import PurePosixPath
 from typing import Any, cast
 from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile, ZipInfo
 
+from packaging.version import InvalidVersion, Version
+
 from src.core.common.security_limits import (
     MAX_PORTFOLIO_BUNDLE_BYTES,
     MAX_PORTFOLIO_BUNDLE_MEMBERS,
     MAX_PORTFOLIO_BUNDLE_RESULT_BYTES,
 )
-from src.core.models import (
+from src.core.models.portfolio_bundle_models import (
     PortfolioBundleArtifact,
     PortfolioBundleContents,
     PortfolioBundleInfo,
     PortfolioBundleResult,
-    PortfolioData,
 )
+from src.core.models.portfolio_models import PortfolioData
 from src.core.models.portfolio_bundle_models import PortfolioBundleArtifactRole
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.services.data_services.portfolio_validation_service import validate_portfolio_document
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 
 _FORMAT = "ring5.portfolio-bundle"
@@ -85,9 +88,9 @@ class PortfolioBundleService:
         """
         resolved_name = cls._bounded_name(name, "Bundle")
         portfolio_raw = cls._json_object(portfolio_bytes, "Portfolio")
+        validate_portfolio_document(portfolio_raw)
         integrity = PortfolioIntegrityService.verify(portfolio_raw)
         PortfolioIntegrityService.require_restorable(integrity)
-        PortfolioMigrator.migrate(portfolio_raw)
         if signing_key is not None:
             portfolio_raw = dict(portfolio_raw)
             portfolio_raw["integrity_manifest"] = PortfolioIntegrityService.create_manifest(
@@ -229,18 +232,19 @@ class PortfolioBundleService:
 
         portfolio_artifact = by_role["portfolio"][0]
         portfolio_raw = cls._json_object(archive[portfolio_artifact.path], "Portfolio")
+        validate_portfolio_document(portfolio_raw)
         integrity = PortfolioIntegrityService.verify(portfolio_raw, signing_key=signing_key)
         PortfolioIntegrityService.require_restorable(
             integrity,
             require_signature=require_signature,
         )
-        portfolio = cast(PortfolioData, PortfolioMigrator.migrate(portfolio_raw))
+        portfolio = cast(PortfolioData, portfolio_raw)
 
         source_artifact = by_role["source-manifest"][0]
         source_manifest = cls._json_object(archive[source_artifact.path], "Source manifest")
         if (
             source_manifest.get("format") != "ring5.source-manifest"
-            or source_manifest.get("format_version") != 1
+            or source_manifest.get("format_version") != 2
             or not isinstance(source_manifest.get("sources"), list)
             or len(source_manifest["sources"]) > 32
         ):
@@ -443,41 +447,45 @@ class PortfolioBundleService:
                 )
         elif portfolio.get("csv_path"):
             sources.append({"kind": "csv", "location": portfolio.get("csv_path")})
-        data_csv = portfolio.get("data_csv")
+        data = portfolio.get("data")
         embedded_digest = (
-            hashlib.sha256(data_csv.encode("utf-8")).hexdigest()
-            if isinstance(data_csv, str)
+            hashlib.sha256(PortfolioBundleService._json_bytes(data, indent=0)).hexdigest()
+            if data is not None
             else None
         )
         return {
             "format": "ring5.source-manifest",
-            "format_version": 1,
+            "format_version": 2,
             "sources": sources,
-            "embedded_data_sha256": embedded_digest,
+            "embedded_table_sha256": embedded_digest,
             "parse_variables": portfolio.get("parse_variables", []),
         }
 
     @staticmethod
-    def _requirements(environment: object) -> str:
-        if not isinstance(environment, Mapping):
-            return "# Environment metadata was not recorded.\n"
+    def _requirements(environment: Mapping[str, Any]) -> str:
         dependencies = environment.get("dependencies")
         versions = dependencies if isinstance(dependencies, Mapping) else {}
         lines = ["# Captured Python package versions"]
         ring5_version = environment.get("ring5_version")
         if isinstance(ring5_version, str) and ring5_version:
-            lines.append(f"ring5=={ring5_version}")
+            try:
+                lines.append(f"ring5=={Version(ring5_version)}")
+            except InvalidVersion:
+                lines.append("# RING-5 source checkout: install the matching source revision.")
         for raw_name, raw_version in sorted(versions.items(), key=lambda item: str(item[0])):
             if isinstance(raw_name, str) and isinstance(raw_version, str) and raw_version:
                 if raw_name.lower() != "ring5":
-                    lines.append(f"{raw_name}=={raw_version}")
+                    try:
+                        version = Version(raw_version)
+                    except InvalidVersion:
+                        continue
+                    if re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?", raw_name):
+                        lines.append(f"{raw_name}=={version}")
         return "\n".join(lines) + "\n"
 
     @staticmethod
-    def _environment(value: object) -> dict[str, Any] | None:
+    def _environment(value: object) -> dict[str, Any]:
         recorded = EnvironmentMetadataService.from_payload(value)
-        if recorded is None:
-            return None
         normalized = recorded.to_dict()
         if value != normalized:
             raise ValueError("Portfolio environment metadata has unexpected fields.")

@@ -1,17 +1,8 @@
-"""E2E tests verifying UI settings reorganization and bug fixes.
+"""Browser checks for simulator selection and rendered figure settings.
 
-Validates the changes from the UI Settings Verification plan:
-  - A2: Simulator pills selector (always visible with material icons)
-  - B1-B3: Tick marks, Y-axis title position, group labels moved to Axes
-  - Typography stripped to font sizes/colors only
-  - Settings pills accessible and rendering widgets correctly
-
-These tests run against a live Streamlit instance with Playwright.
-They validate UI structure (widget presence/absence), not rendering
-correctness (which requires visual comparison or snapshot diffing).
-
-Data source: ``tests/data/results-micro26-sens/`` — gem5 HTM sensitivity
-study shared with the UI feature verification suite.
+Verify axes, typography, and legend controls through the current UI. These
+checks inspect widget state; screenshot review covers rendering appearance.
+The tracked 18-row E2E CSV supplies the finalized settings plots.
 """
 
 from __future__ import annotations
@@ -21,7 +12,6 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.visual.pages.base_page import BasePage
 from tests.visual.pages.data_source_page import DataSourcePage
 from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
@@ -30,23 +20,37 @@ pytestmark = pytest.mark.requires_browser
 # Paths & constants
 
 _REPO_ROOT: Path = Path(__file__).parents[2]
-_REAL_DATA: Path = _REPO_ROOT / "tests" / "data" / "results-micro26-sens"
+_E2E_CSV = _REPO_ROOT / "tests" / "e2e" / "fixtures" / "sample_data.csv"
 
-_PARSE_TIMEOUT: int = 180_000
 _E2E_TIMEOUT: int = 60_000
 _CHART_TIMEOUT: int = 30_000
 
-_STATS: list[tuple[str, str]] = [
-    ("simTicks", "scalar"),
-    ("simInsts", "scalar"),
-]
+
+def _prepare_settings_plot(page: Page, url: str, name: str) -> None:
+    """Upload the real fixture and finalize a bar plot before inspecting its settings."""
+    assert _E2E_CSV.is_file(), f"Fixture CSV not found: {_E2E_CSV}"
+    source = DataSourcePage(page)
+    source.goto_and_wait(url)
+    source.upload_csv(_E2E_CSV)
+    plot = ManagePlotsPage(page)
+    plot.navigate()
+    plot.create_plot(name, "bar")
+    plot.add_shaper("Sort")
+    plot.finalize_pipeline()
+    plot.navigate_to("Data Source")
+    plot.navigate()
+    expect(plot.viz_x_axis_selectbox).to_be_visible(timeout=_E2E_TIMEOUT)
+    plot.select_x_axis("benchmark_name")
+    plot.select_y_axis("system.cpu.ipc")
+    plot.refresh_plot()
+    plot.assert_chart_visible(timeout=_CHART_TIMEOUT)
 
 
-# Group 1: Simulator Pill Selector (A2)
+# Group 1: Simulator selection
 
 
 class TestSimulatorPillSelector:
-    """A2: Simulator pills should always be visible on Data Source page."""
+    """Simulator selection is available in the parser interface."""
 
     def test_simulator_pills_visible(self, shared_page: Page, live_server_url: str) -> None:
         """Simulator pills should be visible on the Data Source page."""
@@ -56,7 +60,7 @@ class TestSimulatorPillSelector:
         shared_page.wait_for_timeout(1_000)
 
         # Ensure parse mode is active
-        ds.parse_option.click()
+        ds.ensure_parse_mode()
         ds.wait_for_streamlit()
 
         # Simulator pills should be visible
@@ -68,7 +72,7 @@ class TestSimulatorPillSelector:
         ds.navigate()
         shared_page.wait_for_timeout(1_000)
 
-        ds.parse_option.click()
+        ds.ensure_parse_mode()
         ds.wait_for_streamlit()
 
         expect(ds.gem5_pill).to_be_visible(timeout=_E2E_TIMEOUT)
@@ -81,7 +85,7 @@ class TestSimulatorPillSelector:
         ds.navigate()
         shared_page.wait_for_timeout(1_000)
 
-        ds.parse_option.click()
+        ds.ensure_parse_mode()
         ds.wait_for_streamlit()
 
         # The pill text should contain "gem5" (icon is rendered by Streamlit)
@@ -90,200 +94,121 @@ class TestSimulatorPillSelector:
         assert "gem5" in pill_text
 
 
-# Group 2: Settings Reorganization (B1-B3)
+# Group 2: Axes and typography settings
 
 
 class TestSettingsReorganization:
-    """B1-B3: Verify tick marks, Y-axis position, group labels are in Axes."""
+    """Tick marks and title position belong to Axes; font controls use Typography."""
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture(autouse=True, scope="class")
+    @classmethod
     def _setup_plot(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
+        _reset_app_state: None,
     ) -> None:
-        """Navigate to Manage Plots and create a test plot if needed."""
-        bp = BasePage(shared_page)
-        bp.goto_and_wait(live_server_url)
-
-        mp = ManagePlotsPage(shared_page)
-        mp.navigate()
-        shared_page.wait_for_timeout(1_000)
-
-        # Create a test plot if none exists
-        if mp.no_plots_warning.is_visible(timeout=3_000):
-            mp.plot_name_input.fill("Settings Test Bar")
-            mp.create_plot_button.click()
-            mp.wait_for_streamlit()
+        """Prepare a rendered plot for this class's independent settings checks."""
+        _prepare_settings_plot(shared_page, live_server_url, "Settings Test Bar")
 
     def test_tick_marks_in_axes_pill(self, shared_page: Page) -> None:
-        """B1: Tick marks settings should be under the Axes pill."""
+        """Tick controls are visible in the X-axis section."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
-        shared_page.wait_for_timeout(500)
-
-        # Select plot
-        first_pill = mp.plot_selector_pills.locator("button").first
-        first_pill.click()
-        mp.wait_for_streamlit()
-
-        # Enable advanced settings
-        mp.toggle_advanced_settings()
-
-        # Click Axes pill
-        axes_pill = mp.viz_settings_pills.get_by_text("Axes")
-        expect(axes_pill).to_be_visible(timeout=_E2E_TIMEOUT)
-        axes_pill.click()
-        mp.wait_for_streamlit()
-
-        # Tick Marks should be visible under Axes
-        tick_text = shared_page.get_by_text("Tick Marks")
-        expect(tick_text.first).to_be_visible(timeout=_E2E_TIMEOUT)
+        mp.select_plot("Settings Test Bar")
+        mp.set_advanced_settings(True)
+        mp.select_settings_section("Axes")
+        mp.select_axis("X-Axis")
+        tick_text = shared_page.get_by_text("Tick Marks & Grid", exact=True)
+        expect(tick_text).to_be_visible(timeout=_E2E_TIMEOUT)
 
     def test_tick_pad_in_axes_pill(self, shared_page: Page) -> None:
-        """B1: Tick pad (distance) should be under the Axes pill."""
+        """X-axis tick label distance is editable under Axes."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
-        shared_page.wait_for_timeout(500)
-
-        first_pill = mp.plot_selector_pills.locator("button").first
-        first_pill.click()
-        mp.wait_for_streamlit()
-
-        mp.toggle_advanced_settings()
-
-        axes_pill = mp.viz_settings_pills.get_by_text("Axes")
-        axes_pill.click()
-        mp.wait_for_streamlit()
-
-        # Tick pad / distance should be visible
-        tick_pad = shared_page.get_by_text("Tick Label Distance")
-        expect(tick_pad.first).to_be_visible(timeout=_E2E_TIMEOUT)
+        mp.select_plot("Settings Test Bar")
+        mp.set_advanced_settings(True)
+        mp.select_settings_section("Axes")
+        mp.select_axis("X-Axis")
+        expect(
+            shared_page.get_by_label("X-Axis Tick Label Distance (px)", exact=True)
+        ).to_be_visible(timeout=_E2E_TIMEOUT)
 
     def test_yaxis_standoff_in_axes_pill(self, shared_page: Page) -> None:
-        """B2: Y-axis title standoff should be under Axes Y-Left section."""
+        """Y-axis title standoff is editable under Y-Left."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
-        shared_page.wait_for_timeout(500)
-
-        first_pill = mp.plot_selector_pills.locator("button").first
-        first_pill.click()
-        mp.wait_for_streamlit()
-
-        mp.toggle_advanced_settings()
-
-        axes_pill = mp.viz_settings_pills.get_by_text("Axes")
-        axes_pill.click()
-        mp.wait_for_streamlit()
-
-        # Y-axis tab/section — look for standoff slider
-        standoff_text = shared_page.get_by_text("Title Standoff")
-        expect(standoff_text.first).to_be_visible(timeout=_E2E_TIMEOUT)
+        mp.select_plot("Settings Test Bar")
+        mp.set_advanced_settings(True)
+        mp.select_settings_section("Axes")
+        mp.select_axis("Y-Left")
+        expect(
+            shared_page.get_by_label("Y-Axis Title Standoff (Spacing)", exact=True)
+        ).to_be_visible(timeout=_E2E_TIMEOUT)
 
     def test_typography_only_fonts_and_colors(self, shared_page: Page) -> None:
-        """After B1-B3: Typography should only have font sizes and colors."""
+        """Typography exposes font controls while tick controls belong to Axes."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
-        shared_page.wait_for_timeout(500)
-
-        first_pill = mp.plot_selector_pills.locator("button").first
-        first_pill.click()
-        mp.wait_for_streamlit()
-
-        mp.toggle_advanced_settings()
-
-        # Click Typography pill
-        typo_pill = mp.viz_settings_pills.get_by_text("Typography")
-        expect(typo_pill).to_be_visible(timeout=_E2E_TIMEOUT)
-        typo_pill.click()
-        mp.wait_for_streamlit()
-
-        # Font size widgets should be visible
-        font_size_text = shared_page.get_by_text("Font Size")
-        expect(font_size_text.first).to_be_visible(timeout=_E2E_TIMEOUT)
-
-        # Tick marks belong to Axes, not Typography.
-        tick_in_typo = shared_page.get_by_text("Tick Marks")
-        expect(tick_in_typo).not_to_be_visible(timeout=5_000)
+        mp.select_plot("Settings Test Bar")
+        mp.set_advanced_settings(True)
+        mp.select_settings_section("Typography")
+        expect(shared_page.get_by_label("Plot Title Font Size", exact=True)).to_be_visible(
+            timeout=_E2E_TIMEOUT
+        )
+        expect(shared_page.get_by_text("Tick Marks & Grid", exact=True)).not_to_be_visible(
+            timeout=5_000
+        )
 
 
-# Group 3: Legend Settings (C6/D1)
+# Group 3: Legend settings
 
 
 class TestLegendSettings:
-    """C6/D1: Legend settings should be accessible and functional."""
+    """Legend settings expose current positioning and column-layout controls."""
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture(autouse=True, scope="class")
+    @classmethod
     def _setup_plot(
-        self,
+        cls,
         shared_page: Page,
         live_server_url: str,
+        _reset_app_state: None,
     ) -> None:
-        """Navigate to Manage Plots and ensure a plot exists."""
-        bp = BasePage(shared_page)
-        bp.goto_and_wait(live_server_url)
-
-        mp = ManagePlotsPage(shared_page)
-        mp.navigate()
-        shared_page.wait_for_timeout(1_000)
-
-        if mp.no_plots_warning.is_visible(timeout=3_000):
-            mp.plot_name_input.fill("Legend Test Bar")
-            mp.create_plot_button.click()
-            mp.wait_for_streamlit()
+        """Prepare a rendered plot for this class's independent settings checks."""
+        _prepare_settings_plot(shared_page, live_server_url, "Legend Test Bar")
 
     def test_primary_legend_accessible(self, shared_page: Page) -> None:
-        """Primary legend settings should be visible under Legends pill."""
+        """The primary legend settings are available for the rendered bar plot."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
-        shared_page.wait_for_timeout(500)
+        mp.select_plot("Legend Test Bar")
+        mp.select_settings_section("Legends")
+        primary = shared_page.get_by_role("radiogroup", name="Legend", exact=True).get_by_role(
+            "radio", name="Primary"
+        )
+        expect(primary).to_be_visible(timeout=_E2E_TIMEOUT)
 
-        first_pill = mp.plot_selector_pills.locator("button").first
-        first_pill.click()
-        mp.wait_for_streamlit()
-
-        # Click Legends pill
-        legends_pill = mp.viz_settings_pills.get_by_text("Legends")
-        expect(legends_pill).to_be_visible(timeout=_E2E_TIMEOUT)
-        legends_pill.click()
-        mp.wait_for_streamlit()
-
-        # Primary pill should be visible
-        primary = shared_page.get_by_text("Primary")
-        expect(primary.first).to_be_visible(timeout=_E2E_TIMEOUT)
-
-    def test_valign_widget_in_legend(self, shared_page: Page) -> None:
-        """Vertical alignment selectbox should be visible in legend settings."""
+    def test_vertical_position_and_orientation_in_legend(self, shared_page: Page) -> None:
+        """Legend vertical position and orientation controls are available."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
-        shared_page.wait_for_timeout(500)
+        mp.select_plot("Legend Test Bar")
+        mp.select_settings_section("Legends")
+        expect(shared_page.get_by_label("Y Position", exact=True)).to_be_visible(
+            timeout=_E2E_TIMEOUT
+        )
+        expect(shared_page.get_by_role("combobox", name="Orientation", exact=True)).to_be_visible(
+            timeout=_E2E_TIMEOUT
+        )
 
-        first_pill = mp.plot_selector_pills.locator("button").first
-        first_pill.click()
-        mp.wait_for_streamlit()
-
-        legends_pill = mp.viz_settings_pills.get_by_text("Legends")
-        legends_pill.click()
-        mp.wait_for_streamlit()
-
-        # Vertical Align should be visible
-        valign = shared_page.get_by_text("Vertical Align")
-        expect(valign.first).to_be_visible(timeout=_E2E_TIMEOUT)
-
-    def test_col_width_widget_in_legend(self, shared_page: Page) -> None:
-        """Column width input should be visible in legend settings."""
+    def test_column_count_and_spacing_in_legend(self, shared_page: Page) -> None:
+        """Legend column count and spacing controls are available."""
         mp = ManagePlotsPage(shared_page)
         mp.navigate()
-        shared_page.wait_for_timeout(500)
-
-        first_pill = mp.plot_selector_pills.locator("button").first
-        first_pill.click()
-        mp.wait_for_streamlit()
-
-        legends_pill = mp.viz_settings_pills.get_by_text("Legends")
-        legends_pill.click()
-        mp.wait_for_streamlit()
-
-        # Column Width should be visible
-        col_width = shared_page.get_by_text("Column Width")
-        expect(col_width.first).to_be_visible(timeout=_E2E_TIMEOUT)
+        mp.select_plot("Legend Test Bar")
+        mp.select_settings_section("Legends")
+        expect(shared_page.get_by_label("Columns", exact=True)).to_be_visible(timeout=_E2E_TIMEOUT)
+        expect(shared_page.get_by_label("Column Spacing", exact=True)).to_be_visible(
+            timeout=_E2E_TIMEOUT
+        )

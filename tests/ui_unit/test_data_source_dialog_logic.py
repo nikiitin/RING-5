@@ -47,7 +47,7 @@ def mock_api() -> Any:
         e.strip() for e in s.split(",") if e.strip()
     ]
     api.data_services.format_entries_as_string.side_effect = lambda entries: ", ".join(entries)
-    api.data_services.filter_internal_stats.side_effect = lambda entries: entries
+    api.data_services.filter_internal_stats.side_effect = lambda entries, internal_stats: entries
     api.data_services.has_variable_with_name.return_value = False
     return api
 
@@ -101,7 +101,7 @@ def test_variable_config_dialog_manual_entry_vector(components_bundle: Any, mock
     assert args is not None
     new_vars = args[0][0]
     assert new_vars[0]["type"] == "vector"
-    entries = new_vars[0]["vectorEntries"]
+    entries = new_vars[0]["params"]["entries"]
     # VariableEditor stores list of strings
     assert "cpu0" in entries
 
@@ -111,8 +111,20 @@ def test_variable_config_dialog_search_scanned(components_bundle: Any, mock_api:
     mock_streamlit, DataSourceComponents = components_bundle
 
     scanned = [
-        {"name": "system.cpu.ipc", "type": "scalar", "id": "ipc"},
-        {"name": "system.l2.misses", "type": "vector", "entries": ["cpu0", "cpu1"]},
+        {
+            "name": "system.cpu.ipc",
+            "type": "scalar",
+            "entries": [],
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
+            "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
+        },
+        {
+            "name": "system.l2.misses",
+            "type": "vector",
+            "entries": ["cpu0", "cpu1"],
+            "source_evidence": {"state": "resolved", "kind": "vector", "basis": "backend_metadata"},
+            "instances": [{"source_name": "system.l2.misses", "indices": []}],
+        },
     ]
     mock_api.state_manager.get_scanned_variables.return_value = scanned
 
@@ -144,3 +156,37 @@ def test_variable_config_dialog_validation_fail(components_bundle: Any, mock_api
 
     mock_streamlit.error.assert_called_with("Variable name is required.")
     mock_api.state_manager.set_parse_variables.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "source_kind, entries, suffix",
+    [
+        ("scalar", [], " (Grouped 2x)"),
+        ("vector", ["a", "b"], " [2 items] (Grouped 2x)"),
+    ],
+)
+def test_scanned_pattern_labels_distinguish_source_instances_from_measurement_entries(
+    components_bundle, mock_api, source_kind, entries, suffix
+):
+    mock_streamlit, components = components_bundle
+    pattern = r"cpu\d+.value"
+    mock_api.state_manager.get_scanned_variables.return_value = [
+        {
+            "name": pattern,
+            "type": "vector",
+            "entries": entries,
+            "source_evidence": {
+                "state": "resolved",
+                "kind": source_kind,
+                "basis": "backend_metadata",
+            },
+            "instances": [
+                {"source_name": "cpu0.value", "indices": ["0"]},
+                {"source_name": "cpu1.value", "indices": ["1"]},
+            ],
+        }
+    ]
+    mock_streamlit.pills.return_value = "Search Scanned Variables"
+    with patch.object(ds_module, "filtered_selectbox", return_value=None) as selector:
+        components.variable_config_dialog(mock_api)
+    assert selector.call_args.args[1] == [f"{pattern} (vector){suffix}"]

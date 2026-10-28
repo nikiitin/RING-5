@@ -1,12 +1,17 @@
 """Tests for bounded browser-upload validation and normalization."""
 
 from __future__ import annotations
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
+from src.core.common.typed_table_codec import TypedTableCodec
+import pandas as pd
 
 import io
 import json
 from pathlib import Path
 
 import pytest
+
+from tests.helpers.portfolios import portfolio_document
 from openpyxl import Workbook
 
 from src.core.services.browser_upload_service import BrowserUploadService
@@ -93,12 +98,9 @@ def test_upload_validation_rejects_unsafe_or_mismatched_content(
 
 def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) -> None:
     payload = json.dumps(
-        {
-            "schema_version": 3,
-            "data_csv": "benchmark,ipc\nalpha,1.25\n",
-            "plots": [],
-            "config": {},
-        }
+        portfolio_document(
+            data=TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [1.25]}))
+        )
     ).encode()
     upload = BrowserUploadService.inspect(
         "analysis.json",
@@ -108,10 +110,12 @@ def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) 
     )
 
     assert upload.kind == "portfolio"
-    assert upload.portfolio_schema_version == 4
+    assert upload.portfolio_schema_version == CURRENT_PORTFOLIO_SCHEMA_VERSION
     assert upload.portfolio_plot_count == 0
     assert upload.portfolio_has_data is True
-    assert BrowserUploadService.load_portfolio(upload)["data_csv"].startswith("benchmark")
+    assert TypedTableCodec.decode(BrowserUploadService.load_portfolio(upload)["data"])[
+        "benchmark"
+    ].tolist() == ["alpha"]
 
     Path(upload.source_path).write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="changed after validation"):
@@ -120,13 +124,9 @@ def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) 
 
 def test_signed_portfolio_upload_requires_matching_secret_when_requested(tmp_path: Path) -> None:
     # [test->req~ring5.portfolio.signed-manifests~1]
-    document = {
-        "schema_version": 4,
-        "version": "4.0",
-        "data_csv": "benchmark,ipc\nalpha,1.25\n",
-        "plots": [],
-        "config": {},
-    }
+    document = portfolio_document(
+        data=TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [1.25]}))
+    )
     document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(
         document,
         signing_key="shared upload secret",
@@ -152,20 +152,16 @@ def test_signed_portfolio_upload_requires_matching_secret_when_requested(tmp_pat
         signing_key="shared upload secret",
         require_signature=True,
     )
-    assert restored["data_csv"].startswith("benchmark")
+    assert TypedTableCodec.decode(restored["data"])["benchmark"].tolist() == ["alpha"]
 
 
 def test_modified_manifest_portfolio_upload_is_rejected_before_staging(tmp_path: Path) -> None:
     # [test->req~ring5.portfolio.signed-manifests~1]
-    document = {
-        "schema_version": 4,
-        "version": "4.0",
-        "data_csv": "benchmark,ipc\nalpha,1.25\n",
-        "plots": [],
-        "config": {},
-    }
+    document = portfolio_document(
+        data=TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [1.25]}))
+    )
     document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(document)
-    document["data_csv"] = "benchmark,ipc\nalpha,9.99\n"
+    document["data"] = TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [9.99]}))
 
     with pytest.raises(ValueError, match="does not match"):
         BrowserUploadService.inspect(
@@ -176,15 +172,22 @@ def test_modified_manifest_portfolio_upload_is_rejected_before_staging(tmp_path:
         )
 
 
-def test_portable_bundle_is_summarized_and_reverified_before_restore(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "content_type",
+    [
+        "",
+        "application/octet-stream",
+        "application/zip",
+        "application/vnd.ring5.portfolio-bundle+zip",
+    ],
+)
+def test_portable_bundle_is_summarized_and_reverified_before_restore(
+    tmp_path: Path, content_type: str
+) -> None:
     # [test->req~ring5.portfolio.portable-bundles~1]
-    document = {
-        "schema_version": 4,
-        "version": "4.0",
-        "data_csv": "benchmark,ipc\nalpha,1.25\n",
-        "plots": [],
-        "config": {},
-    }
+    document = portfolio_document(
+        data=TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [1.25]}))
+    )
     document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(document)
     payload = PortfolioBundleService.create(
         "portable-analysis",
@@ -196,7 +199,7 @@ def test_portable_bundle_is_summarized_and_reverified_before_restore(tmp_path: P
 
     upload = BrowserUploadService.inspect(
         "portable-analysis.ring5-bundle",
-        "application/zip",
+        content_type,
         payload,
         tmp_path,
     )
@@ -250,3 +253,75 @@ def test_csv_uses_browser_specific_size_row_and_cell_limits(
             b"a\n123\n",
             tmp_path,
         )
+
+
+@pytest.mark.parametrize(
+    "limit,value,message",
+    [
+        ("MAX_BROWSER_UPLOAD_ARCHIVE_MEMBERS", 1, "Expanded Excel archive"),
+        ("MAX_BROWSER_UPLOAD_BYTES", 32, "Expanded Excel archive"),
+        ("MAX_BROWSER_UPLOAD_ARCHIVE_MEMBER_BYTES", 32, "expanded-size"),
+        ("MAX_BROWSER_UPLOAD_COMPRESSION_RATIO", 2, "compression-ratio"),
+    ],
+)
+def test_excel_archive_preflight_rejects_resources_before_workbook_loading(
+    monkeypatch, limit, value, message
+) -> None:
+    from zipfile import ZipFile, ZIP_DEFLATED
+    from src.core.services import browser_upload_service as module
+
+    output = io.BytesIO()
+    with ZipFile(output, "w", compression=ZIP_DEFLATED) as archive:
+        archive.writestr("one.xml", "x" * 512)
+        archive.writestr("two.xml", "small")
+    monkeypatch.setattr(module, limit, value)
+
+    def forbidden_loader(*args, **kwargs):
+        raise AssertionError("Oversized archives must be rejected before openpyxl loads members")
+
+    monkeypatch.setattr(module, "load_workbook", forbidden_loader)
+    with pytest.raises(ValueError, match=message):
+        module._excel_records(output.getvalue())
+
+
+@pytest.mark.parametrize("declared_dimensions", [True, False])
+def test_sparse_excel_ranges_are_bounded_even_without_dimensions(
+    monkeypatch, declared_dimensions
+) -> None:
+    from zipfile import ZipFile, ZIP_DEFLATED
+    import re
+    from src.core.services import browser_upload_service as module
+
+    workbook = Workbook()
+    workbook.active.append(["value"])
+    workbook.active.cell(row=20, column=1, value=7)
+    output = io.BytesIO()
+    workbook.save(output)
+    workbook.close()
+    raw = output.getvalue()
+    if not declared_dimensions:
+        rewritten = io.BytesIO()
+        with (
+            ZipFile(io.BytesIO(raw)) as source,
+            ZipFile(rewritten, "w", compression=ZIP_DEFLATED) as target,
+        ):
+            for member in source.infolist():
+                content = source.read(member.filename)
+                if member.filename == "xl/worksheets/sheet1.xml":
+                    content = re.sub(rb"<dimension[^>]*/>", b"", content)
+                target.writestr(member, content)
+        raw = rewritten.getvalue()
+    monkeypatch.setattr(module, "MAX_BROWSER_UPLOAD_ROWS", 10)
+    with pytest.raises(ValueError, match="row limit|at most 10 rows"):
+        module._excel_records(raw)
+
+
+def test_unsupported_extension_is_rejected_before_staging(tmp_path: Path) -> None:
+    destination = tmp_path / "uploads"
+
+    with pytest.raises(ValueError, match="Upload filename must end in"):
+        BrowserUploadService.inspect(
+            "measurements.txt", "text/plain", b"benchmark,ipc\nalpha,1.25\n", destination
+        )
+
+    assert not destination.exists()

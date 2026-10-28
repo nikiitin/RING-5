@@ -27,7 +27,7 @@ class TestEngineSelector:
         assert call_kwargs[0][0] == "Engine"
         assert call_kwargs[1]["options"] == ["plotly", "matplotlib"]
         assert call_kwargs[1]["default"] == "plotly"
-        assert "engine_selector_5" in call_kwargs[1]["key"]
+        assert call_kwargs[1]["key"] == "plot.5.widgets.engine_selector"
 
     @patch(f"{_PRESENTER}.st")
     def test_returns_selected_engine(self, mock_st: MagicMock) -> None:

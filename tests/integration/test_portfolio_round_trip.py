@@ -1,5 +1,7 @@
 """Round-trip tests for CSV pools, configurations, portfolios, and plot types."""
 
+from ring5 import Session
+
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import patch
@@ -37,16 +39,16 @@ class TestCsvPoolCycle:
             return_value=tmp_path / ".ring5",
         ):
             # Add to pool
-            pool_path: str = facade.add_to_csv_pool(str(source_csv))
+            pool_path: str = facade.data_services.add_to_csv_pool(str(source_csv))
             assert Path(pool_path).exists()
 
             # Load from pool
-            loaded_df: pd.DataFrame = facade.load_csv_file(pool_path)
+            loaded_df: pd.DataFrame = facade.data_services.load_csv_file(pool_path)
             assert len(loaded_df) == len(rich_sample_data)
             assert set(loaded_df.columns) == set(rich_sample_data.columns)
 
             # Delete from pool
-            deleted: bool = facade.delete_from_csv_pool(pool_path)
+            deleted: bool = facade.data_services.delete_from_csv_pool(pool_path)
             assert deleted is True
             assert not Path(pool_path).exists()
 
@@ -64,9 +66,9 @@ class TestCsvPoolCycle:
             "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
             return_value=tmp_path / ".ring5",
         ):
-            facade.add_to_csv_pool(str(csv_one))
+            facade.data_services.add_to_csv_pool(str(csv_one))
 
-            pool: list[CsvPoolEntry] = facade.load_csv_pool()
+            pool: list[CsvPoolEntry] = facade.data_services.load_csv_pool()
             assert len(pool) >= 1
             # Verify metadata present
             assert "path" in pool[0]
@@ -108,7 +110,7 @@ class TestConfigurationRoundTrip:
             return_value=tmp_path / ".ring5",
         ):
             # Save
-            saved_path: str = facade.save_configuration(
+            saved_path: str = facade.data_services.save_configuration(
                 name="test_config",
                 description="Integration test config",
                 shapers_config=pipeline,
@@ -116,7 +118,7 @@ class TestConfigurationRoundTrip:
             assert Path(saved_path).exists()
 
             # Load
-            loaded: SavedConfigData = facade.load_configuration(saved_path)
+            loaded: SavedConfigData = facade.data_services.load_configuration(saved_path)
             assert loaded["name"] == "test_config"
             assert loaded.get("description") == "Integration test config"
             assert len(loaded["shapers"]) == 2
@@ -138,10 +140,10 @@ class TestConfigurationRoundTrip:
             "src.core.services.data_services.config_service.PathService.get_data_dir",
             return_value=tmp_path / ".ring5",
         ):
-            saved_path: str = facade.save_configuration("deletable", "Desc", pipeline)
+            saved_path: str = facade.data_services.save_configuration("deletable", "Desc", pipeline)
             assert Path(saved_path).exists()
 
-            deleted: bool = facade.delete_configuration(saved_path)
+            deleted: bool = facade.data_services.delete_configuration(saved_path)
             assert deleted is True
             assert not Path(saved_path).exists()
 
@@ -156,6 +158,7 @@ class TestMultiPlotStateConsistency:
         self,
         state_manager: RepositoryStateManager,
         rich_sample_data: pd.DataFrame,
+        plot_session: Session,
     ) -> None:
         """Three plots of different types coexist in state."""
         bar_plot: BasePlot = PlotService.create_plot(
@@ -185,7 +188,9 @@ class TestMultiPlotStateConsistency:
         }
 
         for plot in [bar_plot, line_plot, scatter_plot]:
-            fig: go.Figure = plot.create_figure(rich_sample_data, config)
+            plot.processed_data = rich_sample_data
+            plot.config = config
+            fig: go.Figure = cast(go.Figure, plot_session.render(plot))
             assert isinstance(fig, go.Figure)
             assert len(list(fig.data)) > 0
 
@@ -253,6 +258,7 @@ class TestPlotTypeSwitchWithData:
         self,
         state_manager: RepositoryStateManager,
         rich_sample_data: pd.DataFrame,
+        plot_session: Session,
     ) -> None:
         """After type switch, new type can render a figure."""
         plot: BasePlot = PlotService.create_plot(
@@ -272,7 +278,9 @@ class TestPlotTypeSwitchWithData:
             "xlabel": "Cycles",
             "ylabel": "IPC",
         }
-        fig: go.Figure = new_plot.create_figure(rich_sample_data, config)
+        new_plot.processed_data = rich_sample_data
+        new_plot.config = config
+        fig: go.Figure = cast(go.Figure, plot_session.render(new_plot))
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) > 0
 

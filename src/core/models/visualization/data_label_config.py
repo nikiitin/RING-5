@@ -2,14 +2,16 @@
 Data label configuration — annotations on bars, points, and markers.
 
 Controls how numeric value labels appear on plot traces (e.g., bar values,
-point annotations). Settings map to widget section ``DATA_LABELS`` in
-``widget_def.py``.
+point annotations). The Data Labels settings component supplies the corresponding
+figure configuration.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Literal
+
+from src.core.models.visualization._config_fields import model_fields
 
 
 @dataclass(frozen=True)
@@ -78,11 +80,15 @@ class DataLabelConfig:
         """Deserialize from a plain dictionary.
 
         Args:
-            data: Dictionary with spec fields. Unknown keys are ignored.
+            data: Current spec fields; omitted fields use their defaults.
 
         Returns:
             New DataLabelConfig instance.
+
+        Raises:
+            TypeError: An object shape or field name is unsupported.
         """
+        data = model_fields(data, cls, "DataLabelConfig")
         return cls(
             enabled=bool(data.get("enabled", False)),
             color_mode=data.get("color_mode", "auto"),

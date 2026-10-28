@@ -3,7 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <title>Streamlit Interactive Plotly</title>
-    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
       body {
         margin: 0;
@@ -45,12 +44,77 @@
         },
       };
 
+      // The parent's React listener may mount after this iframe. Keep the
+      // readiness handshake within Streamlit's existing 60-second deadline.
+      var readyTimer = null;
+      var readyDeadline = 0;
+
+      function stopReadyAnnouncements() {
+        readyDeadline = 0;
+        if (readyTimer !== null) {
+          window.clearTimeout(readyTimer);
+          readyTimer = null;
+        }
+      }
+
+      function announceReady() {
+        readyTimer = null;
+        var remaining = readyDeadline - performance.now();
+        if (remaining <= 0) return;
+        sendMessageToStreamlitClient("streamlit:componentReady", {
+          apiVersion: 1,
+        });
+        readyTimer = window.setTimeout(announceReady, Math.min(250, remaining));
+      }
+
       function onRender(event) {
         var args = event.data.args;
-        if (!args.spec) return;
+        if (
+          !args ||
+          typeof args !== "object" ||
+          Array.isArray(args) ||
+          typeof args.spec !== "string" ||
+          typeof args.plotly_js !== "string" ||
+          !args.plotly_js ||
+          typeof args.plotly_version !== "string" ||
+          !args.plotly_version ||
+          (args.config !== undefined && typeof args.config !== "string")
+        )
+          return;
 
-        var spec = JSON.parse(args.spec);
-        var config = args.config ? JSON.parse(args.config) : {};
+        var spec;
+        var config;
+        try {
+          spec = JSON.parse(args.spec);
+          config = args.config ? JSON.parse(args.config) : {};
+        } catch (error) {
+          if (error instanceof SyntaxError) return;
+          throw error;
+        }
+        if (
+          !spec ||
+          typeof spec !== "object" ||
+          Array.isArray(spec) ||
+          !Array.isArray(spec.data) ||
+          (spec.layout !== undefined &&
+            (!spec.layout ||
+              typeof spec.layout !== "object" ||
+              Array.isArray(spec.layout))) ||
+          !config ||
+          typeof config !== "object" ||
+          Array.isArray(config)
+        )
+          return;
+
+        // Only a validated parent render acknowledges the readiness handshake.
+        stopReadyAnnouncements();
+
+        if (window._ring5_plotly_version !== args.plotly_version) {
+          var bundle = document.createElement("script");
+          bundle.textContent = args.plotly_js;
+          document.head.appendChild(bundle);
+          window._ring5_plotly_version = args.plotly_version;
+        }
 
         // Ensure responsive is strictly true if not set
         if (config.responsive === undefined) {
@@ -101,7 +165,8 @@
 
       function handleSelection(graphDiv, eventData) {
         if (!graphDiv._streamlit_capture_selection) return;
-        var points = eventData && Array.isArray(eventData.points) ? eventData.points : [];
+        var points =
+          eventData && Array.isArray(eventData.points) ? eventData.points : [];
         var cleanPoints = points.map(function (point) {
           return {
             curveNumber: point.curveNumber,
@@ -125,7 +190,9 @@
             payload = Array.isArray(payload) ? payload[index] : null;
           }
         } else {
-          var position = Number.isInteger(pointNumber) ? pointNumber : point.pointIndex;
+          var position = Number.isInteger(pointNumber)
+            ? pointNumber
+            : point.pointIndex;
           payload = Array.isArray(payload) ? payload[position] : null;
         }
         return payload && typeof payload === "object" && !Array.isArray(payload)
@@ -134,8 +201,14 @@
       }
 
       function handlePlotClick(graphDiv, eventData) {
-        if (!graphDiv._streamlit_capture_click) return;
-        var point = eventData && Array.isArray(eventData.points) ? eventData.points[0] : null;
+        if (
+          !graphDiv._streamlit_capture_click ||
+          !eventData ||
+          !Array.isArray(eventData.points) ||
+          eventData.points.length !== 1
+        )
+          return;
+        var point = eventData.points[0];
         var filters = drillDownFilters(point);
         if (!point || filters === null) return;
         Streamlit.setComponentValue({
@@ -152,15 +225,23 @@
 
       // Hook into Streamlit events
       window.addEventListener("message", function (event) {
-        if (event.data.type === "streamlit:render") {
+        // Installed component assets share the Streamlit parent's origin.
+        if (
+          event.source === window.parent &&
+          event.origin === window.location.origin &&
+          event.data &&
+          typeof event.data === "object" &&
+          !Array.isArray(event.data) &&
+          event.data.type === "streamlit:render"
+        ) {
           onRender(event);
         }
       });
 
-      // Notify Streamlit we are ready
-      sendMessageToStreamlitClient("streamlit:componentReady", {
-        apiVersion: 1,
-      });
+      window.addEventListener("pagehide", stopReadyAnnouncements);
+      window.addEventListener("unload", stopReadyAnnouncements);
+      readyDeadline = performance.now() + 60000;
+      announceReady();
     </script>
   </body>
 </html>

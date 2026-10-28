@@ -5,10 +5,6 @@ parent: Getting Started
 grand_parent: User Guide
 nav_order: 3
 permalink: /user-guide/getting-started/first-analysis/
-redirect_from:
-  - /user-guide/getting-started/first-steps/
-  - /user-guide/tutorials/create-bar-chart/
-  - /user-guide/tutorials/load-and-explore/
 ---
 
 # First analysis
@@ -20,68 +16,73 @@ Covers:
 - req~ring5.workspace.data-preview~1
 -->
 
-This workflow parses one metric from a gem5 results tree, creates a bar plot, and exports it. Use a
-results directory that contains at least one `stats.txt` file with `simTicks`.
+Create a bar chart from a small supplied table, export it, and save the workspace. This walkthrough
+uses synthetic tutorial values, so no simulator files or optional export tools are needed.
+For a ready-made gallery, start with [Explore the example portfolio]({{site.baseurl}}/user-guide/getting-started/showcase/).
 
-## Parse the results
+## Prepare the input
 
-1. Start RING-5 with `make run` and leave **Data Source** selected.
-2. Keep **Parse gem5 Stats Files** selected. Enter the results root in **Stats directory path** and
-   keep `stats.txt` in **File pattern**. The directory must be below one of the allowed statistics
-   roots displayed above the path field.
-3. Select **Quick Scan**. When the scan finishes, select **Add Variable**, search for `simTicks`,
-   and select **Add to Configuration**.
-4. Select **Parse gem5 Stats Files**. When parsing completes, the page shows the loaded row and
-   column counts.
+After [installation]({{site.baseurl}}/user-guide/getting-started/installation/), start `make run` and open <http://localhost:8501>.
+Save this text as `first-analysis.csv` on your computer:
 
-If `simTicks` is absent from some runs, stop and inspect those files. The default parser behavior
-keeps missing statistics visible rather than inventing values.
-
-## Create the plot
-
-1. Open **Manage Plots** from the sidebar.
-2. In **Create New Plot**, name the plot `Simulation ticks`, select the `bar` plot type, and select
-   **Create Plot**.
-3. In **Data Processing Pipeline**, add a selector or sorting step only if the raw table needs it,
-   then select **Finalize Pipeline for Plotting**.
-4. Under **Plot Configuration**, select a categorical column for the X axis and `simTicks` for the
-   Y axis. RING-5 generates the first figure automatically; use **Refresh Plot** after later changes
-   when automatic refresh is disabled.
-5. Select Plotly for interactive inspection or Matplotlib for a static figure.
-
-The parser derives configuration columns from the results directory structure. Choose the column
-that identifies the comparison you intend to make; do not assume every results tree produces the
-same names.
-
-## Export the result
-
-Use the download controls below the figure. A Matplotlib PDF works without a LaTeX installation.
-For the engine-specific format list and optional dependencies, see
-[Rendering and Export]({{site.baseurl}}/user-guide/reference/rendering-export/).
-
-## Run the same minimal plot in Python
-
-The supported API accepts any suitable DataFrame:
-
-```python
-import pandas as pd
-import ring5
-
-data = pd.DataFrame(
-    {"benchmark": ["mcf", "xalancbmk"], "simTicks": [4.2e11, 3.8e11]}
-)
-
-with ring5.Session() as session:
-    spec = ring5.FigureSpec(
-        x="benchmark",
-        y_columns=["simTicks"],
-        title="Simulation ticks",
-    )
-    figure = session.plot(
-        "bar", data=data, config=spec, engine="matplotlib"
-    )
-    session.export(figure, "simulation-ticks.pdf")
+```csv
+benchmark,ipc
+mcf,1.08
+xalancbmk,1.31
+lbm,0.92
 ```
 
-Continue with [Load and Parse Data]({{site.baseurl}}/user-guide/workflows/loading-data/) or
-[Compare Configurations]({{site.baseurl}}/user-guide/guides/compare-configurations/).
+## Review and load the table
+
+1. Open **Data Source** in the sidebar and select **Upload data or portfolio**.
+2. Upload `first-analysis.csv`. Review the detected columns and accepted/rejected row counts.
+3. Check that `benchmark` is text, `ipc` is numeric, all three rows are accepted, and no rows are
+   rejected. The preview must contain the values shown above.
+4. Select **Load accepted rows**. The workspace header now reports three rows and two columns.
+
+The review does not alter the workspace until you accept it. For encodings, delimiters, Excel,
+remote sources, and parsing gem5 output, see
+[Load and parse data]({{site.baseurl}}/user-guide/workflows/loading-data/).
+
+## Create and check the chart
+
+1. Open **Manage Plots**. Set **New plot name** to `First IPC comparison`, choose `bar` in
+   **Plot type**, and select **Create Plot**.
+2. Under **Data Processing Pipeline**, choose **Column Selector** in **Add transformation**
+   and select **Add to Pipeline**. In **1. Column Selector**, set **Columns to keep** to
+   `benchmark` and `ipc`. Check that its preview retains all three rows and both columns, then
+   select **Finalize Pipeline for Plotting**.
+3. Under **Plot Configuration**, set **X-axis** to `benchmark` and **Y-axis** to `ipc`.
+   Set **Title** to `IPC by benchmark` and **Y-label** to `Instructions per cycle`.
+4. Check the rendered bars: `mcf` is 1.08, `xalancbmk` is 1.31, and `lbm` is 0.92.
+   If **Auto-refresh** is off, select **Refresh Plot** after changing configuration.
+
+Do not add a reduction step here: every benchmark already has one observation. With repeated runs,
+choose the intended grouping and reduction explicitly; see
+[Compare configurations]({{site.baseurl}}/user-guide/guides/compare-configurations/).
+
+## Export the figure
+
+Under **Engine**, choose **Plotly** to inspect values on hover. Open **Download**, select `html`
+in **Format**, and select **Download HTML**. The self-contained file includes the interactive figure
+and its source-data table.
+
+For a paper-ready static file, choose **LaTeX (Matplotlib)**, open **Download**, select `pdf`, and
+select **Download PDF**. Ordinary Matplotlib PDF needs no TeX installation; PGF does. Plotly static
+images require Chrome. See
+[Rendering and export]({{site.baseurl}}/user-guide/reference/rendering-export/) for the exact formats
+and dependencies.
+
+## Save and reopen your work
+
+Open **Save/Load Portfolio**, set **Portfolio Name** to `First IPC analysis`, and select
+**Save Portfolio**. The saved portfolio contains the table, plot, pipeline, and figure settings.
+To reopen it, choose the name under **Select Portfolio**, review **Portfolio integrity**, and select
+**Load Portfolio**. Return to **Manage Plots** and check the same bar values.
+
+The web application replaces a saved portfolio with the same exact name. Use a new name when you
+want to retain the earlier saved workspace; see
+[Manage portfolios]({{site.baseurl}}/user-guide/workflows/portfolios/).
+
+Continue with the [example tour]({{site.baseurl}}/user-guide/getting-started/showcase/) for other chart types, or run a complete
+[Python analysis]({{site.baseurl}}/user-guide/workflows/scripting/) using the supported public API.

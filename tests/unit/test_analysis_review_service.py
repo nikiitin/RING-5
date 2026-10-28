@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.models import AnalysisReviewTarget
+from src.core.models.analysis_review_models import AnalysisReviewTarget
 from src.core.services import analysis_review_service as review_module
 from src.core.services.analysis_review_service import AnalysisReviewService
 

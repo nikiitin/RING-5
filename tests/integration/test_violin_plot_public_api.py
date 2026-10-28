@@ -34,7 +34,9 @@ def test_public_violin_plot_renders_both_engines_with_density_controls() -> None
     }
 
     with ring5.Session() as session:
-        plot = session.create_plot("violin", data=data, config=config, name="IPC density")
+        plot = session.create_plot(
+            "violin", data=ring5.Table(data), config=config, name="IPC density"
+        )
         plotly_figure = session.render(plot, engine="plotly")
         matplotlib_figure = session.render(plot, engine="matplotlib")
 

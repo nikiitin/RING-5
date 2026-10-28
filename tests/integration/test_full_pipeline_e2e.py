@@ -120,6 +120,7 @@ class TestPipelineEndToEnd:
         """Pipeline: filter configs → normalize against baseline."""
         pipeline_config = [
             {
+                "mode": "in",
                 "type": "conditionSelector",
                 "column": "config_description",
                 "values": ["baseline", "optimized"],
@@ -151,6 +152,7 @@ class TestPipelineEndToEnd:
         """Pipeline: filter → normalize → compute geometric mean."""
         pipeline_config = [
             {
+                "mode": "in",
                 "type": "conditionSelector",
                 "column": "config_description",
                 "values": ["baseline", "optimized"],
@@ -222,7 +224,7 @@ class TestPipelineEndToEnd:
                 "columns": ["benchmark_name", "system.cpu.ipc"],
             },
         ]
-        with pytest.raises(ValueError, match="step 0 has no 'type'"):
+        with pytest.raises(ValueError, match="registered shaper type"):
             PipelineService.process_pipeline(pipeline_data, pipeline_config)
 
     def test_pipeline_invalid_shaper_raises(self, pipeline_data: pd.DataFrame) -> None:

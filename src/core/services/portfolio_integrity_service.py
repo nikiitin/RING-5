@@ -9,14 +9,17 @@ import re
 from collections.abc import Mapping
 from typing import Any, cast
 
-from src.core.models import PortfolioIntegrityReport, PortfolioIntegritySection
+from src.core.models.portfolio_integrity_models import (
+    PortfolioIntegrityReport,
+    PortfolioIntegritySection,
+)
 
 _DIGEST = re.compile(r"^[0-9a-f]{64}$")
 _SECTION_NAMES = ("inputs", "configuration", "outputs")
 _INPUT_KEYS = (
     "csv_path",
-    "data_csv",
-    "data_semantics",
+    "data",
+    "loaded_origin",
     "parse_variables",
     "scanned_variables",
     "stats_path",
@@ -30,7 +33,7 @@ _CONFIGURATION_KEYS = (
     "portfolio_history",
     "shapers",
 )
-_OUTPUT_PLOT_KEYS = ("id", "processed_data", "processed_semantics")
+_OUTPUT_PLOT_KEYS = ("id", "source_data", "processed_data")
 _MAX_SIGNING_KEY_BYTES = 4096
 _MAX_KEY_ID_LENGTH = 128
 
@@ -105,19 +108,10 @@ class PortfolioIntegrityService:
             signing_key: Optional shared secret for HMAC verification.
 
         Returns:
-            A structured result that distinguishes legacy, checksum-only,
+            A structured result that distinguishes invalid manifests, checksum-only,
             unverified-signature, verified-signature, and modified states.
         """
         manifest = portfolio.get("integrity_manifest")
-        if manifest is None:
-            return PortfolioIntegrityReport(
-                status="legacy-unverified",
-                message="Legacy portfolio — no integrity manifest is available.",
-                checksum_valid=None,
-                signature_present=False,
-                signature_valid=None,
-                key_id=None,
-            )
         parsed = cls._parse_manifest(manifest)
         if isinstance(parsed, str):
             return PortfolioIntegrityReport(

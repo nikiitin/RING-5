@@ -2,7 +2,6 @@
 
 from datetime import datetime, timezone
 
-import pandas as pd
 import streamlit as st
 
 from src.core.models.history_models import OperationRecord
@@ -35,6 +34,7 @@ class PreprocessorManager(DataManager):
         """)
 
         # Get current data
+        preview_inputs = self.api.capture_preview_inputs()
         data = self.get_data()
 
         if data is None:
@@ -50,10 +50,12 @@ class PreprocessorManager(DataManager):
         # Handle loaded operation from history
         loaded = UIStateManager().manager.consume_load_trigger("preprocessor")
         if loaded is not None:
-            op_str = loaded["operation"].replace("Preprocessor: ", "")
+            op_str = loaded["operation"].removeprefix("Preprocessor: ")
             operators = self.api.managers.list_operators()
-            if op_str in operators:
-                self._restore_selection("preprocessor", "op", op_str)
+            if op_str not in operators:
+                st.error("Saved arithmetic operation is unsupported.")
+                return
+            self._restore_selection("preprocessor", "op", op_str)
             src_cols = loaded["source_columns"]
             valid_src = [c for c in src_cols if c in numeric_cols]
             self._warn_removed_columns([c for c in src_cols if c not in numeric_cols])
@@ -120,6 +122,13 @@ class PreprocessorManager(DataManager):
             or ""
         )
 
+        operation_config = {
+            "operation": operation,
+            "src1": src_col1,
+            "src2": src_col2,
+            "dest": new_col_name,
+        }
+
         if st.button("Preview Result", key=WidgetKeyBuilder.manager_key("preprocessor", "preview")):
             try:
                 preview_data = self.api.managers.apply_operation(
@@ -133,36 +142,34 @@ class PreprocessorManager(DataManager):
                 st.success(f"Created column `{new_col_name}`!")
 
                 st.markdown("**Preview with new column:**")
-                preview_cols = [src_col1, src_col2, new_col_name]
+                preview_cols = list(dict.fromkeys([src_col1, src_col2, new_col_name]))
                 st.dataframe(preview_data[preview_cols].head(10), width="stretch")
 
                 st.markdown("**Statistics:**")
                 st.dataframe(preview_data[new_col_name].describe().to_frame(), width="stretch")
 
                 # Store in PreviewRepository via api
-                self.api.set_preview("preprocessor", preview_data)
+                self._store_preview("preprocessor", preview_data, operation_config, preview_inputs)
 
             except Exception as e:
                 st.exception(e)
 
         # Separate confirmation button outside the first button's scope
-        if self.api.has_preview("preprocessor"):
+        if self._preview_available("preprocessor", operation_config):
             if st.button(
                 "Confirm and Add Column to Dataset",
                 key=WidgetKeyBuilder.manager_key("preprocessor", "confirm"),
                 type="primary",
             ):
-                confirmed_data: pd.DataFrame | None = self.api.get_preview("preprocessor")
-                if confirmed_data is not None:
-                    self.set_data(
-                        confirmed_data,
-                        operation=f"Preprocessor: {operation}",
-                    )
-                    self.api.clear_preview("preprocessor")
+                confirmation = self._confirm_preview(
+                    "preprocessor", operation_config, f"Preprocessor: {operation}"
+                )
+                if confirmation is not None:
+                    confirmed_data, confirmed_config = confirmation
                     record: OperationRecord = {
-                        "source_columns": [src_col1, src_col2],
-                        "dest_columns": [new_col_name],
-                        "operation": f"Preprocessor: {operation}",
+                        "source_columns": [confirmed_config["src1"], confirmed_config["src2"]],
+                        "dest_columns": [confirmed_config["dest"]],
+                        "operation": f"Preprocessor: {confirmed_config['operation']}",
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     self.api.add_manager_history_record(record)

@@ -27,13 +27,14 @@ The converged pass inspected:
 - all 333 direct Streamlit control calls across 57 web modules;
 - plot, shaper, simulator and statistic registries;
 - parser strategies, variable types, internal statistic names and default file patterns;
-- public `Session`, `Table`, figure-builder, decoration and asynchronous-job members;
+- public `Session`, `Table`, immutable figure fields, decoration and asynchronous-job members;
 - `ApplicationAPI` and its manager, data-service and shaper sub-APIs;
 - CLI commands and command-qualified options;
 - parse, scan, restore, shaper and figure configuration schemas.
 
-The generator binds 556 live values from 45 discovery sources to explicit requirements. A new or
-renamed value makes `make oft-check` fail until the inventory records a decision.
+The generator binds the live values listed in the [generated summary](generated/summary.md) to
+explicit requirements. A new or renamed value makes `make oft-check` fail until the inventory
+records a decision.
 
 ## Convergence runs
 
@@ -82,7 +83,6 @@ gaps:
 | --- | --- |
 | Performance and Workspace pages | Removed navigation destinations. Visual tests explicitly verify their absence; stale AppTest names are not application features. |
 | Direct browser CSV upload | The legacy file uploader was removed. Existing CSVs enter through the recent pool or supported Python API; helper fixtures that stage files do not restore a web uploader. |
-| CSV, JSON and Excel `DataComponents.download_buttons` | Dormant helper called only by its unit test. The active table offers filtered CSV download, which is inventoried. |
 | Line-shape selector | The control stores a value but trace construction and both connectors do not consume it. It is not claimed as a working current feature. |
 | Portfolio pipeline-template section | Stale test naming; the active portfolio page has no template section. Saved shaper configurations are inventoried separately. |
 | Arbitrary Matplotlib TeX preamble | Intentionally disabled at the web boundary and covered by safe-output requirements. TeX engine selection remains supported. |

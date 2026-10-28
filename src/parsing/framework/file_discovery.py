@@ -2,7 +2,7 @@
 
 One implementation of "find the simulator output files under a directory", used by
 the application facade (browse), the scanner (discover variables), and the parse
-strategies (enumerate work). Path/pattern sanitisation is reused from
+strategies (enumerate work). Path/pattern validation is reused from
 ``src.core.common.utils``; this module knows nothing simulator-specific.
 """
 
@@ -18,7 +18,7 @@ from src.core.common.security_limits import (
     MAX_DISCOVERY_ENTRIES,
     MAX_DISCOVERY_SECONDS,
 )
-from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
+from src.core.common.utils import normalize_user_path, validate_stats_pattern
 
 
 class FileDiscoveryLimitError(RuntimeError):
@@ -50,6 +50,7 @@ def find_stats_files(
 
     Raises:
         FileNotFoundError: Only when ``raise_if_empty`` is True and nothing is found.
+        ValueError: The filename pattern is invalid or the limit is negative.
         OSError: The operating system rejects traversal of the search tree.
         FileDiscoveryLimitError: Traversal exceeds a file, entry, or time bound.
 
@@ -60,13 +61,12 @@ def find_stats_files(
     if limit < 0:
         raise ValueError("File discovery limit cannot be negative.")
 
+    safe_pattern = validate_stats_pattern(pattern)
     base: Path = normalize_user_path(os.path.normpath(search_path) if search_path else ".")
     if not base.exists():
         if raise_if_empty:
             raise FileNotFoundError(f"Stats path does not exist: {search_path}")
         return []
-
-    safe_pattern: str = sanitize_glob_pattern(pattern)
 
     requested_limit = limit if limit > 0 else MAX_DISCOVERED_FILES + 1
     files: list[Path] = []

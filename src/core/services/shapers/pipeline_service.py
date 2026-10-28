@@ -2,29 +2,93 @@
 
 Applies a sequence of shapers to a DataFrame. This is the single
 canonical pipeline-execution engine, exposed to the UI through
-``ApplicationAPI.apply_shapers`` / ``ShapersAPI.process_pipeline``.
+``ApplicationAPI.shapers.process_pipeline``.
 """
 
 import logging
+from collections.abc import Mapping, Sequence
 import time
 
 import pandas as pd
 
-from src.core.models.shaper_models import ShaperStepConfig
+from src.core.common.source_contributions import (
+    SOURCE_CONTRIBUTIONS_ATTR,
+    SourceTracker,
+    inspect_source_contributions,
+    without_source_contributions,
+)
+
+from src.core.common.distribution_metadata import (
+    inspect_distribution_layouts,
+    preserve_distribution_layouts,
+    with_distribution_layouts,
+)
+from src.core.services.shapers.definition import ShaperValidationError
 from src.core.services.shapers.factory import ShaperFactory
+from src.core.services.shapers.impl.derive_column import DeriveColumn
+from src.core.services.shapers.impl.mean import Mean
+from src.core.services.shapers.impl.pivot import PivotLonger, PivotWider
+from src.core.services.shapers.impl.split_apply import SplitApply
+from src.core.services.shapers.impl.normalize import Normalize
+from src.core.services.shapers.impl.selector_algorithms.column_selector import ColumnSelector
+from src.core.services.shapers.impl.selector_algorithms.condition_selector import ConditionSelector
+from src.core.services.shapers.impl.selector_algorithms.group_cardinality_selector import (
+    GroupCardinalitySelector,
+)
+from src.core.services.shapers.impl.selector_algorithms.group_predicate_selector import (
+    GroupPredicateSelector,
+)
+from src.core.services.shapers.impl.selector_algorithms.item_selector import ItemSelector
+from src.core.services.shapers.impl.sort import Sort
+from src.core.services.shapers.impl.transformer import Transformer
+from src.core.services.shapers.shaper import Shaper
 
 logger = logging.getLogger(__name__)
 
 
-class PipelineStepError(ValueError):
-    """A pipeline step failed — carries the step location as data.
+_COORDINATE_PRESERVING_SHAPERS = frozenset(
+    {
+        ColumnSelector,
+        ConditionSelector,
+        GroupCardinalitySelector,
+        GroupPredicateSelector,
+        ItemSelector,
+        Sort,
+        Mean,
+        Normalize,
+    }
+)
 
-    A ``ValueError`` subclass so existing callers keep working; consumers
-    that need to point at the failing step (the public ring5 API, the UI)
-    read ``step_index``/``shaper_type`` instead of parsing the message.
+
+def _distribution_policy(
+    shaper: Shaper, source: pd.DataFrame, result: pd.DataFrame
+) -> pd.DataFrame:
+    """Apply only reviewed built-in semantics; subclasses and plugins drop layouts."""
+    if type(shaper) in _COORDINATE_PRESERVING_SHAPERS:
+        return preserve_distribution_layouts(source, result)
+    if type(shaper) is DeriveColumn:
+        same_coordinate = (
+            shaper.op == "scalar"
+            and shaper.sources == [shaper.dest]
+            and type(shaper.scalar) in (int, float)
+            and shaper.scalar_op in {"+", "-", "*", "/"}
+        )
+        invalidated = () if same_coordinate else (shaper.dest,)
+        return preserve_distribution_layouts(source, result, invalidated_columns=invalidated)
+    if type(shaper) is Transformer:
+        return preserve_distribution_layouts(source, result, invalidated_columns=(shaper.column,))
+    return with_distribution_layouts(result, {})
+
+
+class PipelineStepError(ValueError):
+    """Report pipeline admission or execution failure with optional location.
+
+    Attributes:
+        step_index: Zero-based failing step, or None before step admission.
+        shaper_type: Registered identifier when the failure belongs to a known step.
     """
 
-    def __init__(self, message: str, *, step_index: int, shaper_type: str | None) -> None:
+    def __init__(self, message: str, *, step_index: int | None, shaper_type: str | None) -> None:
         self.step_index = step_index
         self.shaper_type = shaper_type
         super().__init__(message)
@@ -35,33 +99,104 @@ class PipelineService:
 
     @staticmethod
     def process_pipeline(
-        data: pd.DataFrame, pipeline_config: list[ShaperStepConfig]
+        data: pd.DataFrame,
+        pipeline_config: Sequence[Mapping[str, object]],
+        *,
+        track_source_rows: bool = False,
     ) -> pd.DataFrame:
-        """Apply a sequence of shapers to a DataFrame.
+        """Run the canonical executor and optionally seal exact raw-row contributors."""
+        try:
+            tracker = SourceTracker(data) if track_source_rows else None
+        except (TypeError, ValueError) as exc:
+            raise PipelineStepError(str(exc), step_index=None, shaper_type=None) from exc
+        result = PipelineService._execute(data, pipeline_config, tracker)
+        return tracker.publish(result) if tracker is not None else result
 
-        Each shaper copies its input internally, so no initial copy is made.
-        Raises ``PipelineStepError`` (a ``ValueError`` carrying
-        ``step_index``/``shaper_type``) if any step is malformed or fails.
+    @staticmethod
+    def _execute(
+        data: pd.DataFrame,
+        pipeline_config: Sequence[Mapping[str, object]],
+        tracker: SourceTracker | None,
+    ) -> pd.DataFrame:
+        """Apply admitted shapers with explicit Distribution metadata policies.
+
+        Args:
+            data: Input frame with optional valid current Distribution declarations.
+            pipeline_config: Ordered registered shaper configurations.
+
+        Returns:
+            The final independent step output, or the admitted input for an empty pipeline.
+
+        Raises:
+            PipelineStepError: Input admission, step validation or execution fails.
+                Location fields are None when no individual step is implicated.
         """
         # [impl->req~ring5.shaping.independent-pipelines~1]
         # [impl->req~ring5.quality.immutable-data~1]
         t_start = time.perf_counter()
-        current_data = data
+        try:
+            if not isinstance(data, pd.DataFrame):
+                raise ValueError("Pipeline input must be a pandas DataFrame.")
+            inspect_distribution_layouts(data)
+            inspect_source_contributions(data)
+            captured = ShaperFactory.validate_pipeline(pipeline_config)
+        except ShaperValidationError as exc:
+            raise PipelineStepError(
+                str(exc), step_index=exc.step_index, shaper_type=exc.shaper_type
+            ) from exc
+        except (TypeError, ValueError) as exc:
+            raise PipelineStepError(str(exc), step_index=None, shaper_type=None) from exc
 
-        for i, shaper_config in enumerate(pipeline_config):
-            shaper_type = shaper_config.get("type")
-            if not shaper_type:
-                raise PipelineStepError(
-                    f"Pipeline step {i} has no 'type' key (got: {shaper_config!r}). "
-                    "Every step must name a registered shaper type.",
-                    step_index=i,
-                    shaper_type=None,
-                )
-
+        current_data = (
+            without_source_contributions(data) if SOURCE_CONTRIBUTIONS_ATTR in data.attrs else data
+        )
+        for i, shaper_config in enumerate(captured):
+            shaper_type = ShaperFactory.get_definition(shaper_config["type"]).identifier
             try:
                 t_shaper_start = time.perf_counter()
                 shaper = ShaperFactory.create_shaper(shaper_type, shaper_config)
-                current_data = current_data.pipe(shaper)
+                source = current_data
+                if SOURCE_CONTRIBUTIONS_ATTR in source.attrs:
+                    source = without_source_contributions(source)
+                # Reconstruction can slice before invoking nested pipelines. Clear its
+                # inherited declarations before those strict admission boundaries.
+                coordinate_input = type(shaper) in _COORDINATE_PRESERVING_SHAPERS or type(
+                    shaper
+                ) in (DeriveColumn, Transformer)
+                operation_input = (
+                    source if coordinate_input else with_distribution_layouts(source, {})
+                )
+                if tracker is None:
+                    result = operation_input.pipe(shaper)
+                else:
+                    reviewed = _COORDINATE_PRESERVING_SHAPERS | {
+                        DeriveColumn,
+                        Transformer,
+                        PivotLonger,
+                        PivotWider,
+                        SplitApply,
+                    }
+                    if type(shaper) not in reviewed:
+                        raise ValueError(
+                            f"Shaper {shaper_type!r} does not define exact source contributions."
+                        )
+                    revision = tracker.revision
+                    result = shaper._call_with_source_rows(operation_input, tracker)
+                    if type(shaper) not in {ColumnSelector, DeriveColumn, Transformer}:
+                        if tracker.revision == revision:
+                            raise ValueError(
+                                "Shaper did not publish its source contribution relation."
+                            )
+                    if len(tracker.roots) != len(result):
+                        raise ValueError(
+                            "Shaper source contributions do not match its output rows."
+                        )
+                if not isinstance(result, pd.DataFrame):
+                    raise TypeError(
+                        f"Shaper output must be a pandas DataFrame; got {type(result).__name__}."
+                    )
+                current_data = _distribution_policy(shaper, source, result)
+                inspect_source_contributions(current_data)
                 t_shaper_end = time.perf_counter()
                 logger.info(
                     f"PERF: Shaper {i} ({shaper_type}) took {t_shaper_end - t_shaper_start:.4f}s"

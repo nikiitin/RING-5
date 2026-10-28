@@ -5,8 +5,6 @@ parent: Reference
 grand_parent: User Guide
 nav_order: 2
 permalink: /user-guide/reference/shapers/
-redirect_from:
-  - /user-guide/features/shapers/
 ---
 
 # Shapers
@@ -30,7 +28,7 @@ split-apply when a transformation must run independently by group.
 
 ## Python configuration
 
-`Session.shape` accepts the same discriminated configurations stored in a pipeline:
+`Session.shape` accepts a `ring5.Table` and the same configurations stored in a pipeline:
 
 ```python
 normalized = session.shape(
@@ -49,8 +47,9 @@ normalized = session.shape(
 )
 ```
 
-Normalization requires the baseline row in every group and rejects a zero baseline. When enabled,
-companion `.sd` columns are divided by the same baseline. A pipeline failure raises
+Normalization requires exactly one baseline row in every group. A zero, missing, or nonfinite
+denominator produces missing normalized values; every summed baseline component must be present.
+When enabled, companion `.sd` columns are divided by the absolute baseline. A pipeline failure raises
 `ring5.PipelineError` with the failing step index and shaper type where available.
 
 Serialized configuration is validated by each shaper. Use the web configuration form or the typed
@@ -58,9 +57,11 @@ models documented in the
 [Developer Guide]({{site.baseurl}}/developer-guide/api-reference/models-and-protocols/) rather than
 guessing keys for complex steps.
 
-Call `ring5.available_shaper_types()` for the current serialized identifiers. Direct, supported
-class imports live in `ring5.shapers`; this includes `ColumnSelector`, `ConditionSelector`,
-`ItemSelector`, and the group selector variants in addition to the calculation and pivot shapers.
+Call `ring5.available_shaper_types()` for the current serialized identifiers. Run built-in and
+registered plugin steps through `Session.shape` or `shape_submit`. The `ring5.shapers` extension
+surface exposes `Shaper`, `ShaperDefinition`, `register_shaper`, and `available_shaper_types`; see
+the [shaper extension guide]({{site.baseurl}}/developer-guide/extension-guides/adding-a-shaper/)
+for a typed plugin definition.
 
 ## Shaper behavior
 
@@ -100,9 +101,14 @@ Covers:
 
 -->
 
-Retains rows by equality, literal substring containment, numeric greater-than or less-than
-comparison, an inclusive numeric range, or membership in an explicit values list. Legacy comparison
-operators remain accepted for serialized configurations.
+Retains rows through one explicit `mode` and its operand. Ordered comparisons use `threshold`:
+`greater_than`, `less_than`, `greater_or_equal`, and `less_or_equal`. Equality modes (`equals` and
+`not_equals`) use a literal `value`; `contains` uses a text `value` with no regular-expression or
+quote interpretation. `range` uses two inclusive, ordered finite bounds in `range`; `in` uses an
+explicit `values` list.
+
+A configuration must contain exactly the operand for its mode. Missing modes, contradictory
+operands, unsupported fields, and invalid bounds fail validation before the pipeline runs.
 
 ### Item selector
 
@@ -153,8 +159,10 @@ Covers:
 
 -->
 
-Divides selected numeric columns by the configured non-zero baseline within each group. With
-`normalizeSd` enabled, matching `.sd` columns are divided by the same baseline.
+Divides selected numeric columns by the configured baseline within each group. Undefined ratios
+remain missing. With `normalizeSd` enabled, matching `.sd` columns are divided by the absolute
+baseline, preserving nonnegative uncertainty even for a negative baseline. These errors treat the
+baseline as a fixed reference; uncertainty in the baseline is not propagated.
 
 ### Pivot longer
 
@@ -234,3 +242,22 @@ Covers:
 
 Creates or replaces a column using a row-wise sum, ratio, scalar arithmetic operation, string
 concatenation, or explicit value mapping. The operation returns a new table.
+
+Row sums skip missing values and produce zero for an all-missing row. Ratios default to
+`zero_denominator="nan"`; `"propagate"` retains raw division results, including infinities. Scalar
+division always uses raw division. Derived-column steps calculate values without adding an SD
+companion. Numeric Mixer operations combine available uncertainty separately.
+
+Partial category orders in Sort and Transformer preserve unlisted labels in encounter order and
+retain missing labels. Sort preserves the original column types and the order of tied rows.
+SplitApply requires unique join keys in every transformed group when combining multiple groups;
+include every identifying dimension to prevent an ambiguous many-to-many merge.
+
+Arithmetic Mean computes aggregate standard error as `sqrt(sum(sd²)) / N` over contributing
+measurements. Any unknown contributing uncertainty keeps the aggregate uncertainty missing.
+Geometric and harmonic aggregate uncertainties remain missing.
+
+A pipeline executes every configured step or fails without publishing a replacement result.
+Incomplete editor steps remain editable but cannot be silently skipped during finalization.
+Opening a range-filter editor preserves its saved bounds, including when the input is constant or
+outside the selected interval.

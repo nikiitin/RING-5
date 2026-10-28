@@ -2,21 +2,23 @@
 
 from __future__ import annotations
 
-import io
 import logging
 
-import pandas as pd
 
-from src.core.models import PortfolioData, RestoreReport
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.models.portfolio_models import PortfolioData, RestoreReport
 from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
 from src.core.state.repositories.config_repository import ConfigRepository
 from src.core.state.repositories.data_repository import DataRepository
 from src.core.state.repositories.history_repository import HistoryRepository
 from src.core.state.repositories.parser_state_repository import ParserStateRepository
-from src.core.state.repositories.plot_repository import PlotRepository
+from src.core.state.repositories.plot_repository import PlotRepository, PlotRetirement
 from src.core.state.repositories.preview_repository import PreviewRepository
 from src.core.state.repositories.visualization_repository import VisualizationRepository
-from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
+from src.core.common.typed_table_codec import TypedTableCodec
+from src.core.common.plot_payload import validate_plot_fields
+from src.core.common.source_contributions import validate_present_source_pair
 
 logger = logging.getLogger(__name__)
 
@@ -61,23 +63,6 @@ class SessionRepository:
 
         logger.info("SESSION_REPO: Session initialized with default values")
 
-    def enforce_config_dtypes(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Cast configuration-typed columns to str on a copy of *data*.
-
-        Configuration columns are grouping keys, so every ingestion path
-        (fresh load and portfolio restore) must agree on their dtype. Returns
-        a new frame; never mutates the caller's.
-        """
-        result = data.copy()
-        try:
-            variables = self.parser_repo.get_parse_variables()
-            config_vars = [v["name"] for v in variables if v.get("type") == "configuration"]
-            for col in (c for c in config_vars if c in result.columns):
-                result[col] = result[col].astype(str)
-        except (KeyError, TypeError, ValueError) as e:
-            logger.error("SESSION_REPO: config dtype enforcement failed: %s", e)
-        return result
-
     def restore_from_portfolio(self, portfolio_data: PortfolioData) -> RestoreReport:
         # [impl->req~ring5.portfolio.restore~1]
         # [impl->req~ring5.portfolio.partial-report~1]
@@ -95,11 +80,42 @@ class SessionRepository:
         Returns:
             A report of what was restored, skipped, and why.
         """
+        strategy = portfolio_data.get("parser_strategy")
+        simulator = portfolio_data.get("simulator")
+        if not isinstance(strategy, str) or not strategy.strip():
+            raise ValueError("Portfolio parser strategy must be non-empty text.")
+        if not isinstance(simulator, str) or not simulator.strip():
+            raise ValueError("Portfolio simulator must be non-empty text.")
+        if {"data_csv", "data_semantics"} & portfolio_data.keys():
+            raise ValueError("Unsupported retired portfolio table fields.")
+        decoded_data = TypedTableCodec.decode(portfolio_data.get("data"))
+        if "loaded_origin" not in portfolio_data:
+            raise ValueError("Portfolio requires an explicit nullable loaded_origin field.")
+        decoded_origin = SourceContextCodec.origin_from_payload(portfolio_data["loaded_origin"])
+        if decoded_data is None and decoded_origin is not None:
+            raise ValueError("Portfolio origin requires a loaded table.")
+        plot_payloads = portfolio_data.get("plots", [])
+        if not isinstance(plot_payloads, list):
+            raise ValueError("Portfolio plots must be an array.")
+        for plot_payload in plot_payloads:
+            if not isinstance(plot_payload, dict):
+                raise ValueError("Portfolio plots must be objects.")
+            validate_plot_fields(plot_payload)
+            source = TypedTableCodec.decode(plot_payload.get("source_data"))
+            processed = TypedTableCodec.decode(plot_payload.get("processed_data"))
+            validate_present_source_pair(source, processed)
+        self.clear_all()
+
         # Restore parser state. Portfolio JSON is untrusted input — a
         # malformed parse_variables list (e.g. plain strings) would crash
         # set_parse_variables, which mutates each entry dict.
         raw_vars = portfolio_data.get("parse_variables", [])
-        parse_vars = [v for v in raw_vars if isinstance(v, dict)]
+        parse_vars = []
+        for value in raw_vars:
+            try:
+                parse_vars.append(StatConfigCodec.from_snapshot(value))
+            except (TypeError, ValueError):
+                logger.warning("SESSION_REPO: Skipped an invalid parser variable snapshot.")
         vars_skipped = len(raw_vars) - len(parse_vars)
         if vars_skipped:
             logger.warning(
@@ -110,6 +126,8 @@ class SessionRepository:
         self.parser_repo.set_parse_variables(parse_vars)
         self.parser_repo.set_stats_path(portfolio_data.get("stats_path", ""))
         self.parser_repo.set_stats_pattern(portfolio_data.get("stats_pattern", "stats.txt"))
+        self.parser_repo.set_parser_strategy(strategy)
+        self.parser_repo.set_simulator(simulator)
         self.parser_repo.set_scanned_variables(portfolio_data.get("scanned_variables", []))
         # Handle 'use_parser' which might store boolean directly
         self.parser_repo.set_using_parser(bool(portfolio_data.get("use_parser", False)))
@@ -121,16 +139,13 @@ class SessionRepository:
         # Restore data
         data_restored = False
         data_error: str | None = None
-        data_csv = portfolio_data.get("data_csv", "")
-        if data_csv:
+        table_payload = portfolio_data.get("data")
+        if table_payload is not None:
             try:
-                df = self.enforce_config_dtypes(pd.read_csv(io.StringIO(data_csv)))
-                semantics = SemanticMetadataService.from_payload(
-                    portfolio_data.get("data_semantics", {}),
-                    available_columns=tuple(str(column) for column in df.columns),
-                )
-                df = SemanticMetadataService.attach(df, semantics)
-                self.data_repo.set_data(df)
+                df = decoded_data
+                if df is None:
+                    raise ValueError("Present table payload decoded as absence.")
+                self.data_repo.set_data(df, origin=decoded_origin)
                 data_restored = True
                 logger.info("SESSION_REPO: Restored data - %d rows", len(df))
             except Exception as e:
@@ -138,7 +153,7 @@ class SessionRepository:
                 # silently continuing with a half-restored session.
                 data_error = str(e)
                 logger.error(
-                    "SESSION_REPO: Failed to restore data CSV — plots may render " "empty: %s",
+                    "SESSION_REPO: Failed to restore typed table — plots may render " "empty: %s",
                     e,
                     exc_info=True,
                 )
@@ -201,20 +216,20 @@ class SessionRepository:
             parse_variables_skipped=vars_skipped,
         )
 
-    def clear_all(self) -> None:
-        """
-        Clear all session state completely.
-        """
+    def clear_all(self) -> tuple[PlotRetirement, ...]:
+        """Clear domain state and return plot bindings for deferred cleanup."""
         # Clear each domain
         self.data_repo.clear_data()
-        self.plot_repo.clear_plots()
+        removed = self.plot_repo.clear_plots()
         self.plot_repo.set_plot_counter(0)
         self.plot_repo.set_current_plot_id(None)
-        self.parser_repo.clear_parser_state()
+        self.parser_repo.reset_to_defaults()
         self.config_repo.clear_config()
         self.config_repo.set_csv_path("")
         self.config_repo.set_temp_dir("")
         self.history_repo.clear_all()
         self.visualization_repo.clear()
+        self.preview_repo.clear_all_previews()
 
         logger.info("SESSION_REPO: Complete session cleared")
+        return removed

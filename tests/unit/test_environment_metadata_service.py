@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
-from src.core.models import EnvironmentMetadata
+from src.core.models.environment_models import EnvironmentMetadata
+from src.core.common.browser_selection import BrowserSelection
 from src.core.services.environment_metadata_service import (
     EnvironmentMetadataService,
     _capture_environment,
-    _chrome_path,
+    _external_tool_versions,
     _run_version,
 )
 
@@ -79,6 +81,8 @@ def test_capture_is_complete_stable_and_privacy_conscious(monkeypatch: pytest.Mo
     assert restored == captured
     assert captured.ring5_version == "1.2.3"
     assert captured.dependencies["python-multipart"] == "9.0"
+    assert {"streamlit", "starlette"} <= captured.dependencies.keys()
+    assert not {"gitpython", "tornado"} & captured.dependencies.keys()
     assert captured.renderers == {"matplotlib": "3.11.0", "plotly": "6.9.0"}
     assert captured.external_tools["xelatex"] is None
     payload = json.dumps(captured.to_dict()).lower()
@@ -98,7 +102,7 @@ def test_compare_distinguishes_changes_unavailable_and_unrecorded() -> None:
     comparison = EnvironmentMetadataService.compare(recorded, current=current)
     by_component = {(item.section, item.component): item for item in comparison.differences}
 
-    assert comparison.recorded_available is True
+    assert comparison.recorded == recorded
     assert comparison.exact_match is False
     assert comparison.changed_count == 2
     assert comparison.review_count == 3
@@ -107,10 +111,8 @@ def test_compare_distinguishes_changes_unavailable_and_unrecorded() -> None:
     assert by_component[("Dependency", "scipy")].status == "not-recorded"
     assert by_component[("External tool", "chrome")].status == "unavailable"
 
-    legacy = EnvironmentMetadataService.compare(None, current=current)
-    assert legacy.recorded_available is False
-    assert legacy.exact_match is False
-    assert {item.status for item in legacy.differences} == {"not-recorded"}
+    with pytest.raises(ValueError, match="must be an object"):
+        EnvironmentMetadataService.from_payload(None)
 
 
 def test_external_tool_probes_are_bounded_and_failure_safe(
@@ -131,17 +133,74 @@ def test_external_tool_probes_are_bounded_and_failure_safe(
     monkeypatch.setattr("src.core.services.environment_metadata_service.subprocess.run", time_out)
     assert _run_version("/resolved/tool", ("--version",)) is None
 
-    configured = tmp_path / "chrome"
-    configured.touch()
-    monkeypatch.setenv("BROWSER_PATH", str(configured))
-    assert _chrome_path() == str(configured)
 
-    monkeypatch.delenv("BROWSER_PATH")
-    monkeypatch.setattr(
-        "src.core.services.environment_metadata_service.shutil.which",
-        lambda name: "/usr/bin/chromium" if name == "chromium" else None,
-    )
-    assert _chrome_path() == "/usr/bin/chromium"
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+def test_real_non_utf8_version_output_is_unavailable(
+    stream: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core.services import environment_metadata_service as service
+
+    run = subprocess.run
+    program = f"import sys;sys.{stream}.buffer.write(bytes([255]))"
+    commands: list[list[str]] = []
+
+    def python_only(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        assert command == [sys.executable, "-c", program]
+        commands.append(command)
+        assert kwargs == {"check": False, "capture_output": True, "text": True, "timeout": 2}
+        # Exercise a real decode failure independently of the host's default codec.
+        return run(command, encoding="utf-8", **kwargs)
+
+    monkeypatch.setattr(service.subprocess, "run", python_only)
+    assert _run_version(sys.executable, ("-c", program)) is None
+    assert commands == [[sys.executable, "-c", program]]
+
+
+def test_metadata_probes_selected_executable_and_every_supported_compiler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core.services import environment_metadata_service as service
+    from src.core.models.visualization.export_options import TEX_SYSTEMS
+
+    monkeypatch.setattr(service, "select_browser", lambda: BrowserSelection("chosen", "/chosen"))
+    monkeypatch.setattr(service.shutil, "which", lambda name: f"/tools/{name}")
+    calls: list[str | None] = []
+
+    def version(path: str | None, arguments: Any) -> str:
+        calls.append(path)
+        return f"version:{path}"
+
+    monkeypatch.setattr(service, "_run_version", version)
+    versions = _external_tool_versions()
+    assert calls == ["/chosen", "/tools/perl", *(f"/tools/{name}" for name in TEX_SYSTEMS)]
+    assert versions["chrome"] == "version:/chosen"
+    assert set(versions) == {"chrome", "perl", *TEX_SYSTEMS}
+    for compiler in TEX_SYSTEMS:
+        assert versions[compiler] == f"version:/tools/{compiler}"
+
+
+def test_unavailable_browser_never_probes_the_selected_literal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core.services import environment_metadata_service as service
+
+    monkeypatch.setattr(service, "select_browser", lambda: BrowserSelection("invalid", None))
+    monkeypatch.setattr(service.shutil, "which", lambda name: None)
+
+    def no_process(*args: Any, **kwargs: Any) -> Any:
+        raise AssertionError("Unavailable tools must not run.")
+
+    monkeypatch.setattr(service.subprocess, "run", no_process)
+    assert set(_external_tool_versions().values()) == {None}
+
+
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_saved_environment_detects_each_compiler_version_change(compiler: str) -> None:
+    recorded = _metadata(external_tools={compiler: "before"})
+    current = _metadata(external_tools={compiler: "after"})
+    comparison = EnvironmentMetadataService.compare(recorded, current=current)
+    difference = next(item for item in comparison.differences if item.component == compiler)
+    assert difference.status == "changed"
 
 
 @pytest.mark.parametrize(

@@ -16,6 +16,7 @@ from typing import Any, cast
 
 import pandas as pd
 
+from src.core.common.stat_config_codec import StatConfigCodec, StatConfigDraftIncomplete
 from src.core.common.security_limits import (
     MAX_RECOVERY_DRAFT_BYTES,
     MAX_RECOVERY_DRAFTS_GLOBAL,
@@ -25,19 +26,17 @@ from src.core.common.security_limits import (
     MAX_RECOVERY_TOTAL_BYTES,
 )
 from src.core.common.utils import validate_path_within
-from src.core.models import PlotProtocol, PortfolioData, RecoveryDraftCapture, RecoveryDraftInfo
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData
+from src.core.models.recovery_models import RecoveryDraftCapture, RecoveryDraftInfo
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.services.data_services.portfolio_validation_service import validate_portfolio_document
+from src.core.models.parsing_models import default_parse_configs
 from src.core.state.state_manager import StateManager
 
 _DRAFT_ID = re.compile(r"^[0-9]{20}-[0-9a-f]{64}$")
-_DEFAULT_PARSE_VARIABLES = (
-    ("simTicks", "scalar"),
-    ("benchmark_name", "configuration"),
-    ("config_description", "configuration"),
-)
 
 
 class AutosaveRecoveryService:
@@ -58,7 +57,9 @@ class AutosaveRecoveryService:
         """Capture meaningful state unless its content matches the newest draft."""
         # [impl->req~ring5.workspace.autosave-recovery~1]
         owner = cls._owner(owner_key)
-        data = state_manager.get_data()
+        with state_manager.transaction():
+            data = state_manager.get_data()
+            origin = state_manager.get_loaded_origin()
         plots = state_manager.get_plots()
         config = state_manager.get_config()
         parse_variables = state_manager.get_parse_variables()
@@ -71,6 +72,7 @@ class AutosaveRecoveryService:
             state_manager.get_plot_counter(),
             csv_path=state_manager.get_csv_path(),
             parse_variables=parse_variables,
+            origin=origin,
             figure_spec_enricher=figure_spec_enricher,
         )
         if len(payload) > MAX_RECOVERY_DRAFT_BYTES:
@@ -122,9 +124,10 @@ class AutosaveRecoveryService:
             raise ValueError("Recovery draft is not valid UTF-8 portfolio JSON.") from exc
         if not isinstance(value, dict):
             raise ValueError("Recovery draft must contain one portfolio object.")
+        validate_portfolio_document(value)
         report = PortfolioIntegrityService.verify(value)
         PortfolioIntegrityService.require_restorable(report)
-        return cast(PortfolioData, PortfolioMigrator.migrate(value))
+        return cast(PortfolioData, value)
 
     @classmethod
     def delete(cls, owner_key: str, draft_id: str) -> None:
@@ -150,13 +153,16 @@ class AutosaveRecoveryService:
         parse_variables: list[Any],
     ) -> bool:
         return bool(
-            (isinstance(data, pd.DataFrame) and not data.empty)
+            isinstance(data, pd.DataFrame)
             or plots
             or config
             or AutosaveRecoveryService._custom_parse_variables(parse_variables)
             or state_manager.get_scanned_variables()
             or state_manager.get_stats_path() not in ("", "/path/to/stats")
             or state_manager.get_stats_pattern() != "stats.txt"
+            or state_manager.get_parser_strategy() != "simple"
+            or state_manager.get_simulator() != "gem5"
+            or state_manager.is_using_parser()
             or state_manager.get_csv_path()
             or state_manager.get_manager_history()
             or state_manager.get_portfolio_history()
@@ -164,14 +170,16 @@ class AutosaveRecoveryService:
 
     @staticmethod
     def _custom_parse_variables(parse_variables: list[Any]) -> bool:
-        if not parse_variables:
-            return False
-        signature = tuple(
-            (item.get("name"), item.get("type"))
-            for item in parse_variables
-            if isinstance(item, dict)
-        )
-        return signature != _DEFAULT_PARSE_VARIABLES
+        """Compare parser behavior while ignoring identity and explicit defaults."""
+        try:
+            signature = tuple(
+                StatConfigCodec.to_payload(StatConfigCodec.from_draft(item))
+                for item in parse_variables
+            )
+        except StatConfigDraftIncomplete:
+            return True
+        defaults = tuple(StatConfigCodec.to_payload(config) for config in default_parse_configs())
+        return signature != defaults
 
     @staticmethod
     def _owner(owner_key: object) -> str:
@@ -208,9 +216,9 @@ class AutosaveRecoveryService:
         root = PathService.get_recovery_drafts_dir()
         if root.is_symlink():
             raise ValueError("Recovery draft storage must not be a symbolic link.")
-        directory = validate_path_within(root / owner, root)
-        if directory.is_symlink():
+        if (root / owner).is_symlink():
             raise ValueError("Recovery owner storage must not be a symbolic link.")
+        directory = validate_path_within(root / owner, root)
         if create:
             directory.mkdir(mode=0o700, parents=True, exist_ok=True)
             os.chmod(directory, 0o700)
@@ -253,8 +261,11 @@ class AutosaveRecoveryService:
         )
         temporary = Path(temporary_name)
         try:
-            os.fchmod(descriptor, 0o600)
             with os.fdopen(descriptor, "wb") as handle:
+                if hasattr(os, "fchmod"):
+                    os.fchmod(handle.fileno(), 0o600)
+                else:
+                    os.chmod(temporary, 0o600)
                 handle.write(payload)
                 handle.flush()
                 os.fsync(handle.fileno())

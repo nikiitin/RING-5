@@ -11,13 +11,19 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 PRODUCTION_ROOTS = (REPOSITORY_ROOT / "ring5", REPOSITORY_ROOT / "src")
 
 
-def import_names(node: ast.Import | ast.ImportFrom) -> set[str]:
+def import_names(node: ast.Import | ast.ImportFrom, path: Path) -> set[str]:
     """Return absolute module names represented by an import node."""
     if isinstance(node, ast.Import):
         return {alias.name for alias in node.names}
-    if node.level or not node.module:
-        return set()
-    return {node.module}
+    if node.level:
+        package = path.relative_to(REPOSITORY_ROOT).parent.parts
+        if node.level > len(package):
+            return set()
+        prefix = package[: len(package) - node.level + 1]
+        base = ".".join((*prefix, *((node.module or "").split(".") if node.module else ())))
+    else:
+        base = node.module or ""
+    return {base, *(f"{base}.{alias.name}" for alias in node.names)}
 
 
 def is_under(path: Path, relative_root: str) -> bool:
@@ -42,7 +48,7 @@ def inspect_file(path: Path) -> list[str]:
     for node in ast.walk(tree):
         location = f"{relative}:{getattr(node, 'lineno', 1)}"
         if isinstance(node, (ast.Import, ast.ImportFrom)):
-            modules = import_names(node)
+            modules = import_names(node, path)
             if is_under(path, "src/core") or is_under(path, "src/parsing"):
                 if any(
                     module == "streamlit" or module.startswith("streamlit.") for module in modules

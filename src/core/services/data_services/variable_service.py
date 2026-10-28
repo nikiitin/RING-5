@@ -7,6 +7,8 @@ Provides business logic for variable management without UI dependencies.
 
 import uuid
 
+from src.core.common.variable_identity import normalize_variable_ids
+
 from src.core.common.safe_regex import (
     BoundedPattern,
     SafeRegexError,
@@ -45,22 +47,6 @@ def _safe_fullmatch(pattern: BoundedPattern, value: str) -> bool:
 
 class VariableService:
     """Service for managing parser variables with CRUD operations."""
-
-    # Scientific filter: Internal statistics that should not appear as
-    # regular entries.  The default set covers common simulator
-    # meta-statistics.  Callers can override via the
-    # ``internal_stats`` parameter of ``filter_internal_stats``.
-    DEFAULT_INTERNAL_STATS: frozenset[str] = frozenset(
-        {
-            "total",
-            "mean",
-            "gmean",
-            "stdev",
-            "samples",
-            "overflows",
-            "underflows",
-        }
-    )
 
     @staticmethod
     def generate_variable_id() -> str:
@@ -190,29 +176,20 @@ class VariableService:
             >>> all("_id" in v for v in vars)
             True
         """
-        updated_vars: list[ParseVariableConfig] = []
-        for var in variables:
-            var_copy = var.copy()
-            if "_id" not in var_copy:
-                var_copy["_id"] = cls.generate_variable_id()
-            updated_vars.append(var_copy)
-        return updated_vars
+        return normalize_variable_ids(variables)
 
     @classmethod
     def filter_internal_stats(
         cls,
         entries: list[str],
-        internal_stats: frozenset[str] | None = None,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """
         Filter out internal simulator statistics from entry list.
 
         Args:
             entries: List of entry names to filter
-            internal_stats: Set of stat names to exclude.  Defaults to
-                ``DEFAULT_INTERNAL_STATS`` if not provided.  Callers
-                can pass ``SimulatorInfo.internal_stats`` from the
-                active simulator registry entry for accurate filtering.
+            internal_stats: Exact case-sensitive summary names from the selected SimulatorInfo.
 
         Returns:
             Filtered list with internal stats removed, sorted alphabetically
@@ -220,58 +197,17 @@ class VariableService:
         Examples:
             >>> service = VariableService()
             >>> entries = ["cpu0", "total", "mean", "cpu1", "stdev"]
-            >>> filtered = service.filter_internal_stats(entries)
+            >>> internal = frozenset({"total", "mean", "stdev"})
+            >>> filtered = service.filter_internal_stats(entries, internal)
             >>> filtered
             ['cpu0', 'cpu1']
         """
-        exclude = internal_stats if internal_stats is not None else cls.DEFAULT_INTERNAL_STATS
-        filtered = [e for e in entries if e.lower() not in exclude]
+        filtered = [entry for entry in entries if entry not in internal_stats]
         return sorted(filtered)
 
     @classmethod
-    def find_variable_by_name(
-        cls, variables: list[ParseVariableConfig], name: str, exact: bool = True
-    ) -> ParseVariableConfig | None:
-        """
-        Find a variable by name in the list.
-
-        Args:
-            variables: List of variable configurations
-            name: Variable name to search for
-            exact: If True, use exact match; if False, use regex pattern matching
-
-        Returns:
-            First matching variable dict, or None if not found
-
-        Examples:
-            >>> service = VariableService()
-            >>> vars = [{"name": "system.cpu.ipc", "type": "scalar"}]
-            >>> var = service.find_variable_by_name(vars, "system.cpu.ipc")
-            >>> var["type"]
-            'scalar'
-            >>> service.find_variable_by_name(vars, "nonexistent") is None
-            True
-        """
-        for var in variables:
-            var_name = var.get("name", "")
-            if exact:
-                if var_name == name:
-                    return var
-            else:
-                # Regex pattern matching via safe compilation
-                compiled = _compile_safe_pattern(name)
-                if compiled is not None:
-                    if _safe_fullmatch(compiled, var_name):
-                        return var
-                else:
-                    # Pattern failed safety check, fall back to exact match
-                    if var_name == name:
-                        return var
-        return None
-
-    @classmethod
     def aggregate_discovered_entries(
-        cls, snapshot: list[ScannedVariableDict], var_name: str
+        cls, snapshot: list[ScannedVariableDict], var_name: str, internal_stats: frozenset[str]
     ) -> list[str]:
         r"""
         Aggregate all discovered entries for a variable across scanned files.
@@ -279,6 +215,7 @@ class VariableService:
         Args:
             snapshot: List of scanned variable results from multiple files
             var_name: Variable name to aggregate entries for (supports regex)
+            internal_stats: Explicit summary names from the selected simulator.
 
         Returns:
             Sorted list of unique entries with internal stats filtered out
@@ -289,7 +226,8 @@ class VariableService:
             ...     {"name": "system.cpu0.ipc", "entries": ["cpu0", "total"]},
             ...     {"name": "system.cpu1.ipc", "entries": ["cpu1", "mean"]}
             ... ]
-            >>> entries = service.aggregate_discovered_entries(snapshot, r"system\.cpu\d+\.ipc")
+            >>> entries = service.aggregate_discovered_entries(
+            ...     snapshot, r"system\.cpu\d+\.ipc", frozenset({"total", "mean"}))
             >>> entries
             ['cpu0', 'cpu1']
         """
@@ -307,59 +245,7 @@ class VariableService:
             if var_name_match and entries:
                 found_entries.update(entries)
 
-        return cls.filter_internal_stats(list(found_entries))
-
-    @classmethod
-    def aggregate_distribution_range(
-        cls, snapshot: list[ScannedVariableDict], var_name: str
-    ) -> tuple[float | None, float | None]:
-        """
-        Aggregate min/max range for a distribution variable across scanned files.
-
-        Args:
-            snapshot: List of scanned variable results from multiple files
-            var_name: Variable name to aggregate range for (supports regex)
-
-        Returns:
-            Tuple of (global_min, global_max) or (None, None) if not found
-
-        Examples:
-            >>> service = VariableService()
-            >>> snapshot = [
-            ...     {"name": "system.latency", "type": "distribution",
-            ...      "minimum": 10, "maximum": 100},
-            ...     {"name": "system.latency", "type": "distribution",
-            ...      "minimum": 5, "maximum": 150}
-            ... ]
-            >>> min_val, max_val = service.aggregate_distribution_range(
-            ...     snapshot, "system.latency"
-            ... )
-            >>> (min_val, max_val)
-            (5, 150)
-        """
-        # [impl->req~ring5.ingestion.distribution-range-scan~1]
-        global_min: float | None = None
-        global_max: float | None = None
-
-        for var in snapshot:
-            name = var.get("name", "")
-            v_type = var.get("type", "")
-            v_min = var.get("minimum")
-            v_max = var.get("maximum")
-
-            var_name_match = name == var_name
-            if not var_name_match:
-                compiled = _compile_safe_pattern(var_name)
-                if compiled is not None:
-                    var_name_match = _safe_fullmatch(compiled, name)
-
-            if var_name_match and v_type == "distribution":
-                if v_min is not None:
-                    global_min = min(global_min, v_min) if global_min is not None else v_min
-                if v_max is not None:
-                    global_max = max(global_max, v_max) if global_max is not None else v_max
-
-        return global_min, global_max
+        return cls.filter_internal_stats(list(found_entries), internal_stats)
 
     @classmethod
     def parse_comma_separated_entries(cls, entries_str: str) -> list[str]:
@@ -399,98 +285,6 @@ class VariableService:
         return ", ".join(entries)
 
     @classmethod
-    def find_entries_for_variable(
-        cls,
-        available_variables: list[ScannedVariableDict],
-        var_name: str,
-    ) -> list[str]:
-        r"""
-        Find all entries for a variable by searching available/scanned variables.
-
-        Searches both exact name matches and regex pattern matches (e.g.,
-        var_name contains \\d+ patterns). Aggregates entries from all matches
-        and filters out internal statistics.
-
-        Args:
-            available_variables: List of scanned variable dicts with 'name'
-                                 and 'entries' keys.
-            var_name: Variable name or regex pattern to search for.
-
-        Returns:
-            Sorted list of unique, non-internal entries found across matches.
-
-        Examples:
-            >>> service = VariableService()
-            >>> avail = [
-            ...     {"name": "system.cpu.ipc", "entries": ["cpu0", "cpu1", "total"]},
-            ...     {"name": "system.mem.lat", "entries": ["bank0"]},
-            ... ]
-            >>> service.find_entries_for_variable(avail, "system.cpu.ipc")
-            ['cpu0', 'cpu1']
-        """
-        found_entries: set[str] = set()
-
-        for var in available_variables:
-            v_name = var.get("name", "")
-            v_entries = var.get("entries", [])
-
-            matched = v_name == var_name
-            if not matched:
-                compiled = _compile_safe_pattern(var_name)
-                if compiled is not None:
-                    matched = _safe_fullmatch(compiled, v_name)
-
-            if matched and v_entries:
-                found_entries.update(v_entries)
-
-        return cls.filter_internal_stats(list(found_entries))
-
-    @classmethod
-    def update_scanned_entries(
-        cls,
-        scanned_vars: list[ScannedVariableDict],
-        var_name: str,
-        new_entries: list[str],
-    ) -> list[ScannedVariableDict]:
-        """
-        Update or add entries for a variable in the scanned variables list.
-
-        If the variable exists, updates its entries field (preserving other
-        fields like pattern_indices). If not, appends a new vector variable.
-
-        Args:
-            scanned_vars: Current list of scanned variable dicts.
-            var_name: Variable name to update.
-            new_entries: New entries to set.
-
-        Returns:
-            Updated list of scanned variables (new list, original not mutated).
-
-        Examples:
-            >>> service = VariableService()
-            >>> scanned = [{"name": "cpu.ipc", "type": "vector", "entries": ["old"]}]
-            >>> updated = service.update_scanned_entries(scanned, "cpu.ipc", ["new1", "new2"])
-            >>> updated[0]["entries"]
-            ['new1', 'new2']
-            >>> updated2 = service.update_scanned_entries(scanned, "new.var", ["e1"])
-            >>> len(updated2)
-            2
-        """
-        result = [v.copy() for v in scanned_vars]
-
-        var_found = False
-        for v in result:
-            if v["name"] == var_name:
-                v["entries"] = new_entries
-                var_found = True
-                break
-
-        if not var_found:
-            result.append({"name": var_name, "type": "vector", "entries": new_entries})
-
-        return result
-
-    @classmethod
     def has_variable_with_name(
         cls,
         variables: list[ParseVariableConfig],
@@ -515,30 +309,3 @@ class VariableService:
             False
         """
         return any(v.get("name") == name for v in variables)
-
-    @classmethod
-    def build_statistics_list(
-        cls,
-        selected: dict[str, bool],
-    ) -> list[str]:
-        """
-        Build a list of selected statistics from a boolean mapping.
-
-        Utility for building the list of statistics to extract from vectors
-        or distributions based on user checkbox selections.
-
-        Args:
-            selected: Mapping of statistic name to whether it's selected.
-                      E.g., {"total": True, "mean": False, "stdev": True}
-
-        Returns:
-            List of selected statistic names, in insertion order.
-
-        Examples:
-            >>> service = VariableService()
-            >>> service.build_statistics_list({"total": True, "mean": False, "stdev": True})
-            ['total', 'stdev']
-            >>> service.build_statistics_list({})
-            []
-        """
-        return [name for name, is_selected in selected.items() if is_selected]

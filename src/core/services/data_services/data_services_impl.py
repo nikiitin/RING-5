@@ -10,22 +10,23 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.models import (
+from src.core.models.parsed_output_models import ParsedOutput
+from src.core.models.source_context_models import LoadedDataOrigin
+
+from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
-    DatasetSnapshotInfo,
-    PlotProtocol,
-    PortfolioData,
-    PortfolioBundleContents,
-    PortfolioBundleInfo,
-    PortfolioDiff,
-    PortfolioIntegrityReport,
-    PortfolioRevisionInfo,
     RecipeExport,
     RecipeParameter,
     RecipeScalar,
     RecipeSource,
 )
+from src.core.models.dataset_workspace_models import DatasetSnapshotInfo
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData
+from src.core.models.portfolio_bundle_models import PortfolioBundleContents, PortfolioBundleInfo
+from src.core.models.portfolio_revision_models import PortfolioDiff, PortfolioRevisionInfo
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
 from src.core.models.data_models import (
     CacheStatsInfo,
     CsvPoolEntry,
@@ -36,7 +37,6 @@ from src.core.models.data_models import (
     SavedConfigEntry,
     ScannedVariableDict,
 )
-from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.analysis_recipe_service import AnalysisRecipeService
 from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
@@ -72,17 +72,27 @@ class DefaultDataServicesAPI:
         """Add a CSV file to the pool. Returns pool path."""
         return CsvPoolService.add_to_pool(file_path)
 
-    def publish_to_csv_pool(self, file_path: str, file_name: str) -> str:
+    def publish_to_csv_pool(self, output: ParsedOutput, file_name: str) -> ParsedOutput:
         """Atomically publish a named background result to the CSV pool."""
-        return CsvPoolService.publish_to_pool(file_path, file_name)
+        return CsvPoolService.publish_to_pool(output, file_name)
 
     def delete_from_csv_pool(self, file_path: str) -> bool:
         """Delete a CSV file from the pool."""
         return CsvPoolService.delete_from_pool(file_path)
 
-    def load_csv_file(self, file_path: str) -> pd.DataFrame:
+    def load_csv_file(
+        self, file_path: str, *, configuration_columns: tuple[str, ...] = ()
+    ) -> pd.DataFrame:
         """Load a CSV file returning a DataFrame."""
-        return CsvPoolService.load_csv_file(file_path)
+        if type(configuration_columns) is not tuple or any(
+            type(column) is not str for column in configuration_columns
+        ):
+            raise TypeError("CSV configuration columns must be an immutable tuple of text names.")
+        result = CsvPoolService.load_csv_file(file_path)
+        for column in configuration_columns:
+            if column in result.columns:
+                result[column] = result[column].astype(str)
+        return result
 
     # -- Configuration Persistence --
 
@@ -90,7 +100,7 @@ class DefaultDataServicesAPI:
         self,
         name: str,
         description: str,
-        shapers_config: list[ShaperStepConfig],
+        shapers_config: Sequence[Mapping[str, object]],
         csv_path: str | None = None,
     ) -> str:
         """Save a configuration to disk. Returns saved file path."""
@@ -104,7 +114,7 @@ class DefaultDataServicesAPI:
         self,
         name: str,
         description: str,
-        shapers_config: list[ShaperStepConfig],
+        shapers_config: Sequence[Mapping[str, object]],
         csv_path: str | None = None,
     ) -> bytes:
         """Serialize a validated configuration as portable versioned JSON."""
@@ -116,7 +126,7 @@ class DefaultDataServicesAPI:
         *,
         conflict: PipelineConfigConflictPolicy = "error",
     ) -> PipelineConfigImportResult:
-        """Validate and save a current or legacy portable configuration."""
+        """Validate and save a current portable configuration."""
         return ConfigService.import_configuration(payload, conflict=conflict)
 
     def load_saved_configs(self) -> list[SavedConfigEntry]:
@@ -207,35 +217,19 @@ class DefaultDataServicesAPI:
     def filter_internal_stats(
         self,
         entries: list[str],
-        internal_stats: frozenset[str] | None = None,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """Filter out internal simulator statistics from entry list."""
         return VariableService.filter_internal_stats(entries, internal_stats)
-
-    def find_variable_by_name(
-        self,
-        variables: list[ParseVariableConfig],
-        name: str,
-        exact: bool = True,
-    ) -> ParseVariableConfig | None:
-        """Find a variable by name (exact or regex match)."""
-        return VariableService.find_variable_by_name(variables, name, exact)
 
     def aggregate_discovered_entries(
         self,
         snapshot: list[ScannedVariableDict],
         var_name: str,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """Aggregate entries for a variable across scanned files."""
-        return VariableService.aggregate_discovered_entries(snapshot, var_name)
-
-    def aggregate_distribution_range(
-        self,
-        snapshot: list[ScannedVariableDict],
-        var_name: str,
-    ) -> tuple[float | None, float | None]:
-        """Aggregate min/max range for a distribution variable."""
-        return VariableService.aggregate_distribution_range(snapshot, var_name)
+        return VariableService.aggregate_discovered_entries(snapshot, var_name, internal_stats)
 
     def parse_comma_separated_entries(self, entries_str: str) -> list[str]:
         """Parse comma-separated entry string into list."""
@@ -245,23 +239,6 @@ class DefaultDataServicesAPI:
         """Format list of entries as comma-separated string."""
         return VariableService.format_entries_as_string(entries)
 
-    def find_entries_for_variable(
-        self,
-        available_variables: list[ScannedVariableDict],
-        var_name: str,
-    ) -> list[str]:
-        """Find all entries for a variable by searching available/scanned variables."""
-        return VariableService.find_entries_for_variable(available_variables, var_name)
-
-    def update_scanned_entries(
-        self,
-        scanned_vars: list[ScannedVariableDict],
-        var_name: str,
-        new_entries: list[str],
-    ) -> list[ScannedVariableDict]:
-        """Update or add entries for a variable in the scanned variables list."""
-        return VariableService.update_scanned_entries(scanned_vars, var_name, new_entries)
-
     def has_variable_with_name(
         self,
         variables: list[ParseVariableConfig],
@@ -269,13 +246,6 @@ class DefaultDataServicesAPI:
     ) -> bool:
         """Check if a variable with the given name already exists."""
         return VariableService.has_variable_with_name(variables, name)
-
-    def build_statistics_list(
-        self,
-        selected: dict[str, bool],
-    ) -> list[str]:
-        """Build a list of selected statistics from a boolean mapping."""
-        return VariableService.build_statistics_list(selected)
 
     # -- Portfolio Management --
 
@@ -298,6 +268,7 @@ class DefaultDataServicesAPI:
         overwrite: bool = True,
         signing_key: str | bytes | None = None,
         signing_key_id: str = "default",
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         """Serialize and save the current workspace state."""
         self._portfolio_service.save_portfolio(
@@ -312,6 +283,7 @@ class DefaultDataServicesAPI:
             overwrite,
             signing_key,
             signing_key_id,
+            origin=origin,
         )
 
     def load_portfolio(
@@ -423,7 +395,7 @@ class DefaultDataServicesAPI:
         description: str = "",
         parameters: Sequence[RecipeParameter] = (),
         source: RecipeSource | None = None,
-        transformations: Sequence[ShaperStepConfig] = (),
+        transformations: Sequence[Mapping[str, object]] = (),
         exports: Sequence[RecipeExport] = (),
     ) -> AnalysisRecipe:
         """Capture current source provenance, plots, and pipelines as a recipe."""

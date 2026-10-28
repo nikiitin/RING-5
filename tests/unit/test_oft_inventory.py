@@ -12,6 +12,7 @@ from scripts.generate_oft_inventory import (
     InventoryError,
     ROOT,
     check_html_report,
+    _validate_requirement_history,
     discover_live_capabilities,
     load_inventory,
     render_inventory,
@@ -122,8 +123,46 @@ def test_html_report_fingerprint_detects_missing_stale_or_non_native_output(
 <section id="req"><section class="sitem" id="req~ring5.{feature['id']}~{feature['revision']}">
 <details><summary><span class="green">covered</span></summary></details></section></section>
 <section id="test"></section><section id="uman"></section></main>"""
+    current_markers = collect_evidence_markers(ROOT)
+    for category, artifact_type in (
+        ("implementation", "impl"),
+        ("tests", "test"),
+        ("documentation", "uman"),
+    ):
+        artifacts = []
+        for index, reference in enumerate(feature["evidence"][category]):
+            source = next(
+                item
+                for item in current_markers
+                if item.artifact_type == artifact_type
+                and item.requirement_id == feature["id"]
+                and item.revision == feature["revision"]
+                and item.reference == reference
+            )
+            artifacts.append(
+                f'<section class="sitem" id="{artifact_type}~ring5.{feature["id"]}-{index}~0">'
+                f'<p class="origin">{source.path}:{source.line}</p>'
+                f'<a href="#req~ring5.{feature["id"]}~{feature["revision"]}">covers</a>'
+                "</section>"
+            )
+        native = native.replace(
+            f'<section id="{artifact_type}"></section>',
+            f'<section id="{artifact_type}">' + "".join(artifacts) + "</section>",
+        )
     report.write_text(marker + source_marker + native, encoding="utf-8")
     check_html_report(inventory, tmp_path)
+
+    extra = (
+        f'<section class="sitem" id="test~ring5.{feature["id"]}-archive~0">'
+        '<p class="origin">tests/visual/artifacts/old.trace.zip!src/old.py:1</p>'
+        f'<a href="#req~ring5.{feature["id"]}~{feature["revision"]}">covers</a></section>'
+    )
+    # Fingerprints and green coverage are unchanged; the foreign origin must fail.
+    report.write_text(
+        marker + source_marker + native.replace("</main>", extra + "</main>"), encoding="utf-8"
+    )
+    with pytest.raises(InventoryError, match="unexpected evidence origins"):
+        check_html_report(inventory, tmp_path)
 
     report.write_text(marker + source_marker + native.replace("green", "red"), encoding="utf-8")
     with pytest.raises(InventoryError, match="native OFT reports uncovered"):
@@ -293,6 +332,45 @@ def test_requirement_history_validates_semantic_snapshots_and_evidence_changes()
     feature["history"][1]["title"] = "Not allowed"
     with pytest.raises(InventoryError, match="evidence changes cannot redefine"):
         validate_inventory(inventory, live_capabilities=discover_live_capabilities())
+
+
+def test_requirement_history_rejects_large_gap_without_expanding_the_revision_range(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An invalid revision cannot allocate an expectation sized by its integer value."""
+
+    def unexpected_range(*args: object) -> range:
+        raise AssertionError("The declared revision must not size an allocation.")
+
+    monkeypatch.setattr("scripts.generate_oft_inventory.range", unexpected_range, raising=False)
+    errors: list[str] = []
+    _validate_requirement_history({"revision": 1_000_000, "history": []}, "feature", errors)
+    assert len(errors) == 1
+    assert "feature.history semantic revisions" in errors[0]
+    assert len(errors[0]) < 200
+
+
+@pytest.mark.parametrize(
+    "revisions,valid",
+    [((1, 2), True), ((), False), ((1,), False), ((1, 1), False), ((2, 1), False)],
+)
+def test_requirement_history_requires_complete_ordered_semantic_revisions(
+    revisions: tuple[int, ...], valid: bool
+) -> None:
+    """Count checks preserve completeness, ordering, and duplicate rejection."""
+    history = [
+        {
+            "revision": revision,
+            "change_type": "semantic",
+            "reason": "Contract change",
+            "title": "Prior contract",
+            "description": "The exact prior requirement.",
+        }
+        for revision in revisions
+    ]
+    errors: list[str] = []
+    _validate_requirement_history({"revision": 3, "history": history}, "feature", errors)
+    assert (not errors) is valid
 
 
 def test_requirement_history_is_rendered_in_markdown_views() -> None:

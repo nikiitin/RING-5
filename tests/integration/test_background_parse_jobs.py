@@ -9,7 +9,7 @@ from typing import cast
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import ParseJobStatus
+from src.core.models.parse_job_models import ParseJobStatus
 from src.core.models.data_models import ParseVariableConfig
 from src.core.services.data_services.csv_pool_service import CsvPoolService
 
@@ -42,9 +42,11 @@ def test_background_gem5_parse_publishes_and_loads_recent_csv(
         snapshot = api.submit_parse_job(
             str(stats_root),
             "stats.txt",
-            cast(
-                list[ParseVariableConfig],
-                [{"name": "simTicks", "type": "scalar"}],
+            api.compile_parse_variables(
+                cast(
+                    list[ParseVariableConfig],
+                    [{"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}],
+                )
             ),
             incremental=incremental,
         )

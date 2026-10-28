@@ -1,33 +1,21 @@
-"""
-Plot Protocols — contracts between controllers and concrete implementations.
+"""Typed plot-controller, neutral-source and native-artifact contracts.
 
-Controllers depend on these protocols instead of importing concrete classes
-from ``pages.ui.plotting.*``. The page layer provides concrete implementations
-via dependency injection (adapters wrapping old static/class-method services).
-
-Layer: Models (Layer 5) — NO Streamlit dependency.
-
-Protocol Hierarchy::
-
-    PlotHandle            — data attributes every controller needs
-    ConfigRenderer        — config-UI rendering facet (BasePlot satisfies this)
-    PlotLifecycleService  — create / delete / duplicate / change-type
-    PlotTypeRegistry      — list available plot types
-    PipelineExecutor      — apply / configure shapers
+Controllers depend on these protocols instead of concrete plot strategies.
+The composition layer injects lifecycle, registry and pipeline operations.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, Self, runtime_checkable
 
+from collections.abc import Mapping, Sequence
 import pandas as pd
 
+from src.core.common.plot_render_state import PlotRenderState
 from src.core.models.data_models import PipelineStep
-from src.core.models.shaper_models import ShaperStepConfig
+from src.web.models.render_artifact import RenderArtifact
 
 if TYPE_CHECKING:
-    import plotly.graph_objects as go
-
     from src.core.models.visualization.trace_build_result import TraceBuildResult
     from src.core.state.state_manager import StateManager
 
@@ -56,6 +44,10 @@ class PlotHandle(Protocol):
     pipeline: list[PipelineStep]
     pipeline_counter: int
 
+    def replace_pipeline_data(self, source: pd.DataFrame, processed: pd.DataFrame) -> None:
+        """Publish an owned, verified original-source/finalized-output pair atomically."""
+        raise NotImplementedError
+
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:
         """Replace processed data and invalidate all derived render state."""
         raise NotImplementedError
@@ -69,9 +61,8 @@ class ConfigRenderer(Protocol):
     """
     Contract for plot-type-specific config UI rendering.
 
-    Satisfied by ``BasePlot`` (which has ``render_config_ui``,
-    ``render_display_options``, ``render_theme_options``,
-    ``render_settings_section``).
+    Satisfied by ``BasePlot`` through ``render_config_ui`` and
+    ``render_settings_section``.
 
     Used by render_controller to delegate type-specific widget rendering
     without importing the concrete ``BasePlot`` class.
@@ -81,14 +72,6 @@ class ConfigRenderer(Protocol):
 
     def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]:
         """Render plot-specific data mapping controls and return their configuration."""
-        raise NotImplementedError
-
-    def render_display_options(self, config: dict[str, Any]) -> dict[str, Any]:
-        """Render plot-specific display controls and return their configuration."""
-        raise NotImplementedError
-
-    def render_theme_options(self, config: dict[str, Any]) -> dict[str, Any]:
-        """Render plot-specific theme controls and return their configuration."""
         raise NotImplementedError
 
     def render_settings_section(
@@ -101,36 +84,39 @@ class ConfigRenderer(Protocol):
         raise NotImplementedError
 
 
+class PlotRenderSource(PlotHandle, Protocol):
+    """Registered neutral trace source and atomic native artifact owner."""
+
+    render_state: PlotRenderState[RenderArtifact]
+
+    @property
+    def render_artifact(self) -> RenderArtifact:
+        """Capture one complete native/configuration/preparation/key generation."""
+        raise NotImplementedError
+
+    def create_traces(self, data: pd.DataFrame, config: dict[str, Any]) -> TraceBuildResult:
+        """Build neutral traces using the supplied owned data and configuration."""
+        raise NotImplementedError
+
+    def copy_without_render_state(self) -> Self:
+        """Return a detached domain view without borrowing live native artifacts."""
+        raise NotImplementedError
+
+    def publish_render_artifact(self, artifact: RenderArtifact) -> None:
+        """Atomically publish one completely built native artifact."""
+        raise NotImplementedError
+
+
 @runtime_checkable
-class RenderablePlot(PlotHandle, ConfigRenderer, Protocol):
-    """
-    Combined protocol for plots that support both data access and config rendering.
-
-    Used by ``PlotRenderController`` which needs to read plot data attributes
-    (``PlotHandle``) AND render config widgets (``ConfigRenderer``).
-
-    Satisfied by ``BasePlot`` which implements both interfaces.
-    Replaces the unsafe ``cast(ConfigRenderer, plot)`` pattern.
-    """
-
-    last_generated_fig: go.Figure | None
-    last_traces: TraceBuildResult | None
-    last_figure_cache_key: str | None
+class RenderablePlot(PlotRenderSource, ConfigRenderer, Protocol):
+    """Neutral rendering, native ownership and the current configuration UI facets."""
 
     def invalidate_figure(self) -> None:
-        """Discard the generated figure, traces, and their cache identity."""
-        raise NotImplementedError
-
-    def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
-        """Create a Plotly figure from processed data and plot configuration."""
-        raise NotImplementedError
-
-    def apply_common_layout(self, fig: go.Figure, config: dict[str, Any]) -> go.Figure:
-        """Apply shared layout settings to a Plotly figure."""
+        """Discard derived artifacts while retaining the plot's current configuration."""
         raise NotImplementedError
 
     def update_from_relayout(self, relayout_data: dict[str, Any]) -> bool:
-        """Apply a relayout event and report whether persistent state changed."""
+        """Apply a genuine native wire event and report configuration changes."""
         raise NotImplementedError
 
 
@@ -181,14 +167,15 @@ class PipelineExecutor(Protocol):
     """
     Contract for pipeline operations (apply shapers, configure shaper UI).
 
-    The page layer wraps ``apply_shapers()`` and ``configure_shaper()``
-    functions into an adapter that satisfies this protocol.
+    The page adapter combines the session shapers facade with configuration components.
     """
 
     def apply_shapers(
         self,
         data: pd.DataFrame,
-        configs: list[ShaperStepConfig],
+        configs: Sequence[Mapping[str, object]],
+        *,
+        track_source_rows: bool = False,
     ) -> pd.DataFrame:
         """Apply a shaper pipeline to data."""
         raise NotImplementedError
@@ -198,8 +185,8 @@ class PipelineExecutor(Protocol):
         shaper_type: str,
         data: pd.DataFrame,
         shaper_id: int,
-        config: ShaperStepConfig | None,
-        owner_id: int | None = None,
-    ) -> ShaperStepConfig:
+        config: Mapping[str, object] | None,
+        owner_id: int,
+    ) -> Mapping[str, object]:
         """Render a shaper editor and return its configuration."""
         raise NotImplementedError

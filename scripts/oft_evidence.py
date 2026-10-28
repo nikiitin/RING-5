@@ -140,22 +140,39 @@ def collect_documentation_markers(root: Path, path: Path) -> list[EvidenceMarker
     return markers
 
 
-def collect_evidence_markers(root: Path) -> list[EvidenceMarker]:
-    """Collect every native OFT evidence marker from tracked source areas."""
+def evidence_source_paths(root: Path) -> tuple[Path, ...]:
+    """Enumerate current Python and manual inputs, excluding browser diagnostics.
+
+    The same files supply source fingerprints and native OFT inputs. Diagnostic
+    archives and extracted snapshots never become evidence for the current tree.
+    This enumeration also works in a source archive without Git metadata.
+    """
     python_roots = [root / "app.py", root / "ring5", root / "src", root / "scripts", root / "tests"]
     markdown_roots = [
         root / "docs",
         root / "spec" / "oft" / "README.md",
         root / "spec" / "oft" / "discovery-audit.md",
     ]
-    markers: list[EvidenceMarker] = []
+    diagnostics = (root / "tests" / "e2e" / "artifacts", root / "tests" / "visual" / "artifacts")
+    sources: list[Path] = []
     for source_root in python_roots:
         paths = [source_root] if source_root.is_file() else sorted(source_root.rglob("*.py"))
         for path in paths:
-            markers.extend(collect_python_markers(root, path))
+            if not any(path.is_relative_to(directory) for directory in diagnostics):
+                sources.append(path)
     for source_root in markdown_roots:
         paths = [source_root] if source_root.is_file() else sorted(source_root.rglob("*.md"))
-        for path in paths:
+        sources.extend(paths)
+    return tuple(sources)
+
+
+def collect_evidence_markers(root: Path) -> list[EvidenceMarker]:
+    """Collect every native OFT evidence marker from current source inputs."""
+    markers: list[EvidenceMarker] = []
+    for path in evidence_source_paths(root):
+        if path.suffix == ".py":
+            markers.extend(collect_python_markers(root, path))
+        else:
             markers.extend(collect_documentation_markers(root, path))
     return markers
 

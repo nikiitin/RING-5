@@ -1,5 +1,8 @@
 from typing import Any
 
+import pandas as pd
+from ring5 import Session
+
 import pytest
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
@@ -17,22 +20,19 @@ class ConcretePlot(BasePlot):
 
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config: Any) -> str:
-
-        return "col"
-
 
 @pytest.fixture
 def concrete_plot() -> ConcretePlot:
     return ConcretePlot(plot_id=1, name="Test Plot", plot_type="test")
 
 
-def test_update_from_relayout_legend_title(concrete_plot: Any) -> None:
+def test_update_from_relayout_legend_title(concrete_plot: Any, plot_session: Session) -> None:
     """Test that legend title updates are processed."""
 
     # Initial State
     concrete_plot.config = {"legend_title": "Old Title"}
-    concrete_plot.last_generated_fig = "valid_cached_fig"
+    concrete_plot.processed_data = pd.DataFrame({"x": [1], "y": [2]})
+    plot_session.render(concrete_plot)
 
     # Simulate Relayout Event (Rename Legend)
     relayout_data = {"legend.title.text": "New Title"}
@@ -42,7 +42,7 @@ def test_update_from_relayout_legend_title(concrete_plot: Any) -> None:
     # Assertions
     assert changed is True
     assert concrete_plot.config["legend_title"] == "New Title"
-    assert concrete_plot.last_generated_fig is None  # Cache invalidated
+    assert concrete_plot.render_artifact.figure is None  # Cache invalidated
 
 
 def test_update_from_relayout_mixed_events(concrete_plot: Any) -> None:

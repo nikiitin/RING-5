@@ -1,45 +1,20 @@
-"""
-Integration test — validates the full architecture stack works end-to-end.
+"""Exercise plot controllers, rendering and state through current layer contracts."""
 
-Tests that:
-    1. All new modules import correctly
-    2. Layer dependency rules are respected
-    3. PlotFactory + StyleApplicator integrate correctly
-    4. Models + UIStateManager + Controller protocols are consistent
-    5. Controllers delegate to presenters (no direct st.* rendering)
-"""
+from ring5 import Session
 
 import re
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from src.core.models.data_models import PipelineStep
-from src.web.models.plot_models import (
-    AnnotationShapeConfig,
-    MarginsConfig,
-    PlotDisplayConfig,
-    SeriesStyleConfig,
-    TypographyConfig,
-)
-
 # Module Import Tests
 
 
 class TestModuleImports:
-    """Verify all new modules import without errors."""
-
-    def test_import_models(self) -> None:
-        """Models module imports correctly."""
-        from src.web.models import plot_models
-
-        assert hasattr(plot_models, "PlotDisplayConfig")
-        # Pipeline-step type is the canonical PipelineStep in core.models —
-        # it is intentionally NOT duplicated in the web layer.
-        assert not hasattr(plot_models, "ShaperStep")
+    """Verify current modules import without errors."""
 
     def test_import_state(self) -> None:
         """UIStateManager imports correctly."""
@@ -95,8 +70,8 @@ class TestLayerDependencies:
     """Verify layer dependency rules are respected."""
 
     def test_models_have_no_streamlit_import(self) -> None:
-        """Layer 5 (Models) must NOT import streamlit."""
-        import src.web.models.plot_models as models_mod
+        """Core configuration models must not import Streamlit."""
+        import src.core.models.plot_config as models_mod
 
         # Check that no streamlit module is loaded by this module
         source: str = Path(models_mod.__file__).read_text()  # type: ignore[arg-type]
@@ -112,121 +87,59 @@ class TestLayerDependencies:
         assert "from streamlit" not in source
 
 
-# PlotFactory + StyleApplicator Integration
+# Registered strategies and public native rendering
 
 
 class TestFigureEngineIntegration:
-    """PlotFactory + StyleApplicator inline integration tests."""
+    """Registered plots render measured values and common style in one path."""
 
     @pytest.fixture
     def sample_data(self) -> pd.DataFrame:
-        return pd.DataFrame(
-            {
-                "benchmark": ["A", "B", "C"],
-                "ipc": [1.2, 1.5, 0.9],
-            }
+        return pd.DataFrame({"benchmark": ["A", "B", "C"], "ipc": [1.2, 1.5, 0.9]})
+
+    def test_inline_with_real_styler(
+        self, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
+        """The public renderer applies dimensions to the registered strategy's values."""
+        import ring5
+
+        fig = plot_session.plot(
+            "bar",
+            data=ring5.Table(sample_data),
+            config={
+                "x": "benchmark",
+                "y": "ipc",
+                "title": "Test Plot",
+                "width": 600,
+                "height": 400,
+            },
         )
-
-    def test_inline_with_real_styler(self, sample_data: pd.DataFrame) -> None:
-        """Inline creator + styler produces a complete figure."""
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
-
-        class SimpleBarCreator:
-            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
-                fig = go.Figure()
-                fig.add_trace(
-                    go.Bar(
-                        x=list(data["benchmark"]),
-                        y=list(data["ipc"]),
-                        name="IPC",
-                    )
-                )
-                return fig
-
-        creator = SimpleBarCreator()
-        styler = StyleApplicator("bar")
-
-        config: dict[str, Any] = {
-            "title": "Test Plot",
-            "width": 600,
-            "height": 400,
-        }
-
-        fig: go.Figure = creator.create_figure(sample_data, config)
-        fig = styler.apply_styles(fig, config)
-
         assert isinstance(fig, go.Figure)
-        assert len(list(fig.data)) == 1
+        assert len(fig.data) == 1
+        assert list(cast(go.Bar, fig.data[0]).y) == [1.2, 1.5, 0.9]
         assert fig.layout.width == 600
         assert fig.layout.height == 400
 
-    def test_inline_with_legend_labels(self, sample_data: pd.DataFrame) -> None:
-        """Legend labels are applied inline after styling."""
+    def test_inline_with_legend_labels(
+        self, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
+        """Configured legend labels reach the actual native trace."""
+        import ring5
 
-        class SimpleBarCreator:
-            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
-                fig = go.Figure()
-                fig.add_trace(go.Bar(x=["A"], y=[1], name="original"))
-                return fig
-
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
-
-        creator = SimpleBarCreator()
-        styler = StyleApplicator("bar")
-
-        config: dict[str, Any] = {}
-        legend_labels: dict[str, str] = {"original": "Custom Label"}
-
-        fig = creator.create_figure(sample_data, config)
-        fig = styler.apply_styles(fig, config)
-        fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
-
+        fig = plot_session.plot(
+            "bar",
+            data=ring5.Table(sample_data),
+            config={
+                "x": "benchmark",
+                "y": "ipc",
+                "legend_labels": {"ipc": "Custom Label"},
+            },
+        )
+        assert isinstance(fig, go.Figure)
         assert cast(go.Bar, fig.data[0]).name == "Custom Label"
 
 
 # Model TypedDict Compatibility
-
-
-class TestModelCompatibility:
-    """Verify new TypedDicts are compatible with existing config patterns."""
-
-    def test_pipeline_step_creation(self) -> None:
-        """PipelineStep can be created with required fields."""
-        step: PipelineStep = cast(
-            Any, {"id": 0, "type": "sort", "config": {"order_dict": {"x": ["a"]}}}
-        )
-        assert step["type"] == "sort"
-
-    def test_margins_config(self) -> None:
-        """MarginsConfig works as TypedDict."""
-        margins: MarginsConfig = {"top": 80, "bottom": 120}
-        assert margins["top"] == 80
-
-    def test_plot_display_config_partial(self) -> None:
-        """PlotDisplayConfig allows partial initialization."""
-        config: PlotDisplayConfig = {"x": "benchmark", "y": "ipc"}
-        assert config["x"] == "benchmark"
-
-    def test_typography_config(self) -> None:
-        """TypographyConfig works as TypedDict."""
-        typo: TypographyConfig = {"font_size": 14, "title_font_size": 18}
-        assert typo["font_size"] == 14
-
-    def test_series_style_config(self) -> None:
-        """SeriesStyleConfig works as TypedDict."""
-        style: SeriesStyleConfig = {"name": "Custom", "color": "#FF0000"}
-        assert style["color"] == "#FF0000"
-
-    def test_annotation_shape_config(self) -> None:
-        """AnnotationShapeConfig works as TypedDict."""
-        shape: AnnotationShapeConfig = {
-            "type": "line",
-            "x0": 0.0,
-            "y0": 0.0,
-            "x1": 1.0,
-            "y1": 1.0,
-        }
-        assert shape["type"] == "line"
 
 
 # Controller Boundary Tests
@@ -466,9 +379,11 @@ class TestProtocolCompliance:
 
     def test_sort_config_registered_in_dispatch(self) -> None:
         """Sort shaper is registered in shaper_config module constants."""
-        from src.core.services.shapers.validation import get_required_params
-        from src.web.pages.ui.shaper_config import SHAPER_TYPE_MAP
+        from src.core.services.shapers.shapers_impl import DefaultShapersAPI
+        from src.core.services.shapers.factory import ShaperFactory
 
-        assert get_required_params("sort") == ["order_dict"]
-        assert "Sort" in SHAPER_TYPE_MAP
-        assert SHAPER_TYPE_MAP["Sort"] == "sort"
+        assert DefaultShapersAPI().validate_pipeline([{"type": "sort", "order_dict": {}}]) == (
+            {"type": "sort", "order_dict": {}},
+        )
+        assert "Sort" in ShaperFactory.get_display_name_map()
+        assert ShaperFactory.get_display_name_map()["Sort"] == "sort"

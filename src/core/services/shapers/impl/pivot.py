@@ -70,22 +70,8 @@ class PivotLonger(Shaper):
 
     def __init__(self, params: dict[str, str | list[str]]) -> None:
         """Initialize with PivotLongerShaperConfig."""
-        self.config = cast(PivotLongerShaperConfig, params)
         super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Verify required parameters are present."""
-        super()._verify_params()
-        if "id_vars" not in self.config or not self.config["id_vars"]:
-            raise ValueError("PivotLonger requires 'id_vars'.")
-        if "value_vars" not in self.config or not self.config["value_vars"]:
-            raise ValueError("PivotLonger requires 'value_vars'.")
-        if "var_name" not in self.config:
-            raise ValueError("PivotLonger requires 'var_name'.")
-        if "value_name" not in self.config:
-            raise ValueError("PivotLonger requires 'value_name'.")
-        return True
+        self.config = cast(PivotLongerShaperConfig, self.params)
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
@@ -112,14 +98,19 @@ class PivotLonger(Shaper):
             value_name=self.config["value_name"],
         )
 
+        if self._source_tracker is not None:
+            self._source_tracker.select(
+                position % len(data_frame) for position in range(len(result))
+            )
+
         # Apply extraction pattern and filtering if provided
         pattern = self.config.get("extract_pattern")
         if pattern:
             try:
                 var_name = self.config["var_name"]
-                pattern = str(self.config.get("extract_pattern", ""))
-                group_indices = list(self.config.get("extract_group_indices", [1]))
-                separator = str(self.config.get("extract_separator", "_"))
+                pattern = self.config.get("extract_pattern", "")
+                group_indices = self.config.get("extract_group_indices", [1])
+                separator = self.config.get("extract_separator", "_")
 
                 # Selective unpivoting logic
                 filters = self.config.get("selection_filters", {})
@@ -163,6 +154,8 @@ class PivotLonger(Shaper):
 
                     # Drop rows that returned None (discard strategy)
                     result = result.dropna(subset=[var_name])
+                    if self._source_tracker is not None:
+                        self._source_tracker.select(result.index)
 
                     # If merge strategy, we might have multiple rows with the same merge_label
                     if strategy == "merge":
@@ -171,6 +164,10 @@ class PivotLonger(Shaper):
                         val_name = self.config["value_name"]
 
                         # Group by everything EXCEPT the value column and sum
+                        if self._source_tracker is not None:
+                            self._source_tracker.combine_groups(
+                                result.groupby(id_vars + [var_name]).indices.values()
+                            )
                         result = result.groupby(id_vars + [var_name], as_index=False).agg(
                             {val_name: "sum"}
                         )
@@ -207,20 +204,8 @@ class PivotWider(Shaper):
 
     def __init__(self, params: dict[str, str | list[str]]) -> None:
         """Initialize with PivotWiderShaperConfig."""
-        self.config = cast(PivotWiderShaperConfig, params)
         super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Verify required parameters are present."""
-        super()._verify_params()
-        if "index" not in self.config or not self.config["index"]:
-            raise ValueError("PivotWider requires 'index' columns.")
-        if "columns" not in self.config or not self.config["columns"]:
-            raise ValueError("PivotWider requires a 'columns' target.")
-        if "values" not in self.config or not self.config["values"]:
-            raise ValueError("PivotWider requires a 'values' target.")
-        return True
+        self.config = cast(PivotWiderShaperConfig, self.params)
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
@@ -255,6 +240,32 @@ class PivotWider(Shaper):
             result = result.reset_index()
             # If the columns have a name (from columns_col), remove it for cleaner output
             result.columns.name = None
+            if self._source_tracker is not None:
+                # pivot_table(first) uses the first nonmissing value for each cell.
+                positional = data_frame.reset_index(drop=True)
+                cells = (
+                    positional.loc[positional[values_col].notna()]
+                    .groupby(index_cols + [columns_col], sort=False, dropna=True)
+                    .head(1)
+                )
+                row_key, source_key = "__ring5_output_position", "__ring5_source_position"
+                while row_key in index_cols:
+                    row_key += "_"
+                while source_key in index_cols or source_key == row_key:
+                    source_key += "_"
+                output_keys = result[index_cols].assign(**{row_key: range(len(result))})
+                source_keys = cells[index_cols].assign(**{source_key: cells.index})
+                joined = output_keys.merge(
+                    source_keys, on=index_cols, how="left", sort=False, validate="one_to_many"
+                )
+                grouped_positions = joined.groupby(row_key, sort=False)[source_key].agg(list)
+                groups = []
+                for position in range(len(result)):
+                    contributors = grouped_positions.loc[position]
+                    if any(pd.isna(source_position) for source_position in contributors):
+                        raise ValueError("Pivot output has no exact original cell contribution.")
+                    groups.append([int(source_position) for source_position in contributors])
+                self._source_tracker.combine_groups(groups)
         except Exception as e:
             raise ValueError(f"Failed to pivot wider: {e}") from e
 

@@ -14,8 +14,10 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
+import time
+from typing import Literal
 
-from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
+from playwright.sync_api import Locator, Page, expect
 
 from tests.visual.pages.base_page import BasePage
 
@@ -38,17 +40,6 @@ PLOT_TYPES: tuple[str, ...] = (
     "scatter",
     "violin",
     "waterfall",
-)
-
-# Available shapers (Add transformation selectbox options)
-SHAPER_TYPES: tuple[str, ...] = (
-    "Column Selector",
-    "Sort",
-    "Mean Calculator",
-    "Normalize",
-    "Filter",
-    "Split-Apply (Per-Axis)",
-    "Transformer",
 )
 
 
@@ -110,7 +101,7 @@ class ManagePlotsPage(BasePage):
 
     @property
     def plot_selector_pills(self) -> Locator:
-        """The st.pills widget for selecting plots (key=plot_selector)."""
+        """The required st.pills widget for selecting plots by their display labels."""
         return self.page.get_by_role("radiogroup", name="Select Plot")
 
     @property
@@ -187,7 +178,8 @@ class ManagePlotsPage(BasePage):
         structural contract excludes unrelated and nested expanders without
         maintaining a list of their presentation labels.
         """
-        delete_action = self.page.get_by_role("button", name="Del", exact=True)
+        # Open selectors hide sibling controls from the accessibility tree.
+        delete_action = self.page.get_by_role("button", name="Del", exact=True, include_hidden=True)
         return self.page.locator("[data-testid='stExpander']").filter(has=delete_action)
 
     @property
@@ -218,13 +210,6 @@ class ManagePlotsPage(BasePage):
     def pipeline_configuration_import_button(self) -> Locator:
         """Validate, save, and use the uploaded pipeline."""
         return self.pipeline_exchange_expander.get_by_role("button", name="Import, save, and use")
-
-    @property
-    def pipeline_configuration_import_success(self) -> Locator:
-        """Human-readable pipeline import confirmation."""
-        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
-            has_text="Imported and loaded"
-        )
 
     def get_pipeline_step(self, index: int) -> Locator:
         """Return the *n*-th pipeline step expander (0-based).
@@ -327,6 +312,16 @@ class ManagePlotsPage(BasePage):
     def viz_x_axis_selectbox(self) -> Locator:
         """'X-axis' selectbox."""
         return self._by_label("stSelectbox", "X-axis")
+
+    @property
+    def viz_major_group_selectbox(self) -> Locator:
+        """Major grouping column for a grouped stacked bar plot."""
+        return self._by_label("stSelectbox", "Major Grouping (Outer)")
+
+    @property
+    def viz_minor_group_selectbox(self) -> Locator:
+        """Minor grouping column for a grouped stacked bar plot."""
+        return self._by_label("stSelectbox", "X-Axis / Minor Grouping (Inner)")
 
     @property
     def viz_y_axis_selectbox(self) -> Locator:
@@ -579,6 +574,30 @@ class ManagePlotsPage(BasePage):
         """Download button inside the download expander."""
         return self.download_expander.get_by_role("button", name="Download")
 
+    def open_download_expander(
+        self, engine: Literal["plotly", "matplotlib"], *, timeout: int
+    ) -> None:
+        """Open the current engine's Download section after stale sections leave."""
+        deadline = time.monotonic() + timeout / 1000
+
+        def remaining() -> int:
+            milliseconds = int((deadline - time.monotonic()) * 1000)
+            assert milliseconds > 0, "Opening the current Download section exceeded its budget"
+            return milliseconds
+
+        anchor = {"plotly": "html", "matplotlib": "pgf"}[engine]
+        current = self.download_expander.filter(
+            has=self.page.get_by_role("radio", name=anchor, exact=True, include_hidden=True)
+        )
+        expect(current).to_have_count(1, timeout=remaining())
+        expect(self.download_expander).to_have_count(1, timeout=remaining())
+        details = current.locator("details")
+        expect(details).to_have_count(1, timeout=remaining())
+        if details.get_attribute("open", timeout=remaining()) is None:
+            current.locator("summary").click(timeout=remaining())
+        expect(details).to_have_js_property("open", True, timeout=remaining())
+        expect(current.get_by_role("radiogroup", name="Format")).to_be_visible(timeout=remaining())
+
     #  8. Workspace management
 
     @property
@@ -621,7 +640,7 @@ class ManagePlotsPage(BasePage):
 
         Args:
             name: Desired plot name.
-            plot_type: Optional plot type label to select (e.g. "Bar Chart").
+            plot_type: Optional exact factory key (e.g. "bar", "dual_axis_bar_dot").
                 If *None*, the default is kept.
         """
         self.plot_name_input.fill(name)
@@ -629,29 +648,9 @@ class ManagePlotsPage(BasePage):
             self.select_plot_type(plot_type)
         self.create_plot_button.click()
         self.wait_for_streamlit(expect_rerun=True)
-        expect(self.get_plot_pill(name).first).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.select_plot(name)
-
-    def _open_and_select(self, selectbox: Locator, value: str) -> None:
-        """Open a selectbox and choose *value*, retrying interrupted clicks."""
-        expect(selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        combobox = selectbox.get_by_role("combobox")
-        if combobox.input_value() == value:
-            return
-        option = self.page.get_by_role("option", name=value, exact=True).first
-        for _ in range(3):
-            combobox.click()
-            try:
-                option.wait_for(state="visible", timeout=5_000)
-                option.click(timeout=5_000)
-            except PlaywrightTimeoutError:
-                self.page.keyboard.press("Escape")
-                self.page.wait_for_timeout(250)
-                continue
-            self.wait_for_streamlit(expect_rerun=True)
-            expect(combobox).to_have_value(value, timeout=self.RENDER_TIMEOUT)
-            return
-        expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        pill = self.get_plot_pill(name)
+        expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     def select_plot_type(self, plot_type: str) -> None:
         """Select a plot type in the create-plot form selectbox, verifying it took.
@@ -659,31 +658,9 @@ class ManagePlotsPage(BasePage):
         Args:
             plot_type: Exact factory key (e.g. "bar", "dual_axis_bar_dot").
         """
-        combobox = self.plot_type_selectbox.get_by_role("combobox")
-        expect(combobox).to_be_visible(timeout=self.RENDER_TIMEOUT)
         if plot_type not in PLOT_TYPES:
             raise ValueError(f"Unsupported plot type: {plot_type}")
-        option = self.page.get_by_role("option", name=plot_type, exact=True).first
-        for _ in range(3):
-            combobox.click()
-            combobox.fill(plot_type)
-            try:
-                option.wait_for(state="visible", timeout=5_000)
-            except PlaywrightTimeoutError:
-                # A Streamlit rerender can close the virtualized menu after the
-                # input accepted its search text. Reopening retains the query.
-                combobox.click()
-            try:
-                option.wait_for(state="visible", timeout=5_000)
-                option.click(timeout=5_000)
-            except PlaywrightTimeoutError:
-                self.page.keyboard.press("Escape")
-                self.page.wait_for_timeout(250)
-                continue
-            self.wait_for_streamlit(expect_rerun=True)
-            expect(combobox).to_have_value(plot_type, timeout=self.RENDER_TIMEOUT)
-            return
-        expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self._open_and_select(self.plot_type_selectbox, plot_type)
 
     #  ACTIONS — Plot Selector
 
@@ -731,6 +708,21 @@ class ManagePlotsPage(BasePage):
 
     #  ACTIONS — Pipeline editor
 
+    def open_transformation_menu(self) -> Locator:
+        """Open the transformation menu without filtering its options.
+
+        Returns:
+            The visible listbox owned by the Add transformation control.
+        """
+        widget = self.add_transformation_selectbox
+        control = widget.get_by_role("combobox")
+        if control.get_attribute("aria-expanded", timeout=self.RENDER_TIMEOUT) != "true":
+            control.press("ArrowDown", timeout=self.RENDER_TIMEOUT)
+        expect(control).to_have_attribute("aria-expanded", "true", timeout=self.RENDER_TIMEOUT)
+        _, listbox = self._owned_listbox(control, timeout=self.RENDER_TIMEOUT)
+        expect(listbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        return listbox
+
     def add_shaper(self, shaper_name: str) -> None:
         """Select a shaper type and click 'Add to Pipeline'.
 
@@ -738,13 +730,21 @@ class ManagePlotsPage(BasePage):
             shaper_name: Exact display label (e.g. "Column Selector").
         """
         self._open_and_select(self.add_transformation_selectbox, shaper_name)
+        previous = self.pipeline_steps.count()
         self.add_to_pipeline_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        expect(self.pipeline_steps).to_have_count(previous + 1, timeout=self.RENDER_TIMEOUT)
+        summary = self.get_pipeline_step(previous).locator("summary").first
+        expect(summary.get_by_text(f"{previous + 1}. {shaper_name}", exact=True)).to_be_visible(
+            timeout=self.RENDER_TIMEOUT
+        )
 
     def finalize_pipeline(self) -> None:
-        """Click 'Finalize Pipeline for Plotting' and wait."""
-        self.finalize_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
+        """Wait for the application rerun that publishes the finalized pipeline.
+
+        Callers verify the resulting native chart or downloaded measurements.
+        """
+        with self.expect_script_rerun():
+            self.finalize_button.click()
 
     def open_pipeline_exchange(self) -> None:
         """Open the pipeline import/export panel when it is collapsed."""
@@ -759,14 +759,18 @@ class ManagePlotsPage(BasePage):
         download_info.value.save_as(str(path))
 
     def upload_and_use_pipeline_configuration(self, path: str | Path) -> None:
-        """Upload, validate, save, and use one portable pipeline file."""
+        """Submit an uploaded pipeline; callers verify its retained configuration."""
         self.open_pipeline_exchange()
         self.pipeline_configuration_uploader.set_input_files(str(path))
-        self.wait_for_streamlit(expect_rerun=True)
-        self.page.wait_for_timeout(500)
-        self.pipeline_configuration_import_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
-        self.page.wait_for_timeout(500)
+        expect(
+            self.pipeline_exchange_expander.get_by_title(Path(path).name, exact=True)
+        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(
+            self.pipeline_exchange_expander.get_by_test_id("stFileChipIconSpinner")
+        ).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+        expect(self.pipeline_configuration_import_button).to_be_enabled(timeout=self.RENDER_TIMEOUT)
+        with self.expect_script_rerun():
+            self.pipeline_configuration_import_button.click()
 
     def delete_step(self, index: int) -> None:
         """Delete a pipeline step by index.
@@ -794,6 +798,41 @@ class ManagePlotsPage(BasePage):
         """
         self.get_step_down_button(index).click()
         self.wait_for_streamlit()
+
+    def open_pipeline_step(self, index: int) -> Locator:
+        """Expand and return one owning pipeline step."""
+        step = self.get_pipeline_step(index)
+        summary = step.locator("summary").first
+        expect(summary).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if not step.locator("details").first.evaluate("node => node.open"):
+            summary.click()
+        return step
+
+    def set_multiselect_values(self, widget: Locator, values: list[str]) -> None:
+        """Replace an explicit multiselect selection through its ordinary controls.
+
+        Args:
+            widget: The uniquely scoped ``stMultiSelect`` container.
+            values: Exact option labels in the required selection order.
+        """
+        expect(widget).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        tags = widget.locator("[data-tag]")
+        control = widget.locator("input").first
+        current = [value.strip() for value in tags.all_text_contents()]
+        retained = 0
+        for actual, wanted in zip(current, values):
+            if actual != wanted:
+                break
+            retained += 1
+        for remaining in range(len(current), retained, -1):
+            control.fill("")
+            control.press("Backspace")
+            expect(tags).to_have_count(remaining - 1, timeout=self.RENDER_TIMEOUT)
+        for index, value in enumerate(values[retained:], start=retained + 1):
+            self._open_and_select(widget, value, multiple=True)
+            expect(tags).to_have_count(index, timeout=self.RENDER_TIMEOUT)
+        control.press("Escape")
+        expect(tags).to_have_count(len(values), timeout=self.RENDER_TIMEOUT)
 
     #  ACTIONS — Column Selector shaper
 
@@ -823,9 +862,21 @@ class ManagePlotsPage(BasePage):
         """Select a column for the X-axis."""
         self._open_and_select(self.viz_x_axis_selectbox, column)
 
+    def select_major_group(self, column: str) -> None:
+        """Select the outer grouping for a grouped stacked bar plot."""
+        self._open_and_select(self.viz_major_group_selectbox, column)
+
+    def select_minor_group(self, column: str) -> None:
+        """Select the inner grouping for a grouped stacked bar plot."""
+        self._open_and_select(self.viz_minor_group_selectbox, column)
+
     def select_y_axis(self, column: str) -> None:
         """Select a column for the Y-axis."""
         self._open_and_select(self.viz_y_axis_selectbox, column)
+
+    def add_stacked_statistic(self, column: str) -> None:
+        """Add one exact statistic to the grouped stacked plot."""
+        self._open_and_select(self.stacked_statistics_multiselect, column, multiple=True)
 
     def select_sankey_value(self, column: str) -> None:
         """Select the positive numeric flow value for a Sankey diagram."""
@@ -859,14 +910,6 @@ class ManagePlotsPage(BasePage):
     def enable_drill_down(self) -> None:
         """Enable point-click source-row exploration and wait for the fragment rerun."""
         self.viz_drill_down_toggle.click()
-        self.wait_for_streamlit(expect_rerun=True)
-        self.page.wait_for_timeout(500)
-
-    def click_first_plot_point(self) -> None:
-        """Click the first rendered Plotly point inside the custom-component frame."""
-        self.assert_chart_visible()
-        frame = self.plotly_chart.first.content_frame
-        frame.locator(".plotly .point").first.click(force=True)
         self.wait_for_streamlit(expect_rerun=True)
         self.page.wait_for_timeout(500)
 
@@ -912,7 +955,7 @@ class ManagePlotsPage(BasePage):
     def toggle_advanced_settings(self) -> None:
         """Toggle 'Show advanced settings', verifying the switch actually flipped.
 
-        The toggle renders as a ``role=checkbox``; we read its state, click the
+        The toggle renders as a ``role=switch``; we read its state, click the
         label, then assert the checked state inverted so a missed click fails
         loudly. This toggle gates only the *advanced* settings-section pills
         (Axes / Data Labels / Colors / Advanced); the basic Layout / Typography
@@ -928,27 +971,63 @@ class ManagePlotsPage(BasePage):
         else:
             expect(checkbox).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
+    def set_advanced_settings(self, enabled: bool) -> None:
+        """Set advanced disclosure without inverting an already-correct state."""
+        checkbox = self.page.get_by_role("switch", name="Show advanced settings")
+        expect(checkbox).to_be_attached(timeout=self.RENDER_TIMEOUT)
+        if checkbox.is_checked() != enabled:
+            self.viz_show_advanced_toggle.click()
+            self.wait_for_streamlit(expect_rerun=True)
+        if enabled:
+            expect(checkbox).to_be_checked(timeout=self.RENDER_TIMEOUT)
+        else:
+            expect(checkbox).not_to_be_checked(timeout=self.RENDER_TIMEOUT)
+
+    def select_settings_section(self, section: str) -> None:
+        """Select a styling section without deselecting its active pill."""
+        pill = self.viz_settings_pills.get_by_role("radio", name=section)
+        expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if not pill.is_checked():
+            pill.click()
+            self.wait_for_streamlit(expect_rerun=True)
+        expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
+
+    def select_axis(self, axis: str) -> None:
+        """Select one available axis in the active Axes settings section."""
+        pill = self.page.get_by_role("radiogroup", name="Axis", exact=True).get_by_role(
+            "radio", name=axis
+        )
+        expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if not pill.is_checked():
+            pill.click()
+            self.wait_for_streamlit(expect_rerun=True)
+        expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
+
     def select_engine(self, engine: str) -> None:
         """Select a rendering engine and wait for figure regeneration.
 
         Args:
             engine: ``"plotly"`` or ``"matplotlib"``.
         """
+
+        def wait_for_selected_chart() -> None:
+            """Require the selected connector to replace the previous chart."""
+            if engine == "plotly":
+                expect(self.matplotlib_chart).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+                self.assert_chart_visible()
+            else:
+                expect(self.plotly_chart).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+                self.assert_matplotlib_chart_visible()
+
         pill = self.viz_engine_pills.get_by_role("radio", name=engine)
         expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
         if pill.is_checked():
+            wait_for_selected_chart()
             return
-        for _ in range(3):
+        with self.expect_script_rerun():
             pill.click()
-            try:
-                expect(pill).to_be_checked(timeout=10_000)
-            except AssertionError:
-                self.page.wait_for_timeout(250)
-                continue
-            self.wait_for_streamlit(timeout=60_000, expect_rerun=True)
-            expect(pill).to_be_checked(timeout=60_000)
-            return
-        expect(pill).to_be_checked(timeout=60_000)
+        expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
+        wait_for_selected_chart()
 
     def select_figure_theme(self, name: str) -> None:
         """Select a built-in figure theme by its human-readable name."""

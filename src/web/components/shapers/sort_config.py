@@ -13,7 +13,7 @@ from typing import cast
 import pandas as pd
 import streamlit as st
 
-from src.core.models.shaper_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig, ShaperValue
 
 
 class SortConfig:
@@ -51,8 +51,8 @@ class SortConfig:
             return {"type": "sort", "order_dict": {}}
 
         # Restore previously selected columns
-        existing_order: dict[str, list[str]] = cast(
-            dict[str, list[str]], existing_config.get("order_dict", {})
+        existing_order: dict[str, list[ShaperValue | None]] = cast(
+            dict[str, list[ShaperValue | None]], existing_config.get("order_dict", {})
         )
         default_cols: list[str] = [c for c in existing_order.keys() if c in categorical_cols]
 
@@ -64,21 +64,25 @@ class SortConfig:
             help="Select columns to define sort order",
         )
 
-        order_dict: dict[str, list[str]] = {}
+        order_dict: dict[str, list[ShaperValue | None]] = {}
 
         for col in sort_columns:
-            unique_values: list[str] = sorted(data[col].dropna().unique().astype(str).tolist())
+            unique_values: list[ShaperValue] = sorted(data[col].dropna().unique().tolist(), key=str)
 
             # Restore previous order if available, filtering stale values
-            previous_order: list[str] = existing_order.get(col, [])
-            valid_previous: list[str] = [v for v in previous_order if v in unique_values]
-            new_values: list[str] = [v for v in unique_values if v not in valid_previous]
-            default_order: list[str] = valid_previous + new_values
+            previous_order: list[ShaperValue | None] = existing_order.get(col, [])
+            valid_previous: list[ShaperValue | None] = [
+                v for v in previous_order if v in unique_values
+            ]
+            new_values: list[ShaperValue | None] = [
+                v for v in unique_values if v not in valid_previous
+            ]
+            default_order: list[ShaperValue | None] = valid_previous + new_values
 
             with st.expander(f"Order for '{col}' ({len(unique_values)} values)"):
                 if len(unique_values) <= 20:
                     # For small cardinality, let user reorder via multiselect
-                    ordered: list[str] = st.multiselect(
+                    ordered: list[ShaperValue | None] = st.multiselect(
                         f"Select order for '{col}' values",
                         options=unique_values,
                         default=default_order,
@@ -99,7 +103,4 @@ class SortConfig:
                     )
                     order_dict[col] = default_order
 
-        return {
-            "type": "sort",
-            "order_dict": order_dict,
-        }
+        return cast(ShaperStepConfig, {"type": "sort", "order_dict": order_dict})

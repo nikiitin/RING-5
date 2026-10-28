@@ -1,8 +1,4 @@
-"""Legend settings component — primary, secondary, and tertiary legends.
-
-Extracted from ``BasePlot._section_legends()`` and
-``BaseStyleUI._render_legend_section()`` / sub-methods as a standalone
-component following the component-only architecture (P1, P9).
+"""Legend settings component — independent primary, secondary and tertiary controls.
 
 The component renders a nested pills navigation for primary/secondary/
 tertiary legends and delegates to position, appearance, and sizing
@@ -18,20 +14,22 @@ Usage::
     )
 """
 
-from typing import Any
-
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
+from src.core.common.numbered_axis import numbered_axis_modes, numbered_legend_prefix
 from src.web.components.common.bounded_options import bounded_unique_strings
 from src.web.components.common.reorderable_list import render_reorderable_list
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
     numeric_input,
+    inherited_font_input,
     select_option,
     toggle,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 # Canonical mapping of legend tier to config-key prefix.
 _LEGEND_PREFIXES: dict[str, str] = {
@@ -90,6 +88,22 @@ class LegendSettingsComponent:
             Legend configuration keys (prefixed per legend level).
         """
         # [impl->req~ring5.figure.legends~1]
+        saved_config = dict(saved_config)
+        routing_config: PlotConfig = {}
+        if self.plot_type == "grouped_stacked_bar" and saved_config.get("dual_axis"):
+            # [impl->req~ring5.figure.dual-axis-controls~1]
+            routing_config["unified_legend"] = st.checkbox(
+                "Unified Legend (all items in one legend)",
+                value=saved_config.get("unified_legend", True),
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.unified_legend"),
+            )
+            saved_config.update(routing_config)
+            numbered = "Number legend" in (numbered_axis_modes(saved_config) or [])
+            separate = (
+                bool(saved_config.get("y_columns_right")) and not saved_config["unified_legend"]
+            )
+            has_secondary = separate or numbered
+            has_tertiary = separate and numbered
         _labels: dict[str, str] = {
             "primary": ":material/legend_toggle: Primary",
         }
@@ -103,7 +117,7 @@ class LegendSettingsComponent:
             options=list(_labels.keys()),
             format_func=lambda x: _labels.get(x, str(x)),
             selection_mode="single",
-            key=f"legend_nav_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.legend_nav"),
             default="primary",
         )
 
@@ -131,7 +145,7 @@ class LegendSettingsComponent:
                 if key.startswith(cfg_prefix):
                     preserved[key] = value
 
-        return {**preserved, **active_config, **item_config}
+        return {**preserved, **active_config, **item_config, **routing_config}
 
     def _render_legend_items(
         self,
@@ -153,24 +167,27 @@ class LegendSettingsComponent:
                 unified_items = left_series + [
                     item for item in right_series if item not in left_series
                 ]
-                return self._render_series_items(
+                return self._render_named_items(
                     saved_config,
                     unified_items,
                     order_key="legend_order",
+                    labels_key="legend_labels",
                     widget_prefix="legend_items",
                 )
-            return self._render_series_items(
+            return self._render_named_items(
                 saved_config,
                 left_series,
                 order_key="y_columns",
+                labels_key="legend_labels",
                 widget_prefix="legend_items",
             )
 
         if active_tab == "secondary" and separate_legends and right_series:
-            return self._render_series_items(
+            return self._render_named_items(
                 saved_config,
                 right_series,
                 order_key="y_columns_right",
+                labels_key="legend_labels",
                 widget_prefix="legend2_items",
             )
 
@@ -232,60 +249,6 @@ class LegendSettingsComponent:
 
         return {}
 
-    def _render_series_items(
-        self,
-        saved_config: PlotConfig,
-        items: list[str],
-        *,
-        order_key: str,
-        widget_prefix: str,
-    ) -> PlotConfig:
-        """Render ordering and display-name controls for trace series."""
-        raw_styles_value = saved_config.get("series_styles")
-        raw_styles: dict[str, Any] = raw_styles_value if isinstance(raw_styles_value, dict) else {}
-        rename_map = {
-            item: str(raw_styles[item]["name"])
-            for item in items
-            if item in raw_styles
-            and isinstance(raw_styles[item], dict)
-            and raw_styles[item].get("name")
-        }
-
-        with st.expander("Reorder and Rename Legend Items"):
-            rendered = render_reorderable_list(
-                "Legend Item Order",
-                items,
-                widget_prefix,
-                plot_id=self.plot_id,
-                default_order=saved_config.get(order_key),
-                enable_rename=True,
-                rename_map=rename_map or None,
-            )
-
-        if not isinstance(rendered, tuple):
-            return {}
-        new_order, renames = rendered
-        result: PlotConfig = {}
-        if new_order != saved_config.get(order_key):
-            result[order_key] = new_order
-
-        if renames != rename_map:
-            styles: dict[str, Any] = {
-                str(key): dict(value)
-                for key, value in raw_styles.items()
-                if isinstance(value, dict)
-            }
-            for item in items:
-                item_style = styles.setdefault(item, {})
-                if item in renames:
-                    item_style["name"] = renames[item]
-                else:
-                    item_style.pop("name", None)
-                if not item_style:
-                    styles.pop(item, None)
-            result["series_styles"] = styles
-        return result
-
     def _render_named_items(
         self,
         saved_config: PlotConfig,
@@ -295,13 +258,9 @@ class LegendSettingsComponent:
         labels_key: str,
         widget_prefix: str,
     ) -> PlotConfig:
-        """Render ordering and renaming for categorical legend entries."""
+        """Render ordering and canonical display labels without changing series styles."""
         raw_labels = saved_config.get(labels_key)
-        saved_labels: dict[str, str] = (
-            {str(key): str(value) for key, value in raw_labels.items()}
-            if isinstance(raw_labels, dict)
-            else {}
-        )
+        saved_labels: dict[str, str] = dict(raw_labels) if isinstance(raw_labels, dict) else {}
         labels = {item: saved_labels[item] for item in items if item in saved_labels}
         with st.expander("Reorder and Rename Legend Items"):
             rendered = render_reorderable_list(
@@ -333,17 +292,9 @@ class LegendSettingsComponent:
     @staticmethod
     def _numbered_legend_level(saved_config: PlotConfig) -> str | None:
         """Return the tier used by the numbered X-axis annotation legend."""
-        modes = saved_config.get("numbered_xaxis_modes") or []
-        enabled = "Number legend" in modes or bool(saved_config.get("numbered_xaxis"))
-        if not enabled:
+        if "Number legend" not in (numbered_axis_modes(saved_config) or []):
             return None
-        if (
-            saved_config.get("dual_axis")
-            and saved_config.get("y_columns_right")
-            and not saved_config.get("unified_legend", True)
-        ):
-            return "tertiary"
-        return "secondary"
+        return "tertiary" if numbered_legend_prefix(saved_config) == "legend3_" else "secondary"
 
     @staticmethod
     def _numbered_legend_items(
@@ -398,12 +349,14 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}x",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_x_{self.plot_id}",
-                default=1.02 if config_prefix == "legend_" else 1.0,
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_x"
+                ),
+                default=-1.0 if config_prefix == "legend_" else 1.0,
                 step=0.05,
                 format="%.2f",
                 help=(
-                    "Horizontal position on the plot area. "
+                    "Horizontal position on the plot area; -1.0 = automatic. "
                     "0.0 = left edge, 1.0 = right edge. "
                     "Values > 1.0 place the legend outside the plot."
                 ),
@@ -415,20 +368,22 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}y",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_y_{self.plot_id}",
-                default=1.0,
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_y"
+                ),
+                default=-1.0 if config_prefix == "legend_" else 1.0,
                 step=0.05,
                 format="%.2f",
                 help=(
-                    "Vertical position on the plot area. "
+                    "Vertical position on the plot area; -1.0 = automatic. "
                     "0.0 = bottom edge, 1.0 = top edge. "
                     "Values > 1.0 place the legend above the plot."
                 ),
             )
 
         st.caption(
-            "Position (0, 0) = bottom-left, (1, 1) = top-right. "
-            "Values outside 0\u20131 place the legend outside the plot area."
+            "Position -1 = automatic. (0, 0) = bottom-left, (1, 1) = top-right. "
+            "Values above 1 place the legend outside the plot area."
         )
 
         orientation = select_option(
@@ -437,7 +392,9 @@ class LegendSettingsComponent:
             saved_config,
             f"{config_prefix}orientation",
             self.plot_id,
-            widget_key=f"{key_prefix}leg_orient_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}leg_orient"
+            ),
             default="vertical",
         )
 
@@ -446,6 +403,52 @@ class LegendSettingsComponent:
             f"{config_prefix}y": legend_y,
             f"{config_prefix}orientation": orientation,
         }
+
+    def _font_size_input(
+        self,
+        saved_config: PlotConfig,
+        config_prefix: str,
+        key_prefix: str,
+        field: str,
+        label: str,
+        widget_field: str,
+        default: int,
+    ) -> int | float:
+        """Preserve secondary font inheritance and valid small primary fonts."""
+        config_key = f"{config_prefix}{field}"
+        widget_key = WidgetKeyBuilder.plot_key(
+            self.plot_id, f"widgets.appearance.{key_prefix}{widget_field}"
+        )
+        if config_prefix == "legend_" and field != "title_font_size":
+            return numeric_input(
+                label,
+                saved_config,
+                config_key,
+                self.plot_id,
+                widget_key=widget_key,
+                default=default,
+                min_value=1,
+            )
+        primary_key = "legend_font_size"
+        display_config = saved_config
+        help_text = "Follow the primary legend's text size."
+        if field == "title_font_size":
+            primary_key = f"{config_prefix}font_size"
+            own_font = saved_config.get(primary_key, -1)
+            inherited_font = saved_config.get("legend_font_size", 12)
+            resolved_font = own_font if own_font != -1 else inherited_font
+            display_config = {**saved_config, primary_key: resolved_font}
+            help_text = "Follow this legend's text size."
+        return inherited_font_input(
+            label,
+            display_config,
+            config_key,
+            self.plot_id,
+            primary_key=primary_key,
+            widget_key=widget_key,
+            default=default,
+            inherit_help=help_text,
+        )
 
     def _render_legend_appearance(
         self,
@@ -465,7 +468,9 @@ class LegendSettingsComponent:
             legend_title = st.text_area(
                 "Title",
                 value=saved_config.get(f"{config_prefix}title", ""),
-                key=f"{key_prefix}leg_title_txt_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_title_txt"
+                ),
                 height=68,
             )
             t_c1, t_c2 = st.columns(2)
@@ -475,18 +480,19 @@ class LegendSettingsComponent:
                     saved_config,
                     f"{config_prefix}title_font_color",
                     self.plot_id,
-                    widget_key=f"{key_prefix}leg_title_col_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}leg_title_col"
+                    ),
                 )
             with t_c2:
-                legend_title_font_size = numeric_input(
-                    "Title Size",
+                legend_title_font_size = self._font_size_input(
                     saved_config,
-                    f"{config_prefix}title_font_size",
-                    self.plot_id,
-                    widget_key=f"{key_prefix}leg_title_sz_{self.plot_id}",
-                    default=14,
-                    min_value=8,
-                    max_value=100,
+                    config_prefix,
+                    key_prefix,
+                    "title_font_size",
+                    "Title Size",
+                    "leg_title_sz",
+                    14,
                 )
             return {
                 f"{config_prefix}title": legend_title,
@@ -507,14 +513,18 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}transparent",
                 self.plot_id,
-                widget_key=f"{key_prefix}trans_leg_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}trans_leg"
+                ),
             )
 
             if not transparent_legend:
                 legend_bgcolor = st.color_picker(
                     "Background Color",
                     bg_col,
-                    key=f"{key_prefix}leg_bg_col_{self.plot_id}",
+                    key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}leg_bg_col"
+                    ),
                 )
             else:
                 legend_bgcolor = "rgba(0,0,0,0)"
@@ -525,14 +535,18 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}border_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_bord_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_bord_col"
+                ),
             )
             legend_border_width = numeric_input(
                 "Border Width",
                 saved_config,
                 f"{config_prefix}border_width",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_bord_wd_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_bord_wd"
+                ),
                 default=0,
                 min_value=0,
                 max_value=5,
@@ -545,41 +559,45 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}font_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_font_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_font_col"
+                ),
             )
-            legend_font_size = numeric_input(
-                "Font Size",
+            legend_font_size = self._font_size_input(
                 saved_config,
-                f"{config_prefix}font_size",
-                self.plot_id,
-                widget_key=f"{key_prefix}leg_font_sz_{self.plot_id}",
-                default=12,
-                min_value=8,
-                max_value=100,
+                config_prefix,
+                key_prefix,
+                "font_size",
+                "Font Size",
+                "leg_font_sz",
+                12,
             )
 
             st.caption("Title Font")
             legend_title = st.text_input(
                 "Legend Title",
                 value=saved_config.get(f"{config_prefix}title", ""),
-                key=f"{key_prefix}leg_title_txt_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_title_txt"
+                ),
             )
             legend_title_font_color = color_picker(
                 "Title Color",
                 saved_config,
                 f"{config_prefix}title_font_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_title_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_title_col"
+                ),
             )
-            legend_title_font_size = numeric_input(
+            legend_title_font_size = self._font_size_input(
+                {**saved_config, f"{config_prefix}font_size": legend_font_size},
+                config_prefix,
+                key_prefix,
+                "title_font_size",
                 "Title Size",
-                saved_config,
-                f"{config_prefix}title_font_size",
-                self.plot_id,
-                widget_key=f"{key_prefix}leg_title_sz_{self.plot_id}",
-                default=14,
-                min_value=8,
-                max_value=100,
+                "leg_title_sz",
+                14,
             )
 
         return {
@@ -608,7 +626,9 @@ class LegendSettingsComponent:
             saved_config,
             f"{config_prefix}ncols",
             self.plot_id,
-            widget_key=f"{key_prefix}leg_ncols_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}leg_ncols"
+            ),
             default=0,
             min_value=0,
             max_value=20,
@@ -627,7 +647,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}tracegroupgap",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_tracegap_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_tracegap"
+                ),
                 default=10,
                 min_value=-20,
                 max_value=200,
@@ -638,7 +660,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}column_spacing",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_colspace_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_colspace"
+                ),
                 default=0.5,
                 min_value=0.0,
                 max_value=20.0,
@@ -656,7 +680,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}itemwidth",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_itemwidth_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_itemwidth"
+                ),
                 default=30,
                 min_value=0,
                 max_value=200,
@@ -671,7 +697,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}handletextpad",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_htpad_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_htpad"
+                ),
                 default=0.3,
                 min_value=0.0,
                 max_value=20.0,
@@ -708,7 +736,9 @@ class LegendSettingsComponent:
             saved_config,
             f"{config_prefix}colorbar_shared",
             self.plot_id,
-            widget_key=f"{key_prefix}cbar_shared_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}cbar_shared"
+            ),
             default=True,
             help="Use a single colorbar for all subplots with a unified range.",
         )
@@ -722,7 +752,9 @@ class LegendSettingsComponent:
                 else 0
             ),
             horizontal=True,
-            key=f"{key_prefix}cbar_range_mode_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}cbar_range_mode"
+            ),
             help="Auto computes nice rounded boundaries; manual lets you set exact values.",
         )
 
@@ -736,7 +768,9 @@ class LegendSettingsComponent:
                     saved_config,
                     f"{config_prefix}colorbar_zmin",
                     self.plot_id,
-                    widget_key=f"{key_prefix}cbar_zmin_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}cbar_zmin"
+                    ),
                     default=0.0,
                     step=1.0,
                     format="%.2f",
@@ -747,7 +781,9 @@ class LegendSettingsComponent:
                     saved_config,
                     f"{config_prefix}colorbar_zmax",
                     self.plot_id,
-                    widget_key=f"{key_prefix}cbar_zmax_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}cbar_zmax"
+                    ),
                     default=100.0,
                     step=1.0,
                     format="%.2f",
@@ -760,7 +796,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}colorbar_nticks",
                 self.plot_id,
-                widget_key=f"{key_prefix}cbar_nticks_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}cbar_nticks"
+                ),
                 default=5,
                 min_value=2,
                 max_value=20,
@@ -772,7 +810,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}colorbar_tick_decimals",
                 self.plot_id,
-                widget_key=f"{key_prefix}cbar_tick_dec_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}cbar_tick_dec"
+                ),
                 default=2,
                 min_value=0,
                 max_value=6,
@@ -786,7 +826,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}colorbar_tick_angle",
                 self.plot_id,
-                widget_key=f"{key_prefix}cbar_tick_angle_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}cbar_tick_angle"
+                ),
                 default=0.0,
                 min_value=-90.0,
                 max_value=90.0,
@@ -801,7 +843,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}colorbar_tick_side",
                 self.plot_id,
-                widget_key=f"{key_prefix}cbar_tick_side_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}cbar_tick_side"
+                ),
                 default="right",
             )
 

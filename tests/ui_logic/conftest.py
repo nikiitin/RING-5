@@ -12,10 +12,11 @@ import pytest
 
 from src.core.models.data_models import PipelineStep
 from src.core.models.shaper_models import ShaperStepConfig
+from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
 
 # Minimal PlotHandle stub (satisfies the PlotHandle protocol)
-class StubPlotHandle:
+class StubPlotHandle(BarPlot):
     """Lightweight stub satisfying the PlotHandle protocol."""
 
     def __init__(
@@ -28,31 +29,17 @@ class StubPlotHandle:
         pipeline: list[PipelineStep] | None = None,
         pipeline_counter: int = 0,
     ) -> None:
-        self.plot_id = plot_id
-        self.name = name
+        super().__init__(plot_id, name)
         self.plot_type = plot_type
         self.config: dict[str, Any] = config or {}
         self.source_data: pd.DataFrame | None = None
         self.processed_data = processed_data
         self.pipeline: list[PipelineStep] = pipeline or []
         self.pipeline_counter = pipeline_counter
-        self.last_generated_fig: Any = None
-        self.last_traces: Any = None
-        self.last_figure_cache_key: str | None = None
         self._style_ui = MagicMock()
-        self._applicator = MagicMock()
 
     # ConfigRenderer stubs (needed for RenderablePlot)
     def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]:
-        return config
-
-    def render_advanced_options(self, config: dict[str, Any], data: pd.DataFrame) -> dict[str, Any]:
-        return config
-
-    def render_display_options(self, config: dict[str, Any]) -> dict[str, Any]:
-        return config
-
-    def render_theme_options(self, config: dict[str, Any]) -> dict[str, Any]:
         return config
 
     def render_settings_section(
@@ -65,25 +52,6 @@ class StubPlotHandle:
 
     def update_from_relayout(self, relayout_data: dict[str, Any]) -> bool:
         return False
-
-    def invalidate_figure(self) -> None:
-        self.last_generated_fig = None
-        self.last_traces = None
-        self.last_figure_cache_key = None
-
-    def replace_processed_data(self, data: pd.DataFrame | None) -> None:
-        self.processed_data = data
-        self.invalidate_figure()
-
-    def replace_source_data(self, data: pd.DataFrame | None) -> None:
-        self.source_data = data.copy(deep=True) if data is not None else None
-
-    # RenderablePlot stubs
-    def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> Any:
-        return MagicMock()
-
-    def apply_common_layout(self, fig: Any, config: dict[str, Any]) -> Any:
-        return fig
 
 
 @pytest.fixture

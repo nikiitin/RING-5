@@ -4,12 +4,15 @@ Renders op-dependent widgets for creating one column from existing columns:
 sum / ratio / scalar / concat / map (value recode).
 """
 
+import json
 from typing import Any, cast
 
 import pandas as pd
 import streamlit as st
 
-from src.core.models.shaper_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig, ShaperValue
+from src.core.common.security_limits import MAX_PIPELINE_CONFIG_BYTES
+from src.web.components.common.scalar_values import scalar_token
 
 _OPS = ["sum", "ratio", "scalar", "concat", "map"]
 _SCALAR_OPS = ["+", "-", "*", "/"]
@@ -125,21 +128,29 @@ class DeriveColumnConfig:
                 key=f"{key_prefix}dc_mcol_{shaper_id}",
             )
             cfg["sources"] = [src]
-            prev_map = cast("dict[str, str]", existing_config.get("mapping", {}) or {})
-            uniques = [str(v) for v in data[src].unique()] if src in data.columns else []
-            default_text = "\n".join(f"{k}={v}" for k, v in prev_map.items()) or "\n".join(
-                f"{u}={u}" for u in uniques
-            )
+            prev_map = cast(dict[str, ShaperValue | None], existing_config.get("mapping", {}))
+            for mapping_value in prev_map.values():
+                scalar_token(mapping_value)
+            if not prev_map and src in data.columns:
+                prev_map = {
+                    value: value for value in data[src].dropna().unique() if type(value) is str
+                }
             raw = st.text_area(
-                "Value mapping (one `old=new` per line; unmapped → NaN)",
-                value=default_text,
+                "Value mapping (JSON object; unmapped values become missing)",
+                value=json.dumps(prev_map, indent=2, ensure_ascii=False, allow_nan=False),
+                max_chars=MAX_PIPELINE_CONFIG_BYTES,
+                help="Quote text values. Numbers, booleans and null keep their types.",
                 key=f"{key_prefix}dc_map_{shaper_id}",
             )
-            mapping: dict[str, str] = {}
-            for line in raw.splitlines():
-                if "=" in line:
-                    old, new = line.split("=", 1)
-                    mapping[old.strip()] = new.strip()
+            try:
+                mapping = json.loads(raw)
+                if not isinstance(mapping, dict):
+                    raise ValueError("A value mapping must be a JSON object.")
+                for mapping_value in mapping.values():
+                    scalar_token(mapping_value)
+            except (ValueError, RecursionError) as exc:
+                st.error(f"Cannot apply this mapping: {exc} The saved mapping is unchanged.")
+                mapping = dict(prev_map)
             cfg["mapping"] = mapping
 
         return cast(ShaperStepConfig, cfg)

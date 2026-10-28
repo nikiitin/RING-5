@@ -32,7 +32,7 @@ def test_accessible_theme_passes_audit_and_encodes_lines_and_bars_without_color_
             "line",
             series_count=2,
         )
-        line_plot = session.create_plot("line", data=data, config=line_config)
+        line_plot = session.create_plot("line", data=ring5.Table(data), config=line_config)
         plotly_lines = session.render(line_plot, engine="plotly")
         matplotlib_lines = session.render(line_plot, engine="matplotlib")
 
@@ -40,7 +40,7 @@ def test_accessible_theme_passes_audit_and_encodes_lines_and_bars_without_color_
             {"x": "phase", "y": "ipc", "color": "variant"},
             "bar",
         )
-        bar_plot = session.create_plot("bar", data=data, config=bar_config)
+        bar_plot = session.create_plot("bar", data=ring5.Table(data), config=bar_config)
         plotly_bars = session.render(bar_plot, engine="plotly")
         matplotlib_bars = session.render(bar_plot, engine="matplotlib")
 

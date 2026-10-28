@@ -21,30 +21,11 @@ class Sort(UniDfShaper):
             params: Must contain 'order_dict' which maps column names to
                     a list of values defining the preferred sort order.
         """
-        config = cast(SortShaperConfig, params)
-        self.order_dict: dict[str, list[str]] = config.get("order_dict", {})
         super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Verify that 'order_dict' is correctly structured."""
-        super()._verify_params()
         config = cast(SortShaperConfig, self.params)
-
-        if "order_dict" not in config:
-            raise ValueError("Sort requires 'order_dict' parameter.")
-
-        order_dict = config["order_dict"]
-        if not isinstance(order_dict, dict):
-            raise TypeError("Sort 'order_dict' parameter must be a dictionary.")
-
-        for col, values in order_dict.items():
-            if not isinstance(col, str):
-                raise TypeError(f"Sort column name '{col}' must be a string.")
-            if not isinstance(values, list):
-                raise TypeError(f"Sort order values for column '{col}' must be a list.")
-
-        return True
+        self.order_dict: dict[str, list[str | int | float | bool | None]] = config.get(
+            "order_dict", {}
+        )
 
     @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
@@ -66,7 +47,7 @@ class Sort(UniDfShaper):
         self._verify_preconditions(data_frame)
 
         # Avoid modifying the input dataframe
-        result = data_frame.copy()
+        sort_keys = pd.DataFrame(index=pd.RangeIndex(len(data_frame)))
 
         # Apply categorical ordering to each column specified in order_dict. Values not
         # present in ``orders`` are appended (in first-seen order) so they KEEP their value
@@ -74,16 +55,22 @@ class Sort(UniDfShaper):
         # behavior. (Without this, pandas maps unlisted values to a categorical-NaN that the
         # later astype(str) turns into a real float NaN, silently destroying the label.)
         for column, orders in self.order_dict.items():
-            extra = [v for v in dict.fromkeys(result[column].tolist()) if v not in orders]
-            result[column] = pd.Categorical(
-                result[column], categories=list(orders) + extra, ordered=True
+            preferred = list(dict.fromkeys(value for value in orders if pd.notna(value)))
+            extra = [
+                value
+                for value in pd.unique(data_frame[column])
+                if pd.notna(value) and value not in preferred
+            ]
+            sort_keys[column] = pd.Categorical(
+                data_frame[column], categories=preferred + extra, ordered=True
             )
 
         # Sort values using stable sort to preserve existing relative order for equal categories
-        result = result.sort_values(by=list(self.order_dict.keys()), kind="stable")
-
-        # Convert categorical columns back to strings to prevent downstream issues
-        for column in self.order_dict:
-            result[column] = result[column].astype(str)
-
-        return result
+        if not self.order_dict:
+            if self._source_tracker is not None:
+                self._source_tracker.select(range(len(data_frame)))
+            return data_frame.copy()
+        positions = sort_keys.sort_values(by=list(self.order_dict), kind="stable").index
+        if self._source_tracker is not None:
+            self._source_tracker.select(positions)
+        return data_frame.iloc[positions].copy()

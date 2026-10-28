@@ -213,7 +213,7 @@ class TestShowPortfolioPage:
     def test_incomplete_restore_is_reported(self, mock_st: MagicMock) -> None:
         # [test->req~ring5.portfolio.partial-report~1]
         """The web page reports skipped restore content before rerunning."""
-        from src.core.models import RestoreReport
+        from src.core.models.portfolio_models import RestoreReport
         from src.web.pages.portfolio import show_portfolio_page
 
         api = MagicMock()
@@ -240,6 +240,7 @@ class TestShowPortfolioPage:
         messages = [str(call.args[0]) for call in mock_st.toast.call_args_list]
         assert any("Restore incomplete" in message for message in messages)
         assert any("unknown plot type" in message for message in messages)
+        assert not any(message.startswith("Portfolio loaded:") for message in messages)
 
     # NOTE: test_save_pipeline and test_apply_pipeline removed —
     # Pipeline save/load is no longer part of the page.
@@ -254,7 +255,7 @@ class TestPortfolioEnvironment:
         self, mock_st: MagicMock, mock_compare: MagicMock
     ) -> None:
         # [test->req~ring5.portfolio.environment-metadata~1]
-        from src.core.models import (
+        from src.core.models.environment_models import (
             EnvironmentComparison,
             EnvironmentDifference,
             EnvironmentMetadata,
@@ -296,8 +297,8 @@ class TestPortfolioEnvironment:
         ]
 
     @patch("src.web.pages.portfolio.st")
-    def test_environment_status_distinguishes_legacy_and_changed(self, mock_st: MagicMock) -> None:
-        from src.core.models import (
+    def test_environment_status_reports_changed_values(self, mock_st: MagicMock) -> None:
+        from src.core.models.environment_models import (
             EnvironmentComparison,
             EnvironmentDifference,
             EnvironmentMetadata,
@@ -305,9 +306,6 @@ class TestPortfolioEnvironment:
         from src.web.pages.portfolio import _render_environment_status
 
         current = EnvironmentMetadata(1, "1", "3.12", "CPython", "Linux", "x86_64")
-        _render_environment_status(EnvironmentComparison(None, current, ()))
-        mock_st.info.assert_called_once()
-
         changed = EnvironmentDifference("Runtime", "RING-5", "0.9", "1", "changed")
         _render_environment_status(EnvironmentComparison(current, current, (changed,)))
         mock_st.warning.assert_called_once_with(
@@ -335,7 +333,10 @@ class TestPortfolioIntegrity:
         mock_st: MagicMock,
     ) -> None:
         # [test->req~ring5.portfolio.signed-manifests~1]
-        from src.core.models import PortfolioIntegrityReport, PortfolioIntegritySection
+        from src.core.models.portfolio_integrity_models import (
+            PortfolioIntegrityReport,
+            PortfolioIntegritySection,
+        )
         from src.web.pages.portfolio import _render_integrity_review
 
         expander = _make_col_mock()
@@ -394,7 +395,7 @@ class TestPortablePortfolioBundle:
         mock_st: MagicMock,
     ) -> None:
         # [test->req~ring5.portfolio.portable-bundles~1]
-        from src.core.models import DatasetSnapshotInfo
+        from src.core.models.dataset_workspace_models import DatasetSnapshotInfo
         from src.web.pages.portfolio import _render_bundle_download
 
         expander = _make_col_mock()

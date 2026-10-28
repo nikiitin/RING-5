@@ -7,7 +7,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.models import DatasetInfo, WorkspaceSearchEntry
+from src.core.models.dataset_workspace_models import DatasetInfo
+from src.core.models.workspace_search_models import WorkspaceSearchEntry
 from src.core.services import workspace_search_service as search_module
 from src.core.services.workspace_search_service import WorkspaceSearchService
 
@@ -18,8 +19,20 @@ def _state() -> MagicMock:
         {"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC", "_id": "v1"}
     ]
     state.get_scanned_variables.return_value = [
-        {"name": "system.cpu.ipc", "type": "scalar", "entries": []},
-        {"name": "system.cache.misses", "type": "vector", "entries": ["l1", "l2"]},
+        {
+            "name": "system.cpu.ipc",
+            "type": "scalar",
+            "entries": [],
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
+            "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
+        },
+        {
+            "name": "system.cache.misses",
+            "type": "vector",
+            "entries": ["l1", "l2"],
+            "source_evidence": {"state": "resolved", "kind": "vector", "basis": "backend_metadata"},
+            "instances": [{"source_name": "system.cache.misses", "indices": []}],
+        },
     ]
     state.list_datasets.return_value = (DatasetInfo("experiment results", 42, 5, True),)
     state.get_plots.return_value = [

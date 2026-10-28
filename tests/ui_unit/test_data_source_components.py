@@ -1,16 +1,21 @@
 from collections.abc import Generator
+from concurrent.futures import Future
+from pathlib import Path
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
-from src.core.models import ParserPlaygroundBatchResult, ScanResult
+from src.core.application_api import ApplicationAPI
+from src.core.models.parsing_models import ParserPlaygroundBatchResult, ScanFileResult, ScanResult
+from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from tests.conftest import columns_side_effect
+from tests.helpers.parsed_values import completed_future, numeric_file
 
 
 @pytest.fixture
-def mock_streamlit() -> Generator[None, None, None]:
+def mock_streamlit() -> Generator[Any, None, None]:
     with patch("src.web.components.data_source.data_source_components.st") as mock_st:
         mock_st.columns.side_effect = columns_side_effect
         mock_st.session_state = {}
@@ -25,8 +30,10 @@ def mock_streamlit() -> Generator[None, None, None]:
 
 @pytest.fixture
 def mock_api() -> Any:
-    api = MagicMock()
+    api = MagicMock(spec=ApplicationAPI)
     api.state_manager = MagicMock()
+    api.data_services = MagicMock(spec=DataServicesAPI)
+    api.get_simulator_info.side_effect = ApplicationAPI.get_simulator_info
 
     import tempfile
 
@@ -41,19 +48,20 @@ def mock_api() -> Any:
 
 
 @pytest.fixture
-def mock_card_components() -> Generator[None, None, None]:
+def mock_card_components() -> Generator[Any, None, None]:
     with patch("src.web.components.data_source.data_source_components.CardComponents") as mock_card:
         yield mock_card
 
 
 def test_render_csv_pool_empty(mock_streamlit: Any, mock_api: Any) -> None:
 
-    mock_api.load_csv_pool.return_value = []
+    mock_api.data_services.load_csv_pool.return_value = []
     mock_api.state_manager.get_csv_pool.return_value = []
 
     DataSourceComponents.render_csv_pool(mock_api)
 
     mock_streamlit.warning.assert_called_with(ANY)
+    mock_api.data_services.load_csv_pool.assert_called_once_with()
     mock_api.state_manager.set_csv_pool.assert_called_with([])
 
 
@@ -62,17 +70,20 @@ def test_render_csv_pool_with_files(
 ) -> None:
 
     csv_info = {"name": "test.csv", "path": "/path/to/test.csv"}
-    mock_api.load_csv_pool.return_value = [csv_info]
+    mock_api.data_services.load_csv_pool.return_value = [csv_info]
     mock_api.state_manager.get_csv_pool.return_value = []
 
-    with patch("pathlib.Path.exists", return_value=True):
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.is_file", return_value=True),
+    ):
         mock_card_components.file_info_card.return_value = (True, False, False)
 
         with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
             DataSourceComponents.render_csv_pool(mock_api)
 
         render_preview.assert_called_once_with(mock_api, "/path/to/test.csv")
-        mock_api.load_csv_file.assert_not_called()
+        mock_api.data_services.load_csv_file.assert_not_called()
 
 
 def test_render_csv_pool_delete(
@@ -80,16 +91,19 @@ def test_render_csv_pool_delete(
 ) -> None:
 
     csv_info = {"name": "del.csv", "path": "/del.csv"}
-    mock_api.load_csv_pool.return_value = [csv_info]
+    mock_api.data_services.load_csv_pool.return_value = [csv_info]
     mock_api.state_manager.get_csv_pool.return_value = []
 
-    with patch("pathlib.Path.exists", return_value=True):
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.is_file", return_value=True),
+    ):
         mock_card_components.file_info_card.return_value = (False, False, True)
-        mock_api.delete_from_csv_pool.return_value = True
+        mock_api.data_services.delete_from_csv_pool.return_value = True
 
         DataSourceComponents.render_csv_pool(mock_api)
 
-        mock_api.delete_from_csv_pool.assert_called_with("/del.csv")
+        mock_api.data_services.delete_from_csv_pool.assert_called_with("/del.csv")
         mock_streamlit.rerun.assert_called()
 
 
@@ -99,19 +113,25 @@ def test_render_parser_config(mock_streamlit: Any, mock_api: Any) -> None:
     mock_api.state_manager.get_parser_strategy.return_value = "simple"
     mock_api.state_manager.get_scanned_variables.return_value = []
 
-    mock_future = MagicMock()
-    mock_future.result.return_value = {}
+    mock_future: Future[ScanFileResult] = Future()
+    mock_future.set_result(ScanFileResult("/stats/run/stats.txt"))
     mock_api.submit_scan_async.return_value = [mock_future]
     mock_api.finalize_scan.return_value = ScanResult(variables=[])
 
-    # Yield the mock futures immediately.
+    mock_streamlit.pills.return_value = "gem5"
+    mock_streamlit.segmented_control.return_value = "simple"
+    mock_streamlit.checkbox.return_value = False
+    mock_streamlit.text_input.side_effect = lambda _label, **kwargs: kwargs["value"]
     with patch(
-        "src.web.components.data_source.data_source_components.as_completed",
-        side_effect=lambda fs: fs,
+        "src.web.components.data_source.data_source_components.validate_web_stats_path",
+        return_value=Path("/stats"),
     ):
         DataSourceComponents.render_parser_config(mock_api)
 
-    mock_api.submit_scan_async.assert_called()
+    mock_api.submit_scan_async.assert_called_once_with("/stats", "stats.txt", limit=10)
+    mock_api.finalize_scan.assert_called_once_with([mock_future.result()])
+    mock_api.release_settled_scans.assert_called_once_with()
+    mock_streamlit.exception.assert_not_called()
     mock_streamlit.rerun.assert_called()
 
 
@@ -120,6 +140,9 @@ def test_render_parser_config_submits_the_bounded_playground(
     mock_api: Any,
     tmp_path: Any,
 ) -> None:
+    from src.core.application_api import ApplicationAPI
+
+    mock_api.compile_parse_variables.side_effect = ApplicationAPI.compile_parse_variables
     # [test->req~ring5.ingestion.parser-playground~1]
     mock_streamlit.button.side_effect = lambda label, **kwargs: "Test configuration" in label
     mock_streamlit.pills.return_value = "gem5"
@@ -129,11 +152,13 @@ def test_render_parser_config_submits_the_bounded_playground(
     mock_api.state_manager.get_stats_path.return_value = "/allowed/stats"
     mock_api.state_manager.get_stats_pattern.return_value = "custom*.txt"
     mock_api.state_manager.get_temp_dir.return_value = str(tmp_path)
-    variables = [{"name": "simTicks", "type": "scalar"}]
+    variables = [{"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}]
     mock_api.state_manager.get_parse_variables.return_value = variables
     batch = ParserPlaygroundBatchResult(
-        futures=[],
-        var_names=["simTicks"],
+        futures=(
+            completed_future(numeric_file("/allowed/stats/run/stats.txt", {"simTicks": 100.0})),
+        ),
+        var_names=("simTicks",),
         output_dir=str(tmp_path / "parser_playground"),
         strategy_type="simple",
         matched_file_count=1,
@@ -157,7 +182,9 @@ def test_render_parser_config_submits_the_bounded_playground(
     mock_api.submit_parser_playground_async.assert_called_once_with(
         str(tmp_path / "stats"),
         "custom*.txt",
-        [{"name": "simTicks", "type": "scalar"}],
+        ApplicationAPI.compile_parse_variables(
+            [{"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}]
+        ),
         str(tmp_path / "parser_playground"),
         scanned_vars=[],
         strategy_type="simple",

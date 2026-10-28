@@ -125,7 +125,9 @@ class TestSeedsReducerTab:
         assert len(result_df) < len(data)
 
         # Store as preview (simulates Apply button)
-        api.set_preview("seeds_reduction", result_df)
+        api.set_preview(
+            "seeds_reduction", result_df, operation_config={}, inputs=api.capture_preview_inputs()
+        )
         assert api.has_preview("seeds_reduction")
 
     def test_seeds_reducer_confirm_writes_data_via_api(self) -> None:
@@ -144,7 +146,9 @@ class TestSeedsReducerTab:
             categorical_cols=["benchmark_name", "config_description"],
             statistic_cols=["system.cpu.ipc"],
         )
-        api.set_preview("seeds_reduction", result_df)
+        api.set_preview(
+            "seeds_reduction", result_df, operation_config={}, inputs=api.capture_preview_inputs()
+        )
 
         # Confirm: write to state (same as Confirm button handler)
         confirmed_df = api.get_preview("seeds_reduction")

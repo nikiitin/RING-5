@@ -1,0 +1,38 @@
+{
+  "base_branch": "main",
+  "allow_major": false,
+  "default_reviewer": "nikiitin",
+  "max_open_prs": 100,
+  "required_workflows": {
+    "CI": {
+      "path": ".github/workflows/ci.yml",
+      "jobs": [
+        "Documentation build and audit",
+        "OpenFastTrace HTML report",
+        "Quality, security, and package",
+        "Tests (Python 3.12)",
+        "Tests (Python 3.13)",
+        "Tests (Python 3.14)",
+        "Tests (Python 3.15)",
+        "Figure exports (Python 3.12)",
+        "Figure exports (Python 3.13)",
+        "Figure exports (Python 3.14)",
+        "Figure exports (Python 3.15)",
+        "LaTeX figure exports",
+        "Installed wheel (Linux)",
+        "Streamlit E2E"
+      ]
+    },
+    "CodeQL": {
+      "path": ".github/workflows/codeql.yml",
+      "jobs": [
+        "Python analysis"
+      ]
+    }
+  },
+  "dispatch_after_merge": [
+    "ci.yml",
+    "codeql.yml",
+    "pages.yml"
+  ]
+}

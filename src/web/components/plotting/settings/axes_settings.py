@@ -1,7 +1,4 @@
-"""Axes settings component — X-axis, Y-left, Y-right, Group Labels.
-
-Extracted from ``BasePlot._section_axes()`` and related methods as a
-standalone component following the component-only architecture (P1, P9).
+"""Axes settings component — X, Y-left, Y-right and group-label placement.
 
 The component renders a nested pills navigation for X / Y-Left / Y-Right
 axes, plus a conditional Group Labels pill for grouped stacked bar plots.
@@ -29,6 +26,9 @@ from typing import Protocol
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
+from src.core.common.numbered_axis import NUMBERED_AXIS_MODES, numbered_axis_modes
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
     numeric_input,
@@ -36,7 +36,7 @@ from src.web.components.plotting.settings.widget_factory import (
     slider,
     toggle,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 _DASH_OPTIONS: list[str] = [
     "solid",
@@ -46,6 +46,24 @@ _DASH_OPTIONS: list[str] = [
     "dashdot",
     "longdashdot",
 ]
+
+
+_RIGHT_AXIS_KEYS = {
+    "show_y_grid": "y2show_y_grid",
+    "y_grid_color": "y2_grid_color",
+    "y_grid_width": "y2_grid_width",
+    "y_grid_dash": "y2_grid_dash",
+    "y_grid_alpha": "y2_grid_alpha",
+    "yaxis_tickangle": "yaxis2_tickangle",
+    "yaxis_dtick": "yaxis2_dtick",
+    "show_ytick_marks": "show_y2tick_marks",
+    "yaxis_tick_side": "yaxis2_tick_side",
+    "ytick_dash": "y2tick_dash",
+    "yaxis_title_standoff": "yaxis2_title_standoff",
+    "yaxis_title_vshift": "yaxis2_title_vshift",
+    "y_axis_line_width": "y2_axis_line_width",
+    "y_axis_line_color": "y2_axis_line_color",
+}
 
 
 class SpecificOptionsRenderer(Protocol):
@@ -137,7 +155,7 @@ class AxesSettingsComponent:
             options=list(_axis_labels.keys()),
             format_func=lambda x: _axis_labels.get(x, str(x)),
             selection_mode="single",
-            key=f"axis_nav_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.axis_nav"),
             default="x",
         )
 
@@ -156,6 +174,15 @@ class AxesSettingsComponent:
             self._render_y_axis_settings(saved_config, config, prefix="")
         elif axis_tab == "y_right":
             self._render_y_axis_settings(saved_config, config, prefix="y2")
+            if (
+                self.plot_type == "grouped_stacked_bar"
+                and saved_config.get("right_axis_type") == "dots"
+            ):
+                from src.web.components.plotting.config.dual_axis_settings import (
+                    render_right_axis_dot_settings,
+                )
+
+                render_right_axis_dot_settings(saved_config, config, self.plot_id)
         elif axis_tab == "group":
             self._render_group_labels_settings(saved_config, config)
 
@@ -181,7 +208,9 @@ class AxesSettingsComponent:
                     saved_config,
                     "x_grid_color",
                     self.plot_id,
-                    widget_key=f"x_grid_color_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, "widgets.appearance.x_grid_color"
+                    ),
                     default="#e5e5e5",
                 )
             with _xgc2:
@@ -190,7 +219,9 @@ class AxesSettingsComponent:
                     saved_config,
                     "x_grid_width",
                     self.plot_id,
-                    widget_key=f"x_grid_width_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, "widgets.appearance.x_grid_width"
+                    ),
                     default=1.0,
                     min_value=0.1,
                     max_value=10.0,
@@ -204,7 +235,9 @@ class AxesSettingsComponent:
                     saved_config,
                     "x_grid_dash",
                     self.plot_id,
-                    widget_key=f"x_grid_dash_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, "widgets.appearance.x_grid_dash"
+                    ),
                     default="solid",
                 )
             with _xgc4:
@@ -213,7 +246,9 @@ class AxesSettingsComponent:
                     saved_config,
                     "x_grid_alpha",
                     self.plot_id,
-                    widget_key=f"x_grid_alpha_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, "widgets.appearance.x_grid_alpha"
+                    ),
                     default=1.0,
                     min_value=0.0,
                     max_value=1.0,
@@ -225,7 +260,7 @@ class AxesSettingsComponent:
             saved_config,
             "xaxis_tickangle",
             self.plot_id,
-            widget_key=f"xaxis_angle_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.xaxis_angle"),
             default=-45,
             min_value=-90,
             max_value=90,
@@ -240,7 +275,7 @@ class AxesSettingsComponent:
             saved_config,
             "show_xtick_marks",
             self.plot_id,
-            widget_key=f"x_show_ticks_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.x_show_ticks"),
         )
         config["show_xtick_marks"] = show_xtick_marks
 
@@ -250,7 +285,7 @@ class AxesSettingsComponent:
             saved_config,
             "xaxis_tick_side",
             self.plot_id,
-            widget_key=f"x_tick_side_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.x_tick_side"),
             default="bottom",
         )
 
@@ -262,7 +297,7 @@ class AxesSettingsComponent:
                 saved_config,
                 "xtick_dash",
                 self.plot_id,
-                widget_key=f"x_tickdash_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.x_tickdash"),
                 default="solid",
             )
         config["xtick_dash"] = xtick_dash
@@ -325,32 +360,17 @@ class AxesSettingsComponent:
                 default="#444444",
             )
 
-        # Numbered X-Axis
-        config["numbered_xaxis"] = toggle(
-            "Use Numbered X-Axis",
-            saved_config,
-            "numbered_xaxis",
-            self.plot_id,
-        )
-
-        numbered_options = ["Numbers", "Number legend"]
-        old_numbered = saved_config.get("numbered_xaxis", False)
-        default_modes = saved_config.get(
-            "numbered_xaxis_modes",
-            numbered_options if old_numbered else [],
-        )
-        modes = st.pills(
-            "Numbered X-Axis",
-            options=numbered_options,
-            default=default_modes,
-            selection_mode="multi",
-            key=f"numbered_modes_{self.plot_id}",
-        )
-        if isinstance(modes, list):
-            config["numbered_xaxis_modes"] = modes
-            config["numbered_xaxis"] = len(modes) > 0
-            config["show_numbered_ticks"] = "Numbers" in modes
-            config["show_numbered_legend"] = "Number legend" in modes
+        if self.plot_type == "grouped_stacked_bar":
+            modes = st.pills(
+                "Numbered X-Axis",
+                options=list(NUMBERED_AXIS_MODES),
+                default=numbered_axis_modes(saved_config) or [],
+                selection_mode="multi",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.numbered_modes"),
+            )
+            config["numbered_xaxis_modes"] = numbered_axis_modes(
+                {"numbered_xaxis_modes": [] if modes is None else modes}
+            )
 
     # Y-axis settings
 
@@ -371,24 +391,30 @@ class AxesSettingsComponent:
         prefix : str
             Empty string for left axis, ``"y2"`` for right axis.
         """
+
+        def axis_key(primary: str) -> str:
+            return _RIGHT_AXIS_KEYS[primary] if prefix else primary
+
         label = "Y-Left Axis" if not prefix else "Y-Right Axis"
         st.markdown(f"#### {label} Settings")
 
-        grid_key = f"{prefix}show_y_grid" if prefix else "show_y_grid"
+        grid_key = axis_key("show_y_grid")
         config[grid_key] = toggle(
             "Show Grid",
             saved_config,
             grid_key,
             self.plot_id,
-            widget_key=f"{prefix}show_y_grid_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}show_y_grid"
+            ),
             default=True if not prefix else False,
         )
         if config[grid_key]:
             st.markdown("**Grid Styling**")
-            _ygrid_color_key = f"{prefix}y_grid_color" if prefix else "y_grid_color"
-            _ygrid_width_key = f"{prefix}y_grid_width" if prefix else "y_grid_width"
-            _ygrid_dash_key = f"{prefix}y_grid_dash" if prefix else "y_grid_dash"
-            _ygrid_alpha_key = f"{prefix}y_grid_alpha" if prefix else "y_grid_alpha"
+            _ygrid_color_key = axis_key("y_grid_color")
+            _ygrid_width_key = axis_key("y_grid_width")
+            _ygrid_dash_key = axis_key("y_grid_dash")
+            _ygrid_alpha_key = axis_key("y_grid_alpha")
             _ygc1, _ygc2 = st.columns(2)
             with _ygc1:
                 config[_ygrid_color_key] = color_picker(
@@ -396,7 +422,9 @@ class AxesSettingsComponent:
                     saved_config,
                     _ygrid_color_key,
                     self.plot_id,
-                    widget_key=f"{prefix}y_grid_color_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{prefix}y_grid_color"
+                    ),
                     default="#e5e5e5",
                 )
             with _ygc2:
@@ -405,7 +433,9 @@ class AxesSettingsComponent:
                     saved_config,
                     _ygrid_width_key,
                     self.plot_id,
-                    widget_key=f"{prefix}y_grid_width_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{prefix}y_grid_width"
+                    ),
                     default=1.0,
                     min_value=0.1,
                     max_value=10.0,
@@ -419,7 +449,9 @@ class AxesSettingsComponent:
                     saved_config,
                     _ygrid_dash_key,
                     self.plot_id,
-                    widget_key=f"{prefix}y_grid_dash_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{prefix}y_grid_dash"
+                    ),
                     default="solid",
                 )
             with _ygc4:
@@ -428,7 +460,9 @@ class AxesSettingsComponent:
                     saved_config,
                     _ygrid_alpha_key,
                     self.plot_id,
-                    widget_key=f"{prefix}y_grid_alpha_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{prefix}y_grid_alpha"
+                    ),
                     default=1.0,
                     min_value=0.0,
                     max_value=1.0,
@@ -436,12 +470,14 @@ class AxesSettingsComponent:
                     help="0 = fully transparent, 1 = fully opaque",
                 )
 
-        config["yaxis_tickangle"] = slider(
+        config[axis_key("yaxis_tickangle")] = slider(
             "Y-axis Label Rotation",
             saved_config,
-            "yaxis_tickangle",
+            axis_key("yaxis_tickangle"),
             self.plot_id,
-            widget_key=f"{prefix}yaxis_angle_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}yaxis_angle"
+            ),
             default=0,
             min_value=-90,
             max_value=90,
@@ -449,35 +485,39 @@ class AxesSettingsComponent:
             help="Rotate Y-axis labels",
         )
 
-        dtick_key = f"{prefix}yaxis_dtick" if prefix else "yaxis_dtick"
+        dtick_key = axis_key("yaxis_dtick")
         dtick: float = st.number_input(
             f"{label} Step Size (0 for auto)",
             min_value=0.0,
             value=float(saved_config.get(dtick_key) or 0.0),
-            key=f"{prefix}ydtick_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, f"widgets.appearance.{prefix}ydtick"),
         )
-        if dtick > 0:
-            config[dtick_key] = dtick
+        config[dtick_key] = dtick if dtick > 0 else None
 
         # Tick marks
         st.markdown("**Tick Marks & Grid**")
         show_ytick_marks = toggle(
             "Show Y-Axis Tick Marks",
             saved_config,
-            "show_ytick_marks",
+            axis_key("show_ytick_marks"),
             self.plot_id,
-            widget_key=f"{prefix}y_show_ticks_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}y_show_ticks"
+            ),
+            default=True,
         )
-        config["show_ytick_marks"] = show_ytick_marks
+        config[axis_key("show_ytick_marks")] = show_ytick_marks
 
-        config["yaxis_tick_side"] = select_option(
+        config[axis_key("yaxis_tick_side")] = select_option(
             "Y-Axis Tick Side",
             ["left", "right"],
             saved_config,
-            "yaxis_tick_side",
+            axis_key("yaxis_tick_side"),
             self.plot_id,
-            widget_key=f"{prefix}y_tick_side_{self.plot_id}",
-            default="left",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}y_tick_side"
+            ),
+            default="right" if prefix else "left",
         )
 
         ytick_dash: str = "solid"
@@ -486,33 +526,39 @@ class AxesSettingsComponent:
                 "Y-Axis Tick Dash Style",
                 _DASH_OPTIONS,
                 saved_config,
-                "ytick_dash",
+                axis_key("ytick_dash"),
                 self.plot_id,
-                widget_key=f"{prefix}y_tickdash_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{prefix}y_tickdash"
+                ),
                 default="solid",
             )
-        config["ytick_dash"] = ytick_dash
+        config[axis_key("ytick_dash")] = ytick_dash
 
         # Y-axis title position
         st.markdown("**Title Position**")
-        config["yaxis_title_standoff"] = slider(
+        config[axis_key("yaxis_title_standoff")] = slider(
             "Y-Axis Title Standoff (Spacing)",
             saved_config,
-            "yaxis_title_standoff",
+            axis_key("yaxis_title_standoff"),
             self.plot_id,
-            widget_key=f"{prefix}yaxis_title_standoff_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}yaxis_title_standoff"
+            ),
             default=-1,
             min_value=-1,
             max_value=200,
             help="Distance between Y-axis ticks and the title. -1 = auto (engine default).",
         )
 
-        config["yaxis_title_vshift"] = slider(
+        config[axis_key("yaxis_title_vshift")] = slider(
             "Y-Axis Title Vertical Shift",
             saved_config,
-            "yaxis_title_vshift",
+            axis_key("yaxis_title_vshift"),
             self.plot_id,
-            widget_key=f"{prefix}yaxis_title_vshift_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}yaxis_title_vshift"
+            ),
             default=0,
             min_value=-500,
             max_value=500,
@@ -526,8 +572,8 @@ class AxesSettingsComponent:
 
         # Axis Lines
         st.markdown("**Axis Lines**")
-        width_key = f"{prefix}y_axis_line_width" if prefix else "y_axis_line_width"
-        color_key = f"{prefix}y_axis_line_color" if prefix else "y_axis_line_color"
+        width_key = axis_key("y_axis_line_width")
+        color_key = axis_key("y_axis_line_color")
 
         al_col1, al_col2 = st.columns(2)
         with al_col1:
@@ -536,7 +582,9 @@ class AxesSettingsComponent:
                 saved_config,
                 width_key,
                 self.plot_id,
-                widget_key=f"{prefix}y_axis_line_width_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{prefix}y_axis_line_width"
+                ),
                 default=1.0,
                 min_value=0.0,
                 max_value=10.0,
@@ -549,7 +597,9 @@ class AxesSettingsComponent:
                 saved_config,
                 color_key,
                 self.plot_id,
-                widget_key=f"{prefix}y_axis_line_color_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{prefix}y_axis_line_color"
+                ),
                 default="#444444",
             )
 
@@ -587,7 +637,7 @@ class AxesSettingsComponent:
             saved_config,
             "major_label_offset",
             self.plot_id,
-            widget_key=f"grp_lbl_dist_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.grp_lbl_dist"),
             default=-0.15,
             min_value=-1.0,
             max_value=0.0,
@@ -604,7 +654,7 @@ class AxesSettingsComponent:
             saved_config,
             "group_label_alternate",
             self.plot_id,
-            widget_key=f"grp_alt_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.grp_alt"),
             default=True,
             help="Stagger group labels to avoid overlap.",
         )
@@ -613,7 +663,7 @@ class AxesSettingsComponent:
             saved_config,
             "group_label_alt_spacing",
             self.plot_id,
-            widget_key=f"grp_alt_sp_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.grp_alt_sp"),
             default=0.05,
             min_value=0.0,
             max_value=0.5,

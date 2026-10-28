@@ -1,7 +1,8 @@
 from concurrent.futures import Future
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
-from src.core.models import (
+from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
+from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     IncrementalParseResult,
     ParserPlaygroundBatchResult,
@@ -12,6 +13,19 @@ from src.core.models import (
     ScanResult,
     StatConfig,
 )
+
+
+class ParseWorkItem(Protocol):
+    """One source-owned callable returning only finalized immutable values."""
+
+    @property
+    def source_path(self) -> str:
+        """Return the exact planned source file for this work item."""
+        raise NotImplementedError
+
+    def __call__(self) -> ParsedFileResult:
+        """Return finalized variables and metadata, or raise a visible failure."""
+        raise NotImplementedError
 
 
 @runtime_checkable
@@ -56,22 +70,36 @@ class SimulationParser(Protocol):
 
     def finalize_parsing(
         self,
-        output_dir: str,
-        results: list[dict[str, Any]],
-        strategy_type: str = "simple",
-        var_names: list[str] | None = None,
-    ) -> str | None:
-        """
-        Post-process and aggregate internal parsing results into a canonical format (e.g. CSV).
+        batch: ParseBatchResult,
+        results: list[ParsedFileResult],
+        *,
+        complete: bool = True,
+    ) -> ParsedOutput:
+        """Resolve required batch context and publish exact typed rows.
+
+        Complete output covers every planned source. Partial output still rejects
+        duplicate or unplanned provenance and requires at least one usable row.
         """
         raise NotImplementedError
 
     def finalize_incremental_parsing(
         self,
         batch: IncrementalParseBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
+        *,
+        complete: bool = True,
     ) -> IncrementalParseResult:
-        """Merge changed results with reviewed cache rows and atomically update the cache."""
+        """Publish accepted changed and reused rows, promoting the cache only when complete.
+
+        Args:
+            batch: Submitted input and cache-reuse plan.
+            results: Successful changed-file results with source provenance.
+            complete: Require every planned row and update the success cache.
+                False permits partial output without replacing the cache.
+
+        Returns:
+            Published CSV and accepted counts against the planned total file count.
+        """
         raise NotImplementedError
 
     def submit_parser_playground_async(
@@ -90,7 +118,7 @@ class SimulationParser(Protocol):
     def finalize_parser_playground(
         self,
         batch: ParserPlaygroundBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
     ) -> ParserPlaygroundResult:
         # [impl->req~ring5.ingestion.parser-playground~1]
         """Turn bounded parser results into a non-mutating human preview."""

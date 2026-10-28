@@ -43,8 +43,20 @@ def test_stats_config_persistence(clean_portfolio_env: Any, tmp_path: Any) -> No
     test_path = str(tmp_path / "gem5/stats/test")
     test_pattern = "*.log"
     test_scanned_vars = [
-        {"name": "ipc", "type": "scalar"},
-        {"name": "l2_miss_rate", "type": "vector", "entries": ["total", "mean"]},
+        {
+            "name": "ipc",
+            "type": "scalar",
+            "entries": [],
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
+            "instances": [{"source_name": "ipc", "indices": []}],
+        },
+        {
+            "name": "l2_miss_rate",
+            "type": "vector",
+            "entries": ["total", "mean"],
+            "source_evidence": {"state": "resolved", "kind": "vector", "basis": "backend_metadata"},
+            "instances": [{"source_name": "l2_miss_rate", "indices": []}],
+        },
     ]
 
     state_manager.set_stats_path(test_path)

@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 import ring5
+from src.web.rendering.figure_preparation import PreparedFigure
 
 pytestmark = pytest.mark.public_api
 
@@ -25,7 +26,7 @@ def bar_plot(session: Any) -> Any:
     df = pd.DataFrame({"x": ["A", "B"], "y": [10.0, 20.0]})
     return session.create_plot(
         "bar",
-        data=df,
+        data=ring5.Table(df),
         config={"x": "x", "y": "y", "title": "Test Title", "xlabel": "X", "ylabel": "Y"},
         name="Test Plot",
     )
@@ -118,7 +119,7 @@ def test_multi_heatmap_colorbar_font_matches_spec(session: Any) -> None:
     )
     plot = session.create_plot(
         "heatmap",
-        data=df,
+        data=ring5.Table(df),
         config={
             "x": "config_abbrev",
             "facet_col": "benchmark_name",
@@ -127,7 +128,13 @@ def test_multi_heatmap_colorbar_font_matches_spec(session: Any) -> None:
         },
     )
     fig = session.render(plot, engine="matplotlib")
-    spec_family = fig._ring5_spec.font_family
+    from src.core.models.visualization.figure_config import FigureConfig
+
+    prepared = plot.render_artifact.preparation
+    assert isinstance(prepared, PreparedFigure)
+    spec = prepared.spec
+    assert isinstance(spec, FigureConfig)
+    spec_family = spec.font_family
     assert spec_family, "spec must resolve a font family"
 
     # Every text artist on the figure — including the colorbar's tick

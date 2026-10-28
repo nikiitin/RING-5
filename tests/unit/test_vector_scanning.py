@@ -1,3 +1,5 @@
+from src.core.models.source_evidence import ResolvedSourceKind
+from src.core.models.parsing_models import SourceInstance
 import re
 
 from src.core.models.parsing_models import ScanFileResult, ScannedVariable
@@ -12,13 +14,25 @@ class TestVectorScanning:
                 "f0",
                 [
                     ScannedVariable(
-                        name="system.cpu0.op_class", type="vector", entries=["IntAlu", "IntMult"]
+                        name="system.cpu0.op_class",
+                        type="vector",
+                        entries=["IntAlu", "IntMult"],
+                        source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+                        instances=(SourceInstance("system.cpu0.op_class", ()),),
                     )
                 ],
             ),
             ScanFileResult(
                 "f1",
-                [ScannedVariable(name="system.cpu1.op_class", type="vector", entries=["IntDiv"])],
+                [
+                    ScannedVariable(
+                        name="system.cpu1.op_class",
+                        type="vector",
+                        entries=["IntDiv"],
+                        source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+                        instances=(SourceInstance("system.cpu1.op_class", ()),),
+                    )
+                ],
             ),
         ]
 

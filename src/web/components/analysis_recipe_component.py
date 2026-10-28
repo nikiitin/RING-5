@@ -8,7 +8,7 @@ from dataclasses import replace
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import AnalysisRecipe, RecipeExport, RecipeParameter
+from src.core.models.recipe_models import AnalysisRecipe, RecipeExport, RecipeParameter
 
 
 class AnalysisRecipeComponent:
@@ -22,9 +22,11 @@ class AnalysisRecipeComponent:
             api: Session-owned application facade.
         """
         # [impl->req~ring5.portfolio.analysis-recipes~1]
+        # Keep the expander's delta path stable when one-shot feedback disappears.
+        feedback_slot = st.empty()
         feedback = st.session_state.pop("analysis_recipe_feedback", None)
         if isinstance(feedback, str):
-            st.success(feedback)
+            feedback_slot.success(feedback)
 
         with st.expander("Analysis recipes", expanded=False):
             st.caption(
@@ -152,6 +154,7 @@ class AnalysisRecipeComponent:
                 description=description,
                 parameters=parameters,
                 source=source,
+                transformations=captured.transformations,
                 exports=exports,
             )
             api.data_services.save_analysis_recipe(recipe, overwrite=overwrite)

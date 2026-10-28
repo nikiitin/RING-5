@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager
+
 from src.core.application_api import ApplicationAPI
-from src.core.models import GuidedAnalysisProgress, GuidedAnalysisStage
+from src.core.models.guided_analysis_models import GuidedAnalysisProgress, GuidedAnalysisStage
 
 
 class GuidedAnalysisComponent:
@@ -68,7 +70,7 @@ class GuidedAnalysisComponent:
             raise TypeError("Guided analysis actions require a GuidedAnalysisStage.")
         if stage.destination not in destinations:
             raise ValueError(f"Unsupported guided destination {stage.destination!r}.")
-        st.session_state["_nav_page"] = stage.destination
+        UIStateManager().nav.set_current_page(stage.destination)
 
     @classmethod
     def mark_exported(cls) -> None:

@@ -17,6 +17,9 @@ from src.parsing.gem5.types.scalar import Scalar
 class TestScalarInitialization:
     """Test Scalar type initialization."""
 
+    def test_required_params_empty(self) -> None:
+        assert Scalar.required_params == []
+
     def test_init_default_repeat(self) -> None:
         scalar = Scalar()
 
@@ -30,9 +33,6 @@ class TestScalarInitialization:
 
         assert scalar.repeat == 5
 
-    def test_required_params_empty(self) -> None:
-        assert Scalar.required_params == []
-
 
 class TestScalarValidateContent:
     """Test Scalar content validation."""
@@ -40,77 +40,76 @@ class TestScalarValidateContent:
     def test_validate_integer(self) -> None:
         scalar = Scalar()
 
-        scalar._validate_content(42)
+        scalar.add_observation(42)
 
     def test_validate_float(self) -> None:
         scalar = Scalar()
 
-        scalar._validate_content(3.14)
+        scalar.add_observation(3.14)
 
-    def test_validate_numeric_string(self) -> None:
+    def test_numeric_strings_are_rejected_without_ingestion(self) -> None:
         scalar = Scalar()
-
-        scalar._validate_content("123")
-        scalar._validate_content("45.67")
+        for value in ("123", "45.67"):
+            with pytest.raises(TypeError, match="one numeric measurement"):
+                scalar.add_observation(value)
+        assert scalar.content == []
 
     def test_validate_non_numeric_string_raises(self) -> None:
         scalar = Scalar()
 
-        with pytest.raises(TypeError, match="non-convertible to float or int"):
-            scalar._validate_content("not_a_number")
+        with pytest.raises(TypeError, match="one numeric measurement"):
+            scalar.add_observation("not_a_number")
 
     def test_validate_none_raises(self) -> None:
         scalar = Scalar()
 
-        with pytest.raises(TypeError, match="non-convertible"):
-            scalar._validate_content(None)
+        with pytest.raises(TypeError, match="one numeric measurement"):
+            scalar.add_observation(None)
 
     def test_validate_list_raises(self) -> None:
         scalar = Scalar()
 
         with pytest.raises(TypeError):
-            scalar._validate_content([1, 2, 3])
+            scalar.add_observation([1, 2, 3])
 
 
 class TestScalarSetContent:
-    """Test Scalar content setting."""
+    """Test typed scalar observation ingestion."""
 
-    def test_set_content_int(self) -> None:
+    def test_add_observation_int(self) -> None:
         scalar = Scalar()
 
-        scalar._set_content(100)
+        scalar.add_observation(100)
 
         assert len(scalar.content) == 1
         assert scalar.content[0] == 100.0
 
-    def test_set_content_float(self) -> None:
+    def test_add_observation_float(self) -> None:
         scalar = Scalar()
 
-        scalar._set_content(3.14159)
+        scalar.add_observation(3.14159)
 
         assert len(scalar.content) == 1
         assert scalar.content[0] == pytest.approx(3.14159)
 
-    def test_set_content_numeric_string(self) -> None:
+    def test_reject_numeric_string(self) -> None:
         scalar = Scalar()
+        with pytest.raises(TypeError, match="one numeric measurement"):
+            scalar.add_observation("42")
+        assert scalar.content == []
 
-        scalar._set_content("42")
-
-        assert scalar.content[0] == 42.0
-
-    def test_set_content_float_string(self) -> None:
+    def test_reject_float_string(self) -> None:
         scalar = Scalar()
+        with pytest.raises(TypeError, match="one numeric measurement"):
+            scalar.add_observation("2.718")
+        assert scalar.content == []
 
-        scalar._set_content("2.718")
-
-        assert scalar.content[0] == 2.718
-
-    def test_set_content_multiple_values(self) -> None:
+    def test_add_observation_multiple_values(self) -> None:
         scalar = Scalar(repeat=3)
 
-        scalar._set_content(10)
-        scalar._set_content(20)
-        scalar._set_content(30)
+        scalar.add_observation(10)
+        scalar.add_observation(20)
+        scalar.add_observation(30)
 
         assert scalar.content == [10.0, 20.0, 30.0]
 
@@ -118,22 +117,22 @@ class TestScalarSetContent:
 class TestScalarContentProperty:
     """Test Scalar content property (via base class)."""
 
-    def test_content_setter_validates(self) -> None:
+    def test_add_observation_validates(self) -> None:
         scalar = Scalar()
 
-        scalar.content = 42
+        scalar.add_observation(42)
 
-        assert scalar.content[0] == 42.0  # type: ignore[index]  # __setattr__ masks property type
+        assert scalar.content[0] == 42.0
 
-    def test_content_setter_invalid_value_raises(self) -> None:
+    def test_add_observation_invalid_value_raises(self) -> None:
         scalar = Scalar()
 
         with pytest.raises(TypeError):
-            scalar.content = "invalid"
+            scalar.add_observation("invalid")
 
     def test_content_getter(self) -> None:
         scalar = Scalar()
-        scalar._set_content(100)
+        scalar.add_observation(100)
 
         result = scalar.content
 
@@ -147,7 +146,7 @@ class TestScalarReduceDuplicates:
 
     def test_reduce_single_value(self) -> None:
         scalar = Scalar(repeat=1)
-        scalar._set_content(42)
+        scalar.add_observation(42)
         scalar.balance_content()
 
         scalar.reduce_duplicates()
@@ -157,9 +156,9 @@ class TestScalarReduceDuplicates:
 
     def test_reduce_multiple_values_mean(self) -> None:
         scalar = Scalar(repeat=3)
-        scalar._set_content(10)
-        scalar._set_content(20)
-        scalar._set_content(30)
+        scalar.add_observation(10)
+        scalar.add_observation(20)
+        scalar.add_observation(30)
         scalar.balance_content()
 
         scalar.reduce_duplicates()
@@ -169,16 +168,14 @@ class TestScalarReduceDuplicates:
 
     def test_reduce_empty_content(self) -> None:
         scalar = Scalar()
-        # Don't call balance_content() - that would pad with zeros
-
+        scalar.balance_content()
         scalar.reduce_duplicates()
-
-        assert math.isnan(object.__getattribute__(scalar, "_reduced_content"))
+        assert math.isnan(scalar.reduced_content)
 
     def test_reduce_with_integer_division(self) -> None:
         scalar = Scalar(repeat=2)
-        scalar._set_content(100)
-        scalar._set_content(200)
+        scalar.add_observation(100)
+        scalar.add_observation(200)
         scalar.balance_content()
 
         scalar.reduce_duplicates()
@@ -187,8 +184,8 @@ class TestScalarReduceDuplicates:
 
     def test_reduce_preserves_float_precision(self) -> None:
         scalar = Scalar(repeat=2)
-        scalar._set_content(10.9)
-        scalar._set_content(20.1)
+        scalar.add_observation(10.9)
+        scalar.add_observation(20.1)
         scalar.balance_content()
 
         scalar.reduce_duplicates()
@@ -199,24 +196,25 @@ class TestScalarReduceDuplicates:
 class TestScalarBalanceContent:
     """Test Scalar balance_content (via base class)."""
 
-    def test_balance_pads_with_nan(self) -> None:
+    def test_balance_records_missing_values_without_storing_padding(self) -> None:
         scalar = Scalar(repeat=5)
-        scalar._set_content(10)
-        scalar._set_content(20)
+        scalar.add_observation(10)
+        scalar.add_observation(20)
 
         scalar.balance_content()
 
         assert scalar.is_balanced is True
-        assert len(scalar.content) == 5
-        assert scalar.content[:2] == [10.0, 20.0]
-        assert all(math.isnan(x) for x in scalar.content[2:])
+        assert scalar.content == [10.0, 20.0]
         assert scalar.padded_count == 3
+        assert scalar.missing_measurement_count == 3
+        scalar.reduce_duplicates()
+        assert math.isnan(scalar.reduced_content)
 
     def test_balance_exact_count_no_change(self) -> None:
         scalar = Scalar(repeat=3)
-        scalar._set_content(1)
-        scalar._set_content(2)
-        scalar._set_content(3)
+        scalar.add_observation(1)
+        scalar.add_observation(2)
+        scalar.add_observation(3)
 
         scalar.balance_content()
 
@@ -224,9 +222,9 @@ class TestScalarBalanceContent:
 
     def test_balance_too_many_values_raises(self) -> None:
         scalar = Scalar(repeat=2)
-        scalar._set_content(1)
-        scalar._set_content(2)
-        scalar._set_content(3)  # One too many
+        scalar.add_observation(1)
+        scalar.add_observation(2)
+        scalar.add_observation(3)  # One too many
 
         with pytest.raises(RuntimeError, match="More values .* than expected"):
             scalar.balance_content()
@@ -237,14 +235,14 @@ class TestScalarReducedContentAccess:
 
     def test_access_reduced_content_before_balance_raises(self) -> None:
         scalar = Scalar()
-        scalar._set_content(10)
+        scalar.add_observation(10)
 
         with pytest.raises(AttributeError, match="before calling balance_content"):
             _ = scalar.reduced_content
 
     def test_access_reduced_content_before_reduce_raises(self) -> None:
         scalar = Scalar()
-        scalar._set_content(10)
+        scalar.add_observation(10)
         scalar.balance_content()
 
         with pytest.raises(AttributeError, match="before calling.*reduce_duplicates"):
@@ -252,7 +250,7 @@ class TestScalarReducedContentAccess:
 
     def test_access_reduced_content_after_both_succeeds(self) -> None:
         scalar = Scalar()
-        scalar._set_content(42)
+        scalar.add_observation(42)
         scalar.balance_content()
         scalar.reduce_duplicates()
 
@@ -284,7 +282,7 @@ class TestScalarEdgeCases:
     def test_zero_value(self) -> None:
         scalar = Scalar()
 
-        scalar._set_content(0)
+        scalar.add_observation(0)
         scalar.balance_content()
         scalar.reduce_duplicates()
 
@@ -293,7 +291,7 @@ class TestScalarEdgeCases:
     def test_negative_value(self) -> None:
         scalar = Scalar()
 
-        scalar._set_content(-42)
+        scalar.add_observation(-42)
         scalar.balance_content()
         scalar.reduce_duplicates()
 
@@ -302,17 +300,15 @@ class TestScalarEdgeCases:
     def test_very_large_value(self) -> None:
         scalar = Scalar()
 
-        scalar._set_content(1e100)
+        scalar.add_observation(1e100)
         scalar.balance_content()
         scalar.reduce_duplicates()
 
         assert scalar.reduced_content == 1e100
 
-    def test_scientific_notation_string(self) -> None:
+    def test_scientific_notation_value(self) -> None:
         scalar = Scalar()
-
-        scalar._set_content("1.5e10")
-
+        scalar.add_observation(1.5e10)
         assert scalar.content[0] == 1.5e10
 
     def test_entries_property_returns_none(self) -> None:

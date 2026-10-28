@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, cast, override
+from typing import Literal, cast, override
 
 import numpy as np
 import pandas as pd
@@ -11,25 +11,12 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import LineTraceConfig
 from src.core.services.visualization.palette_service import resolve_palette
 from src.web.components.plotting.config import ecdf_config
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload
+from src.web.pages.ui.plotting.utils.ordering import observed_order
+from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload, group_mask
 
 EcdfYMode = Literal["proportion", "count"]
-
-
-def _ordered_groups(series: pd.Series, configured: object = None) -> list[Any]:
-    available = list(series.drop_duplicates())
-    if not isinstance(configured, list):
-        return available
-    by_label = {str(value): value for value in available}
-    labels = [str(label) for label in configured]
-    ordered = [by_label[label] for label in labels if label in by_label]
-    return ordered + [value for value in available if str(value) not in labels]
-
-
-def _mask(series: pd.Series, value: Any) -> pd.Series:
-    return series.isna() if pd.isna(value) else series == value
 
 
 class EcdfPlot(BasePlot):
@@ -63,14 +50,14 @@ class EcdfPlot(BasePlot):
         if color_col and color_col not in data:
             raise ValueError("ECDF color column must exist in the processed data.")
         groups = (
-            _ordered_groups(data[color_col], config.get("legend_order")) if color_col else [None]
+            observed_order(data[color_col], config.get("legend_order")) if color_col else [None]
         )
         palette = resolve_palette(config.get("color_palette"))
         series_styles = config.get("series_styles", {})
         traces: list[LineTraceConfig] = []
 
         for group_index, group in enumerate(groups):
-            subset = data[_mask(data[color_col], group)] if color_col else data
+            subset = data[group_mask(data[color_col], group)] if color_col else data
             numeric = pd.to_numeric(subset[x_col], errors="coerce")
             values = numeric.loc[numeric.notna()].to_numpy(dtype=float)
             if not len(values):
@@ -107,12 +94,6 @@ class EcdfPlot(BasePlot):
                 )
             )
         return TraceBuildResult(traces=traces)
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Return the optional color grouping column."""
-        color = config.get("color")
-        return str(color) if color else None
 
 
 __all__ = ["EcdfPlot"]

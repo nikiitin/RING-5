@@ -25,26 +25,9 @@ class ColumnSelector(UniDfShaper):
         Args:
             params: Must contain 'columns' (list[str]).
         """
-        config = cast(ColumnSelectorConfig, params)
-        self.columns: list[str] = config.get("columns", [])
         super().__init__(params)
-
-    def _verify_params(self) -> bool:
-        """Verify 'columns' parameter exists and is a non-empty list of strings."""
-        super()._verify_params()
         config = cast(ColumnSelectorConfig, self.params)
-
-        if "columns" not in config:
-            raise ValueError("ColumnSelector requires 'columns' parameter.")
-
-        cols = config["columns"]
-        if not isinstance(cols, list):
-            raise TypeError("ColumnSelector 'columns' parameter must be a list.")
-
-        if not all(isinstance(c, str) and c for c in cols):
-            raise ValueError("ColumnSelector 'columns' must be a list of non-empty strings.")
-
-        return True
+        self.columns: list[str] = config["columns"]
 
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """Verify that all requested columns exist in the dataframe."""

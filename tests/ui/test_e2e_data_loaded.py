@@ -168,62 +168,21 @@ class TestSidebarWithData:
             len(row_metrics) > 0 or len(col_metrics) > 0
         ), "Expected Rows/Columns metrics in data preview"
 
-    def test_clear_data_button_clears_state(self) -> None:
-        """Clicking Clear Data removes data from state."""
+    def test_reset_all_clears_state(self) -> None:
+        """Reset All removes the active dataset."""
         # [test->req~ring5.workspace.reset~1]
         at = create_app_with_data()
         at.run()
 
         assert not at.exception
-        # Click "Clear Data" in sidebar
-        clear_buttons = [b for b in at.sidebar.button if "clear" in b.label.lower()]
-        assert len(clear_buttons) > 0
-        clear_buttons[0].click().run()
+        # Reset the workspace through its canonical action.
+        reset_buttons = [b for b in at.sidebar.button if b.label == "Reset All"]
+        assert len(reset_buttons) == 1
+        reset_buttons[0].click().run()
 
         # After clear, data should be gone
         api = get_api(at)
         assert not api.state_manager.has_data()
-
-
-# Performance — data loaded
-class TestPerformanceWithData:
-    """Performance page with data loaded shows correct metrics."""
-
-    def test_page_renders_with_data(self) -> None:
-        """Performance page renders when data is loaded."""
-        at = create_app_with_data()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-
-    def test_data_loaded_metric(self) -> None:
-        """Data Loaded metric should show 'Yes'."""
-        at = create_app_with_data()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-        data_metrics = [m for m in at.metric if m.label == "Data Loaded"]
-        if data_metrics:
-            assert data_metrics[0].value == "Yes"
-
-    def test_clear_caches_button(self) -> None:
-        """Clear All Caches button should be present and clickable."""
-        at = create_app_with_data()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-        cache_buttons = [b for b in at.button if "clear" in b.label.lower()]
-        assert len(cache_buttons) > 0
-
-    def test_session_key_count_nonzero(self) -> None:
-        """Total Keys metric should be > 0 when app is running."""
-        at = create_app_with_data()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-        key_metrics = [m for m in at.metric if m.label == "Total Keys"]
-        if key_metrics:
-            assert int(key_metrics[0].value) > 0
 
 
 # Data Source — data loaded

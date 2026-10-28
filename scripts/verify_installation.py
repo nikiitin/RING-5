@@ -1,270 +1,71 @@
 #!/usr/bin/env python3
-"""
-Verification script for RING-5 installation and configuration.
-Tests core functionality without requiring all dependencies.
-"""
+"""Check the installed public API and report optional export dependencies."""
 
-import json
+from __future__ import annotations
+
 import sys
 from pathlib import Path
-from typing import Any, cast
+from tempfile import TemporaryDirectory
+
+import ring5
 
 
-def test_config_validation() -> bool:
-    """Test configuration validation."""
-    print("Testing configuration validation...")
+def _verify_chrome_publication(directory: Path) -> None:
+    """Check native exclusive publication with tiny inert directories only."""
+    from ring5._chrome_install import _publish_noreplace
+
+    source = directory / "publication-source"
+    source.mkdir()
+    (source / "inert.txt").write_text("inert publication fixture", encoding="utf-8")
+    published = directory / "publication-success"
+    _publish_noreplace(source, published)
+    foreign = directory / "publication-foreign"
+    foreign.mkdir()
+    original = foreign.stat()
     try:
-        from src.core.services.config_validation_service import ConfigValidator
-
-        # Test with template
-        with open("templates/config_template.json") as f:
-            config = json.load(f)
-
-        validator = ConfigValidator()
-        validator.validate(config)
-        print("  ✓ Configuration validation works")
-        return True
-    except Exception as e:
-        print(f"  ✗ Configuration validation failed: {e}")
-        return False
-
-
-def test_template_generation() -> bool:
-    """Test template generation."""
-    print("\nTesting template generation...")
-    try:
-        from src.core.services.config_validation_service import ConfigTemplateGenerator
-
-        config = ConfigTemplateGenerator.create_minimal_config("./output", "/path/to/stats")
-
-        # Add some variables
-        ConfigTemplateGenerator.add_variable(cast(dict[str, Any], config), "simTicks", "scalar")
-        ConfigTemplateGenerator.enable_seeds_reducer(cast(dict[str, Any], config))
-
-        # Create a plot
-        plot = ConfigTemplateGenerator.create_plot_config(
-            "bar", "benchmark", "simTicks", "test_plot", title="Test", grid=True
-        )
-
-        config["plots"].append(plot)
-
-        # Validate it
-        from src.core.services.config_validation_service import ConfigValidator
-
-        validator = ConfigValidator()
-        validator.validate(config)
-
-        print("  ✓ Template generation works")
-        return True
-    except Exception as e:
-        print(f"  ✗ Template generation failed: {e}")
-        import traceback
-
-        traceback.print_exc()
-        return False
-
-
-def test_schema_validation() -> bool:
-    """Test JSON schema validation."""
-    print("\nTesting JSON schema...")
-    try:
-        from src.core.services.config_validation_service import ConfigValidator
-
-        # Test invalid config
-        invalid_config = {
-            "outputPath": "./output"
-            # Missing required fields
-        }
-
-        validator = ConfigValidator()
-        validation_failed = False
-        try:
-            validator.validate(invalid_config)
-        except Exception:
-            # Expected failure - invalid config should raise validation error
-            validation_failed = True
-
-        if not validation_failed:
-            print("  ✗ Schema validation did not raise exception for invalid config")
-            return False
-
-    except Exception as e:
-        print(f"  ✗ Unexpected error during validation test: {e}")
-        return False
-
-    # Test valid config logic is already covered by test_config_validation
-    print("  ✓ Schema validation logic works")
-    return True
-
-
-def test_file_structure() -> bool:
-    """Test that all required files exist."""
-    print("\nTesting file structure...")
-
-    required_files = [
-        "app.py",
-        "pyproject.toml",
-        "README.md",
-        "src/core/models/config/schemas/parser_config_schema.json",
-        "src/web/pages/ui/plotting/export/presets/latex_presets.yaml",
-        "src/core/models/config/config_manager.py",
-        "src/web/pages/portfolio.py",
-        "tests/unit/test_web_modules.py",
-    ]
-
-    missing = []
-    for file_path in required_files:
-        if not Path(file_path).exists():
-            missing.append(file_path)
-
-    if missing:
-        print("  ✗ Missing files:")
-        for f in missing:
-            print(f"    - {f}")
-        return False
+        _publish_noreplace(published, foreign)
+    except FileExistsError:
+        pass
     else:
-        print(f"  ✓ All {len(required_files)} required files present")
-        return True
-
-
-def test_dependencies() -> bool:
-    """Check if dependencies are installed."""
-    print("\nChecking dependencies...")
-
-    required_modules = [
-        ("jsonschema", "JSON Schema validation"),
-        ("pandas", "Data processing"),
-        ("numpy", "Numerical operations"),
-        ("plotly", "Interactive plotting"),
-        ("streamlit", "Web framework"),
-    ]
-
-    missing = []
-    for module, description in required_modules:
-        try:
-            __import__(module)
-            print(f"  ✓ {module:15s} - {description}")
-        except ImportError:
-            print(f"  ✗ {module:15s} - {description} (NOT INSTALLED)")
-            missing.append(module)
-
-    if missing:
-        print("\n  Install missing dependencies:")
-        print(f"  pip install {' '.join(missing)}")
-        return False
-    else:
-        print("\n  ✓ All dependencies installed")
-        return True
-
-
-def test_latex_dependencies() -> bool:
-    """Check if LaTeX system packages are installed (for export feature)."""
-    print("\nChecking LaTeX dependencies (for export feature)...")
-    import shutil
-    import subprocess  # nosec B404 - Needed to check LaTeX installation
-
-    checks = [
-        ("latex", "LaTeX engine (pdflatex)", "Basic PDF export"),
-        ("xelatex", "XeLaTeX engine", "PGF format export"),
-    ]
-
-    all_good = True
-    for command, name, purpose in checks:
-        if shutil.which(command):
-            try:
-                result = subprocess.run(  # nosec B603 B607 - System LaTeX tools
-                    [command, "--version"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                )
-                first_line: str = result.stdout.split("\n")[0]
-                version: str = first_line
-                print(f"  ✓ {name:25s} - {purpose}")
-                print(f"    {version}")
-            except Exception as e:
-                print(f"  ⚠ {name:25s} - Found but cannot verify: {e}")
-        else:
-            print(f"  ✗ {name:25s} - {purpose} (NOT INSTALLED)")
-            all_good = False
-
-    # Check for cm-super package (type1ec.sty)
-    if shutil.which("kpsewhich"):
-        try:
-            result = subprocess.run(  # nosec B603 B607 - TeX Live system tool
-                ["kpsewhich", "type1ec.sty"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            if result.returncode == 0:
-                print(f"  ✓ {'cm-super package':25s} - Type 1 fonts for LaTeX")
-            else:
-                print(f"  ✗ {'cm-super package':25s} - Type 1 fonts (NOT INSTALLED)")
-                all_good = False
-        except Exception:
-            print(f"  ⚠ {'cm-super package':25s} - Cannot verify")
-    else:
-        print(f"  ⚠ {'cm-super package':25s} - Cannot verify (kpsewhich not found)")
-
-    if not all_good:
-        print("\n  ⚠️  LaTeX export features will not work without these packages")
-        print("\n  Install with:")
-        print("    make install-latex")
-        print("  Or manually:")
-        print("    sudo apt-get install texlive-latex-base texlive-fonts-recommended \\")
-        print("                         texlive-fonts-extra cm-super texlive-xetex")
-        print("\n  📖 See docs/LaTeX-Export-Guide.md for details")
-        return False
-    else:
-        print("\n  ✓ All LaTeX dependencies installed")
-        return True
+        raise ring5.Ring5Error("Exclusive Chrome publication replaced a foreign directory.")
+    current = foreign.stat()
+    if (current.st_dev, current.st_ino) != (original.st_dev, original.st_ino) or list(
+        foreign.iterdir()
+    ):
+        raise ring5.Ring5Error("Exclusive Chrome publication changed a foreign directory.")
+    if (published / "inert.txt").read_text(encoding="utf-8") != "inert publication fixture":
+        raise ring5.Ring5Error("Exclusive Chrome publication did not preserve its source.")
 
 
 def main() -> int:
-    """Run all verification tests."""
-    print("=" * 60)
-    print("RING-5 Installation Verification")
-    print("=" * 60)
+    """Exercise a headless CSV workflow and return its process exit status."""
+    print(ring5.doctor())
+    try:
+        from ring5._chrome_install import _load_manifest
 
-    results = {
-        "File Structure": test_file_structure(),
-        "Dependencies": test_dependencies(),
-        "LaTeX Dependencies": test_latex_dependencies(),
-        "Config Validation": test_config_validation(),
-        "Template Generation": test_template_generation(),
-        "Schema Validation": test_schema_validation(),
-    }
-
-    print("\n" + "=" * 60)
-    print("Verification Summary")
-    print("=" * 60)
-
-    for test_name, result in results.items():
-        status = "✓ PASS" if result else "✗ FAIL"
-        print(f"{test_name:20s} : {status}")
-
-    all_passed = all(results.values())
-
-    if all_passed:
-        print("\n✓ All tests passed!")
-        print("\nNext steps:")
-        print("  1. Start the web application:")
-        print("     streamlit run app.py")
-        print("  2. Or use the launcher:")
-        print("     ./launch_webapp.sh")
-        print("  3. Open browser to: http://localhost:8501")
-    else:
-        print("\n✗ Some tests failed")
-        print("\nInstall missing dependencies:")
-        print("  Python packages:         pip install -e .")
-        print("  Python packages (dev):   pip install -e '.[dev]'")
-        print("  LaTeX packages:          make install-latex")
-
-    print("=" * 60)
-
-    return 0 if all_passed else 1
+        # The wheel must carry the same reviewed installer inputs as a checkout.
+        _load_manifest()
+        with TemporaryDirectory(prefix="ring5-check-") as directory, ring5.Session() as session:
+            _verify_chrome_publication(Path(directory))
+            csv_path = Path(directory) / "input.csv"
+            csv_path.write_text("benchmark,ipc\nexample,1.5\n", encoding="utf-8")
+            table = session.load(str(csv_path))
+            figure = session.plot(
+                "bar",
+                data=table,
+                config=ring5.FigureSpec(x="benchmark", y_columns=["ipc"]),
+                engine="matplotlib",
+            )
+            result = session.export_bytes(figure, "svg")
+            if b"<svg" not in result:
+                print("SVG export did not contain a figure.", file=sys.stderr)
+                return 1
+    except (ring5.Ring5Error, OSError, ValueError, TypeError) as exc:
+        print(f"Installation check failed: {exc}", file=sys.stderr)
+        return 1
+    print("Public CSV, plotting, and SVG export workflow passed.")
+    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

@@ -52,8 +52,8 @@ SETTING_SECTIONS: dict[str, frozenset[str]] = {
             "xaxis_tickangle",
             "show_x_grid",
             "show_y_grid",
-            "show_x_tick_marks",
-            "show_y_tick_marks",
+            "show_xtick_marks",
+            "show_ytick_marks",
             "axis_color",
             "xaxis_order",
             "group_order",
@@ -66,8 +66,8 @@ SETTING_SECTIONS: dict[str, frozenset[str]] = {
             "legend_orientation",
             "legend_x",
             "legend_y",
-            "legend_xanchor",
-            "legend_yanchor",
+            "legend_anchor_x",
+            "legend_anchor_y",
             "legend_bgcolor",
             "legend_border_color",
             "legend_border_width",
@@ -169,8 +169,6 @@ def copy_plot_content(
         if replacement_reason is not None:
             raise ValueError(replacement_reason)
         target.config = copy.deepcopy(source.config)
-        target.legend_mappings = copy.deepcopy(source.legend_mappings)
-        target.legend_mappings_by_column = copy.deepcopy(source.legend_mappings_by_column)
         target.invalidate_figure()
         return PlotTransferResult(
             source.plot_id,

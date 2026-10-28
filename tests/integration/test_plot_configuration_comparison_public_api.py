@@ -16,13 +16,13 @@ def test_public_comparison_accepts_plot_objects_and_ids_without_mutation() -> No
     with ring5.Session() as session:
         source = session.create_plot(
             "bar",
-            data=data,
+            data=ring5.Table(data),
             config={"x": "benchmark", "y": "ipc", "title": "Source"},
             name="Source",
         )
         destination = session.create_plot(
             "bar",
-            data=data.copy(),
+            data=ring5.Table(data.copy()),
             config={"x": "benchmark", "y": "ipc", "title": "Destination"},
             name="Destination",
         )
@@ -45,7 +45,7 @@ def test_public_comparison_accepts_plot_objects_and_ids_without_mutation() -> No
 def test_public_comparison_reports_typed_reference_errors() -> None:
     data = pd.DataFrame({"x": ["A"], "y": [1.0]})
     with ring5.Session() as session:
-        plot = session.create_plot("bar", data=data, config={"x": "x", "y": "y"})
+        plot = session.create_plot("bar", data=ring5.Table(data), config={"x": "x", "y": "y"})
         with pytest.raises(ring5.DataValidationError, match="unknown plot IDs"):
             session.compare_plot_configurations(999, plot)
         with pytest.raises(ring5.DataValidationError, match="two different plots"):

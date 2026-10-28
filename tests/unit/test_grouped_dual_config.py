@@ -43,10 +43,10 @@ class TestDualAxisRenderConfigUI:
         from src.web.components.plotting.config.dual_axis_config import _sync_auto_labels
 
         mock_st.session_state = {
-            "title_8": "seed vs system.cpu.ipc",
-            "xlabel_8": "benchmark_name",
-            "ylabel_8": "seed",
-            "ylabel_dot_8": "system.cpu.ipc",
+            "plot.8.widgets.title": "seed vs system.cpu.ipc",
+            "plot.8.widgets.xlabel": "benchmark_name",
+            "plot.8.widgets.ylabel": "seed",
+            "plot.8.widgets.ylabel_dot": "system.cpu.ipc",
         }
         saved = {
             "x": "benchmark_name",
@@ -67,10 +67,10 @@ class TestDualAxisRenderConfigUI:
         )
 
         assert mock_st.session_state == {
-            "title_8": "system.cpu.ipc vs system.cpu.numCycles",
-            "xlabel_8": "benchmark_name",
-            "ylabel_8": "system.cpu.ipc",
-            "ylabel_dot_8": "system.cpu.numCycles",
+            "plot.8.widgets.title": "system.cpu.ipc vs system.cpu.numCycles",
+            "plot.8.widgets.xlabel": "benchmark_name",
+            "plot.8.widgets.ylabel": "system.cpu.ipc",
+            "plot.8.widgets.ylabel_dot": "system.cpu.numCycles",
         }
 
     @patch(f"{_DUAL_CFG}.st")
@@ -78,20 +78,20 @@ class TestDualAxisRenderConfigUI:
         from src.web.components.plotting.config.dual_axis_config import _sync_auto_labels
 
         mock_st.session_state = {
-            "title_8": "Publication comparison",
-            "xlabel_8": "Workload",
-            "ylabel_8": "Performance",
-            "ylabel_dot_8": "Runtime",
+            "plot.8.widgets.title": "Publication comparison",
+            "plot.8.widgets.xlabel": "Workload",
+            "plot.8.widgets.ylabel": "Performance",
+            "plot.8.widgets.ylabel_dot": "Runtime",
         }
         saved = {"x": "old", "y_bar": "left", "y_dot": "right"}
 
         _sync_auto_labels(cast(Any, saved), 8, "new", "new-left", "new-right")
 
         assert mock_st.session_state == {
-            "title_8": "Publication comparison",
-            "xlabel_8": "Workload",
-            "ylabel_8": "Performance",
-            "ylabel_dot_8": "Runtime",
+            "plot.8.widgets.title": "Publication comparison",
+            "plot.8.widgets.xlabel": "Workload",
+            "plot.8.widgets.ylabel": "Performance",
+            "plot.8.widgets.ylabel_dot": "Runtime",
         }
 
     @patch(f"{_DUAL_CFG}.PlotConfigComponents")
@@ -350,68 +350,3 @@ class TestGroupedBarRenderConfigUI:
         plot = GroupedBarPlot(1, "test")
         result = plot.render_config_ui(sample_df, cast(Any, {"group": "benchmark"}))
         assert result["group"] == "benchmark"
-
-
-class TestGroupedBarThemeOptions:
-    """Tests for grouped-bar theme controls."""
-
-    @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st")
-    def test_isolate_last_disabled(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
-
-        plot = GroupedBarPlot(1, "test")
-        # Mock parent's render_theme_options to return empty dict
-        mock_st.columns.side_effect = _columns_side_effect
-        mock_st.checkbox.side_effect = [False, False, False]  # show_sep, shade_alt, isolate_last
-        mock_st.color_picker.side_effect = ["#E0E0E0", "#F5F5F5"]
-
-        with patch.object(type(plot).__bases__[0], "render_theme_options", return_value={}):
-            result = plot.render_theme_options(cast(Any, {}))
-        assert result.get("isolate_last_group") is False
-
-    @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st")
-    def test_isolate_last_enabled(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
-
-        plot = GroupedBarPlot(1, "test")
-        mock_st.columns.side_effect = _columns_side_effect
-        # show_sep, shade_alt, isolate_last (True)
-        mock_st.checkbox.side_effect = [True, False, True]
-        mock_st.color_picker.side_effect = ["#E0E0E0", "#F5F5F5"]
-        mock_st.number_input.return_value = 0.5
-
-        with patch.object(type(plot).__bases__[0], "render_theme_options", return_value={}):
-            result = plot.render_theme_options(cast(Any, {}))
-        assert result["isolate_last_group"] is True
-        assert result["isolation_gap"] == 0.5
-
-
-class TestGroupedBarAdvancedOptions:
-    """Tests for grouped-bar advanced options."""
-
-    @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st")
-    def test_with_x_and_group_filter(self, mock_st: MagicMock, sample_df: pd.DataFrame) -> None:
-        from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
-
-        plot = GroupedBarPlot(1, "test")
-        saved = {
-            "x": "benchmark",
-            "group": "config",
-            "x_filter": ["a", "b"],
-            "group_filter": ["x"],
-        }
-        # Mock the parent's render_advanced_options
-        with patch.object(type(plot).__bases__[0], "render_advanced_options", return_value={}):
-            result = plot.render_advanced_options(cast(Any, saved), sample_df)
-        assert isinstance(result, dict)
-
-    @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st")
-    def test_without_filters(self, mock_st: MagicMock, sample_df: pd.DataFrame) -> None:
-        from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
-
-        plot = GroupedBarPlot(1, "test")
-        saved = {"x": "benchmark", "group": "config"}
-
-        with patch.object(type(plot).__bases__[0], "render_advanced_options", return_value={}):
-            result = plot.render_advanced_options(cast(Any, saved), sample_df)
-        assert isinstance(result, dict)

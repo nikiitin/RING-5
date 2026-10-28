@@ -1,39 +1,30 @@
-"""
-Shaper Models — Discriminated union of per-type shaper configurations.
+"""Exact built-in shaper configuration types.
 
-Replaces the flat 39-field ``ShaperStepConfig`` mega-union with type-safe,
-per-shaper TypedDicts. Each shaper type has exactly the fields it needs.
-
-The ``ShaperStepConfig`` type alias is a Union of all per-type configs,
-enabling type narrowing via the ``type`` discriminator field.
-
-Categories:
-    - Base: ``BaseShaperConfig`` — shared fields (``type``, ``id``)
-    - Aggregation: ``MeanShaperConfig``
-    - Normalization: ``NormalizeShaperConfig``
-    - Ordering: ``SortShaperConfig``
-    - Selection: ``ColumnSelectorConfig``, ``ConditionSelectorConfig``,
-      ``ItemSelectorConfig``
-    - Transformation: ``TransformerShaperConfig``
-    - Composition: ``SplitApplyShaperConfig``, ``SplitApplyGroupConfig``
+Each built-in declares a required Literal ``type`` discriminator, current operation
+parameters and optional editor identity. ``ShaperStepConfig`` is their discriminated union.
+Dynamic plugins declare their own TypedDict schemas through ShaperDefinition; generic
+pipeline containers retain those mappings without claiming a built-in configuration type.
 """
 
 from __future__ import annotations
 
-from typing import Required, TypedDict, Union
+from collections.abc import Mapping
+from typing import Literal, Required, TypedDict, Union
+
+ShaperValue = str | int | float | bool
 
 # Base Config (shared across all shapers)
 
 
 class BaseShaperConfig(TypedDict, total=False):
-    """Fields shared by every shaper step.
+    """Optional identity shared by every shaper step.
+
+    Each concrete configuration declares its own required Literal discriminator.
 
     Attributes:
-        type: Shaper identifier (factory registry key). Always present.
         id: Step ID for pipeline ordering. Present when stored in pipeline.
     """
 
-    type: Required[str]
     id: int
 
 
@@ -55,8 +46,10 @@ class MeanShaperConfig(BaseShaperConfig, total=False):
             (e.g., ``"benchmark"`` → ``"geomean"``).
     """
 
+    type: Required[Literal["mean"]]
+
     meanVars: Required[list[str]]
-    meanAlgorithm: Required[str]
+    meanAlgorithm: Required[Literal["arithmean", "geomean", "hmean"]]
     groupingColumns: Required[list[str]]
     replacingColumn: Required[str]
 
@@ -83,9 +76,11 @@ class NormalizeShaperConfig(BaseShaperConfig, total=False):
             as well.
     """
 
+    type: Required[Literal["normalize"]]
+
     normalizeVars: Required[list[str]]
     normalizerColumn: Required[str]
-    normalizerValue: Required[str]
+    normalizerValue: Required[ShaperValue]
     groupBy: Required[list[str]]
     normalizerVars: list[str]
     normalizeSd: bool
@@ -104,7 +99,9 @@ class SortShaperConfig(BaseShaperConfig, total=False):
             E.g., ``{"benchmark": ["mcf", "omnetpp", "xalancbmk"]}``.
     """
 
-    order_dict: Required[dict[str, list[str]]]
+    type: Required[Literal["sort"]]
+
+    order_dict: Required[dict[str, list[str | int | float | bool | None]]]
 
 
 # SplitApply
@@ -118,8 +115,8 @@ class SplitApplyGroupConfig(TypedDict, total=False):
         pipeline: Sub-pipeline to apply to this group's data.
     """
 
-    columns: list[str]
-    pipeline: list[ShaperStepConfig]
+    columns: Required[list[str]]
+    pipeline: list[Mapping[str, object]]
 
 
 class SplitApplyShaperConfig(BaseShaperConfig, total=False):
@@ -132,6 +129,8 @@ class SplitApplyShaperConfig(BaseShaperConfig, total=False):
         joinColumns: Columns to split on (e.g., ``["benchmark"]``).
         groups: List of group definitions, each with its own pipeline.
     """
+
+    type: Required[Literal["splitApply"]]
 
     joinColumns: Required[list[str]]
     groups: Required[list[SplitApplyGroupConfig]]
@@ -147,13 +146,14 @@ class TransformerShaperConfig(BaseShaperConfig, total=False):
 
     Attributes:
         column: Target column to transform.
-        target_type: Desired output type (e.g., ``"categorical"``,
-            ``"numeric"``).
+        target_type: Desired output type (``"factor"`` or ``"scalar"``).
         order: Explicit category ordering (None = infer from data).
     """
 
+    type: Required[Literal["transformer"]]
+
     column: Required[str]
-    target_type: Required[str]
+    target_type: Required[Literal["scalar", "factor"]]
     order: list[str] | None
 
 
@@ -169,32 +169,47 @@ class ColumnSelectorConfig(BaseShaperConfig, total=False):
         columns: List of column names to retain.
     """
 
+    type: Required[Literal["columnSelector"]]
+
     columns: Required[list[str]]
 
 
 # ConditionSelector
 
 
-class ConditionSelectorConfig(BaseShaperConfig, total=False):
-    """Configuration for the Condition Selector (Filter) shaper.
+ConditionSelectorMode = Literal[
+    "greater_than",
+    "less_than",
+    "greater_or_equal",
+    "less_or_equal",
+    "equals",
+    "not_equals",
+    "contains",
+    "range",
+    "in",
+]
 
-    Filters rows based on conditions applied to a column.
+
+class ConditionSelectorConfig(BaseShaperConfig, total=False):
+    """Configuration for one explicit row predicate.
 
     Attributes:
-        column: Column to filter on.
-        mode: Filter mode — ``"greater_than"`` / ``"less_than"`` / ``"equals"`` /
-            ``"contains"``. (``values`` and ``range``, when given, select directly and take
-            precedence over ``mode``.)
-        threshold: Numeric threshold for ``"greater_than"`` / ``"less_than"``.
-        range: ``[min, max]`` for a range filter.
-        values: Allowed values (membership filter).
+        column: Column to filter.
+        mode: Named comparison, inclusive range, membership, or literal substring.
+        threshold: Finite bound for ordered comparisons.
+        range: Two ordered finite bounds for ``range``.
+        values: Allowed values for ``in``.
+        value: Equality operand or literal text for ``contains``.
     """
 
+    type: Required[Literal["conditionSelector"]]
+
     column: Required[str]
-    mode: Required[str]
+    mode: Required[ConditionSelectorMode]
     threshold: float
     range: list[float]
-    values: list[str]
+    values: list[str | int | float | bool | None]
+    value: str | int | float | bool
 
 
 # ItemSelector
@@ -212,9 +227,11 @@ class ItemSelectorConfig(BaseShaperConfig, total=False):
             ``"contains"`` (keep rows whose value contains a listed substring).
     """
 
+    type: Required[Literal["itemSelector"]]
+
     column: Required[str]
     strings: Required[list[str]]
-    mode: str
+    mode: Literal["exact", "contains"]
 
 
 # Pivot
@@ -233,6 +250,8 @@ class PivotLongerShaperConfig(BaseShaperConfig, total=False):
         extract_pattern: Regex pattern with a capture group to extract the variable part.
     """
 
+    type: Required[Literal["pivotLonger"]]
+
     id_vars: Required[list[str]]
     value_vars: Required[list[str]]
     var_name: Required[str]
@@ -240,8 +259,8 @@ class PivotLongerShaperConfig(BaseShaperConfig, total=False):
     extract_pattern: str
     extract_group_indices: list[int]
     extract_separator: str
-    selection_filters: dict[int, list[str]]
-    selection_strategy: str  # "discard" or "merge"
+    selection_filters: dict[str, list[str]]
+    selection_strategy: Literal["discard", "merge"]
     merge_label: str  # e.g. "other" or "9+"
 
 
@@ -255,6 +274,8 @@ class PivotWiderShaperConfig(BaseShaperConfig, total=False):
         columns: Column to use to make new frame's columns.
         values: Column(s) to use for populating new frame's values.
     """
+
+    type: Required[Literal["pivotWider"]]
 
     index: Required[list[str]]
     columns: Required[str]
@@ -287,14 +308,16 @@ class DeriveColumnShaperConfig(BaseShaperConfig, total=False):
             the Division arithmetic op) or ``"propagate"`` (raw division).
     """
 
+    type: Required[Literal["deriveColumn"]]
+
     dest: Required[str]
-    op: Required[str]
-    sources: list[str]
+    op: Required[Literal["sum", "ratio", "scalar", "concat", "map"]]
+    sources: Required[list[str]]
     scalar: float
-    scalar_op: str
+    scalar_op: Literal["+", "-", "*", "/"]
     separator: str
-    mapping: dict[str, str]
-    zero_denominator: str
+    mapping: dict[str, ShaperValue | None]
+    zero_denominator: Literal["nan", "propagate"]
 
 
 # GroupCardinalitySelector
@@ -314,10 +337,12 @@ class GroupCardinalitySelectorConfig(BaseShaperConfig, total=False):
         mode: ``"eq"`` (default), ``"ge"`` or ``"le"``.
     """
 
+    type: Required[Literal["groupCardinalitySelector"]]
+
     groupBy: Required[list[str]]
     countColumn: Required[str]
     count: Required[int]
-    mode: str
+    mode: Literal["eq", "ge", "le"]
 
 
 # GroupPredicateSelector
@@ -339,23 +364,17 @@ class GroupPredicateSelectorConfig(BaseShaperConfig, total=False):
         action: ``"drop"`` (default — remove flagged groups) or ``"keep"``.
     """
 
+    type: Required[Literal["groupPredicateSelector"]]
+
     groupBy: Required[list[str]]
     baselineColumn: Required[str]
-    baselineValue: Required[str]
+    baselineValue: Required[ShaperValue]
     predicateColumn: Required[str]
-    drop_when: str
-    action: str
+    drop_when: Literal["zero_or_nan", "zero", "nan"]
+    action: Literal["drop", "keep"]
 
 
-# Discriminated Union Type Alias
-# Discriminated union of all shaper configurations.
-#
-# The ``type`` field in ``BaseShaperConfig`` acts as the discriminator.
-# Use ``config["type"]`` to determine which specific config shape
-# to expect.
-#
-# This replaces the old flat ``ShaperStepConfig`` mega-union from
-# ``data_models.py``.
+# Known built-in operations narrow by their exact type discriminator.
 ShaperStepConfig = Union[
     MeanShaperConfig,
     NormalizeShaperConfig,

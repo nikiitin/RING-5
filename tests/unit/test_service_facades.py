@@ -10,7 +10,19 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.core.models.data_models import ParseVariableConfig
+from src.parsing.registry import SimulatorRegistry
+
+from src.core.models.data_models import (
+    CacheStatsInfo,
+    CsvPoolEntry,
+    ParseVariableConfig,
+    SavedConfigData,
+    SavedConfigEntry,
+)
+from src.core.models.portfolio_bundle_models import PortfolioBundleContents, PortfolioBundleInfo
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
+from src.core.models.portfolio_revision_models import PortfolioRevisionInfo
 from src.core.services.data_services.data_services_impl import DefaultDataServicesAPI
 from src.core.services.managers.managers_impl import DefaultManagersAPI
 
@@ -29,10 +41,13 @@ class TestDefaultDataServicesAPI:
 
     @patch("src.core.services.data_services.data_services_impl.CsvPoolService")
     def test_load_csv_pool(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
-        mock_svc.load_pool.return_value = [{"name": "a.csv"}]
+        expected: list[CsvPoolEntry] = [
+            {"name": "a.csv", "path": "/pool/a.csv", "size": 0, "modified": 0.0}
+        ]
+        mock_svc.load_pool.return_value = expected
         result = api.load_csv_pool()
         mock_svc.load_pool.assert_called_once()
-        assert result == [{"name": "a.csv"}]
+        assert result == expected
 
     @patch("src.core.services.data_services.data_services_impl.CsvPoolService")
     def test_add_to_csv_pool(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
@@ -57,8 +72,13 @@ class TestDefaultDataServicesAPI:
 
     @patch("src.core.services.data_services.data_services_impl.CsvPoolService")
     def test_get_cache_stats(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
-        mock_svc.get_cache_stats.return_value = {"hits": 5}
-        assert api.get_cache_stats() == {"hits": 5}
+        expected: CacheStatsInfo = {
+            "metadata_cache": {"hits": 5, "misses": 0, "hit_rate": 1.0},
+            "dataframe_cache": {"hits": 0, "misses": 1, "hit_rate": 0.0},
+            "index_size": 1,
+        }
+        mock_svc.get_cache_stats.return_value = expected
+        assert api.get_cache_stats() == expected
 
     @patch("src.core.services.data_services.data_services_impl.CsvPoolService")
     def test_clear_caches(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
@@ -78,9 +98,10 @@ class TestDefaultDataServicesAPI:
 
     @patch("src.core.services.data_services.data_services_impl.ConfigService")
     def test_load_configuration(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
-        mock_svc.load_configuration.return_value = {"name": "test"}
+        expected: SavedConfigData = {"name": "test", "shapers": []}
+        mock_svc.load_configuration.return_value = expected
         result = api.load_configuration("/configs/test.json")
-        assert result == {"name": "test"}
+        assert result == expected
 
     @patch("src.core.services.data_services.data_services_impl.ConfigService")
     def test_export_configuration(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
@@ -99,8 +120,11 @@ class TestDefaultDataServicesAPI:
 
     @patch("src.core.services.data_services.data_services_impl.ConfigService")
     def test_load_saved_configs(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
-        mock_svc.load_saved_configs.return_value = [{"name": "cfg1"}]
-        assert api.load_saved_configs() == [{"name": "cfg1"}]
+        expected: list[SavedConfigEntry] = [
+            {"name": "cfg1", "path": "/configs/cfg1.json", "description": "", "modified": 0.0}
+        ]
+        mock_svc.load_saved_configs.return_value = expected
+        assert api.load_saved_configs() == expected
 
     @patch("src.core.services.data_services.data_services_impl.ConfigService")
     def test_delete_configuration(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
@@ -206,33 +230,19 @@ class TestDefaultDataServicesAPI:
     @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_filter_internal_stats(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
         mock_svc.filter_internal_stats.return_value = ["ipc"]
-        assert api.filter_internal_stats(["ipc", "::total"]) == ["ipc"]
-
-    @patch("src.core.services.data_services.data_services_impl.VariableService")
-    def test_find_variable_by_name(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
-        var_config = cast(ParseVariableConfig, {"name": "ipc"})
-        mock_svc.find_variable_by_name.return_value = var_config
-        result = api.find_variable_by_name(cast(list[ParseVariableConfig], [var_config]), "ipc")
-        mock_svc.find_variable_by_name.assert_called_once_with(
-            cast(list[ParseVariableConfig], [var_config]), "ipc", True
-        )
-        assert result == {"name": "ipc"}
+        assert api.filter_internal_stats(
+            ["ipc", "::total"], internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        ) == ["ipc"]
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_aggregate_discovered_entries(
         self, mock_svc: MagicMock, api: DefaultDataServicesAPI
     ) -> None:
         mock_svc.aggregate_discovered_entries.return_value = ["0", "1"]
-        result = api.aggregate_discovered_entries([], "cpu")
+        result = api.aggregate_discovered_entries(
+            [], "cpu", internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
         assert result == ["0", "1"]
-
-    @patch("src.core.services.data_services.data_services_impl.VariableService")
-    def test_aggregate_distribution_range(
-        self, mock_svc: MagicMock, api: DefaultDataServicesAPI
-    ) -> None:
-        mock_svc.aggregate_distribution_range.return_value = (0.0, 100.0)
-        result = api.aggregate_distribution_range([], "dist_var")
-        assert result == (0.0, 100.0)
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_parse_comma_separated_entries(
@@ -260,7 +270,7 @@ class TestDefaultDataServicesAPI:
         df = pd.DataFrame({"x": [1]})
         api.save_portfolio("p1", df, [], {}, 0)
         api._portfolio_service.save_portfolio.assert_called_once_with(
-            "p1", df, [], {}, 0, None, None, None, True, None, "default"
+            "p1", df, [], {}, 0, None, None, None, True, None, "default", origin=None
         )
 
     def test_load_portfolio(self, api: DefaultDataServicesAPI) -> None:
@@ -273,8 +283,16 @@ class TestDefaultDataServicesAPI:
 
     def test_verify_portfolio(self, api: DefaultDataServicesAPI) -> None:
         api._portfolio_service = MagicMock()
-        api._portfolio_service.verify_portfolio.return_value = "verified"
-        assert api.verify_portfolio("p1", signing_key="secret") == "verified"
+        expected = PortfolioIntegrityReport(
+            status="signature-valid",
+            message="Verified",
+            checksum_valid=True,
+            signature_present=True,
+            signature_valid=True,
+            key_id="default",
+        )
+        api._portfolio_service.verify_portfolio.return_value = expected
+        assert api.verify_portfolio("p1", signing_key="secret") is expected
         api._portfolio_service.verify_portfolio.assert_called_once_with("p1", signing_key="secret")
 
     @patch(
@@ -315,11 +333,26 @@ class TestDefaultDataServicesAPI:
         bundle_service: MagicMock,
         api: DefaultDataServicesAPI,
     ) -> None:
-        bundle_service.inspect.return_value = "info"
-        bundle_service.read.return_value = "contents"
+        integrity = PortfolioIntegrityReport("checksum-valid", "Verified", True, False, None, None)
+        info = PortfolioBundleInfo(
+            name="p1",
+            format_version=1,
+            portfolio_schema_version=CURRENT_PORTFOLIO_SCHEMA_VERSION,
+            portfolio_created_at=None,
+            size_bytes=6,
+            source_count=0,
+            requirement_count=0,
+            portfolio_integrity=integrity,
+            dataset_snapshot=None,
+            result_names=(),
+            artifacts=(),
+        )
+        contents = PortfolioBundleContents(info, {"plots": []}, {}, "", None, ())
+        bundle_service.inspect.return_value = info
+        bundle_service.read.return_value = contents
 
-        assert api.inspect_portfolio_bundle(b"bundle") == "info"
-        assert api.read_portfolio_bundle(b"bundle", require_signature=True) == "contents"
+        assert api.inspect_portfolio_bundle(b"bundle") is info
+        assert api.read_portfolio_bundle(b"bundle", require_signature=True) is contents
         bundle_service.inspect.assert_called_once_with(
             b"bundle", signing_key=None, require_signature=False
         )
@@ -329,12 +362,13 @@ class TestDefaultDataServicesAPI:
 
     def test_portfolio_revision_delegation(self, api: DefaultDataServicesAPI) -> None:
         api._portfolio_service = MagicMock()
-        api._portfolio_service.list_portfolio_revisions.return_value = ("revision",)
+        revisions = (PortfolioRevisionInfo("p1", "a" * 64, 1, "", True, 1, "table", 0),)
+        api._portfolio_service.list_portfolio_revisions.return_value = revisions
         api._portfolio_service.load_portfolio_revision.return_value = {"plots": []}
         difference = MagicMock()
         api._portfolio_service.compare_portfolio_revisions.return_value = difference
 
-        assert api.list_portfolio_revisions("p1") == ("revision",)
+        assert api.list_portfolio_revisions("p1") == revisions
         assert api.load_portfolio_revision("p1", "a" * 64) == {"plots": []}
         assert api.compare_portfolio_revisions("p1", "a" * 64, "b" * 64) is difference
         api._portfolio_service.compare_portfolio_revisions.assert_called_once_with(

@@ -3,11 +3,13 @@
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import detect_column_types
 from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 def render(
@@ -36,7 +38,7 @@ def render(
         "X-Axis (Categories)",
         options=all_cols,
         index=all_cols.index(saved_config["x"]) if saved_config.get("x") in all_cols else 0,
-        key=f"stacked_x_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.stacked_x"),
     )
 
     # Statistics multi-select

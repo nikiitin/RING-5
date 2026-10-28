@@ -58,38 +58,17 @@ def test_export_is_deterministic_versioned_and_validated() -> None:
     assert "timestamp" not in document
 
 
-def test_import_migrates_legacy_record_and_preserves_content(config_dir: Path) -> None:
+@pytest.mark.parametrize(
+    "version_fields", [{}, {"format": PIPELINE_CONFIG_FORMAT}, {"schema_version": 1}]
+)
+def test_import_rejects_unversioned_records_without_writes(
+    config_dir: Path, version_fields: dict[str, object]
+) -> None:
     # [test->req~ring5.shaping.config-import-export~1]
-    legacy_pipeline = cast(
-        list[ShaperStepConfig],
-        [
-            {
-                "type": "mean",
-                "meanVars": ["ipc"],
-                "meanAlgorithm": "arithmean",
-                "groupingColumn": "benchmark",
-                "replacingColumn": "benchmark",
-            }
-        ],
-    )
-    legacy = {
-        "name": "Legacy pipeline",
-        "description": "Created before portable exchange.",
-        "timestamp": "20260101_120000",
-        "shapers": legacy_pipeline,
-        "csv_path": "/results/legacy.csv",
-    }
-
-    result = ConfigService.import_configuration(json.dumps(legacy))
-    saved = ConfigService.load_configuration(result.path)
-
-    assert result.migrated is True
-    assert result.conflict_resolution == "none"
-    assert result.shapers[0]["groupingColumns"] == ["benchmark"]  # type: ignore[typeddict-item]
-    assert "groupingColumn" not in result.shapers[0]
-    assert saved["format"] == PIPELINE_CONFIG_FORMAT
-    assert saved["schema_version"] == 1
-    assert saved["csv_path"] == "/results/legacy.csv"
+    document = {"name": "Rejected", "shapers": _pipeline(), **version_fields}
+    with pytest.raises(ValueError, match="missing or unsupported fields"):
+        ConfigService.import_configuration(json.dumps(document))
+    assert list(config_dir.glob("*.json")) == []
 
 
 def test_import_conflicts_can_stop_rename_or_replace(config_dir: Path) -> None:
@@ -146,16 +125,16 @@ def test_import_conflicts_can_stop_rename_or_replace(config_dir: Path) -> None:
                 "name": "x",
                 "shapers": [{"type": "missingPlugin"}],
             },
-            "unknown shaper type",
+            "Unknown shaper type",
         ),
         (
             {
                 "format": PIPELINE_CONFIG_FORMAT,
                 "schema_version": 1,
                 "name": "x",
-                "shapers": [{"type": "columnSelector", "columns": []}],
+                "shapers": [{"type": "columnSelector", "columns": [123]}],
             },
-            "is missing",
+            "must be a string",
         ),
         (
             {

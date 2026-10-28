@@ -10,14 +10,18 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import (
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.core.models.recipe_models import (
+    ANALYSIS_RECIPE_SCHEMA_VERSION,
     AnalysisRecipe,
     RecipeExport,
     RecipeParameter,
     RecipePlot,
     RecipeSource,
-    ShaperStepConfig,
 )
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.analysis_recipe_service import (
     ANALYSIS_RECIPE_FORMAT,
     AnalysisRecipeService,
@@ -107,10 +111,11 @@ def test_recipe_rejects_undeclared_mistyped_and_future_content() -> None:
         AnalysisRecipeService.materialize(recipe, {"extra": 2})
 
     invalid = json.loads(AnalysisRecipeService.dumps(recipe))
-    invalid["schema_version"] = 2
-    with pytest.raises(ValueError, match="schema version"):
-        AnalysisRecipeService.loads(json.dumps(invalid))
-    invalid["schema_version"] = 1
+    for version in (ANALYSIS_RECIPE_SCHEMA_VERSION - 1, ANALYSIS_RECIPE_SCHEMA_VERSION + 1):
+        invalid["schema_version"] = version
+        with pytest.raises(ValueError, match="schema version"):
+            AnalysisRecipeService.loads(json.dumps(invalid))
+    invalid["schema_version"] = ANALYSIS_RECIPE_SCHEMA_VERSION
     invalid["future"] = True
     with pytest.raises(ValueError, match="unsupported fields"):
         AnalysisRecipeService.loads(json.dumps(invalid))
@@ -169,7 +174,7 @@ def test_recipe_rejects_undeclared_mistyped_and_future_content() -> None:
         source=RecipeSource(kind="csv", path="data.csv"),
         transformations=(cyclic_step,),
     )
-    with pytest.raises(ValueError, match="nesting is too deep"):
+    with pytest.raises(ValueError, match="cyclic configuration"):
         AnalysisRecipeService.dumps(cyclic_recipe)
 
 
@@ -211,16 +216,34 @@ def test_recipe_storage_protects_names_and_lists_valid_records(recipes_dir: Path
 def test_capture_retains_parser_variables_plot_configs_and_pipelines() -> None:
     # [test->req~ring5.portfolio.analysis-recipes~1]
     state = MagicMock()
-    state.is_using_parser.return_value = True
-    state.get_stats_path.return_value = "/simulations"
-    state.get_stats_pattern.return_value = "stats*.txt"
-    state.get_parser_strategy.return_value = "simple"
-    state.get_parse_variables.return_value = [
-        {"name": "simTicks", "type": "scalar", "_id": "ticks"}
+    variables: list[ParseVariableConfig] = [
+        {
+            "name": "simTicks",
+            "type": "scalar",
+            "params": {"source_type": "scalar"},
+            "_id": "ticks",
+        }
     ]
-    state.get_scanned_variables.return_value = [
-        {"name": "simTicks", "type": "scalar", "entries": []}
+    scanned_variables: list[ScannedVariableDict] = [
+        {
+            "name": "simTicks",
+            "type": "scalar",
+            "entries": [],
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
+            "instances": [{"source_name": "simTicks", "indices": []}],
+        }
     ]
+    source = SourceContextCodec.parser(
+        stats_path="/simulations",
+        stats_pattern="stats*.txt",
+        strategy_type="simple",
+        variables=[StatConfigCodec.from_draft(value) for value in variables],
+        scanned_variables=scanned_variables,
+        simulator="gem5",
+        scan_limit=10,
+        strict=True,
+    )
+    state.get_loaded_origin.return_value = SourceContextCodec.origin(source)
     plot = MagicMock()
     plot.name = "Ticks"
     plot.plot_type = "bar"
@@ -248,9 +271,8 @@ def test_capture_retains_parser_variables_plot_configs_and_pipelines() -> None:
 
 def test_capture_requires_reusable_source_provenance() -> None:
     state = MagicMock()
-    state.is_using_parser.return_value = False
-    state.get_csv_path.return_value = None
+    state.get_loaded_origin.return_value = None
     state.get_plots.return_value = []
 
-    with pytest.raises(ValueError, match="no reusable CSV source"):
+    with pytest.raises(ValueError, match="no explicit reusable source"):
         AnalysisRecipeService(state).capture("Missing source")

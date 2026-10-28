@@ -1,6 +1,6 @@
 """
 Unit tests for the ApplicationAPI (Layer B Orchestrator).
-Verifies that the API correctly orchestrates the internal StateManager and ServicesAPI.
+Verifies that the API correctly orchestrates the internal state boundary and focused service APIs.
 """
 
 from collections.abc import Generator
@@ -11,6 +11,8 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.models.source_context_models import CsvSourceContext, InferredCsvPolicy
 
 
 @pytest.fixture
@@ -49,27 +51,29 @@ class TestApplicationAPI:
 
         application_api.load_data(path)
 
-        mock_data.load_csv_file.assert_called_once_with(path)
+        mock_data.load_csv_file.assert_called_once_with(path, configuration_columns=())
         application_api.state_manager.set_data.assert_called_once_with(
             df,
-            operation=f"Load CSV: {path}",
+            operation=f"Load data: {path}",
+            origin=SourceContextCodec.origin(CsvSourceContext(path, InferredCsvPolicy(()))),
         )
         application_api.state_manager.set_processed_data.assert_called_once_with(None)
         application_api.state_manager.set_csv_path.assert_called_once_with(path)
 
-    def test_load_from_pool(self, application_api: Any) -> None:
+    def test_load_data_from_csv_pool(self, application_api: Any) -> None:
         """Test loading data from the CSV pool."""
         path = "/pool/data.csv"
         df = pd.DataFrame({"pool": [1]})
         mock_data = cast(Any, application_api)._mock_services.data_services
         mock_data.load_csv_file.return_value = df
 
-        application_api.load_from_pool(path)
+        application_api.load_data(path)
 
-        mock_data.load_csv_file.assert_called_once_with(path)
+        mock_data.load_csv_file.assert_called_once_with(path, configuration_columns=())
         application_api.state_manager.set_data.assert_called_once_with(
             df,
-            operation=f"Load CSV: {path}",
+            operation=f"Load data: {path}",
+            origin=SourceContextCodec.origin(CsvSourceContext(path, InferredCsvPolicy(()))),
         )
 
     def test_get_current_view_assembly(self, application_api: Any) -> None:
@@ -78,13 +82,19 @@ class TestApplicationAPI:
         """
         application_api.state_manager.get_data.return_value = "raw_df"
         application_api.state_manager.get_processed_data.return_value = "proc_df"
-        application_api.state_manager.get_config.return_value = {"conf": 1}
+        config = {"conf": 1, "csv_path": "/stale/config.csv"}
+        application_api.state_manager.get_config.return_value = config
+        application_api.state_manager.get_csv_path.return_value = "/active/source.csv"
+        application_api.state_manager.selected_dataset_name.return_value = "Active dataset"
 
         view = application_api.get_current_view()
 
         assert view["raw_data"] == "raw_df"
         assert view["processed_data"] == "proc_df"
-        assert view["config"] == {"conf": 1}
+        assert view["config"] == {"conf": 1, "csv_path": "/stale/config.csv"}
+        assert view["csv_path"] == "/active/source.csv"
+        assert view["selected_dataset_name"] == "Active dataset"
+        assert config == {"conf": 1, "csv_path": "/stale/config.csv"}
 
     def test_reset_session(self, application_api: Any) -> None:
         """Test session reset orchestration."""

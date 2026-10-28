@@ -5,8 +5,11 @@ Page for selecting and configuring data sources.
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.application_api import ApplicationAPI
 from src.web.components.data_source.data_source_components import DataSourceComponents
+from src.web.components.example_portfolio import render_example_portfolio
 
 
 class DataSourcePage:
@@ -20,6 +23,7 @@ class DataSourcePage:
         """Render the data source page."""
         # [impl->req~ring5.ingestion.source-modes~1]
         st.markdown("## Step 1: Choose Data Source")
+        render_example_portfolio(self.api)
 
         # Determine selected simulator for dynamic labels
         simulators = ApplicationAPI.available_simulators()
@@ -48,18 +52,14 @@ class DataSourcePage:
             "Select your data source:",
             data_source_options,
             default=data_source_options[0],
-            key="data_source_choice",
+            key=WidgetKeyBuilder.data_source_key("data_source_choice"),
         )
 
         if choice == parse_label:
-            if not self.api.state_manager.is_using_parser():
-                self.api.state_manager.set_use_parser(True)
             DataSourceComponents.render_parser_config(self.api)
         elif choice == "Load from Recent":
             DataSourceComponents.render_csv_pool(self.api)
         else:
-            if self.api.state_manager.is_using_parser():
-                self.api.state_manager.set_use_parser(False)
             st.success(
                 "Upload mode selected — validation and review happen before workspace changes."
             )

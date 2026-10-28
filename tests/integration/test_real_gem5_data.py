@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, cast
 
@@ -6,7 +7,9 @@ import pytest
 from pandas import DataFrame
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import StatConfig
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.services.data_services.config_service import ConfigService
+from src.core.models.parsing_models import StatConfig
 from src.core.models.shaper_models import ShaperStepConfig
 
 # Path to real gem5 test data
@@ -30,9 +33,13 @@ def temp_output_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def facade() -> ApplicationAPI:
+def facade() -> Iterator[ApplicationAPI]:
     """Create an ApplicationAPI instance."""
-    return ApplicationAPI()
+    api = ApplicationAPI()
+    try:
+        yield api
+    finally:
+        api.close()
 
 
 class TestRealDataWithShapers:
@@ -44,46 +51,29 @@ class TestRealDataWithShapers:
     ) -> pd.DataFrame:
         """Parse real data and return DataFrame."""
 
-        subdirs = [d for d in test_data_available.iterdir() if d.is_dir()]
+        subdirs = sorted(d for d in test_data_available.iterdir() if d.is_dir())
         if not subdirs:
             pytest.skip("No subdirectories found")
 
         first_subdir = subdirs[0]
 
         variables = [
-            StatConfig(name="simTicks", type="scalar"),
+            StatConfig(name="simTicks", type="scalar", params={"source_type": "scalar"}),
         ]
 
-        try:
-            batch = facade.submit_parse_async(
-                stats_path=str(first_subdir),
-                stats_pattern="**/stats.txt",
-                variables=variables,
-                output_dir=str(temp_output_dir),
-            )
-
-            # Wait for parsing
-            parse_results = []
-            for future in batch.futures:
-                result = future.result(timeout=30)
-                if result:
-                    parse_results.append(result)
-
-            csv_path = facade.finalize_parsing(
-                str(temp_output_dir), parse_results, var_names=batch.var_names
-            )
-
-            if csv_path is None or not Path(csv_path).exists():
-                pytest.skip("Parsing failed or no data")
-
-            df = pd.read_csv(csv_path)
-            if len(df) == 0:
-                pytest.skip("No rows in parsed data")
-
-            return df
-
-        finally:
-            pass
+        batch = facade.submit_parse_async(
+            stats_path=str(first_subdir),
+            stats_pattern="stats.txt",
+            variables=variables,
+            output_dir=str(temp_output_dir),
+        )
+        parse_results = [future.result(timeout=30) for future in batch.futures]
+        parsed_output = facade.finalize_parsing(batch, parse_results)
+        csv_path = parsed_output.csv_path
+        assert csv_path is not None and Path(csv_path).is_file()
+        frame = ParsedOutputIO.to_frame(parsed_output)
+        assert not frame.empty
+        return frame
 
     def test_column_selector_on_real_data(self, parsed_data: Any) -> None:
         """Test column selector on real data."""
@@ -172,19 +162,6 @@ class TestRealDataWithManagers:
 class TestCompleteWorkflow:
     """Test complete workflows from parsing to visualization."""
 
-    def test_facade_methods_available(self, facade: ApplicationAPI) -> None:
-        """Test that all facade methods are available."""
-        # Check essential methods exist
-        assert hasattr(facade, "find_stats_files")
-        assert hasattr(facade, "submit_parse_async")
-        assert hasattr(facade, "finalize_parsing")
-        assert hasattr(facade, "submit_scan_async")
-        assert hasattr(facade, "finalize_scan")
-        assert hasattr(facade, "apply_shapers")
-        assert hasattr(facade, "load_csv_file")
-        assert hasattr(facade, "save_configuration")
-        assert hasattr(facade, "load_configuration")
-
     def test_shaper_factory_available(self) -> None:
         """Test that shaper factory can create column selector with proper config."""
         from src.core.services.shapers.factory import ShaperFactory
@@ -215,15 +192,16 @@ class TestConfigurationPersistence:
     """Tests for configuration save/load."""
 
     def test_save_and_load_configuration(
-        self, temp_output_dir: Path, facade: ApplicationAPI
+        self, temp_output_dir: Path, facade: ApplicationAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test saving and loading configuration."""
+        """Test saving and loading configuration in an isolated catalog."""
         # Override config dir
         config_pool_dir = Path(temp_output_dir) / "configs"
         config_pool_dir.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setattr(ConfigService, "get_config_dir", lambda: config_pool_dir)
 
         # Save config
-        config_path = facade.save_configuration(
+        config_path = facade.data_services.save_configuration(
             name="test_config",
             description="Test configuration",
             shapers_config=cast(
@@ -234,17 +212,23 @@ class TestConfigurationPersistence:
         )
 
         assert Path(config_path).exists()
+        assert Path(config_path).parent == config_pool_dir
 
         # Load config
-        loaded = facade.load_configuration(config_path)
+        loaded = facade.data_services.load_configuration(config_path)
 
         assert loaded["name"] == "test_config"
         assert loaded.get("description") == "Test configuration"
         assert len(loaded["shapers"]) == 1
 
-    def test_load_csv_pool(self, temp_output_dir: Path, facade: ApplicationAPI) -> None:
+    def test_load_csv_pool(
+        self,
+        temp_output_dir: Path,
+        facade: ApplicationAPI,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         """Test loading CSV pool."""
-        from unittest.mock import patch
+        from src.core.services.data_services.csv_pool_service import CsvPoolService
 
         temp_path = Path(temp_output_dir)
         csv_pool = temp_path / "csv_pool"
@@ -254,17 +238,9 @@ class TestConfigurationPersistence:
         test_csv = csv_pool / "test.csv"
         pd.DataFrame({"a": [1, 2, 3]}).to_csv(test_csv, index=False)
 
-        # Patch PathService to use temp directory
-        with patch(
-            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
-            return_value=temp_path,
-        ):
-            from src.core.services.data_services.csv_pool_service import CsvPoolService
+        monkeypatch.setattr(CsvPoolService, "_pool_dir", csv_pool)
+        monkeypatch.setattr(CsvPoolService, "_pool_index", {})
+        pool = facade.data_services.load_csv_pool()
 
-            CsvPoolService._pool_dir = None  # Reset cached pool dir
-
-            # Load pool
-            pool = facade.load_csv_pool()
-
-            assert len(pool) == 1
-            assert pool[0]["name"] == "test.csv"
+        assert len(pool) == 1
+        assert pool[0]["name"] == "test.csv"

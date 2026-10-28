@@ -1,446 +1,418 @@
-"""
-Perl Parse Work - Worker unit for parsing a single gem5 stats file.
-Executed in parallel across multiple stats files.
-"""
+"""Parse one gem5 statistics file through exact concrete-source bindings."""
 
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+import re
 
-if TYPE_CHECKING:
-    from src.parsing.gem5.types.base import StatType
+from src.parsing.gem5.types.base import StatContent, StatResult, StatType
 
-import src.core.common.utils as utils
-from src.core.common.safe_regex import (
-    SafeRegexError,
-    escape_perl_stat_filter,
-    numeric_pattern_id,
+from src.core.common.parsed_output_codec import read_numeric_wire
+from src.core.common.source_entry_labels import canonical_source_entry
+from src.core.models.source_evidence import SourceKindBinding
+from src.core.models.native_distribution_layout import NativeDistributionLayout
+from src.parsing.gem5.impl.source_bindings import AccumulatorSpec
+from src.parsing.gem5.impl.source_events import (
+    Measurement,
+    SourceEvidence,
+    SourceFailure,
+    DumpBoundary,
+    decode_source_event,
 )
-from src.core.common.security_limits import MAX_PARSE_VARIABLES
-from src.parsing.gem5.impl.pool.parse_work import ParsedVarsDict, ParseWork
-from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
+from src.core.common.parse_failure import (
+    bounded_parse_text,
+    classify_parse_failure,
+    parse_error_text,
+    parse_names_text,
+)
+from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataValueError
+from src.core.common.security_limits import (
+    MAX_INCREMENTAL_CACHE_COLUMNS,
+    MAX_PARSE_VARIABLES,
+    MAX_PARSED_CELL_CHARACTERS,
+)
+from src.core.models.parsed_output_models import (
+    ParsedCell,
+    ParsedFileResult,
+    ParsedKind,
+    ParsedShape,
+    ParsedVariableResult,
+)
+from src.core.common.utils import checkFileExistsOrException
+from src.parsing.gem5.impl.source_bindings import SourcePlan, literal_source_filter
 from src.parsing.gem5.impl.strategies.perl_worker_pool import get_worker_pool
-from src.parsing.gem5.types.type_mapper import TypeMapper
 
-# Type aliases for clarity
-# EntryBuffer: baseID -> {entryKey -> [values]}
-EntryBufferType = dict[str, dict[str, list[str]]]
-
-# Variable dictionary: varID -> StatType instance
-VarsDictType = dict[str, "StatType"]
-
+VarsDictType = dict[str, StatType[StatContent, StatResult]]
+EntryBufferType = dict[tuple[str, str], list[dict[str, str]]]
+_ENTRY_TYPES = frozenset({"vector", "distribution", "histogram"})
 logger = logging.getLogger(__name__)
 
 
-class Gem5ParseWork(ParseWork):
-    """
-    Worker for parsing a single gem5 stats file using the Perl worker pool.
+class Gem5ParseWork:
+    """Own per-file accumulators while sharing immutable source routing metadata."""
 
-    Uses persistent Perl processes from the worker pool to eliminate subprocess
-    startup overhead (54x speedup). The Perl output format is: Type/VarID::Entry/Value
-    """
-
-    def __init__(self, fileToParse: str, varsToParse: VarsDictType) -> None:
-        """
-        Initialize the gem5 parse work unit.
+    def __init__(self, file_to_parse: str, accumulators: VarsDictType, plan: SourcePlan) -> None:
+        """Create a worker from one resolved parse plan.
 
         Args:
-            fileToParse: Absolute path to the gem5 stats.txt file
-            varsToParse: Dictionary mapping variable IDs to StatType instances
+            file_to_parse: Exact statistics file owned by this worker.
+            accumulators: Independent mutable accumulator for each logical output.
+            plan: Resolved configurations and immutable concrete-source routes.
 
         Raises:
-            RuntimeError: If varsToParse is empty
+            ValueError: Accumulator names do not match the plan.
+            RuntimeError: No source/accumulator work was provided or a limit is exceeded.
         """
-        if not varsToParse:
-            raise RuntimeError("Vars to parse is empty!")
-        self._fileToParse: str = fileToParse
-        self._varsToParse: VarsDictType = varsToParse
-        self._entryBuffer: EntryBufferType = {}  # Unified buffer for entry-based types
-        super().__init__()
+        if not accumulators or not plan.routes:
+            raise RuntimeError("A parse worker requires logical accumulators and concrete sources.")
+        if set(accumulators) != {spec.output_name for spec in plan.accumulators}:
+            raise ValueError("Worker accumulators must exactly match the resolved output names.")
+        if len(plan.routes) > MAX_PARSE_VARIABLES:
+            raise RuntimeError("Parser source filters exceed the variable limit.")
+        self._file_to_parse = file_to_parse
+        self._accumulators = accumulators
+        self._routes = plan.routes
+        self._specs = {spec.output_name: spec for spec in plan.accumulators}
+        self._entry_buffer: EntryBufferType = {}
+        self._source_buffer: dict[str, list[Measurement]] = {}
+        self._entry_ordinals: dict[tuple[str, str, str], int] = {}
 
     def __str__(self) -> str:
-        return f"Gem5ParseWork({self._fileToParse})"
+        return f"Gem5ParseWork({self._file_to_parse})"
 
     @property
     def source_path(self) -> str:
         """Return the exact statistics file parsed by this worker."""
-        return self._fileToParse
+        return self._file_to_parse
 
-    # ========== Entry Buffering ==========
+    def _buffer_entry(
+        self,
+        output_name: str,
+        source_name: str,
+        entry_name: str,
+        value: str,
+        *,
+        sample_index: int | None = None,
+    ) -> None:
+        key = (output_name, source_name, entry_name)
+        index = self._entry_ordinals.get(key, 0) if sample_index is None else sample_index
+        frames = self._entry_buffer.setdefault((output_name, source_name), [])
+        while len(frames) <= index:
+            frames.append({})
+        if entry_name in frames[index]:
+            raise ParseDataValueError("A source observation repeats the same native cell position.")
+        frames[index][entry_name] = value
+        self._entry_ordinals[key] = max(index + 1, self._entry_ordinals.get(key, 0))
 
-    def _bufferEntry(self, varID: str, varValue: str) -> None:
-        """
-        Buffer an entry-based value (Vector, Distribution, Histogram).
-
-        Args:
-            varID: Variable identifier with entry key (format: baseID::entryKey)
-            varValue: String value to buffer for this entry
-        """
-        baseID: str
-        entryKey: str
-        baseID, entryKey = varID.split("::", 1)
-
-        if baseID not in self._entryBuffer:
-            self._entryBuffer[baseID] = {}
-        if entryKey not in self._entryBuffer[baseID]:
-            self._entryBuffer[baseID][entryKey] = []
-
-        self._entryBuffer[baseID][entryKey].append(varValue)
-
-    def _applyBufferedEntries(self, varsToParse: VarsDictType) -> None:
-        """
-        Apply buffered entries to their corresponding variable objects.
-
-        Args:
-            varsToParse: Dictionary of variables to update with buffered content
-        """
-        for varID, entries in self._entryBuffer.items():
-            if varID in varsToParse:
-                varsToParse[varID].content = entries
-
-    # ========== Variable-ID helpers ==========
-
-    @staticmethod
-    def _base_id(var_id: str) -> str:
-        """Base variable id before the ``::`` entry separator (e.g. ``a::b`` -> ``a``)."""
-        return var_id.split("::", 1)[0]
-
-    @staticmethod
-    def _request_key(var_id: str) -> str:
-        """Return the concrete stat name requested from the Perl parser.
-
-        ``__get_summary`` is RING-5's only synthetic suffix.  Gem5 itself
-        legitimately uses double underscores in names (for example
-        ``MemDepUnit__0``), so splitting at the first ``__`` silently
-        truncated pattern-expanded aliases and left their values missing.
-        """
-        suffix = "__get_summary"
-        return var_id[: -len(suffix)] if var_id.endswith(suffix) else var_id
+    def _apply_buffered_entries(self) -> None:
+        """Commit actual source frames without allocating requested-repeat padding."""
+        scalar_vectors: dict[str, list[dict[str, float]]] = {}
+        for (output_name, _source_name), raw_frames in self._entry_buffer.items():
+            accumulator = self._accumulators[output_name]
+            spec = self._specs[output_name]
+            for index, raw_sample in enumerate(raw_frames):
+                sample = {entry: read_numeric_wire(value) for entry, value in raw_sample.items()}
+                if spec.output_type == "vector" and spec.config.params["source_type"] == "scalar":
+                    frames = scalar_vectors.setdefault(output_name, [])
+                    while len(frames) <= index:
+                        frames.append({})
+                    frames[index].update(sample)
+                else:
+                    accumulator.add_observation(sample)
+        for output_name, frames in scalar_vectors.items():
+            for sample in frames:
+                self._accumulators[output_name].add_observation(sample)
+        self._entry_buffer = {}
+        self._entry_ordinals = {}
 
     @staticmethod
-    def _numeric_pattern_id(pattern: str, concrete_name: str) -> str | None:
-        r"""Return the numeric ID when *concrete_name* matches a ``\d+`` pattern.
+    def _matches_native_header(value: float, token: str) -> bool:
+        """Compare the exact declared double at the printed fixed decimal precision."""
+        if (
+            len(token) > MAX_PARSED_CELL_CHARACTERS
+            or re.fullmatch(r"-?\d+(?:\.\d+)?", token) is None
+        ):
+            return False
+        places = len(token.partition(".")[2])
+        return format(value, f".{places}f") == token
 
-        Literal segments are escaped before matching, so this helper never
-        evaluates user-controlled regex syntax.
-        """
-        try:
-            return numeric_pattern_id(pattern, concrete_name)
-        except SafeRegexError:
-            return None
-
-    @classmethod
-    def _scalar_pattern_entry(
-        cls, var_id: str, target_var: StatType, vars_to_parse: VarsDictType
-    ) -> tuple[str, str] | None:
-        """Resolve a concrete scalar alias to its logical vector entry."""
-        # [impl->req~ring5.ingestion.configuration-fallbacks~1]
-        target_content = target_var.content
-        target_entries = target_var.entries or []
-        for logical_id, logical_var in vars_to_parse.items():
-            entry = cls._numeric_pattern_id(logical_id, var_id)
-            if entry is None:
-                continue
-            if logical_var.content is target_content and entry in target_entries:
-                return logical_id, entry
-        return None
-
-    # ========== Line Processing ==========
-
-    def _parseLine(self, line: str) -> tuple[str, str, str]:
-        """
-        Parse a Perl output line into its components.
-
-        Args:
-            line: Output line in format "Type/VarID/Value"
-
-        Returns:
-            Tuple of (varType, varID, varValue)
-        """
-        # maxsplit=2: the value is everything after the second '/' — configuration values
-        # legitimately contain '/' (paths, device strings); an unbounded split would
-        # truncate them to the first segment.
-        parts: list[str] = line.split("/", 2)
-        if len(parts) < 3:
-            logger.warning("PARSER: Malformed Perl output line (expected 3+ parts): %s", line[:200])
-            return "", "", ""
-        return parts[0], parts[1], parts[2]
-
-    def _getExpectedType(self, var: StatType) -> str:
-        """
-        Get the normalized type name from a StatType variable object.
-
-        Args:
-            var: StatType instance.
-
-        Returns:
-            Normalized type name (e.g., 'scalar', 'vector', 'distribution')
-        """
-        return TypeMapper.normalize_type(type(var).__name__)
-
-    def _processEntryType(
-        self, varType: str, varID: str, varValue: str, varsToParse: VarsDictType
-    ) -> str | None:
-        """
-        Process entry-based types (Vector, Distribution, Histogram).
-
-        Args:
-            varType: Raw type from Perl output
-            varID: Variable identifier with entry key
-            varValue: String value for this entry
-            varsToParse: Dictionary of variables being parsed
-
-        Returns:
-            Normalized type name if successful, None if variable is unknown
-        """
-        baseID: str = self._base_id(varID)
-        targetVar: StatType | None = varsToParse.get(baseID)
-
-        if targetVar is None:
-            return None  # Unknown variable
-
-        expectedType: str = self._getExpectedType(targetVar)
-
-        normalizedVarType: str = TypeMapper.normalize_type(varType)
-
-        # For Histogram, determine handling based on target configuration
-        if normalizedVarType == "histogram":
-            if expectedType == "vector":
-                normalizedVarType = "vector"
-            elif expectedType in ("distribution", "histogram"):
-                normalizedVarType = expectedType
-        elif normalizedVarType == "vector" and expectedType == "distribution":
-            normalizedVarType = "distribution"
-        elif normalizedVarType == "vector" and expectedType == "histogram":
-            # Vector statistics (::samples, ::mean, ::total) are part of histogram
-            normalizedVarType = "histogram"
-
-        self._bufferEntry(varID, varValue)
-        return normalizedVarType
-
-    def _processSummary(self, varID: str, varValue: str, varsToParse: VarsDictType) -> None:
-        """
-        Process Summary lines from Perl output.
-
-        Summaries can be:
-        1. Entry of a Vector/Distribution (e.g., ::total, ::mean)
-        2. Standalone summary request (varID__get_summary)
-
-        Args:
-            varID: Variable identifier (may include ::entry_key)
-            varValue: Summary value as string
-            varsToParse: Dictionary of variables being parsed
-        """
-        baseID: str = self._base_id(varID)
-        targetVar: StatType | None = varsToParse.get(baseID)
-
-        # Check if it's an entry-style summary (::key)
-        if targetVar and "::" in varID:
-            expectedType: str = self._getExpectedType(targetVar)
-            if TypeMapper.is_entry_type(expectedType):
-                self._bufferEntry(varID, varValue)
-                return
-
-        # Check if it's a standalone summary request
-        summaryID: str = baseID + "__get_summary"
-        if summaryID in varsToParse:
-            varsToParse[summaryID].content = varValue
-
-    def _processLine(self, line: str, varsToParse: VarsDictType) -> None:
-        """
-        Process a single output line from the Perl parser.
-
-        Args:
-            line: Output line in format "Type/VarID/Value"
-            varsToParse: Dictionary of variables being parsed
-
-        Raises:
-            RuntimeError: If variable type mismatch or unknown type encountered
-        """
-        rawType: str
-        varID: str
-        varValue: str
-        rawType, varID, varValue = self._parseLine(line)
-        if not rawType:
-            return  # Malformed line, skip
-        normalizedType: str = TypeMapper.normalize_type(rawType)
-
-        if TypeMapper.is_entry_type(normalizedType):
-            resolvedType: str | None = self._processEntryType(rawType, varID, varValue, varsToParse)
-            if resolvedType is None:
-                return  # Unknown variable, skip
-
-            # Validate type consistency
-            baseID: str = self._base_id(varID)
-            expectedType: str = self._getExpectedType(varsToParse[baseID])
-            if expectedType != resolvedType:
-                raise RuntimeError(
-                    f"Variable type mismatch - Expected: {expectedType} "
-                    f"Found: {resolvedType} ID: {baseID}"
+    def _oneline_entries(
+        self,
+        measurement: Measurement,
+        source_kind: str,
+        spec: AccumulatorSpec,
+    ) -> list[tuple[str, str]]:
+        """Admit each selected representation against its own declared source grid."""
+        if spec.config.statistics_only:
+            return []
+        reported = dict(measurement.reported_geometry)
+        layout = spec.layout
+        if source_kind == "distribution" and type(layout) is NativeDistributionLayout:
+            geometry = layout.geometry
+            expected = {
+                "bucket_size": geometry.bucket_size,
+                "min_bucket": geometry.minimum,
+                "max_bucket": geometry.maximum,
+            }
+            if "bucket_size" not in reported or any(
+                key not in reported and not (layout.zero_policy == "nozero" and value == 0.0)
+                for key, value in expected.items()
+            ):
+                raise ParseDataValueError(
+                    "Oneline Distribution requires its reported width and declared bounds."
                 )
-
-        elif normalizedType in ("scalar", "configuration"):
-            if varID not in varsToParse:
-                return  # Unknown variable, skip
-            target_var = varsToParse[varID]
-            expected_type = self._getExpectedType(target_var)
-            if normalizedType == "scalar" and expected_type == "vector":
-                resolved_entry = self._scalar_pattern_entry(varID, target_var, varsToParse)
-                if resolved_entry is None:
-                    raise RuntimeError(
-                        f"Variable type mismatch - Expected: {expected_type} "
-                        f"Found: {normalizedType} ID: {varID}"
-                    )
-                logical_id, entry = resolved_entry
-                self._bufferEntry(f"{logical_id}::{entry}", varValue)
-                return
-            target_var.content = varValue
-
-        elif normalizedType == "summary":
-            self._processSummary(varID, varValue, varsToParse)
-
+            if any(
+                not self._matches_native_header(expected[key], value)
+                for key, value in reported.items()
+            ):
+                raise ParseDataValueError("Printed geometry contradicts the declared native grid.")
+            labels = [column.source_label for column in layout.columns if column.role == "bucket"]
+        elif source_kind in {"histogram", "distribution"} and (
+            source_kind == "histogram" or spec.output_type == "histogram"
+        ):
+            if set(reported) != {"bucket_size", "min_bucket", "max_bucket"} or any(
+                re.fullmatch(r"-?\d+", value) is None for value in reported.values()
+            ):
+                raise ParseDataValueError(
+                    "Generic Histogram requires complete integral geometry; use a declared "
+                    "native Distribution grid for fractional storage cells."
+                )
+            integral: dict[str, int] = {}
+            for key, value in reported.items():
+                read_numeric_wire(value)
+                try:
+                    integral[key] = int(value)
+                except ValueError as exc:
+                    if type(exc) is not ValueError:
+                        raise
+                    raise ParseDataValueError(
+                        "Integral source geometry exceeds its bound."
+                    ) from exc
+            width, low, high = (
+                integral[key] for key in ("bucket_size", "min_bucket", "max_bucket")
+            )
+            if width <= 0 or high < low:
+                raise ParseDataValueError(
+                    "Invalid oneline Histogram geometry; use a declared native Distribution "
+                    "grid for native storage cells."
+                )
+            count = (high - low) // width + 1
+            if count > MAX_INCREMENTAL_CACHE_COLUMNS:
+                raise ParseDataValueError("Oneline Histogram exceeds the physical column limit.")
+            labels = [
+                f"{low + index * width}-{min(low + (index + 1) * width - 1, high)}"
+                for index in range(count)
+            ]
         else:
-            raise RuntimeError(f"Unknown variable type: {rawType}")
+            raise ParseDataValueError(
+                "Oneline Vector has no entry-order contract; select native Distribution "
+                "output with an explicit full grid."
+            )
+        if len(labels) != len(measurement.values):
+            raise ParseDataValueError("Oneline source cell count contradicts its current geometry.")
+        return list(zip(labels, measurement.values, strict=True))
 
-    # ========== Validation ==========
-
-    def _validateVars(self, varsToParse: VarsDictType) -> VarsDictType:
-        """
-        Validate parsed variables and log absent/incomplete numeric stats.
-
-        Configuration variables fall back to their user-configured ``onEmpty``
-        value. Numeric variables are NOT fabricated: an absent or incomplete
-        stat is left empty so ``balance_content`` pads it with NaN downstream
-        (hard rule 6). Every absent/incomplete numeric stat is logged with the
-        source file so missingness is traceable (what + where).
-
-        Args:
-            varsToParse: Dictionary of parsed variables
-
-        Returns:
-            The same dictionary after validation
-        """
-        missing: list[str] = []
-        for varID, var in varsToParse.items():
-            if self._getExpectedType(var) == "configuration":
-                if not var.content:  # Empty content
-                    var.content = var.onEmpty if var.onEmpty else "None"
+    def _consume_source(self, source: SourceEvidence) -> None:
+        """Check actual shared evidence before an observation reaches an accumulator."""
+        route = self._routes.get(source.name)
+        if route is None:
+            raise ParseDataValueError("Decoder returned an unplanned source.")
+        source_kind = self._specs[route.targets[0].output_name].config.params["source_type"]
+        if type(source_kind) is not str:
+            raise RuntimeError("The immutable source plan lost its request declaration.")
+        try:
+            SourceKindBinding(source_kind, source.evidence)
+        except ValueError as exc:
+            if type(exc) is not ValueError:
+                raise
+            raise ParseDataRuntimeError(
+                f"Declared source contract contradicts actual observations for {source.name!r}."
+            ) from exc
+        measurements = self._source_buffer.pop(source.name, [])
+        native_headers = source_kind == "distribution" and any(
+            item.shape == "entry" and item.entry == "samples" for item in measurements
+        )
+        frame_index = 0
+        samples_seen = 0
+        oneline_index = 0
+        for measurement in measurements:
+            if native_headers and measurement.shape == "entry" and measurement.entry == "samples":
+                frame_index = samples_seen
+                samples_seen += 1
+            sample_index = frame_index if native_headers else None
+            if measurement.shape == "oneline":
+                if not native_headers:
+                    sample_index = oneline_index
+                oneline_index += 1
+                for target in route.targets:
+                    spec = self._specs[target.output_name]
+                    for entry, value in self._oneline_entries(measurement, source_kind, spec):
+                        self._buffer_entry(
+                            target.output_name, source.name, entry, value, sample_index=sample_index
+                        )
                 continue
+            if measurement.shape == "entry":
+                assert measurement.entry is not None and measurement.value is not None
+                entry = measurement.entry
+                if source_kind in {"histogram", "distribution"} and entry in {
+                    "bucket_size",
+                    "min_bucket",
+                    "max_bucket",
+                }:
+                    continue
+                entry = canonical_source_entry(source_kind, entry)
+                for target in route.targets:
+                    spec = self._specs[target.output_name]
+                    if spec.output_type not in _ENTRY_TYPES or target.entry_name is not None:
+                        raise RuntimeError("Entry source has an incompatible planned destination.")
+                    if (
+                        source_kind == "distribution"
+                        and spec.output_type == "histogram"
+                        and not spec.config.statistics_only
+                        and (
+                            re.fullmatch(r"-?\d+(?:--?\d+)?", entry) is None
+                            and any(character.isdigit() for character in entry)
+                        )
+                    ):
+                        raise ParseDataValueError(
+                            "Generic Histogram cannot interpret fractional native cells; use "
+                            "Distribution output with an explicit full grid."
+                        )
+                    self._buffer_entry(
+                        target.output_name,
+                        source.name,
+                        entry,
+                        measurement.value,
+                        sample_index=sample_index,
+                    )
+                continue
+            assert measurement.value is not None
+            for target in route.targets:
+                spec = self._specs[target.output_name]
+                if (
+                    spec.output_type == "vector"
+                    and source_kind == "scalar"
+                    and target.entry_name is not None
+                ):
+                    self._buffer_entry(
+                        target.output_name, source.name, target.entry_name, measurement.value
+                    )
+                elif spec.output_type in {"scalar", "configuration"} and target.entry_name is None:
+                    self._accumulators[target.output_name].add_observation(
+                        measurement.value
+                        if spec.output_type == "configuration"
+                        else read_numeric_wire(measurement.value)
+                    )
+                else:
+                    raise RuntimeError("Point source has an incompatible planned destination.")
 
-            content = var.content
-            if not content or (not isinstance(content, dict) and len(content) < var.repeat):
-                missing.append(varID)
+    def _process_line(self, line: str) -> None:
+        event = decode_source_event(line)
+        if isinstance(event, Measurement):
+            if event.name not in self._routes:
+                raise ParseDataValueError("Decoder returned an unplanned measurement.")
+            self._source_buffer.setdefault(event.name, []).append(event)
+        elif isinstance(event, SourceEvidence):
+            self._consume_source(event)
+        elif isinstance(event, SourceFailure):
+            raise ParseDataRuntimeError(f"Source {event.name!r}: {event.message}")
+        elif isinstance(event, DumpBoundary):
+            if self._source_buffer:
+                raise ParseDataValueError("Decoder omitted completed source evidence.")
+            self._apply_buffered_entries()
 
+    def _validate_variables(self) -> VarsDictType:
+        """Keep missing numeric observations visible and honor explicit configuration fallbacks."""
+        # [impl->req~ring5.ingestion.configuration-fallbacks~1]
+        missing: list[str] = []
+        for name, accumulator in self._accumulators.items():
+            spec = self._specs[name]
+            if spec.output_type == "configuration":
+                # The typed text accumulator owns its explicit empty-input policy.
+                continue
+            if accumulator.missing_measurement_count:
+                missing.append(name)
         if missing:
             logger.warning(
-                "PARSER: %d requested stat(s) absent or incomplete in %s — "
-                "recorded as NaN (not 0): %s",
+                "PARSER: %d requested output(s) absent or incomplete in %s — recorded as NaN: %s",
                 len(missing),
-                self._fileToParse,
-                ", ".join(sorted(missing)),
+                self._file_to_parse,
+                parse_names_text(sorted(missing)),
             )
+        return self._accumulators
 
-        return varsToParse
+    def _process_output(self, output: str) -> VarsDictType:
+        self._entry_buffer = {}
+        self._entry_ordinals = {}
+        self._source_buffer = {}
+        for line in output.splitlines():
+            if line.strip():
+                self._process_line(line)
+        if self._source_buffer:
+            raise ParseDataValueError("Decoder omitted final source evidence.")
+        self._apply_buffered_entries()
+        return self._validate_variables()
 
-    # Output processing
-    def _processOutput(self, output: str, varsToParse: VarsDictType) -> VarsDictType:
-        """
-        Process the complete Perl script output with optimizations.
-
-        Args:
-            output: Complete stdout from Perl parser script
-            varsToParse: Dictionary of variables to populate
-
-        Returns:
-            Dictionary of variables with parsed and validated content
-        """
-        self._entryBuffer = {}
-
-        # More efficient: splitlines() is faster than split('\n')
-        # Strip whitespace and filter empty lines in one pass
-        lines = [line for line in output.splitlines() if line.strip()]
-
-        for line in lines:
-            self._processLine(line, varsToParse)
-
-        self._applyBufferedEntries(varsToParse)
-        return self._validateVars(varsToParse)
-
-    def _runPerlScript(self) -> str:
-        """
-        Execute parsing using the worker pool (eliminates subprocess startup overhead).
-
-        Returns:
-            Complete output from the Perl worker pool
-
-        Raises:
-            RuntimeError: If file doesn't exist or worker pool fails
-            TimeoutError: If parsing exceeds timeout
-        """
-        utils.checkFileExistsOrException(self._fileToParse)
-
-        # Convert user-visible names into a deliberately tiny regex grammar:
-        # literals plus the scanner-generated \d+ placeholder. The Perl backend
-        # never receives arbitrary regex grouping or quantifiers.
-        request_keys = list(
-            dict.fromkeys(self._request_key(var_id) for var_id in self._varsToParse)
-        )
-        safe_keys: list[str] = []
-        for key in request_keys:
-            # Regex-expanded variables also have concrete aliases in the map.
-            # Request those anchored literals and omit the broader pattern.
-            if r"\d+" in key and any(
-                self._numeric_pattern_id(key, candidate) is not None
-                for candidate in request_keys
-                if candidate != key
-            ):
-                continue
-            try:
-                escaped_key = escape_perl_stat_filter(key)
-            except SafeRegexError as exc:
-                raise RuntimeError(f"Unsafe parser stat filter {key!r}: {exc}") from exc
-            if escaped_key not in safe_keys:
-                safe_keys.append(escaped_key)
-
-        if not safe_keys:
-            raise RuntimeError("No variable filters were provided for parsing.")
-        if len(safe_keys) > MAX_PARSE_VARIABLES:
-            raise RuntimeError(
-                f"Parser request exceeds the {MAX_PARSE_VARIABLES}-variable filter limit."
-            )
-
-        # Use worker pool for parsing (54x faster than subprocess)
-        logger.debug(f"Parsing {self._fileToParse} with {len(safe_keys)} variables via worker pool")
-
+    def _run_perl_script(self) -> str:
+        checkFileExistsOrException(self._file_to_parse)
+        filters = [literal_source_filter(source_name) for source_name in self._routes]
+        logger.debug("Parsing %s with %d concrete sources", self._file_to_parse, len(filters))
         try:
-            pool = get_worker_pool()
-            output_lines = pool.parse_file(
-                self._fileToParse, safe_keys, timeout=120.0  # Match previous timeout
+            lines = get_worker_pool().parse_file(self._file_to_parse, filters, timeout=120.0)
+            return "\n".join(lines)
+        except TimeoutError as exc:
+            if classify_parse_failure(exc) is None:
+                raise
+            raise ParseDataRuntimeError(f"Parser timeout: {self._file_to_parse}") from exc
+        except (OSError, ParseDataRuntimeError, ParseDataValueError) as exc:
+            if classify_parse_failure(exc) is None:
+                raise
+            message = bounded_parse_text(
+                f"Worker pool parse failed for {self._file_to_parse}: {parse_error_text(exc)}"
             )
+            logger.error("%s", message)
+            raise ParseDataRuntimeError(message) from exc
 
-            # Convert list of lines back to string to match original interface
-            return "\n".join(output_lines)
-
-        except TimeoutError as e:
-            logger.error("Worker pool timeout after 120s: %s", self._fileToParse)
-            raise RuntimeError(f"Parser timeout: {self._fileToParse}") from e
-        except Exception as e:
-            logger.error("Worker pool error: %s", e, exc_info=True)
-            raise RuntimeError(f"Worker pool parse failed: {self._fileToParse}") from e
-
-    def __call__(self) -> ParsedVarsDict:
-        """
-        Execute the parse work and return populated variables.
-
-        Returns:
-            Dictionary mapping variable IDs to their populated StatType instances
-
-        Raises:
-            RuntimeError: If parsing fails or type mismatches occur
-            subprocess.CalledProcessError: If Perl script fails
-        """
-        output: str = self._runPerlScript()
-        result: ParsedVarsDict = dict(self._processOutput(output, self._varsToParse))
-        result[INTERNAL_SIM_PATH_KEY] = self._fileToParse
-        return result
+    def __call__(self) -> ParsedFileResult:
+        """Parse, balance and reduce owned accumulators before resolving this worker."""
+        accumulators = self._process_output(self._run_perl_script())
+        variables: list[ParsedVariableResult] = []
+        column_count = 0
+        for name, accumulator in accumulators.items():
+            spec = self._specs[name]
+            missing = accumulator.missing_measurement_count
+            accumulator.balance_content()
+            accumulator.reduce_duplicates()
+            reduced = accumulator.reduced_content
+            kind: ParsedKind
+            shape: ParsedShape
+            cells: tuple[ParsedCell, ...]
+            if spec.output_type in {"configuration", "scalar"}:
+                if isinstance(reduced, dict):
+                    raise RuntimeError(
+                        f"PARSER: scalar output {name!r} requires one reduced value."
+                    )
+                kind = "text" if spec.output_type == "configuration" else "number"
+                cells = (ParsedCell(name, kind, reduced),)
+                shape = "scalar"
+            elif spec.output_type in _ENTRY_TYPES:
+                entries = accumulator.entries
+                if type(reduced) is not dict or entries is None:
+                    raise RuntimeError(
+                        f"PARSER: entry output {name!r} requires reduced entry values."
+                    )
+                if column_count + len(entries) > MAX_INCREMENTAL_CACHE_COLUMNS:
+                    raise ParseDataRuntimeError("PARSER: output exceeds the physical column limit.")
+                cells = tuple(
+                    ParsedCell(f"{name}..{entry}", "number", reduced[entry]) for entry in entries
+                )
+                kind, shape = "number", "entries"
+            else:
+                raise ValueError(f"PARSER: unsupported output representation {spec.output_type!r}.")
+            column_count += len(cells)
+            if column_count > MAX_INCREMENTAL_CACHE_COLUMNS:
+                raise ParseDataRuntimeError("PARSER: output exceeds the physical column limit.")
+            variables.append(
+                ParsedVariableResult(name, kind, shape, cells, missing, layout=spec.layout)
+            )
+        return ParsedFileResult(self._file_to_parse, tuple(variables))

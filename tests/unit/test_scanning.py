@@ -1,21 +1,28 @@
-from collections.abc import Generator
-from typing import Any, cast
+from src.core.models.source_evidence import ResolvedSourceKind
+from src.core.models.parsing_models import SourceInstance, ScanFileResult
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from src.parsing.gem5.impl.pool.pool import ScanWorkPool
 from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 
 
 def test_stats_scan_work_success() -> None:
     work = Gem5ScanWork("test_file.txt")
 
-    from src.core.models import ScannedVariable
+    from src.core.models.parsing_models import ScannedVariable
 
     mock_vars = [
-        ScannedVariable(name="var1", type="scalar"),
-        ScannedVariable(name="var2", type="vector"),
+        ScannedVariable(
+            name="var1",
+            type="scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+            instances=(SourceInstance("var1", ()),),
+        ),
+        ScannedVariable(
+            name="var2",
+            type="vector",
+            source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
+            instances=(SourceInstance("var2", ()),),
+        ),
     ]
 
     with patch(
@@ -23,7 +30,7 @@ def test_stats_scan_work_success() -> None:
     ) as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
-        mock_instance.scan_file.return_value = mock_vars
+        mock_instance.scan_file.return_value = ScanFileResult("test_file.txt", mock_vars)
 
         result = work()
 
@@ -65,51 +72,3 @@ def test_stats_scan_work_reports_os_error() -> None:
 
         assert not result.ok
         assert result.error == "Permission denied"
-
-
-# --- ScanWorkPool Tests ---
-# Note: Testing singletons and pools can be tricky. We'll mock the internal WorkPool.
-
-
-@pytest.fixture
-def clean_pool_singleton() -> Generator[None, None, None]:
-    ScanWorkPool._singleton = None
-    yield
-    ScanWorkPool._singleton = None
-
-
-def test_scan_work_pool_singleton(clean_pool_singleton: Any) -> None:
-
-    pool1 = ScanWorkPool.get_instance()
-    pool2 = ScanWorkPool.get_instance()
-    assert pool1 is pool2
-
-
-def test_scan_work_pool_async_flow(clean_pool_singleton: Any) -> None:
-    """Test the core async flow of the pool."""
-    from concurrent.futures import Future
-
-    with patch("src.parsing.framework.work_pool.WorkPool.get_instance"):
-        scan_pool = ScanWorkPool.get_instance()
-
-        work1 = MagicMock(spec=Gem5ScanWork)
-        work2 = MagicMock(spec=Gem5ScanWork)
-
-        # Mock add_work to return futures
-        f1 = Future()
-        f1.set_result("res1")
-        f2 = Future()
-        f2.set_result("res2")
-
-        # Mock the internal _work_pool to return our futures
-        cast(MagicMock, scan_pool._work_pool.submit).side_effect = [f1, f2]
-
-        futures = scan_pool.submit_batch_async([work1, work2])
-
-        # Should return futures
-        assert len(futures) == 2
-
-        # Collect results
-        results = [f.result() for f in futures]
-        assert "res1" in results
-        assert "res2" in results

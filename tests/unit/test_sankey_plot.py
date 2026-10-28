@@ -92,7 +92,6 @@ def test_sankey_fixed_positions_hidden_labels_and_uniform_color() -> None:
     assert trace.link_colors == ["#abcdef"] * 3
     assert trace.link_opacity == 0.6
     assert not trace.show_node_labels
-    assert SankeyPlot(2, "Fixed").get_legend_column({}) is None
 
 
 @pytest.mark.parametrize(

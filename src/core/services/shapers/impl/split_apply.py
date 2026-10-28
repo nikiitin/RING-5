@@ -1,12 +1,14 @@
 """Apply independent pipelines to column groups and merge their results."""
 
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any, cast, override
 
 import pandas as pd
 
+from src.core.common.source_contributions import SourceTracker
+
 from src.core.models.shaper_models import (
-    ShaperStepConfig,
     SplitApplyGroupConfig,
     SplitApplyShaperConfig,
 )
@@ -35,55 +37,10 @@ class SplitApply(UniDfShaper):
                     - columns (List[str]): Numeric columns for this group.
                     - pipeline (List[Dict]): Shaper configs to apply.
         """
-        config = cast(SplitApplyShaperConfig, params)
-        self._join_columns: list[str] = config.get("joinColumns", [])
-        self._groups: list[SplitApplyGroupConfig] = config.get("groups", [])
-        self._params = params
-
         super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Validate parameter structure."""
-        super()._verify_params()
-
-        if not self._join_columns:
-            raise ValueError("SplitApply: 'joinColumns' must be a non-empty list.")
-        if not isinstance(self._join_columns, list):
-            raise TypeError("SplitApply: 'joinColumns' must be a list.")
-
-        if not self._groups or len(self._groups) < 2:
-            raise ValueError("SplitApply: 'groups' must contain at least 2 groups.")
-        if len(self._groups) > 4:
-            raise ValueError(
-                "SplitApply: 'groups' must contain at most 4 groups " f"(got {len(self._groups)})."
-            )
-
-        # Validate each group
-        all_group_cols: list[str] = []
-        for idx, group in enumerate(self._groups):
-            cols = group.get("columns", [])
-            if not cols:
-                raise ValueError(
-                    f"SplitApply: Group {idx} must have a non-empty " f"'columns' list."
-                )
-            if not isinstance(cols, list):
-                raise TypeError(f"SplitApply: Group {idx} 'columns' must be a list.")
-            pipeline = group.get("pipeline", [])
-            if not isinstance(pipeline, list):
-                raise TypeError(f"SplitApply: Group {idx} 'pipeline' must be a list.")
-
-            # Check for overlapping columns
-            for col in cols:
-                if col in all_group_cols:
-                    raise ValueError(
-                        f"SplitApply: Column '{col}' appears in "
-                        f"multiple groups. Each column must belong "
-                        f"to exactly one group."
-                    )
-                all_group_cols.append(col)
-
-        return True
+        config = cast(SplitApplyShaperConfig, self.params)
+        self._join_columns: list[str] = config["joinColumns"]
+        self._groups: list[SplitApplyGroupConfig] = config["groups"]
 
     @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
@@ -110,12 +67,13 @@ class SplitApply(UniDfShaper):
     @staticmethod
     def _apply_sub_pipeline(
         data: pd.DataFrame,
-        pipeline: list[ShaperStepConfig],
+        pipeline: Sequence[Mapping[str, object]],
+        tracker: SourceTracker | None = None,
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame slice.
 
-        Uses ShaperFactory to create each shaper. This is intentionally
-        a late import to avoid circular dependencies.
+        The core pipeline engine owns admission and execution. The import is local
+        because its factory registers SplitApply.
 
         Args:
             data: Input DataFrame (join columns + group columns).
@@ -125,17 +83,9 @@ class SplitApply(UniDfShaper):
             Transformed DataFrame.
         """
         # [impl->req~ring5.shaping.split-apply~1]
-        # Late import to avoid circular dependency with factory
-        from src.core.services.shapers.factory import ShaperFactory
+        from src.core.services.shapers.pipeline_service import PipelineService
 
-        result: pd.DataFrame = data.copy()
-        for step_cfg in pipeline:
-            shaper_type = step_cfg.get("type")
-            if not shaper_type:
-                continue
-            shaper = ShaperFactory.create_shaper(shaper_type, step_cfg)
-            result = shaper(result)
-        return result
+        return PipelineService._execute(data.copy(), pipeline, tracker)
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
@@ -162,9 +112,10 @@ class SplitApply(UniDfShaper):
 
         # Also include any .sd columns that correspond to group columns
         group_results: list[pd.DataFrame] = []
+        group_roots: list[list[int]] = []
         for idx, group in enumerate(self._groups):
             group_cols: list[str] = list(group.get("columns", []))
-            pipeline: list[ShaperStepConfig] = group.get("pipeline", [])
+            pipeline: Sequence[Mapping[str, object]] = group.get("pipeline", [])
 
             # Include matching .sd columns automatically
             sd_cols: list[str] = [
@@ -175,25 +126,47 @@ class SplitApply(UniDfShaper):
             # Slice the DataFrame to only this group's columns
             slice_df: pd.DataFrame = data_frame[select_cols].copy()
 
+            tracker = self._source_tracker.fork() if self._source_tracker is not None else None
             # Apply sub-pipeline if any
             if pipeline:
                 try:
-                    slice_df = self._apply_sub_pipeline(slice_df, pipeline)
-                except Exception as e:
+                    slice_df = self._apply_sub_pipeline(slice_df, pipeline, tracker)
+                except (KeyError, TypeError, ValueError, RuntimeError) as e:
                     raise ValueError(
                         f"SplitApply: Sub-pipeline failed for group "
                         f"{idx} (columns={group_cols}): {e}"
                     ) from e
 
+            if len(self._groups) > 1 and slice_df.duplicated(self._join_columns).any():
+                raise ValueError(
+                    f"SplitApply: Group {idx} has duplicate join keys in "
+                    f"{self._join_columns}; include every row-identifying column."
+                )
             group_results.append(slice_df)
+            if tracker is not None:
+                group_roots.append(tracker.roots.copy())
 
         # Merge results: start with first group, outer-join the rest
         merged: pd.DataFrame = group_results[0]
-        for subsequent in group_results[1:]:
-            merged = merged.merge(
+        if self._source_tracker is not None:
+            self._source_tracker.roots = group_roots[0].copy()
+            self._source_tracker.revision += 1
+        for ordinal, subsequent in enumerate(group_results[1:], start=1):
+            previous = merged
+            merged = previous.merge(
                 subsequent,
                 on=self._join_columns,
                 how="outer",
+                validate="one_to_one",
             )
+            if self._source_tracker is not None:
+                self._source_tracker.merge_branches(
+                    previous,
+                    self._source_tracker.roots.copy(),
+                    subsequent,
+                    group_roots[ordinal],
+                    self._join_columns,
+                    merged,
+                )
 
         return merged

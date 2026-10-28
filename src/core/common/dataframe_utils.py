@@ -14,7 +14,7 @@ def concat_columns(frame: pd.DataFrame, columns: list[str], separator: str) -> p
 
     NaN/NA cells render as empty strings instead of crashing the join (under pandas 3 a
     plain ``astype(str)`` leaves NA as a float and ``str.join`` then raises ``TypeError``).
-    For all-present string inputs this matches the historical
-    ``frame[columns].astype(str).agg(sep.join, axis=1)`` value-for-value.
+    For all-present string inputs, preserve column order and insert
+    ``separator`` between the selected strings.
     """
     return frame[columns].astype("string").fillna("").agg(separator.join, axis=1)

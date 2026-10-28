@@ -67,7 +67,7 @@ def sanitize_filename(name: str) -> str:
 
 
 def validate_path_within(path: Path, allowed_base: Path) -> Path:
-    """Validate that a resolved path is within an allowed base directory.
+    """Validate resolved containment while retaining the requested leaf identity.
 
     Resolves both ``path`` and ``allowed_base`` to absolute paths,
     normalises them with ``os.path.normpath``, and then uses
@@ -81,7 +81,7 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
         allowed_base: The base directory the path must reside within.
 
     Returns:
-        The normalised, absolute path if valid.
+        The normalised absolute request path, without dereferencing its leaf.
 
     Raises:
         ValueError: If the path escapes the allowed base directory.
@@ -90,53 +90,49 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
     path_str: str = os.path.normpath(str(path))
     base_str: str = os.path.normpath(str(allowed_base))
     # Resolve to absolute paths for accurate comparison
-    resolved: str = os.path.normpath(os.path.abspath(path_str))
-    base: str = os.path.normpath(os.path.abspath(base_str))
+    resolved: str = str(Path(path_str).resolve())
+    base: str = str(Path(base_str).resolve())
     # Use os.path.commonpath for robust containment check
     # (avoids sibling-path bypass, e.g. "/allowed/base_evil" matching "/allowed/base")
-    try:
-        common: str = os.path.commonpath([resolved, base])
-    except ValueError as exc:
-        # On Windows, paths on different drives raise ValueError
-        raise ValueError(f"Path traversal detected: {resolved} is outside {base}") from exc
+    common: str = os.path.commonpath([resolved, base])
     if common != base:
         raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
-    return Path(resolved)
+    # Callers must inspect/unlink the requested leaf, never an alias target.
+    return Path(os.path.abspath(path_str))
 
 
 _DEFAULT_STATS_PATH: str = "."
 
-# Allowlist for glob patterns: only alphanumeric, dots, underscores, asterisks, question marks
-_SAFE_GLOB_RE: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9_.*?]+$")
-
-_DEFAULT_STATS_PATTERN: str = "stats.txt"
+# Filename globs never contain path components or traversal sequences.
+_SAFE_GLOB_RE: re.Pattern[str] = re.compile(r"[a-zA-Z0-9_.*?\-]+")
 
 
-def sanitize_glob_pattern(pattern: str, default: str = _DEFAULT_STATS_PATTERN) -> str:
-    """Sanitize a user-provided glob pattern for safe use with rglob/glob.
-
-    Validates the pattern against an allowlist of safe characters.
-    Rejects patterns containing path separators or traversal sequences.
-    Falls back to *default* when *pattern* is empty or invalid.
+def validate_stats_pattern(pattern: str) -> str:
+    """Validate an exact statistics filename glob.
 
     Args:
-        pattern: Raw glob pattern from user input.
-        default: Fallback pattern when *pattern* is empty or invalid.
+        pattern: Non-empty filename token containing letters, digits, dots,
+            underscores, hyphens, or the ``*`` and ``?`` wildcards.
 
     Returns:
-        A validated glob pattern string.
+        The unchanged filename glob.
+
+    Raises:
+        ValueError: The token is empty, contains traversal, or uses unsupported
+            characters. Defaults apply only when the caller omits its argument.
     """
     # [impl->req~ring5.quality.input-security~1]
-    if not pattern or not pattern.strip():
-        return default
-    clean: str = pattern.strip()
-    # Reject patterns with path separators or traversal
-    if "/" in clean or "\\" in clean or ".." in clean:
-        return default
-    # Only allow safe characters
-    if not _SAFE_GLOB_RE.match(clean):
-        return default
-    return clean
+    if (
+        not isinstance(pattern, str)
+        or not pattern
+        or ".." in pattern
+        or _SAFE_GLOB_RE.fullmatch(pattern) is None
+    ):
+        raise ValueError(
+            "Stats pattern must be a non-empty filename glob using letters, digits, "
+            "dots, underscores, hyphens, '*' or '?', without traversal or path separators."
+        )
+    return pattern
 
 
 def normalize_user_path(user_path: str, default: str = _DEFAULT_STATS_PATH) -> Path:

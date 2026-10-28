@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import WorkspaceSearchResponse, WorkspaceSearchResult
+from src.core.models.workspace_search_models import WorkspaceSearchResponse, WorkspaceSearchResult
 
 
 def _result(
@@ -26,8 +26,11 @@ def _result(
     )
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.workspace_search.st")
-def test_render_shows_bounded_actions_and_documentation_links(mock_st: MagicMock) -> None:
+def test_render_shows_bounded_actions_and_documentation_links(
+    mock_st: MagicMock, mock_ui_st: MagicMock
+) -> None:
     from src.web.components.workspace_search import WorkspaceSearchComponent
 
     mock_st.expander.return_value.__enter__.return_value = MagicMock()
@@ -64,12 +67,21 @@ def test_render_shows_bounded_actions_and_documentation_links(mock_st: MagicMock
     mock_st.warning.assert_called_once()
 
 
+@pytest.mark.parametrize("workspace_replacements", [0, 1, 2])
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.workspace_search.st")
-def test_activate_selects_entities_and_rejects_stale_targets(mock_st: MagicMock) -> None:
+def test_activate_selects_entities_and_rejects_stale_targets(
+    mock_st: MagicMock, mock_ui_st: MagicMock, workspace_replacements: int
+) -> None:
     # [test->req~ring5.workspace.global-search~1]
     from src.web.components.workspace_search import WorkspaceSearchComponent
 
-    mock_st.session_state = {"plot_selector": "old"}
+    mock_st.session_state = {}
+    mock_ui_st.session_state = mock_st.session_state
+    from src.web.state.ui_state_manager import UIStateManager
+
+    for _ in range(workspace_replacements):
+        UIStateManager().cleanup_all()
     api = MagicMock()
     plot = MagicMock(plot_id=7)
     api.state_manager.get_plots.return_value = [plot]
@@ -85,14 +97,21 @@ def test_activate_selects_entities_and_rejects_stale_targets(mock_st: MagicMock)
         _result("pipeline", "Sort", "Manage Plots", "7"),
     )
     api.state_manager.set_current_plot_id.assert_called_once_with(7)
-    assert "plot_selector" not in mock_st.session_state
+    assert mock_st.session_state["nav.current_page"] == "Manage Plots"
 
     WorkspaceSearchComponent.activate(
         api,
         _result("variable", "system.cpu.ipc", "Data Source", "system.cpu.ipc"),
     )
-    assert mock_st.session_state["var_search_box__search"] == "system.cpu.ipc"
-    assert mock_st.session_state["_nav_page"] == "Data Source"
+    key = (
+        f"var_search_box.__reset_{workspace_replacements}__search"
+        if workspace_replacements
+        else "var_search_box__search"
+    )
+    assert mock_st.session_state[key] == "system.cpu.ipc"
+    if workspace_replacements:
+        assert "var_search_box__search" not in mock_st.session_state
+    assert mock_st.session_state["nav.current_page"] == "Data Source"
 
     WorkspaceSearchComponent.activate(
         api,

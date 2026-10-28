@@ -29,6 +29,12 @@ state.
 - Limits each draft to 64 MiB and applies both per-browser and server-wide count and byte limits.
 - Writes atomically with owner directories and files restricted to the server account.
 
+Changes to parser mode, strategy, backend, or variable parsing behavior create a meaningful
+draft. Variable identity and explicitly selected default configuration fallbacks alone do not.
+Restoring a draft replaces the current workspace, including source data, derived data, datasets,
+plot settings, and operation previews. A configuration-only draft therefore leaves no source data
+loaded.
+
 An empty default workspace does not create a draft. Autosave is a recovery aid, not a replacement
 for a named portfolio: retention limits may remove older drafts, while portfolios remain under your
 explicit management.

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
+
 import json
 from pathlib import Path
-from typing import Any, cast, get_args
+from typing import Literal, cast, get_args
 from xml.etree import ElementTree as ET
 
 import pandas as pd
+import plotly.graph_objects as go
+from matplotlib.figure import Figure
 import pytest
 
 import ring5
@@ -15,6 +19,129 @@ import ring5
 DATA_ROOT = Path(__file__).parent.parent / "data" / "results-micro26-sens"
 
 pytestmark = [pytest.mark.xdist_group("ring5_portfolios"), pytest.mark.public_api]
+
+
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_public_doctor_checks_the_selected_compiler_without_running_tools(
+    compiler: Literal["xelatex", "pdflatex", "lualatex"],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # [test->req~ring5.api.doctor~2]
+    from ring5 import _doctor
+    from src.core.common.browser_selection import BrowserSelection
+
+    monkeypatch.setattr(_doctor, "select_browser", lambda: BrowserSelection("chosen", "/chosen"))
+    monkeypatch.setattr(_doctor.shutil, "which", lambda name: f"/tools/{name}")
+    report = ring5.doctor(tex_system=compiler)
+    assert report.perl.path == "/tools/perl"
+    assert report.chrome.path == "/chosen" and report.chrome.found
+    assert report.tex_compiler.name == compiler
+    assert report.tex_compiler.path == f"/tools/{compiler}"
+    assert report.all_found and report.essential_found
+
+
+@pytest.mark.parametrize("compiler", ["XeLaTeX", " xelatex ", "/tools/xelatex", None, False])
+def test_public_doctor_rejects_invalid_compiler_choices_with_typed_error(compiler: object) -> None:
+    # [test->req~ring5.api.doctor~2]
+    with pytest.raises(ring5.ExportError, match="TeX system must be"):
+        ring5.doctor(tex_system=cast(Literal["xelatex", "pdflatex", "lualatex"], compiler))
+
+
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_measured_native_figure_uses_explicit_pgf_compiler(
+    compiler: Literal["xelatex", "pdflatex", "lualatex"],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A public native figure exports through the requested bounded PGF policy."""
+    # [test->req~ring5.export.public-boundary~1]
+    from io import BytesIO
+    from typing import Any
+
+    import matplotlib as mpl
+    from matplotlib.figure import Figure
+    from matplotlib.patches import Rectangle
+
+    with ring5.Session() as session:
+        figure = session.plot(
+            "bar",
+            data=ring5.Table.from_rows([{"kind": "a", "value": 3.0}, {"kind": "b", "value": 4.0}]),
+            config=ring5.FigureSpec(x="kind", y_columns=["value"]),
+            engine="matplotlib",
+        )
+        assert isinstance(figure, Figure)
+
+        def savefig(buffer: BytesIO, **kwargs: Any) -> None:
+            assert mpl.rcParams["pgf.texsystem"] == compiler
+            assert mpl.rcParams["pgf.preamble"] == ""
+            assert [cast(Rectangle, bar).get_height() for bar in figure.axes[0].patches] == [3, 4]
+            assert kwargs == {"format": "pgf", "backend": "pgf"}
+            buffer.write(b"Public PGF request verified without executing TeX")
+
+        monkeypatch.setattr(figure, "savefig", savefig)
+        target = tmp_path / "measured.pgf"
+        session.export(figure, str(target), tex_system=compiler)
+        assert target.read_bytes() == b"Public PGF request verified without executing TeX"
+
+
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_pgf_recipe_and_portfolio_replay_retain_the_declared_compiler(
+    compiler: Literal["xelatex", "pdflatex", "lualatex"],
+    tmp_path: Path,
+    portfolios_dir: Path,
+    isolated_application_data: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Parameterized recipes and saved plots compose the same explicit export policy."""
+    from io import BytesIO
+    from typing import Any
+
+    import matplotlib as mpl
+    from matplotlib.figure import Figure
+    from matplotlib.patches import Rectangle
+
+    csv_path = tmp_path / "measurements.csv"
+    pd.DataFrame({"kind": ["a", "b"], "value": [3.0, 4.0]}).to_csv(csv_path, index=False)
+    target = tmp_path / "recipe.pgf"
+    recipe = ring5.AnalysisRecipe(
+        name="Compiler replay",
+        parameters=(
+            ring5.RecipeParameter(
+                "compiler", "string", default=compiler, choices=("xelatex", "pdflatex", "lualatex")
+            ),
+        ),
+        source=ring5.RecipeSource(kind="csv", path=str(csv_path)),
+        plots=(
+            ring5.RecipePlot(
+                name="Measured",
+                plot_type="bar",
+                config={"x": "kind", "y": "value", "tex_system": "{{compiler}}"},
+            ),
+        ),
+        exports=(ring5.RecipeExport(plot="Measured", path=str(target), format="pgf"),),
+    )
+    calls: list[str] = []
+
+    def savefig(figure: Figure, buffer: BytesIO, **kwargs: Any) -> None:
+        calls.append(mpl.rcParams["pgf.texsystem"])
+        assert mpl.rcParams["pgf.preamble"] == ""
+        assert [cast(Rectangle, bar).get_height() for bar in figure.axes[0].patches] == [3, 4]
+        assert kwargs == {"format": "pgf", "backend": "pgf"}
+        buffer.write(b"Replayed compiler request")
+
+    monkeypatch.setattr(Figure, "savefig", savefig)
+    with ring5.Session() as session:
+        current = session.decode_analysis_recipe(session.export_analysis_recipe(recipe))
+        with pytest.raises(ring5.RecipeError):
+            session.materialize_analysis_recipe(current, {"compiler": "unsupported"})
+        result = session.run_analysis_recipe(current)
+        assert result.exported_paths == (str(target),)
+        assert target.read_bytes() == b"Replayed compiler request"
+        session.save_portfolio("PGF replay")
+    outputs = ring5.render_portfolio("PGF replay", str(tmp_path / "replayed"), fmt="pgf")
+    assert len(outputs) == 1
+    assert Path(outputs[0]).read_bytes() == b"Replayed compiler request"
+    assert calls == [compiler, compiler]
 
 
 def _first_stats_subtree() -> Path:
@@ -41,19 +168,20 @@ class TestFullWorkflow:
                 variables=["simTicks", "hostSeconds"],
                 output_dir=str(tmp_path / "parse_out"),
             )
-            assert result.missing_stats == []
+            assert result.missing_stats == ()
             assert Path(result.csv_path).exists()
 
             # load + shape
-            df = s.load(result.csv_path)
-            assert "simTicks" in df.columns
+            df = s.load(result)
+            assert "simTicks" in df.columns()
             assert len(df) > 0
             shaped = s.shape(df, [{"type": "columnSelector", "columns": ["simTicks"]}])
-            assert list(shaped.columns) == ["simTicks"]
+            assert shaped.columns() == ["simTicks"]
 
             # plot on a small slice
-            plot_df = df.head(5).copy()
-            plot_df["run"] = [f"r{i}" for i in range(len(plot_df))]
+            plot_df = ring5.Table.from_rows(
+                [{**row, "run": f"r{i}"} for i, row in enumerate(df.rows()[:5])]
+            )
             plot = s.create_plot(
                 "bar",
                 data=plot_df,
@@ -147,10 +275,10 @@ class TestFullWorkflow:
 class TestRegressionComparison:
     """Compare experiment measurements through the supported public API."""
 
-    def test_dataframe_comparison(self) -> None:
+    def test_explicit_frame_interoperability_comparison(self) -> None:
         # [test->req~ring5.analysis.regression-comparison~1]
-        baseline = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 2.0]})
-        candidate = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.1, 1.7]})
+        baseline = ring5.Table(pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 2.0]}))
+        candidate = ring5.Table(pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.1, 1.7]}))
 
         with ring5.Session() as session:
             result = session.compare(
@@ -163,9 +291,9 @@ class TestRegressionComparison:
                 candidate_name="change",
             )
 
-        assert isinstance(result, pd.DataFrame)
-        assert result["outcome"].tolist() == ["improvement", "regression"]
-        assert result["baseline_name"].tolist() == ["main", "main"]
+        assert isinstance(result, ring5.Table)
+        assert [row["outcome"] for row in result.rows()] == ["improvement", "regression"]
+        assert [row["baseline_name"] for row in result.rows()] == ["main", "main"]
 
     def test_table_comparison_returns_table(self) -> None:
         baseline = ring5.Table.from_rows([{"benchmark": "a", "ipc": 1.0}])
@@ -184,8 +312,8 @@ class TestRegressionComparison:
         assert result.rows()[0]["outcome"] == "improvement"
 
     def test_invalid_comparison_raises_typed_error(self) -> None:
-        baseline = pd.DataFrame({"benchmark": ["a", "a"], "ipc": [1.0, 2.0]})
-        candidate = pd.DataFrame({"benchmark": ["a"], "ipc": [1.1]})
+        baseline = ring5.Table(pd.DataFrame({"benchmark": ["a", "a"], "ipc": [1.0, 2.0]}))
+        candidate = ring5.Table(pd.DataFrame({"benchmark": ["a"], "ipc": [1.1]}))
 
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="not unique"):
@@ -256,8 +384,8 @@ class TestRegressionComparison:
         assert row["mean_difference"] == pytest.approx(0.5)
 
     def test_invalid_statistics_raise_typed_error(self) -> None:
-        baseline = pd.DataFrame({"ipc": [1.0, 2.0]})
-        candidate = pd.DataFrame({"ipc": [2.0, 3.0]})
+        baseline = ring5.Table(pd.DataFrame({"ipc": [1.0, 2.0]}))
+        candidate = ring5.Table(pd.DataFrame({"ipc": [2.0, 3.0]}))
 
         with ring5.Session() as session:
             valid = session.compare_statistics(
@@ -267,7 +395,7 @@ class TestRegressionComparison:
                 ["ipc"],
                 bootstrap_samples=100,
             )
-            assert isinstance(valid, pd.DataFrame)
+            assert isinstance(valid, ring5.Table)
             with pytest.raises(ring5.DataValidationError, match="confidence_level"):
                 session.compare_statistics(
                     baseline,
@@ -279,8 +407,8 @@ class TestRegressionComparison:
 
     def test_comparison_annotations_are_plot_ready(self) -> None:
         # [test->req~ring5.analysis.regression-annotations~1]
-        baseline = pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]})
-        candidate = pd.DataFrame({"benchmark": ["a"], "ipc": [1.2]})
+        baseline = ring5.Table(pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]}))
+        candidate = ring5.Table(pd.DataFrame({"benchmark": ["a"], "ipc": [1.2]}))
 
         with ring5.Session() as session:
             comparison = session.compare(
@@ -290,15 +418,15 @@ class TestRegressionComparison:
                 ["ipc"],
                 thresholds=5.0,
             )
-            assert isinstance(comparison, pd.DataFrame)
+            assert isinstance(comparison, ring5.Table)
             annotated = session.annotate_comparison(
                 comparison,
                 label_columns=["benchmark"],
             )
 
-        assert isinstance(annotated, pd.DataFrame)
-        assert annotated.loc[0, "annotation_label"] == "a · ipc"
-        assert annotated.loc[0, "annotation_text"] == "▲ Improvement: +20.00%"
+        assert isinstance(annotated, ring5.Table)
+        assert annotated.rows()[0]["annotation_label"] == "a · ipc"
+        assert annotated.rows()[0]["annotation_text"] == "▲ Improvement: +20.00%"
 
     def test_comparison_annotations_preserve_table_and_typed_errors(self) -> None:
         comparison = ring5.Table.from_rows(
@@ -325,7 +453,7 @@ class TestRegressionComparison:
             assert isinstance(annotated, ring5.Table)
             assert annotated.rows()[0]["annotation_symbol"] == "▼"
             with pytest.raises(ring5.DataValidationError, match="missing columns"):
-                session.annotate_comparison(pd.DataFrame({"outcome": ["regression"]}))
+                session.annotate_comparison(ring5.Table(pd.DataFrame({"outcome": ["regression"]})))
 
 
 class TestDataQuality:
@@ -353,7 +481,7 @@ class TestDataQuality:
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="Invalid expected type"):
                 session.profile_data(
-                    pd.DataFrame({"value": [1]}),
+                    ring5.Table(pd.DataFrame({"value": [1]})),
                     expected_types={"value": "currency"},  # type: ignore[dict-item]
                 )
 
@@ -405,16 +533,16 @@ class TestDatasetSchemaContracts:
     def test_schema_contract_errors_are_typed(self) -> None:
         contract = ring5.DatasetSchemaContract("schema", (ring5.ColumnContract("value"),))
         with ring5.Session() as session:
-            with pytest.raises(ring5.DataValidationError, match="pandas DataFrame"):
+            with pytest.raises(ring5.DataValidationError, match="ring5.Table"):
                 session.infer_schema_contract(42)  # type: ignore[arg-type]
             with pytest.raises(ring5.DataValidationError, match="DatasetSchemaContract"):
                 session.validate_schema(
-                    pd.DataFrame({"value": [1]}),
+                    ring5.Table(pd.DataFrame({"value": [1]})),
                     object(),  # type: ignore[arg-type]
                 )
             with pytest.raises(ring5.DataValidationError, match="unique column names"):
                 session.validate_schema(
-                    pd.DataFrame([[1, 2]], columns=["value", "value"]),
+                    ring5.Table(pd.DataFrame([[1, 2]], columns=["value", "value"])),
                     contract,
                 )
 
@@ -460,6 +588,8 @@ class TestDatasetSemanticMetadata:
         assert isinstance(latency, ring5.ColumnSemantics)
         assert latency.display_label == "Mean latency (us)"
         assert converted.rows()[1]["latency"] == pytest.approx(2500.0)
+        assert isinstance(plotly_figure, go.Figure)
+        assert isinstance(matplotlib_figure, Figure)
         assert plotly_figure.layout.xaxis.title.text == "Workload"
         assert plotly_figure.layout.yaxis.title.text == "Mean latency (us)"
         assert matplotlib_figure.axes[0].get_xlabel() == "Workload"
@@ -479,7 +609,7 @@ class TestDatasetSemanticMetadata:
 
     def test_semantic_errors_use_the_public_validation_type(self) -> None:
         # [test->req~ring5.data.semantic-units~1]
-        data = pd.DataFrame({"latency": [1.0]})
+        data = ring5.Table(pd.DataFrame({"latency": [1.0]}))
         semantics = ring5.DatasetSemantics((ring5.ColumnSemantics("latency", "Latency", "ms"),))
         with ring5.Session() as session:
             annotated = session.apply_semantics(data, semantics)
@@ -491,7 +621,7 @@ class TestDatasetSemanticMetadata:
                     data,
                     ring5.DatasetSemantics((ring5.ColumnSemantics("missing", "Missing"),)),
                 )
-            with pytest.raises(ring5.DataValidationError, match="pandas DataFrame"):
+            with pytest.raises(ring5.DataValidationError, match="ring5.Table"):
                 session.inspect_semantics(42)  # type: ignore[arg-type]
 
 
@@ -506,7 +636,9 @@ class TestNamedDatasetWorkspace:
                 {"benchmark": "b", "ipc": 2.0},
             ]
         )
-        candidate = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.2, 1.8], "note": ["x", "y"]})
+        candidate = ring5.Table(
+            pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.2, 1.8], "note": ["x", "y"]})
+        )
 
         with ring5.Session() as session:
             first = session.add_dataset("baseline", baseline)
@@ -519,9 +651,9 @@ class TestNamedDatasetWorkspace:
                 "candidate",
             ]
 
-            defensive = session.get_dataset("candidate")
+            defensive = session.get_dataset("candidate").frame
             defensive.loc[0, "ipc"] = 999.0
-            assert session.get_dataset("candidate").loc[0, "ipc"] == 1.2
+            assert session.get_dataset("candidate").rows()[0]["ipc"] == 1.2
 
             comparison = session.compare_datasets(
                 "baseline",
@@ -530,7 +662,7 @@ class TestNamedDatasetWorkspace:
                 ["ipc"],
                 thresholds=5.0,
             )
-            assert comparison["outcome"].tolist() == ["improvement", "regression"]
+            assert [row["outcome"] for row in comparison.rows()] == ["improvement", "regression"]
 
             appended = session.append_datasets(
                 ["baseline", "candidate"],
@@ -538,7 +670,7 @@ class TestNamedDatasetWorkspace:
                 select=False,
             )
             assert len(appended) == 4
-            assert session.get_dataset()["ipc"].tolist() == [1.0, 2.0]
+            assert [row["ipc"] for row in session.get_dataset().rows()] == [1.0, 2.0]
 
             joined = session.join_datasets(
                 "baseline",
@@ -546,18 +678,18 @@ class TestNamedDatasetWorkspace:
                 "paired",
                 ["benchmark"],
             )
-            assert {"ipc_left", "ipc_right", "note"} <= set(joined.columns)
-            assert session.select_dataset("candidate")["ipc"].tolist() == [1.2, 1.8]
+            assert {"ipc_left", "ipc_right", "note"} <= set(joined.columns())
+            assert [row["ipc"] for row in session.select_dataset("candidate").rows()] == [1.2, 1.8]
             session.remove_dataset("baseline")
             assert "candidate" in {item.name for item in session.list_datasets()}
 
     def test_workspace_errors_are_typed(self) -> None:
         with ring5.Session() as session:
-            session.add_dataset("one", pd.DataFrame({"key": [1], "value": [2.0]}))
-            session.add_dataset("two", pd.DataFrame({"key": [1], "value": [3.0]}))
+            session.add_dataset("one", ring5.Table(pd.DataFrame({"key": [1], "value": [2.0]})))
+            session.add_dataset("two", ring5.Table(pd.DataFrame({"key": [1], "value": [3.0]})))
             with pytest.raises(ring5.DataValidationError, match="already exists"):
-                session.add_dataset("one", pd.DataFrame({"key": [1]}))
-            with pytest.raises(ring5.DataValidationError, match="pandas DataFrame"):
+                session.add_dataset("one", ring5.Table(pd.DataFrame({"key": [1]})))
+            with pytest.raises(ring5.DataValidationError, match="ring5.Table"):
                 session.add_dataset("invalid", 42)  # type: ignore[arg-type]
             with pytest.raises(ring5.DataValidationError, match="does not exist"):
                 session.get_dataset("missing")
@@ -578,8 +710,8 @@ class TestValidatedDatasetJoins:
 
     def test_diagnose_and_execute_validated_join(self) -> None:
         # [test->req~ring5.data.validated-joins~1]
-        left = pd.DataFrame({"key": [1, 2, 4], "name": ["a", "b", "d"]})
-        right = pd.DataFrame({"key": [1, 1, 3], "value": [10, 11, 30]})
+        left = ring5.Table(pd.DataFrame({"key": [1, 2, 4], "name": ["a", "b", "d"]}))
+        right = ring5.Table(pd.DataFrame({"key": [1, 1, 3], "value": [10, 11, 30]}))
 
         with ring5.Session() as session:
             session.add_dataset("left", left)
@@ -605,14 +737,14 @@ class TestValidatedDatasetJoins:
             assert diagnostics.right_unmatched_rows == 1
             assert diagnostics.matched_key_count == 1
             assert confirmed == diagnostics
-            assert joined["value"].tolist() == [10, 11]
-            pd.testing.assert_frame_equal(joined, session.get_dataset("joined"))
+            assert [row["value"] for row in joined.rows()] == [10, 11]
+            pd.testing.assert_frame_equal(joined.frame, session.get_dataset("joined").frame)
             assert "one-to-many" in session.dataset_lineage("joined").revisions[0].operation
 
     def test_cardinality_conflicts_are_typed_and_do_not_store_output(self) -> None:
         with ring5.Session() as session:
-            session.add_dataset("left", pd.DataFrame({"key": [1, 2]}))
-            session.add_dataset("right", pd.DataFrame({"key": [1, 1]}), select=False)
+            session.add_dataset("left", ring5.Table(pd.DataFrame({"key": [1, 2]})))
+            session.add_dataset("right", ring5.Table(pd.DataFrame({"key": [1, 1]})), select=False)
             with pytest.raises(ring5.DataValidationError, match="Expected a one-to-one join"):
                 session.join_datasets_validated(
                     "left",
@@ -636,8 +768,10 @@ class TestDatasetLineageAndRecovery:
 
     def test_lineage_undo_redo_and_restore(self) -> None:
         # [test->req~ring5.data.lineage-undo-redo~1]
-        baseline = pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]})
-        candidate = pd.DataFrame({"benchmark": ["b"], "ipc": [2.0], "note": ["candidate"]})
+        baseline = ring5.Table(pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]}))
+        candidate = ring5.Table(
+            pd.DataFrame({"benchmark": ["b"], "ipc": [2.0], "note": ["candidate"]})
+        )
 
         with ring5.Session() as session:
             session.add_dataset("baseline", baseline)
@@ -661,20 +795,20 @@ class TestDatasetLineageAndRecovery:
             assert lineage.revisions[-1].source_datasets == ("baseline", "candidate")
             assert lineage.revisions[-1].parent_revision_ids[0] == first_revision.revision_id
             assert lineage.can_undo is True
-            assert "note" not in session.get_dataset("combined").columns
+            assert "note" not in session.get_dataset("combined").columns()
 
-            inspected = session.get_dataset_revision(first_revision.revision_id)
+            inspected = session.get_dataset_revision(first_revision.revision_id).frame
             inspected.loc[0, "ipc"] = 999.0
-            assert session.get_dataset_revision(first_revision.revision_id).loc[0, "ipc"] == 1.0
+            assert session.get_dataset_revision(first_revision.revision_id).rows()[0]["ipc"] == 1.0
 
             undone = session.undo_dataset()
             assert undone.revision_id == first_revision.revision_id
-            assert "note" in session.get_dataset("combined").columns
+            assert "note" in session.get_dataset("combined").columns()
             assert session.dataset_lineage().can_redo is True
 
             redone = session.redo_dataset("combined")
             assert redone.revision_id == lineage.revisions[-1].revision_id
-            assert "note" not in session.get_dataset("combined").columns
+            assert "note" not in session.get_dataset("combined").columns()
 
             restored = session.restore_dataset_revision(first_revision.revision_id)
             assert restored.revision_id == first_revision.revision_id
@@ -684,7 +818,7 @@ class TestDatasetLineageAndRecovery:
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="No dataset is selected"):
                 session.dataset_lineage()
-            session.add_dataset("only", pd.DataFrame({"value": [1]}))
+            session.add_dataset("only", ring5.Table(pd.DataFrame({"value": [1]})))
             with pytest.raises(ring5.DataValidationError, match="no earlier revision"):
                 session.undo_dataset()
             with pytest.raises(ring5.DataValidationError, match="no revision to redo"):
@@ -702,12 +836,14 @@ class TestReusableDatasetSnapshots:
         # [test->req~ring5.data.dataset-snapshots~1]
         snapshots_dir = tmp_path / "dataset_snapshots"
         snapshots_dir.mkdir()
-        data = pd.DataFrame(
-            {
-                "benchmark": pd.Series(["a", "b"], dtype="string"),
-                "ipc": [1.0, 2.0],
-                "updated": pd.to_datetime(["2026-01-01", "2026-01-02"], utc=True),
-            }
+        data = ring5.Table(
+            pd.DataFrame(
+                {
+                    "benchmark": pd.Series(["a", "b"], dtype="string"),
+                    "ipc": [1.0, 2.0],
+                    "updated": pd.to_datetime(["2026-01-01", "2026-01-02"], utc=True),
+                }
+            )
         )
         from unittest.mock import patch
 
@@ -719,7 +855,7 @@ class TestReusableDatasetSnapshots:
             return_value=snapshots_dir,
         ):
             with ring5.Session() as first:
-                first.api.state_manager.set_data(data)
+                first.api.state_manager.set_data(data.frame)
                 saved = first.save_dataset_snapshot("parsed-once")
                 assert isinstance(saved, ring5.DatasetSnapshotInfo)
                 assert saved.source_dataset == "active_data"
@@ -734,7 +870,7 @@ class TestReusableDatasetSnapshots:
                     "restored-results",
                 )
                 assert isinstance(restored, ring5.DatasetInfo)
-                pd.testing.assert_frame_equal(second.get_dataset(), data)
+                pd.testing.assert_frame_equal(second.get_dataset().frame, data.frame)
                 revision = second.dataset_lineage().revisions[0]
                 assert revision.fingerprint == saved.fingerprint
                 assert revision.operation == "Load reusable snapshot: parsed-once"
@@ -759,7 +895,7 @@ class TestReusableDatasetSnapshots:
             return_value=snapshots_dir,
         ):
             with ring5.Session() as session:
-                session.add_dataset("named-source", pd.DataFrame({"value": [7]}))
+                session.add_dataset("named-source", ring5.Table(pd.DataFrame({"value": [7]})))
                 session.save_dataset_snapshot("named", "named-source")
                 session.remove_dataset("named-source")
                 restored = session.load_dataset_snapshot("named")
@@ -772,9 +908,9 @@ class TestPortfolioReplay:
 
     def test_save_then_render_portfolio(self, tmp_path: Path, portfolios_dir: Path) -> None:
         # [test->req~ring5.portfolio.safe-overwrite~1]
-        df = pd.DataFrame({"bench": ["a", "b", "c"], "ipc": [1.0, 2.0, 3.0]})
+        df = ring5.Table(pd.DataFrame({"bench": ["a", "b", "c"], "ipc": [1.0, 2.0, 3.0]}))
         with ring5.Session() as s:
-            s.api.state_manager.set_data(df)
+            s.api.state_manager.set_data(df.frame)
             s.create_plot(
                 "bar",
                 data=df,
@@ -795,49 +931,15 @@ class TestPortfolioReplay:
         assert written[0].endswith("replay_plot.pdf")
         assert open(written[0], "rb").read(5) == b"%PDF-"
 
-    def test_v1_portfolio_replays(self, tmp_path: Path, portfolios_dir: Path) -> None:
-        """The long-horizon reproducibility contract: V1 files keep working."""
-        v1: dict[str, Any] = {
-            # V1: no schema_version key, export_* keys, no engine field
-            "version": "2.0",
-            "data_csv": "bench,ipc\na,1.0\nb,2.0\n",
-            "csv_path": None,
-            "plots": [
-                {
-                    "id": 0,
-                    "name": "v1_plot",
-                    "plot_type": "bar",
-                    "config": {
-                        "x": "bench",
-                        "y": "ipc",
-                        "title": "V1",
-                        "export_format": "png",
-                        "export_dpi": 300,
-                    },
-                    "processed_data": "bench,ipc\na,1.0\nb,2.0\n",
-                    "pipeline": [],
-                    "pipeline_counter": 0,
-                    "legend_mappings_by_column": {},
-                    "legend_mappings": {},
-                }
-            ],
-            "plot_counter": 1,
-            "config": {},
-            "parse_variables": [],
-        }
-        (portfolios_dir / "v1_probe.json").write_text(json.dumps(v1))
-
-        written = ring5.render_portfolio(
-            "v1_probe", str(tmp_path / "figs"), engine="matplotlib", fmt="pdf"
-        )
-        assert len(written) == 1
-        assert open(written[0], "rb").read(5) == b"%PDF-"
-
     def test_future_portfolio_refused(self, tmp_path: Path, portfolios_dir: Path) -> None:
-        # [test->req~ring5.portfolio.migration~1]
+        # [test->req~ring5.portfolio.schema~1]
         """Forward-version files are refused, never silently downgraded."""
-        (portfolios_dir / "future.json").write_text(json.dumps({"schema_version": 5}))
-        with pytest.raises(ring5.PortfolioVersionError, match="newer than this RING-5"):
+        (portfolios_dir / "future.json").write_text(
+            json.dumps({"schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION + 1})
+        )
+        with pytest.raises(
+            ring5.PortfolioVersionError, match="Unsupported portfolio schema_version"
+        ):
             ring5.render_portfolio("future", str(tmp_path / "figs"))
 
     def test_missing_portfolio_typed_error(self, tmp_path: Path, portfolios_dir: Path) -> None:
@@ -850,13 +952,14 @@ class TestDeterminism:
     """The CI-regression contract for the zero-dependency formats."""
 
     def test_fig_json_and_exports_stable(self) -> None:
-        df = pd.DataFrame({"x": ["a", "b"], "y": [1.0, 2.0]})
+        df = ring5.Table(pd.DataFrame({"x": ["a", "b"], "y": [1.0, 2.0]}))
 
         def build() -> tuple[bytes, bytes, str]:
             with ring5.Session() as s:
                 plot = s.create_plot("bar", data=df, config={"x": "x", "y": "y"})
                 mpl_fig = s.render(plot, engine="matplotlib")
                 plotly_fig = s.render(plot, engine="plotly")
+                assert isinstance(plotly_fig, go.Figure)
                 return (
                     s.export_bytes(mpl_fig, "pdf", deterministic=True),
                     s.export_bytes(plotly_fig, "html", deterministic=True),
@@ -909,7 +1012,7 @@ class TestPipelineConfigurationExchange:
                         "Incomplete",
                         cast(
                             list[ring5.ShaperStepConfig],
-                            [{"type": "columnSelector", "columns": []}],
+                            [{"type": "columnSelector", "columns": [123]}],
                         ),
                     )
 
@@ -919,14 +1022,14 @@ class TestErrorSurface:
     """The typed error hierarchy behaves as documented."""
 
     def test_pipeline_error_carries_step(self) -> None:
-        df = pd.DataFrame({"x": [1.0]})
+        df = ring5.Table(pd.DataFrame({"x": [1.0]}))
         with ring5.Session() as s:
             with pytest.raises(ring5.PipelineError) as exc_info:
                 s.shape(df, [{"columns": ["x"]}])  # type: ignore[list-item]
         assert exc_info.value.step_index == 0
 
     def test_missing_column_typed(self) -> None:
-        df = pd.DataFrame({"x": [1.0]})
+        df = ring5.Table(pd.DataFrame({"x": [1.0]}))
         with ring5.Session() as s:
             with pytest.raises(ring5.ColumnNotFoundError) as exc_info:
                 s.remove_outliers(df, "nope")
@@ -962,7 +1065,7 @@ class TestErrorSurface:
     def test_invalid_engine_lists_choices(self) -> None:
         # [test->req~ring5.api.plot-validation~1]
         """Invalid render configuration uses the public error hierarchy."""
-        data = pd.DataFrame({"x": ["a"], "y": [1.0]})
+        data = ring5.Table(pd.DataFrame({"x": ["a"], "y": [1.0]}))
         with ring5.Session() as session:
             plot = session.create_plot("bar", data=data, config={"x": "x", "y": "y"})
             with pytest.raises(ring5.RenderError, match="matplotlib.*plotly"):
@@ -970,7 +1073,7 @@ class TestErrorSurface:
 
     def test_plot_without_data_raises_render_error(self) -> None:
         """A restored or manually cleared plot fails with an actionable error."""
-        data = pd.DataFrame({"x": ["a"], "y": [1.0]})
+        data = ring5.Table(pd.DataFrame({"x": ["a"], "y": [1.0]}))
         with ring5.Session() as session:
             plot = session.create_plot("bar", data=data, config={"x": "x", "y": "y"})
             plot.replace_processed_data(None)
@@ -988,15 +1091,30 @@ class TestErrorSurface:
 class TestApiErgonomics:
     """Common plotting workflows remain concise and discoverable."""
 
-    def test_plot_accepts_typed_spec_and_display_name(self) -> None:
-        data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.5]})
+    def test_plot_accepts_typed_spec_and_registry_identifier(self) -> None:
+        data = ring5.Table(pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.5]}))
         spec = ring5.FigureSpec(x="benchmark", y_columns=["ipc"], title="IPC")
 
         with ring5.Session() as session:
-            figure = session.plot("Bar Chart", data=data, config=spec, engine="plotly")
+            figure = session.plot("bar", data=data, config=spec, engine="plotly")
 
+            assert isinstance(figure, go.Figure)
             assert figure.layout.title.text == "IPC"
             assert session.plots[0].plot_type == "bar"
+
+    @pytest.mark.parametrize(
+        "identifier",
+        ["Bar Chart", "BAR", " bar", "bar ", "grouped-bar", "grouped bar", "groupedBar"],
+    )
+    def test_plot_rejects_non_registry_spellings(self, identifier: str) -> None:
+        with ring5.Session() as session:
+            with pytest.raises(ring5.DataValidationError, match="Unknown plot type"):
+                session.create_plot(
+                    identifier,
+                    data=ring5.Table(pd.DataFrame({"x": [1], "y": [2]})),
+                    config={"x": "x", "y": "y"},
+                )
+            assert session.plots == []
 
     def test_available_plot_types_are_public(self) -> None:
         # [test->req~ring5.api.registry-discovery~1]
@@ -1006,8 +1124,162 @@ class TestApiErgonomics:
 
     def test_unknown_plot_type_lists_valid_choices(self) -> None:
         # [test->req~ring5.api.plot-validation~1]
-        data = pd.DataFrame({"x": ["a"], "y": [1.0]})
+        data = ring5.Table(pd.DataFrame({"x": ["a"], "y": [1.0]}))
 
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="Available types:.*bar"):
                 session.create_plot("not-a-plot", data=data, config={"x": "x", "y": "y"})
+
+
+def test_public_source_instances_keep_identity_and_coordinates_independent() -> None:
+    instance = ring5.SourceInstance("cpu012.ipc", ("012",))
+    scanned = ring5.ScannedVariable(
+        r"cpu\d+.ipc",
+        "vector",
+        [],
+        source_evidence=ring5.ResolvedSourceKind("scalar", "backend_metadata"),
+        instances=(instance,),
+    )
+    wire = scanned.to_dict()
+    assert wire["instances"] == [{"source_name": "cpu012.ipc", "indices": ["012"]}]
+    assert ring5.ScannedVariable.from_dict(wire) == scanned
+    wire["instances"][0]["indices"].append("9")
+    assert instance.indices == ("012",)
+
+
+@pytest.mark.parametrize(
+    "family", ["bar", "grouped_bar", "stacked_bar", "grouped_stacked_bar", "dual_axis_bar_dot"]
+)
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_public_bar_families_keep_duplicate_rows_in_current_config_replay(
+    family: str, engine: Literal["plotly", "matplotlib"]
+) -> None:
+    """Public render and flat-config replay retain measured rows and native placements."""
+    # [test->req~ring5.api.plot-validation~1]
+    from matplotlib.container import BarContainer
+
+    source = pd.DataFrame(
+        {
+            "category": ["A", "A"],
+            "comparison": ["G", "G"],
+            "left": [2.0, 3.0],
+            "right": [5.0, 7.0],
+        }
+    )
+    before = source.copy(deep=True)
+    table = ring5.Table(source)
+    stacked = family in {"stacked_bar", "grouped_stacked_bar"}
+    spec = ring5.FigureSpec(
+        x="category",
+        group="comparison" if family in {"grouped_bar", "grouped_stacked_bar"} else None,
+        y_columns=["left", "right"] if stacked else ["left"],
+        extra={"y_bar": "left", "y_dot": "right"} if family == "dual_axis_bar_dot" else {},
+    )
+    config = spec.to_config(plot_type=family)
+    # JSON round-trip exercises the same current flat input used by saved configuration.
+    replay = json.loads(json.dumps(config))
+    assert replay == config
+    with ring5.Session() as session:
+        for configuration in (spec, replay):
+            figure = session.plot(family, data=table, config=configuration, engine=engine)
+            if engine == "matplotlib":
+                assert isinstance(figure, Figure)
+                containers = [
+                    container
+                    for container in figure.axes[0].containers
+                    if isinstance(container, BarContainer)
+                ]
+                assert len(containers) == (2 if stacked else 1)
+                assert [bar.get_height() for group in containers for bar in group.patches] == (
+                    [2.0, 3.0, 5.0, 7.0] if stacked else [2.0, 3.0]
+                )
+                assert [bar.get_y() for group in containers for bar in group.patches] == (
+                    [0.0, 2.0, 5.0, 10.0] if stacked else [0.0, 0.0]
+                )
+                if family == "dual_axis_bar_dot":
+                    assert len(figure.axes) == 2
+                    assert len(figure.axes[1].lines) == 1
+                    assert list(figure.axes[1].lines[0].get_ydata()) == [5.0, 7.0]
+            else:
+                assert isinstance(figure, go.Figure)
+                bars = [trace for trace in figure.data if isinstance(trace, go.Bar)]
+                assert len(bars) == (2 if stacked else 1)
+                assert [list(trace.y) for trace in bars] == (
+                    [[2.0, 3.0], [5.0, 7.0]] if stacked else [[2.0, 3.0]]
+                )
+                expected_base = None if stacked else 0
+                assert all(trace.base == expected_base for trace in bars)
+                if family == "dual_axis_bar_dot":
+                    dots = [trace for trace in figure.data if isinstance(trace, go.Scatter)]
+                    assert len(dots) == 1 and dots[0].yaxis == "y2"
+                    assert list(dots[0].y) == [5.0, 7.0]
+            pd.testing.assert_frame_equal(source, before)
+            pd.testing.assert_frame_equal(table.frame, before)
+            assert spec.to_config(plot_type=family) == config
+
+
+class TestBundledExamplePortfolio:
+    """The installed tutorial uses the ordinary portfolio and rendering paths."""
+
+    @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+    def test_load_render_and_save_a_tutorial_copy(
+        self,
+        engine: Literal["plotly", "matplotlib"],
+        isolated_application_data: Path,
+        portfolios_dir: Path,
+    ) -> None:
+        # [test->req~ring5.portfolio.bundled-example~1]
+        # [test->req~ring5.portfolio.example-catalog~1]
+        before = {p for p in isolated_application_data.rglob("*") if p.is_file()}
+        with ring5.Session() as session:
+            report = session.load_example_portfolio()
+            assert report.complete and report.data_restored
+            assert report.plots_restored == len(ring5.available_plot_types()) == 17
+            assert {plot.plot_type for plot in session.plots} == set(ring5.available_plot_types())
+            original_data = session.api.state_manager.get_data()
+            assert original_data is not None
+            assert len(original_data) == 83
+            assert {p for p in isolated_application_data.rglob("*") if p.is_file()} == before
+            for plot in session.plots:
+                figure = session.render(plot, engine=engine)
+                if engine == "plotly":
+                    assert isinstance(figure, go.Figure) and figure.data
+                else:
+                    assert isinstance(figure, Figure) and figure.axes
+            session.save_portfolio("my-tutorial-copy")
+        with ring5.Session() as restored:
+            report = restored.load_portfolio("my-tutorial-copy")
+            assert report.complete and report.plots_restored == 17
+            pd.testing.assert_frame_equal(restored.api.state_manager.get_data(), original_data)
+
+    def test_independent_sessions_do_not_share_tutorial_tables_or_configs(self) -> None:
+        with ring5.Session() as first, ring5.Session() as second:
+            first.load_example_portfolio()
+            second.load_example_portfolio()
+            original_title = second.plots[0].config["title"]
+            config = first.plots[0].config
+            config["title"] = "Edited by first session"
+            first.plots[0].config = config
+            assert second.plots[0].config["title"] == original_title
+            changed = first.api.state_manager.get_data()
+            assert changed is not None
+            changed.loc[:, "scenario"] = "edited"
+            assert "edited" not in set(second.api.state_manager.get_data()["scenario"])
+
+    @pytest.mark.parametrize(
+        "error", [OSError("missing"), ValueError("invalid"), TypeError("bad"), KeyError("field")]
+    )
+    def test_resource_failures_use_public_errors_without_changing_existing_data(
+        self, error: Exception, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        with ring5.Session() as session:
+            session.load_example_portfolio()
+            before = session.api.state_manager.get_data()
+
+            def fail() -> None:
+                raise error
+
+            monkeypatch.setattr(session.api, "load_example_portfolio", fail)
+            with pytest.raises(ring5.PortfolioError, match="Example portfolio could not be loaded"):
+                session.load_example_portfolio()
+            pd.testing.assert_frame_equal(session.api.state_manager.get_data(), before)

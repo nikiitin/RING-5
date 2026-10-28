@@ -5,8 +5,6 @@ parent: Workflows
 grand_parent: User Guide
 nav_order: 1
 permalink: /user-guide/workflows/loading-data/
-redirect_from:
-  - /user-guide/pages/data-source/
 ---
 
 # Load and parse data
@@ -14,9 +12,18 @@ redirect_from:
 Start with a gem5 results tree when RING-5 should discover and parse statistics. Start with a CSV
 when another tool already produced the analysis table.
 
+With data loaded, the header shows the row and column counts. **Source** identifies the selected
+named dataset; otherwise it shows the associated CSV filename, or **Uploaded** when no filename
+is associated.
+
 ## Parse gem5 statistics in the web application
 
 <!--
+`uman~ring5.ingestion.distribution.documentation~2`
+
+Covers:
+- req~ring5.ingestion.distribution~2
+
 `uman~ring5.ingestion.configuration.documentation~1`
 
 Covers:
@@ -27,10 +34,10 @@ Covers:
 Covers:
 - req~ring5.ingestion.configuration-fallbacks~1
 
-`uman~ring5.ingestion.distribution-range-scan.documentation~1`
+`uman~ring5.ingestion.distribution-range-scan.documentation~2`
 
 Covers:
-- req~ring5.ingestion.distribution-range-scan~1
+- req~ring5.ingestion.distribution-range-scan~2
 
 `uman~ring5.ingestion.file-discovery.documentation~1`
 
@@ -87,10 +94,10 @@ Covers:
 Covers:
 - req~ring5.ingestion.variable-entry-selection~1
 
-`uman~ring5.ingestion.variable-scan.documentation~1`
+`uman~ring5.ingestion.variable-scan.documentation~2`
 
 Covers:
-- req~ring5.ingestion.variable-scan~1
+- req~ring5.ingestion.variable-scan~2
 
 `uman~ring5.ingestion.vector.documentation~1`
 
@@ -108,7 +115,8 @@ On **Data Source**, select **Parse gem5 Stats Files** and set:
 
 - **Stats directory path** to the common root of the gem5 runs.
 - **File pattern** to the statistics filename, normally `stats.txt`. Wildcards such as `*.txt` are
-  accepted.
+  accepted. Patterns contain one filename token: letters, digits, dots, underscores, hyphens,
+  `*`, or `?`. Empty patterns, whitespace, directory separators, and `..` are rejected.
 - **Select ingestion strategy** to a strategy provided by the selected simulator. Keep the default
   unless your dataset needs a different registered strategy.
 
@@ -133,6 +141,50 @@ selected path position contains no metadata; otherwise the first extracted value
 
 The parser records missing values as `NaN`. It reports file failures instead of substituting
 simulator values. Investigate missing variables before reducing or normalizing the data.
+
+For full native Distribution frequencies, declare the original **Minimum value**, **Maximum value**,
+positive **Bucket size**, and explicit omission policy. Bounds and width use native-double precision;
+observed labels, rounded headers and measured `min_value`/`max_value` summaries do not supply them.
+Native allocation is `ceil((maximum - minimum + 1) / bucket_size)`, so allocated positions can extend
+above the tracked maximum. The output retains those positions and both tails.
+
+The initial policy **missing** keeps omitted frequency cells and tails as `NaN`. Choose **nozero**
+only when the producer guarantees that omitted frequencies in each present compatible observation
+are measured zero. Text cannot verify that guarantee: a `nonan` or other output filter can suppress
+unavailable values too. Measured NaN, absent whole sources/dumps, missing repetitions and unmeasured
+summaries stay missing under either policy. **Statistics Only** extracts selected measured summaries
+without requiring, allocating or certifying a grid.
+
+Discovery reports compatible source contracts separately from the requested output type. A source
+with several compatible contracts remains an explicit choice; select a compatible source contract
+and output representation. An explicitly declared Distribution extracted as Vector retains literal
+labels but lacks a native grid, so it cannot supply a native histogram view. Ordinary Vector labels
+remain ordinary data even when their text resembles native buckets. Re-run a scan when the actual
+source files or selected instances change; scanning never fills unprinted grid bounds.
+
+The public API uses the same declaration:
+
+```python
+import ring5
+
+request = ring5.StatConfig(
+    "latency", "distribution", source_name="system.cpu.latency",
+    params={"source_type": "distribution", "minimum": 0.25, "maximum": 1.25,
+            "bucket_size": 0.5, "zero_policy": "missing"},
+)
+with ring5.Session() as session:
+    parsed = session.parse("results/", [request])
+    table = session.load(parsed)
+    figure = session.plot(
+        "histogram", data=table, config={"histogram_variable": "latency"},
+        engine="matplotlib",
+    )
+```
+
+Native histogram rendering requires every selected frequency to be measured, finite and nonnegative.
+Inspect incomplete tables before choosing a view; no parser or renderer fabricates missing values.
+Typed portfolios and snapshots preserve the native declarations. Genuine CSV exchange retains no
+native grid sidecar; loading an exported CSV uses the ordinary explicit interval contract.
 
 ### Test parser settings before a full run
 
@@ -263,7 +315,7 @@ row. Tabular uploads are additionally bounded to 100,000 rows, 500 columns, 2,00
 10,000 characters per normalized cell.
 
 CSV, JSON, and Excel datasets continue into the same required import review described below. A
-JSON file that could be either data or a portfolio can be labeled explicitly with **Interpret JSON
+JSON file that could be either data or a portfolio can be labeled explicitly with **Interpret upload
 as**. Portfolio uploads show their schema version, plot count, and whether data is present before
 **Restore uploaded portfolio** replaces the current workspace. Validation alone never changes
 workspace data or plots.
@@ -390,7 +442,7 @@ with ring5.Session() as session:
         pattern="stats.txt",
         scan_limit=10,
     )
-    data = session.load(result.csv_path)
+    data = session.load(result)
 ```
 
 Set `scan_limit=0` when every matching file must be scanned for variable discovery. Exhaustive
@@ -403,15 +455,21 @@ Pattern variables accept the scanner form `system.cpu\d+.ipc` and the equivalent
 form `system\.cpu\d+\.ipc`. Only literal ASCII statistic-name characters and `\d+` numeric
 placeholders are accepted; arbitrary regular expressions are rejected before parsing.
 
+Expected dump repetitions remain editable alongside each variable. **Entries + Statistics** keeps
+both selected ordinary entries and summary members in the parse configuration.
+
 When a pattern has one or more numeric positions, **Select specific indices** filters the discovered
 instances. Enabling it preserves each selected instance as a separate concrete output column;
 leaving it disabled applies the variable type's normal pattern aggregation.
 
 Vector, distribution, and histogram editors offer **Statistics Only**, **Entries Only**, and
 **Entries + Statistics** modes where applicable. Entries can be selected from scan results or
-entered manually. A per-variable deep scan discovers entries across the larger bounded sample and
-aggregates the minimum and maximum bucket range for distributions. Histogram configurations can
-also rebin inconsistent source ranges into a fixed bucket count and maximum range.
+entered manually. A per-variable deep scan discovers printed labels and compatible source contracts
+across the larger bounded sample. Several native formats share the same text: an ambiguous source
+has no suggested output type. Choose its output type and compatible raw source contract explicitly.
+Observed extrema do not define a native distribution grid; enter its bounds in the request. Oneline
+Histogram input needs complete observed integral geometry, including zero-valued bounds. Histogram
+configurations can rebin inconsistent source ranges into a fixed bucket count and maximum range.
 
 For a non-blocking workflow, call `Session.parse_submit(...)`, then `finalize()` or `cancel()` on the
 returned job. Each job owns its futures.
@@ -454,8 +512,24 @@ bounded error details while the rest of the application remains usable. Identica
 requests share active work and can reuse a successfully published Recent CSV during
 the same session.
 
+After a result loads, a persistent **Last parse** notice identifies whether the CSV was
+loaded or reused from Recent. It remains visible across reruns and navigation until
+another parse is submitted or retried, or the workspace is cleared or restored. The
+notice describes that parse, including after a later CSV upload; it does not label the
+currently selected dataset. Explicitly loaded partial output remains marked as partial.
+
 Cancellation affects only the selected session job. Pending files are cancelled, while
 already-running parser calls finish safely before their results are discarded. Partial
 results require an explicit **Load Partial**, **Retry**, or **Dismiss** choice; failed and
-cancelled attempts remain visible until acknowledged. **Clear Data**, **Reset All**, and
+cancelled attempts remain visible until acknowledged. **Reset All** and
 session closure cancel active parsing and remove transient job metadata.
+
+Reviewed datetime columns preserve naive timestamps as naive. Timezone-aware timestamps are
+normalized to UTC, including differing daylight-saving offsets. Mixing aware and naive timestamps
+in one column is rejected during preview. Integer columns retain exact signed 64-bit values, or
+unsigned 64-bit values when needed; mixing negative values with values above the signed range is
+rejected. Larger integers infer as text so their digits are retained.
+
+Excel uploads require a named header for every populated column. Data under a trailing unnamed
+header is rejected for correction. Expanded archive size and worksheet dimensions are bounded
+before conversion, including blank worksheet ranges.

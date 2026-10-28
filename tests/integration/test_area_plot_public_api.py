@@ -31,7 +31,9 @@ def test_public_normalized_area_renders_both_engines_with_series_style() -> None
     }
 
     with ring5.Session() as session:
-        plot = session.create_plot("area", data=data, config=config, name="Power share")
+        plot = session.create_plot(
+            "area", data=ring5.Table(data), config=config, name="Power share"
+        )
         plotly_figure = session.render(plot, engine="plotly")
         matplotlib_figure = session.render(plot, engine="matplotlib")
 

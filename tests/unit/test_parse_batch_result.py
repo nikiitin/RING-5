@@ -1,226 +1,160 @@
-"""
-Tests for ParseBatchResult thread-safety refactoring.
-
-Validates that:
-1. ParseBatchResult correctly bundles futures + var_names
-2. No shared class-level mutable state exists in Gem5Parser / ParseService
-3. Concurrent parse batches maintain independent var_names
-"""
+"""Each asynchronous parse batch owns its immutable variable, source and output plan."""
 
 from concurrent.futures import Future
-from typing import Any
+from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import ParseBatchResult, StatConfig
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.parsing_models import ParseBatchResult, StatConfig
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser
+from tests.helpers.parsed_values import completed_future, numeric_file
 
 
 class TestParseBatchResult:
-    """Unit tests for the ParseBatchResult dataclass."""
+    """The batch validates its complete plan before work can be finalized."""
 
     def test_frozen_dataclass(self) -> None:
-        """ParseBatchResult should be immutable."""
-        batch = ParseBatchResult(futures=[], var_names=["a"])
+        batch = ParseBatchResult((Future(),), ("a",), ("source",), "output", "simple")
         with pytest.raises(AttributeError):
-            batch.var_names = ["b"]  # type: ignore[misc]
+            batch.var_names = ("b",)  # type: ignore[misc]
 
     def test_stores_futures_and_var_names(self) -> None:
-        """Should contain futures and var_names passed at construction."""
-        f: Future[Any] = Future()
-        f.set_result({"data": 1})
-        batch = ParseBatchResult(futures=[f], var_names=["system.cpu.ipc"])
-
+        result = numeric_file("source", {"system.cpu.ipc": 2.5})
+        future = completed_future(result)
+        batch = ParseBatchResult((future,), ("system.cpu.ipc",), ("source",), "out", "simple")
         assert len(batch.futures) == 1
-        assert batch.futures[0].result() == {"data": 1}
-        assert batch.var_names == ["system.cpu.ipc"]
+        assert batch.futures[0].result() == result
+        assert batch.var_names == ("system.cpu.ipc",)
+        assert batch.source_paths == ("source",)
+        assert batch.output_dir == "out" and batch.strategy_type == "simple"
 
     def test_empty_batch(self) -> None:
-        """Empty batch should have empty futures and var_names."""
-        batch = ParseBatchResult(futures=[], var_names=[])
-        assert batch.futures == []
-        assert batch.var_names == []
-
-
-class TestNoClassLevelState:
-    """Verify _active_var_names class-level state is removed."""
-
-    def test_gem5_parser_has_no_active_var_names(self) -> None:
-        """Gem5Parser should no longer have _active_var_names class attribute."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-
-        assert not hasattr(Gem5Parser, "_active_var_names"), (
-            "Gem5Parser should not have _active_var_names class attribute. "
-            "Variable names must be returned via ParseBatchResult."
-        )
-
-    def test_parse_service_has_no_active_var_names(self) -> None:
-        """ParseService should no longer have _active_var_names class attribute."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-
-        assert not hasattr(ParseService, "_active_var_names"), (
-            "ParseService should not have _active_var_names class attribute. "
-            "Variable names must be returned via ParseBatchResult."
-        )
+        with pytest.raises(ValueError, match="non-empty plan"):
+            ParseBatchResult((), (), (), "out", "simple")
 
 
 class TestSubmitParseAsyncReturnType:
-    """Verify submit_parse_async returns ParseBatchResult."""
+    """Submission transports typed values under the exact source and variable plan."""
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    @patch("src.parsing.gem5.impl.gem5_parser.normalize_user_path")
     def test_gem5_parser_returns_batch_result(
-        self, mock_path: MagicMock, mock_factory: MagicMock, mock_pool: MagicMock
+        self, factory: MagicMock, pool: MagicMock, tmp_path: Path
     ) -> None:
-        """Gem5Parser.submit_parse_async should return ParseBatchResult."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-
-        # Setup mocks
-        mock_path.return_value.exists.return_value = True
-        mock_strategy = MagicMock()
-        mock_work = MagicMock()
-        mock_strategy.get_work_items.return_value = [mock_work]
-        mock_factory.create.return_value = mock_strategy
-
-        mock_future: Future[Any] = Future()
-        mock_future.set_result({"data": 1})
-        mock_pool.get_instance.return_value.submit_batch_async.return_value = [mock_future]
-
-        variables = [
-            StatConfig(name="system.cpu.ipc", type="scalar"),
-            StatConfig(name="system.cpu.numCycles", type="scalar"),
+        names = ("system.cpu.ipc", "system.cpu.numCycles")
+        source = str(tmp_path / "stats.txt")
+        Path(source).write_text(f"{names[0]} 2.5\n{names[1]} 100.0\n", encoding="utf-8")
+        record = numeric_file(source, {names[0]: 2.5, names[1]: 100.0})
+        factory.create.return_value.metadata_columns = ()
+        factory.create.return_value.get_work_items.return_value = [
+            MagicMock(source_path=source, return_value=record)
         ]
-
+        pool.get_instance.return_value.submit_many.side_effect = lambda tasks: [
+            completed_future(task()) for task in tasks
+        ]
         result = Gem5Parser.submit_parse_async(
-            stats_path="/tmp/stats",
-            stats_pattern="stats.txt",
-            variables=variables,
-            output_dir="/tmp/out",
+            str(tmp_path),
+            "stats.txt",
+            [StatConfig(name, "scalar", params={"source_type": "scalar"}) for name in names],
+            str(tmp_path / "out"),
         )
-
         assert isinstance(result, ParseBatchResult)
-        assert result.var_names == ["system.cpu.ipc", "system.cpu.numCycles"]
+        assert result.var_names == names
         assert len(result.futures) == 1
+        assert result.source_paths == (source,)
+        assert result.futures[0].result() == record
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    @patch("src.parsing.gem5.impl.gem5_parser.normalize_user_path")
-    def test_empty_work_raises(
-        self, mock_path: MagicMock, mock_factory: MagicMock, mock_pool: MagicMock
-    ) -> None:
-        """An empty work list raises — never an empty batch a script could
-        chain through finalize_parsing as a phantom 'success'."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-
-        mock_path.return_value.exists.return_value = True
-        mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = []
-        mock_factory.create.return_value = mock_strategy
-
-        with pytest.raises(FileNotFoundError, match="No parse work generated"):
+    def test_empty_work_raises(self, factory: MagicMock, pool: MagicMock, tmp_path: Path) -> None:
+        (tmp_path / "stats.txt").write_text("test 1.0\n", encoding="utf-8")
+        factory.create.return_value.metadata_columns = ()
+        factory.create.return_value.get_work_items.return_value = []
+        with pytest.raises(
+            FileNotFoundError, match="strategy generated no work for selected sources"
+        ):
             Gem5Parser.submit_parse_async(
-                stats_path="/tmp/stats",
-                stats_pattern="stats.txt",
-                variables=[StatConfig(name="test", type="scalar")],
-                output_dir="/tmp/out",
+                str(tmp_path),
+                "stats.txt",
+                [StatConfig("test", "scalar", params={"source_type": "scalar"})],
+                str(tmp_path / "out"),
             )
+        pool.get_instance.assert_not_called()
 
 
 class TestConstructFinalCsvVarNames:
-    """Verify construct_final_csv uses provided var_names."""
+    """Finalization uses the submitted variable order without recovering hidden state."""
 
-    def test_var_names_parameter_controls_column_order(self, tmp_path: str) -> None:
-        """Explicitly provided var_names should control CSV column ordering."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-
-        # Create mock results with known variables
-        mock_stat_a = MagicMock()
-        mock_stat_a.entries = []
-        mock_stat_a.balance_content = MagicMock()
-        mock_stat_a.reduce_duplicates = MagicMock()
-        mock_stat_a.reduced_content = "100"
-
-        mock_stat_b = MagicMock()
-        mock_stat_b.entries = []
-        mock_stat_b.balance_content = MagicMock()
-        mock_stat_b.reduce_duplicates = MagicMock()
-        mock_stat_b.reduced_content = "200"
-
-        results: list[Any] = [{"var_b": mock_stat_b, "var_a": mock_stat_a}]
-
-        # With var_names=["var_a", "var_b"], columns should be a, b
-        csv_path = Gem5Parser.construct_final_csv(
-            str(tmp_path), results, var_names=["var_a", "var_b"]
+    def test_var_names_parameter_controls_column_order(self, tmp_path: Path) -> None:
+        record = numeric_file("source", {"var_b": 200.0, "var_a": 100.0})
+        batch = ParseBatchResult(
+            (completed_future(record),), ("var_a", "var_b"), ("source",), str(tmp_path), "simple"
         )
-        assert csv_path is not None
+        output = Gem5Parser.finalize_parsing(batch, [record])
+        frame = ParsedOutputIO.to_frame(output)
+        assert frame.columns.tolist() == ["var_a", "var_b"]
+        assert frame.to_dict("list") == {"var_a": [100.0], "var_b": [200.0]}
+        assert Path(output.csv_path).read_text().splitlines()[0] == "var_a,var_b"
 
-        with open(csv_path) as f:
-            header = f.readline().strip()
-
-        assert header == "var_a,var_b"
-
-    def test_fallback_when_var_names_is_none(self, tmp_path: str) -> None:
-        """When var_names is None, should fall back to dict key order."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-
-        mock_stat = MagicMock()
-        mock_stat.entries = []
-        mock_stat.balance_content = MagicMock()
-        mock_stat.reduce_duplicates = MagicMock()
-        mock_stat.reduced_content = "42"
-
-        results: list[Any] = [{"only_var": mock_stat}]
-
-        csv_path = Gem5Parser.construct_final_csv(str(tmp_path), results, var_names=None)
-        assert csv_path is not None
-
-        with open(csv_path) as f:
-            header = f.readline().strip()
-
-        assert header == "only_var"
+    def test_missing_variable_plan_rejects_without_inference(self, tmp_path: Path) -> None:
+        """An absent variable plan is rejected rather than inferred from a row."""
+        record = numeric_file("source", {"only_var": 42.0})
+        with pytest.raises(TypeError, match="immutable tuple"):
+            ParseBatchResult(
+                (completed_future(record),),
+                cast(tuple[str, ...], None),
+                ("source",),
+                str(tmp_path),
+                "simple",
+            )
+        assert not (tmp_path / "results.csv").exists()
 
 
 class TestBatchIsolation:
-    """Verify that concurrent batches do not share state."""
+    """Concurrent batches retain their own variable names, values and destinations."""
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    @patch("src.parsing.gem5.impl.gem5_parser.normalize_user_path")
     def test_concurrent_batches_have_independent_var_names(
-        self, mock_path: MagicMock, mock_factory: MagicMock, mock_pool: MagicMock
+        self, factory: MagicMock, pool: MagicMock, tmp_path: Path
     ) -> None:
-        """Two consecutive submit_parse_async calls should produce independent var_names."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-
-        mock_path.return_value.exists.return_value = True
-        mock_strategy = MagicMock()
-        mock_strategy.get_work_items.return_value = [MagicMock()]
-        mock_factory.create.return_value = mock_strategy
-        mock_pool.get_instance.return_value.submit_batch_async.return_value = []
-
-        # Batch 1
+        source = str(tmp_path / "stats.txt")
+        Path(source).write_text("var_alpha 1.25\nvar_beta 2.5\nvar_gamma 0.0\n", encoding="utf-8")
+        factory.create.return_value.metadata_columns = ()
+        first = numeric_file(source, {"var_alpha": 1.25})
+        second = numeric_file(source, {"var_beta": 2.5, "var_gamma": 0.0})
+        factory.create.return_value.get_work_items.side_effect = [
+            [MagicMock(source_path=source, return_value=record)] for record in (first, second)
+        ]
+        pool.get_instance.return_value.submit_many.side_effect = lambda tasks: [
+            completed_future(task()) for task in tasks
+        ]
         batch1 = Gem5Parser.submit_parse_async(
-            "/tmp/stats",
+            str(tmp_path),
             "stats.txt",
-            [StatConfig(name="var_alpha", type="scalar")],
-            "/tmp/out1",
+            [StatConfig("var_alpha", "scalar", params={"source_type": "scalar"})],
+            str(tmp_path / "out1"),
         )
-
-        # Batch 2 with different variables
         batch2 = Gem5Parser.submit_parse_async(
-            "/tmp/stats",
+            str(tmp_path),
             "stats.txt",
             [
-                StatConfig(name="var_beta", type="scalar"),
-                StatConfig(name="var_gamma", type="scalar"),
+                StatConfig(name, "scalar", params={"source_type": "scalar"})
+                for name in ("var_beta", "var_gamma")
             ],
-            "/tmp/out2",
+            str(tmp_path / "out2"),
         )
-
-        # Each batch should retain its own var_names
-        assert batch1.var_names == ["var_alpha"]
-        assert batch2.var_names == ["var_beta", "var_gamma"]
-
-        # Each batch retains its own variable names.
-        assert batch1.var_names != batch2.var_names
+        assert batch1.var_names == ("var_alpha",)
+        assert batch2.var_names == ("var_beta", "var_gamma")
+        assert set(batch1.var_names).isdisjoint(batch2.var_names)
+        output1 = Gem5Parser.finalize_parsing(batch1, [batch1.futures[0].result()])
+        output2 = Gem5Parser.finalize_parsing(batch2, [batch2.futures[0].result()])
+        assert output1.csv_path != output2.csv_path
+        assert ParsedOutputIO.to_frame(output1).to_dict("list") == {"var_alpha": [1.25]}
+        assert ParsedOutputIO.to_frame(output2).to_dict("list") == {
+            "var_beta": [2.5],
+            "var_gamma": [0.0],
+        }

@@ -12,6 +12,8 @@ from typing import Any
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import ConfigSpecBuilder
+from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.rendering.figure_preparation import PreparedFigure
 
 
 def _sample_config(**overrides: Any) -> dict[str, Any]:
@@ -33,7 +35,7 @@ def _sample_config(**overrides: Any) -> dict[str, Any]:
         "xaxis_tickangle": -45,
         "xaxis_tickfont_size": 12,
         "yaxis_tickfont_size": 12,
-        "legend_orientation": "v",
+        "legend_orientation": "vertical",
         "legend_x": 1.02,
         "legend_y": 1.0,
         "legend_font_size": 12,
@@ -160,13 +162,13 @@ class TestConfigSpecLegend:
         assert leg.position_x == 0.5
         assert leg.position_y == 0.9
 
-    def test_legend_orientation_always_default(self) -> None:
-        """Orientation removed from UI — always model default ('vertical')."""
-        spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="h"))
-        assert spec.legends[0].orientation == "vertical"
+    def test_legend_orientation_horizontal(self) -> None:
+        """Preserve the canonical horizontal orientation."""
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="horizontal"))
+        assert spec.legends[0].orientation == "horizontal"
 
     def test_legend_orientation_vertical(self) -> None:
-        spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="v"))
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="vertical"))
         assert spec.legends[0].orientation == "vertical"
 
     def test_legend_border(self) -> None:
@@ -233,42 +235,55 @@ class TestConfigSpecResolve:
         assert resolved.dimensions.width == 800.0
 
 
-class TestApplicatorLastSpec:
-    """Verify that apply_styles stores the last FigureConfig built."""
+class TestRenderArtifactSpec:
+    """The published generation retains the exact resolved styling it rendered."""
 
-    def test_last_spec_populated_after_apply(self) -> None:
-        import plotly.graph_objects as go
+    def _plot(self, plot_type: str) -> BasePlot:
+        import pandas as pd
+        from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
+        plot = PlotFactory.create_plot(plot_type, plot_id=1, name="Measured")
+        plot.processed_data = pd.DataFrame({"x": ["A", "B"], "y": [1.0, 2.0]})
+        return plot
 
-        applicator = StyleApplicator("bar")
-        fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
-        applicator.apply_styles(fig, _sample_config())
+    def test_spec_populated_after_render(self) -> None:
+        from src.web.rendering.plot_renderer import build_render_artifact
 
-        assert applicator.last_spec is not None
-        assert isinstance(applicator.last_spec, FigureConfig)
-        assert applicator.last_spec.title == "Test Plot"
+        plot = self._plot("bar")
+        artifact = build_render_artifact(plot, _sample_config(x="x", y="y"), "plotly")
+        plot.publish_render_artifact(artifact)
+        prepared = artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert isinstance(prepared.spec, FigureConfig)
+        assert plot.render_artifact.preparation is prepared
+        assert prepared.spec.title == "Test Plot"
+        assert plot.render_artifact.figure is artifact.figure
 
-    def test_last_spec_updated_on_each_call(self) -> None:
-        import plotly.graph_objects as go
+    def test_spec_updated_on_each_render(self) -> None:
+        from src.web.rendering.plot_renderer import build_render_artifact
 
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
+        plot = self._plot("line")
+        first = build_render_artifact(plot, _sample_config(x="x", y="y", title="First"), "plotly")
+        plot.publish_render_artifact(first)
+        first_prepared = first.preparation
+        assert isinstance(first_prepared, PreparedFigure)
+        assert plot.render_artifact.preparation is first_prepared
+        assert isinstance(first_prepared.spec, FigureConfig)
+        assert first_prepared.spec.title == "First"
+        second = build_render_artifact(plot, _sample_config(x="x", y="y", title="Second"), "plotly")
+        plot.publish_render_artifact(second)
+        second_prepared = second.preparation
+        assert isinstance(second_prepared, PreparedFigure)
+        assert isinstance(second_prepared.spec, FigureConfig)
+        assert second_prepared.spec.title == "Second"
+        assert plot.render_artifact.preparation is second_prepared
+        assert first_prepared.spec is not second_prepared.spec
+        assert isinstance(first_prepared.spec, FigureConfig)
+        assert first_prepared.spec.title == "First"
 
-        applicator = StyleApplicator("line")
-        fig = go.Figure(data=[go.Scatter(x=[1, 2], y=[3, 4])])
-
-        applicator.apply_styles(fig, _sample_config(title="First"))
-        assert applicator.last_spec is not None
-        assert applicator.last_spec.title == "First"
-
-        applicator.apply_styles(fig, _sample_config(title="Second"))
-        assert applicator.last_spec.title == "Second"
-
-    def test_last_spec_is_none_initially(self) -> None:
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
-
-        applicator = StyleApplicator("bar")
-        assert applicator.last_spec is None
+    def test_spec_is_none_initially(self) -> None:
+        plot = self._plot("bar")
+        assert plot.render_artifact.preparation is None
 
 
 # Additional configuration mappings

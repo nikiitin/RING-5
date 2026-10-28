@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from io import StringIO
 from typing import TYPE_CHECKING, Any, TypedDict
 
-import pandas as pd
+from src.core.common.typed_table_codec import TypedTableCodec
+from src.core.common.numbered_axis import numbered_axis_modes
+from src.core.common.plot_payload import validate_plot_fields
+from src.core.common.source_contributions import (
+    SOURCE_CONTRIBUTIONS_ATTR,
+    validate_present_source_pair,
+)
 
 if TYPE_CHECKING:
     from .base_plot import BasePlot
@@ -132,8 +137,6 @@ class PlotFactory:
             available = ", ".join(cls.get_available_plot_types())
             raise ValueError(f"Unknown plot type {plot_type!r}. Available types: {available}.")
 
-        # Subclasses add plot_type in their __init__ before calling super()
-        # Type checker doesn't know subclass signatures, but we validate at runtime
         return plot_constructor(plot_id, name)
 
     @classmethod
@@ -147,6 +150,8 @@ class PlotFactory:
         Returns:
             Restored plot instance.
         """
+        validate_plot_fields(data)
+        numbered_axis_modes(data.get("config", {}))
         plot = cls.create_plot(
             plot_type=data["plot_type"],
             plot_id=data["id"],
@@ -155,21 +160,18 @@ class PlotFactory:
         plot.config = data.get("config", {})
         plot.pipeline = data.get("pipeline", [])
         plot.pipeline_counter = data.get("pipeline_counter", 0)
-        plot.legend_mappings_by_column = data.get("legend_mappings_by_column", {})
-        plot.legend_mappings = data.get("legend_mappings", {})
-
-        processed_data = data.get("processed_data")
-        if processed_data:
-            from src.core.services.managers.semantic_metadata_service import (
-                SemanticMetadataService,
-            )
-
-            frame = pd.read_csv(StringIO(processed_data))
-            semantics = SemanticMetadataService.from_payload(
-                data.get("processed_semantics", {}),
-                available_columns=tuple(str(column) for column in frame.columns),
-            )
-            plot.replace_processed_data(SemanticMetadataService.attach(frame, semantics))
+        source = TypedTableCodec.decode(data["source_data"])
+        processed = TypedTableCodec.decode(data["processed_data"])
+        validate_present_source_pair(source, processed)
+        if (
+            source is not None
+            and processed is not None
+            and SOURCE_CONTRIBUTIONS_ATTR in processed.attrs
+        ):
+            plot.replace_pipeline_data(source, processed)
+        else:
+            plot.replace_source_data(source)
+            plot.replace_processed_data(processed)
         return plot
 
     @classmethod

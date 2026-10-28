@@ -4,7 +4,7 @@ Tests for utility functions in src.core.common.utils.
 Only tests the alive (non-dead) functions:
 - checkFileExistsOrException
 - sanitize_log_value, sanitize_filename, validate_path_within
-- sanitize_glob_pattern, normalize_user_path
+- validate_stats_pattern, normalize_user_path
 """
 
 import os
@@ -107,26 +107,36 @@ class TestValidatePathWithin:
                 utils.validate_path_within(sibling, Path(base))
 
 
-class TestSanitizeGlobPattern:
-    """Tests for sanitize_glob_pattern function."""
+class TestValidateStatsPattern:
+    """Tests for validate_stats_pattern function."""
 
     def test_valid_pattern(self) -> None:
-        assert utils.sanitize_glob_pattern("stats.txt") == "stats.txt"
+        assert utils.validate_stats_pattern("stats.txt") == "stats.txt"
 
     def test_wildcard_pattern(self) -> None:
-        assert utils.sanitize_glob_pattern("*.txt") == "*.txt"
+        assert utils.validate_stats_pattern("*.txt") == "*.txt"
 
-    def test_empty_returns_default(self) -> None:
-        assert utils.sanitize_glob_pattern("") == "stats.txt"
+    @pytest.mark.parametrize(
+        "pattern",
+        [
+            "",
+            " ",
+            " stats.txt",
+            "stats.txt\n",
+            "../stats.txt",
+            "path/stats.txt",
+            r"path\stats.txt",
+            "$(cmd)",
+            "stats[0-9].txt",
+            None,
+        ],
+    )
+    def test_invalid_pattern_is_rejected(self, pattern: str) -> None:
+        with pytest.raises(ValueError, match="Stats pattern"):
+            utils.validate_stats_pattern(pattern)
 
-    def test_traversal_returns_default(self) -> None:
-        assert utils.sanitize_glob_pattern("../etc/passwd") == "stats.txt"
-
-    def test_path_separator_returns_default(self) -> None:
-        assert utils.sanitize_glob_pattern("path/pattern") == "stats.txt"
-
-    def test_unsafe_chars_returns_default(self) -> None:
-        assert utils.sanitize_glob_pattern("$(cmd)") == "stats.txt"
+    def test_filename_hyphens_and_wildcards_are_preserved(self) -> None:
+        assert utils.validate_stats_pattern("stats-?.*.txt") == "stats-?.*.txt"
 
 
 class TestNormalizeUserPath:

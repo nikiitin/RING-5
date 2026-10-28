@@ -5,13 +5,16 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_color_selector,
     render_xy_selectors,
 )
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _ORIENTATIONS = {"Vertical": "vertical", "Horizontal": "horizontal"}
 _BANDWIDTHS = {"Scott's rule": "scott", "Silverman's rule": "silverman"}
@@ -26,10 +29,6 @@ _SUMMARIES = {
 }
 
 
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
-
-
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
     # [impl->req~ring5.plot.violin~1]
     """Render mapping, density, observation, and summary controls."""
@@ -38,10 +37,10 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
         "Orientation",
         options=list(_ORIENTATIONS),
         index=list(_ORIENTATIONS).index(
-            _saved_label(_ORIENTATIONS, saved_config.get("orientation"), "Vertical")
+            saved_option_label(_ORIENTATIONS, saved_config.get("orientation"), "Vertical")
         ),
         horizontal=True,
-        key=f"violin_orientation_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.violin_orientation"),
     )
     orientation = _ORIENTATIONS[orientation_label]
 
@@ -81,9 +80,11 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Bandwidth rule",
             options=list(_BANDWIDTHS),
             index=list(_BANDWIDTHS).index(
-                _saved_label(_BANDWIDTHS, saved_config.get("bandwidth_method"), "Scott's rule")
+                saved_option_label(
+                    _BANDWIDTHS, saved_config.get("bandwidth_method"), "Scott's rule"
+                )
             ),
-            key=f"violin_bandwidth_method_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.violin_bandwidth_method"),
         )
         bandwidth_scale = st.slider(
             "Smoothing multiplier",
@@ -92,32 +93,36 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             value=float(saved_config.get("bandwidth_scale", 1.0)),
             step=0.05,
             help="Lower values reveal more detail; higher values produce a smoother density.",
-            key=f"violin_bandwidth_scale_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.violin_bandwidth_scale"),
         )
         span_label = st.selectbox(
             "Density extent",
             options=list(_SPANS),
             index=list(_SPANS).index(
-                _saved_label(_SPANS, saved_config.get("density_span"), "Include smoothed tails")
+                saved_option_label(
+                    _SPANS, saved_config.get("density_span"), "Include smoothed tails"
+                )
             ),
-            key=f"violin_span_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.violin_span"),
         )
     with density_right:
         scale_label = st.selectbox(
             "Width comparison",
             options=list(_SCALES),
             index=list(_SCALES).index(
-                _saved_label(_SCALES, saved_config.get("density_scale"), "Equal maximum width")
+                saved_option_label(
+                    _SCALES, saved_config.get("density_scale"), "Equal maximum width"
+                )
             ),
-            key=f"violin_scale_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.violin_scale"),
         )
         side_label = st.selectbox(
             "Density side",
             options=list(_SIDES),
             index=list(_SIDES).index(
-                _saved_label(_SIDES, saved_config.get("violin_side"), "Both sides")
+                saved_option_label(_SIDES, saved_config.get("violin_side"), "Both sides")
             ),
-            key=f"violin_side_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.violin_side"),
         )
         violin_width = st.slider(
             "Violin width",
@@ -125,7 +130,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=0.95,
             value=float(saved_config.get("violin_width", 0.8)),
             step=0.05,
-            key=f"violin_width_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.violin_width"),
         )
 
     st.markdown("#### Summary and observations")
@@ -135,15 +140,15 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Inner summary",
             options=list(_SUMMARIES),
             index=list(_SUMMARIES).index(
-                _saved_label(_SUMMARIES, saved_config.get("summary_mode"), "Box and median")
+                saved_option_label(_SUMMARIES, saved_config.get("summary_mode"), "Box and median")
             ),
-            key=f"violin_summary_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.violin_summary"),
         )
     with point_column:
         show_points = st.checkbox(
             "Show observations",
             value=saved_config.get("point_mode") == "all",
-            key=f"violin_points_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.violin_points"),
         )
         jitter = st.slider(
             "Observation jitter",
@@ -152,7 +157,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             value=float(saved_config.get("jitter", 0.15)),
             step=0.05,
             disabled=not show_points,
-            key=f"violin_jitter_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.violin_jitter"),
         )
 
     return {

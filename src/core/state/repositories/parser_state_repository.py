@@ -1,9 +1,13 @@
 """In-memory repository for simulator parser configuration."""
 
 import logging
-import uuid
+from copy import deepcopy
+
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.common.variable_identity import normalize_variable_ids
 
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.core.models.parsing_models import ScannedVariable, default_parse_configs
 
 logger = logging.getLogger(__name__)
 
@@ -13,17 +17,15 @@ class ParserStateRepository:
 
     # [impl->req~ring5.ingestion.parse-output-provenance~1]
 
-    # Default variables for new sessions
-    DEFAULT_PARSE_VARIABLES: list[ParseVariableConfig] = [
-        ParseVariableConfig(name="simTicks", type="scalar", _id=str(uuid.uuid4())),
-        ParseVariableConfig(name="benchmark_name", type="configuration", _id=str(uuid.uuid4())),
-        ParseVariableConfig(name="config_description", type="configuration", _id=str(uuid.uuid4())),
-    ]
-
     def __init__(self) -> None:
         """Initialize in-memory storage."""
-        # Initialize default state
-        self._parse_variables: list[ParseVariableConfig] = self.DEFAULT_PARSE_VARIABLES.copy()
+        self.reset_to_defaults()
+
+    def reset_to_defaults(self) -> None:
+        """Replace configured inputs and scan results with independent parser defaults."""
+        self._parse_variables: list[ParseVariableConfig] = normalize_variable_ids(
+            [StatConfigCodec.to_draft(config) for config in default_parse_configs()]
+        )
         self._stats_path: str = "/path/to/stats"
         self._stats_pattern: str = "stats.txt"
         self._scanned_variables: list[ScannedVariableDict] = []
@@ -36,9 +38,9 @@ class ParserStateRepository:
         Get the list of variables to parse from simulator stats.
 
         Returns:
-            A shallow copy of the parse-variable list (defensive copy-on-read).
+            A deep copy of the parse-variable list (defensive copy-on-read).
         """
-        return list(self._parse_variables)
+        return deepcopy(self._parse_variables)
 
     def set_parse_variables(self, variables: list[ParseVariableConfig]) -> None:
         """
@@ -56,45 +58,11 @@ class ParserStateRepository:
                 hand-edited portfolio) — callers that handle untrusted input
                 filter first and report what they dropped.
         """
-        for var in variables:
-            if not isinstance(var, dict):
-                raise TypeError(
-                    f"Parse variable entries must be dicts, got " f"{type(var).__name__}: {var!r}"
-                )
-
-        copied: list[ParseVariableConfig] = [dict(var) for var in variables]  # type: ignore[misc]
-        for var in copied:
-            if "_id" not in var:
-                var["_id"] = str(uuid.uuid4())
-
+        copied = normalize_variable_ids(
+            [StatConfigCodec.validate_draft(value) for value in variables]
+        )
         self._parse_variables = copied
         logger.info("PARSER_REPO: Parse variables updated - %d variables", len(copied))
-
-    def add_parse_variable(self, variable: ParseVariableConfig) -> None:
-        """
-        Add a new variable to the parse list.
-
-        Args:
-            variable: Variable configuration to add
-        """
-        self.set_parse_variables([*self._parse_variables, variable])
-
-    def remove_parse_variable(self, variable_id: str) -> bool:
-        """
-        Remove a variable by its ID.
-
-        Args:
-            variable_id: UUID of variable to remove
-
-        Returns:
-            True if variable was removed, False if not found
-        """
-        initial_count = len(self._parse_variables)
-        self._parse_variables = [v for v in self._parse_variables if v.get("_id") != variable_id]
-
-        if len(self._parse_variables) < initial_count:
-            return True
-        return False
 
     def get_stats_path(self) -> str:
         """
@@ -143,9 +111,9 @@ class ParserStateRepository:
         Get variables discovered via scanning stats files.
 
         Returns:
-            A shallow copy of the scanned-variable list (defensive copy-on-read).
+            A deep copy of the scanned-variable list (defensive copy-on-read).
         """
-        return list(self._scanned_variables)
+        return deepcopy(self._scanned_variables)
 
     def set_scanned_variables(self, variables: list[ScannedVariableDict]) -> None:
         """
@@ -154,7 +122,9 @@ class ParserStateRepository:
         Args:
             variables: List of scanned variable metadata
         """
-        self._scanned_variables = variables
+        for variable in variables:
+            ScannedVariable.from_dict(variable)
+        self._scanned_variables = deepcopy(variables)
         logger.info("PARSER_REPO: Scanned variables updated - %d variables", len(variables))
 
     def is_using_parser(self) -> bool:
@@ -222,7 +192,7 @@ class ParserStateRepository:
         logger.info("PARSER_REPO: Simulator set to '%s'", simulator)
 
     def clear_parser_state(self) -> None:
-        """Clear all parser-related state (except parse variables)."""
+        """Clear scan results and parser mode while preserving configured inputs."""
         self._scanned_variables = []
         self._use_parser = False
         logger.info("PARSER_REPO: Parser state cleared")

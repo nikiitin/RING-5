@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
+
 from unittest.mock import MagicMock, patch
 
-from src.core.models import BrowserUpload, PortfolioBundleInfo, PortfolioIntegrityReport
+from src.core.models.browser_upload_models import BrowserUpload
+from src.core.models.portfolio_bundle_models import PortfolioBundleInfo
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from tests.conftest import columns_side_effect
 
@@ -36,6 +40,7 @@ def test_dataset_upload_routes_to_import_review(mock_st: MagicMock) -> None:
     with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
         DataSourceComponents.render_browser_upload(api)
 
+    assert mock_st.file_uploader.call_args.kwargs.get("type") is None
     api.inspect_browser_upload.assert_called_once_with(
         "measurements.json",
         "application/json",
@@ -59,7 +64,10 @@ def test_invalid_upload_stays_out_of_the_workspace(mock_st: MagicMock) -> None:
 
     DataSourceComponents.render_browser_upload(api)
 
-    mock_st.error.assert_called_once()
+    mock_st.error.assert_called_once_with(
+        "Upload validation failed: declared media type does not match"
+    )
+    api.inspect_browser_upload.assert_called_once_with("bad.csv", "image/png", b"bad", "auto")
     api.load_import_preview.assert_not_called()
     api.restore_browser_portfolio.assert_not_called()
 
@@ -79,7 +87,7 @@ def test_signed_portfolio_requires_secret_and_reports_key_id(mock_st: MagicMock)
         size_bytes=128,
         source_sha256="b" * 64,
         source_path="/tmp/analysis.json",
-        portfolio_schema_version=4,
+        portfolio_schema_version=CURRENT_PORTFOLIO_SCHEMA_VERSION,
         portfolio_plot_count=2,
         portfolio_has_data=True,
         portfolio_integrity_status="signature-unverified",
@@ -118,7 +126,7 @@ def test_portable_bundle_shows_artifacts_and_requires_signature_secret(
     info = PortfolioBundleInfo(
         name="portable-analysis",
         format_version=1,
-        portfolio_schema_version=4,
+        portfolio_schema_version=CURRENT_PORTFOLIO_SCHEMA_VERSION,
         portfolio_created_at="2026-07-21T10:00:00+00:00",
         size_bytes=512,
         source_count=1,

@@ -2,6 +2,8 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
+from tests.ui.helpers import navigate_to
+
 _APP_PATH = str(Path(__file__).parents[2] / "app.py")
 
 
@@ -38,8 +40,7 @@ class TestUISanity:
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
-        at.session_state["_nav_page"] = "Manage Plots"
-        at.run()
+        navigate_to(at, "Manage Plots")
 
         assert not at.exception
         assert len(at.markdown) > 0 or len(at.header) > 0  # Verify content exists

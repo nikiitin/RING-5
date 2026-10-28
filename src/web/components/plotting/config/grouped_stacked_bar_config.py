@@ -3,11 +3,13 @@
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import detect_column_types
 from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 def render(
@@ -43,7 +45,7 @@ def render(
             "Major Grouping (Outer)",
             options=x_options,
             index=x_default_idx,
-            key=f"x_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.x"),
             help="The main outer category (e.g., Benchmark)",
         )
 
@@ -51,14 +53,14 @@ def render(
         filtered_cols: list[str] = [col for col in categorical_cols if col is not None]
         options_list: list[str | None] = [None] + filtered_cols
         group_default_idx: int = 0
-        if saved_config.get("group") and saved_config["group"] in categorical_cols:
-            group_default_idx = categorical_cols.index(saved_config["group"])
+        if saved_config.get("group") in options_list:
+            group_default_idx = options_list.index(saved_config.get("group"))
 
         group_column: str | None = st.selectbox(
             "X-Axis / Minor Grouping (Inner)",
             options=options_list,
-            index=group_default_idx + 1 if saved_config.get("group") else 0,
-            key=f"group_{plot_id}",
+            index=group_default_idx,
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.group"),
             help=(
                 "The variable displayed on the X-axis"
                 " within the major group"
@@ -75,7 +77,7 @@ def render(
             "Statistics to Stack (Y-axis)",
             options=numeric_cols,
             default=default_ys,
-            key=f"y_multiselect_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.y_multiselect"),
             help="Select multiple statistics to stack on top of each other",
         )
 
@@ -106,7 +108,7 @@ def render(
     dual_axis: bool = st.checkbox(
         "Enable Secondary Y-axis",
         value=saved_config.get("dual_axis", False),
-        key=f"dual_axis_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.dual_axis"),
         help=(
             "Adds a right Y-axis with its own columns. "
             "Use with Split-Apply shaper for independent transforms."
@@ -125,7 +127,7 @@ def render(
                     "Right-axis trace type",
                     options=["bars", "dots"],
                     default=saved_config.get("right_axis_type", "bars"),
-                    key=f"right_type_{plot_id}",
+                    key=WidgetKeyBuilder.plot_key(plot_id, "widgets.right_type"),
                 )
                 or "bars"
             )
@@ -134,7 +136,7 @@ def render(
                 st.text_input(
                     "Right Y-axis Label",
                     value=saved_config.get("ylabel_right", ""),
-                    key=f"ylabel_right_{plot_id}",
+                    key=WidgetKeyBuilder.plot_key(plot_id, "widgets.ylabel_right"),
                 )
                 or ""
             )
@@ -147,7 +149,7 @@ def render(
             "Right Y-axis columns",
             options=available_right,
             default=default_right,
-            key=f"y_right_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.y_right"),
             help="Numeric columns plotted on the secondary (right) Y-axis.",
         )
 

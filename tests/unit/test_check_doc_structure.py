@@ -4,6 +4,7 @@ from pathlib import Path
 
 from scripts import check_doc_links
 from scripts.check_doc_structure import validate_structure
+from scripts.documentation import DOCS_ROOT, load_pages
 
 
 def _write_page(root: Path, relative: str, front_matter: str) -> None:
@@ -13,8 +14,8 @@ def _write_page(root: Path, relative: str, front_matter: str) -> None:
     path.write_text(f"---\n{front_matter}\n---\n\n# Page\n", encoding="utf-8")
 
 
-def test_valid_navigation_and_redirects() -> None:
-    """A rooted hierarchy with one retired route is valid."""
+def test_valid_navigation() -> None:
+    """A rooted hierarchy with one canonical route per page is valid."""
     from tempfile import TemporaryDirectory
 
     with TemporaryDirectory() as directory:
@@ -28,8 +29,7 @@ def test_valid_navigation_and_redirects() -> None:
         _write_page(
             root,
             "guide/task.md",
-            "layout: default\ntitle: Task\nparent: Guide\npermalink: /guide/task/\n"
-            "redirect_from:\n  - /old-task/",
+            "layout: default\ntitle: Task\nparent: Guide\npermalink: /guide/task/",
         )
 
         assert validate_structure(root) == []
@@ -77,36 +77,29 @@ def test_parent_and_grandparent_relationships() -> None:
     assert any("unknown parent 'Missing'" in failure for failure in failures)
 
 
-def test_redirects_are_unique_and_do_not_shadow_pages() -> None:
-    """Redirect sources cannot be duplicated or replace a canonical route."""
-    from tempfile import TemporaryDirectory
-
-    with TemporaryDirectory() as directory:
-        root = Path(directory)
-        _write_page(
-            root,
-            "one.md",
-            "layout: default\ntitle: One\npermalink: /one/\n"
-            "redirect_from:\n  - /retired/\n  - /two/",
-        )
-        _write_page(
-            root,
-            "two.md",
-            "layout: default\ntitle: Two\npermalink: /two/\n" "redirect_from:\n  - /retired/",
-        )
-
-        failures = validate_structure(root)
-
-    assert any("redirect '/two/' conflicts" in failure for failure in failures)
-    assert any("duplicate redirect '/retired/'" in failure for failure in failures)
-
-
-def test_repository_links_and_retired_paths_are_valid() -> None:
-    """The repository-wide link validator accepts only resolved current or redirected paths."""
-    assert "docs/engineering-reference/architecture" in (
-        check_doc_links.redirected_documentation_paths()
+def test_redirects_are_rejected(tmp_path: Path) -> None:
+    """Every published page has exactly one current route."""
+    _write_page(
+        tmp_path,
+        "one.md",
+        "layout: default\ntitle: One\npermalink: /one/\n" "redirect_from:\n  - /retired/",
     )
-    assert "/user-guide/getting-started/concepts/" in (
-        check_doc_links.published_documentation_routes()
-    )
+
+    assert any("redirect_from is unsupported" in item for item in validate_structure(tmp_path))
+
+
+def test_repository_links_resolve_current_paths() -> None:
+    """Source links resolve to current routes and existing repository files."""
+    pages, failures = load_pages(DOCS_ROOT)
+    assert failures == []
+    assert "/user-guide/getting-started/concepts/" in {page.route for page in pages}
     assert check_doc_links.collect_failures() == []
+
+
+def test_retired_repository_path_is_not_a_route_exemption(tmp_path: Path, monkeypatch) -> None:
+    """A missing repository path cannot pass merely because it once had a route."""
+    page = tmp_path / "README.md"
+    page.write_text("`docs/engineering-reference/architecture/`\n")
+    monkeypatch.setattr(check_doc_links, "ROOT", tmp_path)
+    monkeypatch.setattr(check_doc_links, "DOC_ROOTS", (page,))
+    assert any("missing repository path" in item for item in check_doc_links.collect_failures())

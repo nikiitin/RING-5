@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Literal
 
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_config import TraceConfig
@@ -71,7 +71,6 @@ class TraceBuildResult:
     Attributes:
         traces: Engine-agnostic trace specifications.
         annotations: Text annotations (group labels, tertiary legends, etc.).
-        layout_annotations: Raw annotation dicts passed straight to layout.
         separator_lines: Engine-agnostic vertical separators between bar groups.
         rule_lines: Engine-agnostic horizontal span rules (category super-groups).
         shaded_regions: Engine-agnostic alternating-category background bands.
@@ -84,11 +83,11 @@ class TraceBuildResult:
         custom_y_ticks: Equivalent override for the y-axis, used by
             horizontally oriented distribution plots.
         secondary_y: Whether a secondary Y-axis is used.
+        default_x_axis_label: Semantic x-axis label used only when no label is configured.
     """
 
     traces: Sequence[TraceConfig] = field(default_factory=list)
     annotations: list[AnnotationConfig] = field(default_factory=list)
-    layout_annotations: list[dict[str, Any]] = field(default_factory=list)
     separator_lines: list[SeparatorLine] = field(default_factory=list)
     rule_lines: list[RuleLine] = field(default_factory=list)
     shaded_regions: list[ShadedRegion] = field(default_factory=list)
@@ -98,3 +97,4 @@ class TraceBuildResult:
     custom_x_ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
     custom_y_ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
     secondary_y: bool = False
+    default_x_axis_label: str | None = None

@@ -3,12 +3,11 @@
 from typing import cast, override
 
 import pandas as pd
-import streamlit as st
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import grouped_bar_config
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import (
     build_drill_down_payload,
@@ -28,81 +27,6 @@ class GroupedBarPlot(BasePlot):
     def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for grouped bar plot."""
         return grouped_bar_config.render(data, saved_config, self.plot_id)
-
-    @override
-    def render_advanced_options(
-        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
-    ) -> PlotConfig:
-        """Override to apply filters before rendering advanced options."""
-        if data is not None:
-            # Apply X filter
-            if saved_config.get("x_filter") is not None:
-                data = data[data[saved_config["x"]].isin(saved_config["x_filter"])]
-                assert isinstance(data, pd.DataFrame)  # nosec B101  # pandas stubs lose narrowing
-
-            # Apply Group filter
-            if saved_config.get("group_filter") is not None and saved_config.get("group"):
-                data = data[data[saved_config["group"]].isin(saved_config["group_filter"])]
-                assert isinstance(data, pd.DataFrame)  # nosec B101  # pandas stubs lose narrowing
-
-        return super().render_advanced_options(saved_config, data)
-
-    @override
-    def render_theme_options(
-        self, saved_config: PlotConfig, items: list[str] | None = None
-    ) -> PlotConfig:
-        """Add specific styling options for Grouped Bar."""
-        config = super().render_theme_options(saved_config, items)
-
-        # Visual Distinction Section
-        st.markdown("**Visual Distinction**")
-        d1, d2 = st.columns(2)
-        with d1:
-            config["show_separators"] = st.checkbox(
-                "Show Vertical Separators",
-                value=saved_config.get("show_separators", False),
-                key=f"show_sep_{self.plot_id}",
-            )
-            config["separator_color"] = st.color_picker(
-                "Separator Color",
-                value=saved_config.get("separator_color", "#E0E0E0"),
-                key=f"sep_col_{self.plot_id}",
-            )
-        with d2:
-            # Shading alternate groups might be less relevant for simple grouped bar
-            # if the groups are just categories, but providing it for consistency.
-            config["shade_alternate"] = st.checkbox(
-                "Shade Alternate Categories",
-                value=saved_config.get("shade_alternate", False),
-                key=f"shade_alt_{self.plot_id}",
-            )
-            config["shade_color"] = st.color_picker(
-                "Shade Color",
-                value=saved_config.get("shade_color", "#F5F5F5"),
-                key=f"shade_col_{self.plot_id}",
-            )
-
-        # Isolation Section
-        st.markdown("**Summary Group Isolation (Last Group)**")
-        d3, d4 = st.columns(2)
-        with d3:
-            config["isolate_last_group"] = st.checkbox(
-                "Isolate Last Group",
-                value=saved_config.get("isolate_last_group", False),
-                key=f"iso_last_{self.plot_id}",
-                help="Adds extra space and a distinct separator before the last X-axis category.",
-            )
-        with d4:
-            if config["isolate_last_group"]:
-                config["isolation_gap"] = st.number_input(
-                    "Isolation Gap Size",
-                    value=float(saved_config.get("isolation_gap", 0.5)),
-                    min_value=0.0,
-                    step=0.1,
-                    key=f"iso_gap_{self.plot_id}",
-                )
-
-        return config
 
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
@@ -125,6 +49,7 @@ class GroupedBarPlot(BasePlot):
 
         # Determine Orders (explicit order first, then remaining sorted)
         ordered_x = order_with_overrides(data[x_col].unique(), config.get("xaxis_order"))
+        ordered_groups: list[str] = []
         if group_col:
             ordered_groups = order_with_overrides(
                 data[group_col].unique(), config.get("group_order")
@@ -132,15 +57,15 @@ class GroupedBarPlot(BasePlot):
 
         # 2. Calculate Manual X Coordinates
         coord_result = GroupedBarUtils.calculate_grouped_coordinates(
-            categories=ordered_x, groups=[], config=config
+            categories=ordered_x, groups=ordered_groups, config=config
         )
 
         # Adapt keys
         x_map = {
             (k[0] if isinstance(k, tuple) else k): v for k, v in coord_result["coord_map"].items()
         }
-        tick_vals = coord_result["tick_vals"]
-        tick_text = coord_result["tick_text"]
+        tick_vals = [center for center, _ in coord_result["cat_centers"]]
+        tick_text = [label for _, label in coord_result["cat_centers"]]
 
         # 3. Create Traces
         traces: list[BarTraceConfig] = []
@@ -149,7 +74,9 @@ class GroupedBarPlot(BasePlot):
         if group_col:
             for grp in ordered_groups:
                 grp_data = data[data[group_col] == grp]
-                x_coords = pd.Series(grp_data[x_col]).map(x_map).tolist()
+                x_coords = [
+                    coord_result["coord_map"][(category, grp)] for category in grp_data[x_col]
+                ]
 
                 sd_col = extract_error_bars(data, y_col, config)
                 error_y_vals: list[float] | None = grp_data[sd_col].tolist() if sd_col else None
@@ -158,6 +85,7 @@ class GroupedBarPlot(BasePlot):
                     BarTraceConfig(
                         name=grp,
                         x_positions=x_coords,
+                        bar_width=coord_result["bar_width"],
                         y=grp_data[y_col].tolist(),
                         error_y=error_y_vals,
                         custom_data={
@@ -175,6 +103,7 @@ class GroupedBarPlot(BasePlot):
             traces.append(
                 BarTraceConfig(
                     x_positions=x_coords,
+                    bar_width=coord_result["bar_width"],
                     y=data[y_col].tolist(),
                     error_y=error_y_vals,
                     custom_data={"drilldown": build_drill_down_payload(data, [x_col])},
@@ -183,7 +112,7 @@ class GroupedBarPlot(BasePlot):
 
         # 4. Build result with separators/shading and tick overrides.
         # User-drawn shapes (config["shapes"]) are applied separately by the
-        # Plotly StyleApplicator; the auto separators/shades flow through the
+        # native builder; the auto separators/shades flow through the
         # engine-agnostic fields so both engines render them.
         return TraceBuildResult(
             traces=traces,
@@ -193,9 +122,3 @@ class GroupedBarPlot(BasePlot):
             shaded_regions=coord_result["shaded_regions"],
             custom_x_ticks={"vals": tick_vals, "text": tick_text},
         )
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Get legend column for grouped bar plot."""
-        result = config.get("group")
-        return str(result) if result is not None else None

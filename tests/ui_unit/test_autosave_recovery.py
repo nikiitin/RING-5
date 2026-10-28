@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.core.models import RecoveryDraftInfo, RestoreReport
+import pytest
+
+from src.core.models.recovery_models import RecoveryDraftInfo
+from src.core.models.portfolio_models import RestoreReport
 
 
 @patch("src.web.components.autosave_recovery.time.monotonic", return_value=120.0)
@@ -61,3 +65,57 @@ def test_browser_owner_falls_back_to_a_persistent_random_url_token(
 
     assert AutosaveRecoveryComponent.browser_owner_key() == generated
     assert mock_st.query_params["_ring5_recovery"] == generated
+
+
+@patch("src.web.components.autosave_recovery.time.monotonic")
+@patch("src.web.components.autosave_recovery.st")
+def test_empty_editor_defaults_do_not_delay_the_first_meaningful_autosave(
+    mock_st: MagicMock,
+    monotonic: MagicMock,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core.services.autosave_recovery_service import AutosaveRecoveryService
+    from src.core.services.data_services.path_service import PathService
+    from src.core.state.repository_state_manager import RepositoryStateManager
+    from src.web.components.autosave_recovery import AutosaveRecoveryComponent
+
+    monkeypatch.setattr(PathService, "get_recovery_drafts_dir", lambda: tmp_path)
+    mock_st.session_state = {}
+    state = RepositoryStateManager()
+    variables = state.get_parse_variables()
+    for variable in variables:
+        if variable["type"] == "configuration":
+            variable.setdefault("params", {})["on_empty"] = "None"
+    state.set_parse_variables(variables)
+    api = MagicMock()
+    api.create_recovery_draft.side_effect = lambda key: AutosaveRecoveryService.capture(state, key)
+
+    monotonic.return_value = 120.0
+    AutosaveRecoveryComponent._capture_when_due(api, "automatic-owner")
+    assert "_recovery_last_capture_at" not in mock_st.session_state
+    assert AutosaveRecoveryService.list_drafts("automatic-owner") == ()
+
+    state.update_config("analysis", "first meaningful edit")
+    monotonic.return_value = 121.0
+    AutosaveRecoveryComponent._capture_when_due(api, "automatic-owner")
+    assert mock_st.session_state["_recovery_last_capture_at"] == 121.0
+    first = AutosaveRecoveryService.list_drafts("automatic-owner")
+    assert len(first) == 1
+    assert AutosaveRecoveryService.load("automatic-owner", first[0].draft_id)["config"] == {
+        "analysis": "first meaningful edit"
+    }
+
+    state.update_config("analysis", "next edit")
+    monotonic.return_value = 122.0
+    AutosaveRecoveryComponent._capture_when_due(api, "automatic-owner")
+    assert api.create_recovery_draft.call_count == 2
+    assert AutosaveRecoveryService.list_drafts("automatic-owner") == first
+
+    monotonic.return_value = 181.0
+    AutosaveRecoveryComponent._capture_when_due(api, "automatic-owner")
+    latest = AutosaveRecoveryService.list_drafts("automatic-owner")
+    assert len(latest) == 2
+    assert AutosaveRecoveryService.load("automatic-owner", latest[0].draft_id)["config"] == {
+        "analysis": "next edit"
+    }

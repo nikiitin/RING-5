@@ -20,29 +20,21 @@ import inspect
 import json
 import re
 import sys
+import yaml
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import fields
 from pathlib import Path
 from typing import Any, cast, get_args
 
-if __package__:
-    from scripts.oft_evidence import collect_evidence_markers, validate_source_evidence
-    from scripts.oft_html_report import (
-        OftHtmlReportError,
-        evidence_fingerprint,
-        extract_oft_coverage,
-        inventory_fingerprint,
-    )
-    from scripts.oft_status import requirement_status_tag, requirement_status_views
-else:
-    from oft_evidence import collect_evidence_markers, validate_source_evidence
-    from oft_html_report import (
-        OftHtmlReportError,
-        evidence_fingerprint,
-        extract_oft_coverage,
-        inventory_fingerprint,
-    )
-    from oft_status import requirement_status_tag, requirement_status_views
+from scripts.oft_evidence import collect_evidence_markers, validate_source_evidence
+from scripts.oft_html_report import (
+    OftHtmlReportError,
+    evidence_fingerprint,
+    extract_oft_coverage,
+    inventory_fingerprint,
+    validate_native_evidence,
+)
+from scripts.oft_status import requirement_status_tag, requirement_status_views
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INVENTORY = ROOT / "spec" / "oft" / "inventory.json"
@@ -140,9 +132,8 @@ def _cli_options(parser: argparse.ArgumentParser) -> tuple[str, ...]:
 
     def visit(current: argparse.ArgumentParser, command: str = "") -> None:
         for action in current._actions:  # argparse has no public action iterator
-            choices = getattr(action, "choices", None)
             if isinstance(action, argparse._SubParsersAction):
-                for name, child in choices.items():
+                for name, child in action.choices.items():
                     visit(child, str(name))
                 continue
             if action.dest in {"help", "command", "func"} or not command:
@@ -179,7 +170,7 @@ def discover_live_capabilities(root: Path = ROOT) -> dict[str, tuple[str, ...]]:
     from ring5.cli import build_parser
     from ring5.data import Table
     from ring5.decorations import FigureDecorations
-    from ring5.figure_spec import FigureSpec, FigureSpecBuilder
+    from ring5.figure_spec import FigureSpec
     from src.core.application_api import ApplicationAPI
     from src.core.models.data_models import ParseVariableConfig
     from src.core.models.parsing_models import ScanResult, ScannedVariable, StatConfig
@@ -275,7 +266,6 @@ def discover_live_capabilities(root: Path = ROOT) -> dict[str, tuple[str, ...]]:
         "data_services_api_members": _public_class_members(DataServicesAPI),
         "shapers_api_members": _public_class_members(ShapersAPI),
         "table_members": _public_class_members(Table),
-        "figure_builder_members": _public_class_members(FigureSpecBuilder),
         "figure_decoration_members": _public_class_members(FigureDecorations),
         "parse_job_members": _public_class_members(ParseJob),
         "scan_job_members": _public_class_members(ScanJob),
@@ -350,39 +340,43 @@ def validate_ci_oft_artifact(root: Path = ROOT) -> list[str]:
     # [impl->req~ring5.trace.ci-html-artifact~1]
     workflow_path = root / CI_WORKFLOW_PATH
     try:
-        lines = workflow_path.read_text(encoding="utf-8").splitlines()
-    except OSError as exc:
+        document = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
         return [f"could not read {CI_WORKFLOW_PATH.as_posix()}: {exc}"]
-
-    header = "  oft:"
-    try:
-        start = lines.index(header) + 1
-    except ValueError:
+    jobs = document.get("jobs", {}) if isinstance(document, dict) else {}
+    job = jobs.get("oft") if isinstance(jobs, dict) else None
+    if not isinstance(job, dict):
         return ["CI workflow is missing the dedicated 'oft' job"]
-
-    end = len(lines)
-    for index in range(start, len(lines)):
-        line = lines[index]
-        if line.startswith("  ") and not line.startswith("    ") and line.endswith(":"):
-            end = index
-            break
-    job = "\n".join(lines[start:end])
-    required_tokens = {
-        "the human-readable job name": "name: OpenFastTrace HTML report",
-        "Java setup": "uses: actions/setup-java@v5",
-        "the pinned Java runtime": 'java-version: "17"',
-        "application installation": "python_venv/bin/pip install -e .",
-        "OFT report generation": "make oft-report",
-        "artifact upload": "uses: actions/upload-artifact@v7",
-        "the report artifact name": "name: ring5-openfasttrace-report",
-        "the generated HTML path": "path: spec/oft/generated/report.html",
-        "missing-artifact failure behavior": "if-no-files-found: error",
+    steps = job.get("steps", [])
+    if not isinstance(steps, list):
+        return ["CI OFT job steps must be a list"]
+    actions = {
+        step["uses"].partition("@")[0]: step
+        for step in steps
+        if isinstance(step, dict) and isinstance(step.get("uses"), str)
     }
-    return [
-        f"CI OFT job is missing {label} ({token!r})"
-        for label, token in required_tokens.items()
-        if token not in job
-    ]
+    commands = "\n".join(
+        step["run"] for step in steps if isinstance(step, dict) and isinstance(step.get("run"), str)
+    )
+    java = actions.get("actions/setup-java", {}).get("with", {})
+    upload = actions.get("actions/upload-artifact", {}).get("with", {})
+    if not isinstance(upload, dict):
+        upload = {}
+    java_version = str(java.get("java-version", "")) if isinstance(java, dict) else ""
+    checks = {
+        "the human-readable job name": job.get("name") == "OpenFastTrace HTML report",
+        "Java setup": "actions/setup-java" in actions,
+        "the supported Java runtime": java_version.isdigit() and int(java_version) >= 17,
+        "application installation": bool(
+            re.search(r"make\s+sync-dev\b|pip\s+install\s+-e\s+\.", commands)
+        ),
+        "OFT report generation": bool(re.search(r"make\s+oft-report\b", commands)),
+        "artifact upload": "actions/upload-artifact" in actions,
+        "the report artifact name": upload.get("name") == "ring5-openfasttrace-report",
+        "the generated HTML path": upload.get("path") == "spec/oft/generated/report.html",
+        "missing-artifact failure behavior": upload.get("if-no-files-found") == "error",
+    }
+    return [f"CI OFT job is missing {label}" for label, valid in checks.items() if not valid]
 
 
 def _validate_requirement_history(
@@ -395,11 +389,13 @@ def _validate_requirement_history(
         errors.append(f"{label}.history must be a list")
         return
 
-    current_revision = feature.get("revision")
-    valid_current_revision = (
-        isinstance(current_revision, int)
-        and not isinstance(current_revision, bool)
-        and current_revision >= 1
+    raw_revision = feature.get("revision")
+    current_revision: int | None = (
+        raw_revision
+        if isinstance(raw_revision, int)
+        and not isinstance(raw_revision, bool)
+        and raw_revision >= 1
+        else None
     )
     semantic_revisions: list[int] = []
     previous_revision = 0
@@ -415,7 +411,7 @@ def _validate_requirement_history(
         if revision < previous_revision:
             errors.append(f"{label}.history must be ordered by revision")
         previous_revision = revision
-        if valid_current_revision and revision > current_revision:
+        if current_revision is not None and revision > current_revision:
             errors.append(f"{record_label}.revision exceeds the current revision")
 
         change_type = record.get("change_type")
@@ -435,12 +431,14 @@ def _validate_requirement_history(
         elif "title" in record or "description" in record:
             errors.append(f"{record_label} evidence changes cannot redefine requirement text")
 
-    if valid_current_revision:
-        expected = list(range(1, current_revision))
-        if semantic_revisions != expected:
+    if current_revision is not None:
+        complete = len(semantic_revisions) == current_revision - 1 and all(
+            revision == expected for expected, revision in enumerate(semantic_revisions, start=1)
+        )
+        if not complete:
             errors.append(
-                f"{label}.history semantic revisions must be exactly {expected}, "
-                f"got {semantic_revisions}"
+                f"{label}.history semantic revisions must contain all {current_revision - 1} "
+                f"superseded revisions in order, starting at 1; got {semantic_revisions}"
             )
 
 
@@ -887,9 +885,9 @@ def check_html_report(inventory: Mapping[str, Any], output_dir: Path) -> None:
         raise InventoryError(
             f"OFT HTML report {_display_path(path)} is stale; run `make oft-report`."
         )
+    markers = collect_evidence_markers(ROOT)
     source_expected = (
-        '<meta name="ring5-evidence-sha256" '
-        f'content="{evidence_fingerprint(collect_evidence_markers(ROOT))}">'
+        '<meta name="ring5-evidence-sha256" ' f'content="{evidence_fingerprint(markers)}">'
     )
     if source_expected not in report:
         raise InventoryError(
@@ -900,6 +898,7 @@ def check_html_report(inventory: Mapping[str, Any], output_dir: Path) -> None:
         raise InventoryError(f"OFT HTML report {_display_path(path)} lacks the native OFT trace.")
     try:
         native_coverage = extract_oft_coverage(report, inventory)
+        validate_native_evidence(report, inventory, markers)
     except OftHtmlReportError as exc:
         raise InventoryError(f"OFT HTML report {_display_path(path)} is invalid: {exc}") from exc
     validate_approved_native_coverage(inventory, native_coverage)

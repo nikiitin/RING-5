@@ -7,11 +7,19 @@ for selectboxes, and consistent widget key generation.
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, Literal
 
 import streamlit as st
 
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+from src.web.rendering._color_utils import picker_hex_color
+
+
+def saved_option_label(mapping: Mapping[str, object], saved: object, fallback: str) -> str:
+    """Return the label for a saved value, or the control's default label."""
+    return next((label for label, value in mapping.items() if value == saved), fallback)
 
 
 def select_option(
@@ -34,7 +42,7 @@ def select_option(
     default = default or (options[0] if options else "")
     current = config.get(config_key, default)
     idx = options.index(current) if current in options else 0
-    wk = widget_key or f"{config_key}_{plot_id}"
+    wk = widget_key or WidgetKeyBuilder.plot_key(plot_id, f"widgets.appearance.{config_key}")
     kwargs: dict[str, Any] = {
         "label": label,
         "options": options,
@@ -61,6 +69,7 @@ def numeric_input(
     step: int | float | None = None,
     help: str | None = None,
     format: str | None = None,
+    disabled: bool = False,
 ) -> int | float:
     """Render a number_input with config-based defaults."""
     value = config.get(config_key, default)
@@ -70,8 +79,8 @@ def numeric_input(
         value = float(value)
     elif isinstance(default, int):
         value = int(value)
-    wk = widget_key or f"{config_key}_{plot_id}"
-    kwargs: dict[str, Any] = {"label": label, "value": value, "key": wk}
+    wk = widget_key or WidgetKeyBuilder.plot_key(plot_id, f"widgets.appearance.{config_key}")
+    kwargs: dict[str, Any] = {"label": label, "value": value, "key": wk, "disabled": disabled}
     if min_value is not None:
         kwargs["min_value"] = min_value
     if max_value is not None:
@@ -86,6 +95,47 @@ def numeric_input(
     return result
 
 
+def inherited_font_input(
+    label: str,
+    config: PlotConfig,
+    config_key: str,
+    plot_id: int,
+    *,
+    primary_key: str,
+    widget_key: str,
+    default: int = 12,
+    inherit_help: str = "Follow the corresponding primary font setting.",
+) -> int | float:
+    """Expose an inherited font as an explicit choice without overwriting its sentinel."""
+    saved = config.get(config_key, -1)
+    inherit = st.checkbox(
+        f"Inherit {label.lower()}",
+        value=saved == -1,
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.appearance.inherit", config_key),
+        help=inherit_help,
+    )
+    display = (config.get(primary_key) or default) if inherit or saved == -1 else saved
+    if inherit:
+        # A derived display key prevents old widget state from freezing the inherited value.
+        display_key = WidgetKeyBuilder.plot_key(
+            plot_id,
+            "widgets.appearance.inherited_font",
+            config_key,
+            str(display),
+        )
+        st.number_input(label, value=int(display), min_value=1, key=display_key, disabled=True)
+        return -1
+    return numeric_input(
+        label,
+        {**config, config_key: display},
+        config_key,
+        plot_id,
+        widget_key=widget_key,
+        default=default,
+        min_value=1,
+    )
+
+
 def color_picker(
     label: str,
     config: PlotConfig,
@@ -94,12 +144,29 @@ def color_picker(
     *,
     widget_key: str | None = None,
     default: str = "#000000",
+    disabled: bool = False,
+    label_visibility: Literal["visible", "hidden", "collapsed"] = "visible",
 ) -> str:
-    """Render a color_picker with config-based default."""
+    """Edit an RGB preview while preserving untouched CSS text and opacity."""
     value = config.get(config_key, default)
-    wk = widget_key or f"{config_key}_{plot_id}"
-    result: str = st.color_picker(label, value, key=wk)
-    return result
+    if not isinstance(value, str):
+        raise ValueError(f"{config_key} must be CSS color text.")
+    wk = widget_key or WidgetKeyBuilder.plot_key(plot_id, f"widgets.appearance.{config_key}")
+    try:
+        preview = picker_hex_color(value)
+    except ValueError:
+        st.caption("This saved CSS color has no RGB picker preview; its literal value is retained.")
+        return st.text_input(
+            label,
+            value,
+            key=f"{wk}.literal",
+            disabled=disabled,
+            label_visibility=label_visibility,
+        )
+    result: str = st.color_picker(
+        label, preview, key=wk, disabled=disabled, label_visibility=label_visibility
+    )
+    return value if result.lower() == preview.lower() else result
 
 
 def toggle(
@@ -114,7 +181,7 @@ def toggle(
 ) -> bool:
     """Render a checkbox with config-based default."""
     value = config.get(config_key, default)
-    wk = widget_key or f"{config_key}_{plot_id}"
+    wk = widget_key or WidgetKeyBuilder.plot_key(plot_id, f"widgets.appearance.{config_key}")
     kwargs: dict[str, Any] = {"label": label, "value": value, "key": wk}
     if help is not None:
         kwargs["help"] = help
@@ -141,7 +208,7 @@ def slider(
         value = float(value)
     elif isinstance(default, int):
         value = int(value)
-    wk = widget_key or f"{config_key}_{plot_id}"
+    wk = widget_key or WidgetKeyBuilder.plot_key(plot_id, f"widgets.appearance.{config_key}")
     kwargs: dict[str, Any] = {
         "label": label,
         "min_value": min_value,

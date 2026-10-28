@@ -5,12 +5,6 @@ parent: Development
 grand_parent: Developer Guide
 nav_order: 2
 permalink: /developer-guide/development/workflow/
-redirect_from:
-  - /engineering-reference/development/
-  - /engineering-reference/quick-reference/
-  - /engineering-reference/quick-reference/common-tasks/
-  - /engineering-reference/quick-reference/file-locations/
-  - /engineering-reference/quick-reference/naming-conventions/
 ---
 
 # Contributor workflow
@@ -22,7 +16,7 @@ redirect_from:
 2. Locate the owning layer and its protocols with
    [Layer Boundaries]({{site.baseurl}}/developer-guide/architecture/layer-boundaries/).
 3. Read the implementation, focused tests, serialized models, and public documentation.
-4. Record any compatibility surface: public Python name, CLI option, UI label, plot or shaper
+4. Identify the canonical contract: public Python name, CLI option, UI label, plot or shaper
    identifier, portfolio schema, or parser CSV output.
 
 ## Implement
@@ -30,8 +24,9 @@ redirect_from:
 Keep the change within the owning layer. Add a narrow protocol only where a real boundary or test
 seam needs one. DataFrame operations return new objects. Parser and scan failures remain visible.
 
-Update user documentation for observable behavior and developer documentation for contracts. Add a
-migration and tests before changing serialized identifiers or portfolio fields.
+Update user documentation for observable behavior and developer documentation for contracts.
+Replace every caller and fixture when a serialized contract changes. Test the current format and
+explicit rejection of unsupported formats; remove old implementations without migration adapters.
 
 ## Verify while working
 

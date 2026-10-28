@@ -152,7 +152,7 @@ class TestPlotCreationController:
         mock_lifecycle: MagicMock,
         mock_registry: MagicMock,
     ) -> None:
-        """Returns the plot matching the selected name."""
+        """Return the plot matching the selected ID and retire its previous selector."""
         from src.web.controllers.plot.creation_controller import PlotCreationController
 
         plot1: MagicMock = MagicMock()
@@ -164,14 +164,20 @@ class TestPlotCreationController:
 
         mock_api.state_manager.get_plots.return_value = [plot1, plot2]
         mock_api.state_manager.get_current_plot_id.return_value = 1
-        mock_presenter.render.return_value = "Plot B"
+        mock_ui_state.plot.prepare_selector.return_value = "plot.1.selector"
+        mock_presenter.render.return_value = 2
 
         controller = PlotCreationController(mock_api, mock_ui_state, mock_lifecycle, mock_registry)
         result = controller.render_selector()
 
         assert result is plot2
-        # Also updated current ID
+        mock_ui_state.plot.prepare_selector.assert_called_once_with(1)
+        mock_presenter.render.assert_called_once_with(
+            {1: "Plot A", 2: "Plot B"}, key="plot.1.selector"
+        )
         mock_api.state_manager.set_current_plot_id.assert_called_once_with(2)
+        mock_ui_state.plot.forget_selector.assert_called_once_with(1)
+        mock_st.rerun.assert_called_once()
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.PlotControlsComponent")
@@ -249,7 +255,6 @@ class TestPipelineController:
         mock_presenter: MagicMock,
         mock_st: MagicMock,
         mock_api: MagicMock,
-        mock_ui_state: MagicMock,
         mock_pipeline_executor: MagicMock,
     ) -> None:
         """Shows warning when no data is loaded."""
@@ -258,7 +263,7 @@ class TestPipelineController:
         mock_api.state_manager.get_data.return_value = None
 
         plot: MagicMock = MagicMock()
-        controller = PipelineController(mock_api, mock_ui_state, mock_pipeline_executor)
+        controller = PipelineController(mock_api, mock_pipeline_executor)
         controller.render(plot)
 
         mock_presenter.render_no_data_warning.assert_called_once()
@@ -270,7 +275,6 @@ class TestPipelineController:
         mock_presenter: MagicMock,
         mock_st: MagicMock,
         mock_api: MagicMock,
-        mock_ui_state: MagicMock,
         mock_pipeline_executor: MagicMock,
     ) -> None:
         """Adding a shaper appends to pipeline and reruns."""
@@ -293,7 +297,7 @@ class TestPipelineController:
         plot.pipeline_counter = 0
         plot.plot_id = 1
 
-        controller = PipelineController(mock_api, mock_ui_state, mock_pipeline_executor)
+        controller = PipelineController(mock_api, mock_pipeline_executor)
 
         with pytest.raises(Exception, match="rerun"):
             controller.render(plot)
@@ -312,7 +316,6 @@ class TestPipelineController:
         mock_step_presenter: MagicMock,
         mock_st: MagicMock,
         mock_api: MagicMock,
-        mock_ui_state: MagicMock,
         mock_pipeline_executor: MagicMock,
     ) -> None:
         """Pipeline steps use incremental output as input to the next step."""
@@ -357,7 +360,7 @@ class TestPipelineController:
         ]
         plot.plot_id = 1
 
-        controller = PipelineController(mock_api, mock_ui_state, mock_pipeline_executor)
+        controller = PipelineController(mock_api, mock_pipeline_executor)
         controller.render(plot)
 
         # Verify step 0 receives raw_data
@@ -387,7 +390,6 @@ class TestPipelineControllerErrorResilience:
         mock_step_presenter: MagicMock,
         mock_st: MagicMock,
         mock_api: MagicMock,
-        mock_ui_state: MagicMock,
         mock_pipeline_executor: MagicMock,
     ) -> None:
         """A crashing step shows error but subsequent steps still render."""
@@ -424,7 +426,7 @@ class TestPipelineControllerErrorResilience:
         plot.plot_id = 1
         plot.name = "Test"
 
-        controller = PipelineController(mock_api, mock_ui_state, mock_pipeline_executor)
+        controller = PipelineController(mock_api, mock_pipeline_executor)
         controller.render(plot)
 
         # Both steps were attempted
@@ -445,7 +447,6 @@ class TestPipelineControllerErrorResilience:
         mock_step_presenter: MagicMock,
         mock_st: MagicMock,
         mock_api: MagicMock,
-        mock_ui_state: MagicMock,
         mock_pipeline_executor: MagicMock,
     ) -> None:
         """After a failed step, the next step gets the last good data."""
@@ -491,7 +492,7 @@ class TestPipelineControllerErrorResilience:
         plot.plot_id = 1
         plot.name = "Test"
 
-        controller = PipelineController(mock_api, mock_ui_state, mock_pipeline_executor)
+        controller = PipelineController(mock_api, mock_pipeline_executor)
         controller.render(plot)
 
         # Step 2 got step 0's output (step 1 failed, no advancement)
@@ -557,7 +558,8 @@ class TestRenderControllerErrorResilience:
             mock_st.exception.assert_called()
             # _render_visualization still called (with should_gen=False due to error)
             mock_viz.assert_called_once()
-            assert mock_viz.call_args[0][1] is False  # should_gen
+            assert mock_viz.call_args[0][1] == plot.config
+            assert mock_viz.call_args[0][2] is False  # should_gen
 
     @patch("src.web.controllers.plot.render_controller.render_settings_pills", return_value=None)
     @patch("src.web.controllers.plot.render_controller.st")

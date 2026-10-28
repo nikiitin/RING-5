@@ -24,11 +24,11 @@ def base_data() -> DataFrame:
 
 def test_init_validation() -> None:
     # Missing required params
-    # Now handled in Normalize._verify_params and raised in BaseShaper constructor
-    with pytest.raises(ValueError, match="Missing required parameter 'normalizeVars'"):
+    # Constructor validation uses the registered Normalize definition.
+    with pytest.raises(ValueError, match="normalizeVars"):
         Normalize({})
 
-    with pytest.raises(ValueError, match="Missing required parameter 'normalizerColumn'"):
+    with pytest.raises(ValueError, match="normalizerColumn"):
         Normalize({"normalizeVars": ["m"]})
 
     # Valid init
@@ -175,9 +175,8 @@ def test_zero_division() -> None:
 
     result = n(df)
 
-    # Should result in 0 instead of inf/nan
-    assert result["metric"].iloc[0] == 0.0
-    assert result["metric"].iloc[1] == 0.0
+    # An undefined ratio retains missingness rather than inventing a measurement.
+    assert result["metric"].isna().all()
 
 
 def test_different_normalizer_vars() -> None:
@@ -343,7 +342,7 @@ class TestComputeDataFingerprint:
         cols = self._relevant_cols(params)
         fp = compute_data_fingerprint(df, params, cols)
         assert isinstance(fp, str)
-        assert len(fp) == 16  # md5 hex[:16]
+        assert fp.startswith("sha256:")
 
     def test_same_data_same_fingerprint(self) -> None:
         df = pd.DataFrame({"config": ["a", "b"], "bench": ["b1", "b1"], "m": [1.0, 2.0]})

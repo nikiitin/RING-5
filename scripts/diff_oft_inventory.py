@@ -13,11 +13,7 @@ import subprocess
 import sys
 from typing import Any, cast
 
-if __package__:
-    from scripts.oft_html_report import extract_oft_coverage, inventory_fingerprint
-else:
-    from oft_html_report import extract_oft_coverage, inventory_fingerprint
-
+from scripts.oft_html_report import extract_oft_coverage, inventory_fingerprint
 
 INVENTORY_PATH = Path("spec/oft/inventory.json")
 REPORT_PATH = Path("spec/oft/generated/report.html")

@@ -1,15 +1,13 @@
 version: 2
 updates:
   # Python dependencies
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: /
     schedule:
       interval: weekly
       day: monday
       time: 09:00
     open-pull-requests-limit: 10
-    reviewers:
-      - vnicolas
     labels:
       - dependencies
       - automated
@@ -43,8 +41,15 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    reviewers:
-      - vnicolas
     labels:
       - ci
       - automated
+
+  - package-ecosystem: bundler
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - documentation

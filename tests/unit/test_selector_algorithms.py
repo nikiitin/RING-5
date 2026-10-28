@@ -36,7 +36,7 @@ class TestConditionSelector:
         self, sample_dataframe: pd.DataFrame
     ) -> None:
         """Values-based selection using 'values' parameter returns a DataFrame."""
-        selector = ConditionSelector({"column": "category", "values": ["A", "C"]})
+        selector = ConditionSelector({"mode": "in", "column": "category", "values": ["A", "C"]})
         result = selector(sample_dataframe)
 
         assert isinstance(result, pd.DataFrame)
@@ -47,7 +47,7 @@ class TestConditionSelector:
         self, sample_dataframe: pd.DataFrame
     ) -> None:
         """Numeric range selection returns a DataFrame with rows within [min, max]."""
-        selector = ConditionSelector({"column": "score", "range": [20, 80]})
+        selector = ConditionSelector({"mode": "range", "column": "score", "range": [20, 80]})
         result = selector(sample_dataframe)
 
         assert isinstance(result, pd.DataFrame)
@@ -119,6 +119,12 @@ class TestItemSelector:
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 2
         assert set(result["name"]) == {"alpha", "gamma"}
+
+    @pytest.mark.parametrize("mode", ["prefix", "EXACT", "", None])
+    def test_item_selector_rejects_invalid_mode(self, mode: str | None) -> None:
+        """Invalid modes must not silently become substring matching."""
+        with pytest.raises(ValueError, match="mode must be one of"):
+            ItemSelector({"column": "name", "strings": ["alph"], "mode": mode})
 
     def test_item_selector_contains_treats_patterns_as_literals(self) -> None:
         data = pd.DataFrame({"name": ["group[0]", "group0", "other"]})

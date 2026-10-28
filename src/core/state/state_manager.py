@@ -10,18 +10,23 @@ following the Dependency Inversion Principle.
 """
 
 from collections.abc import Callable
+from contextlib import AbstractContextManager
+
+from src.core.models.source_context_models import LoadedDataOrigin
+
+from src.core.models.preview_models import PreviewContext
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pandas as pd
 
-from src.core.models import (
+from src.core.models.dataset_workspace_models import (
     DatasetInfo,
+    DatasetInputIdentity,
     DatasetLineage,
     DatasetRevision,
-    PlotProtocol,
-    PortfolioData,
-    RestoreReport,
 )
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData, RestoreReport
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -41,6 +46,14 @@ class StateManager(Protocol):
     Layer B (ApplicationAPI) depends on this protocol, not the implementation.
     """
 
+    def transaction(self) -> AbstractContextManager[None]:
+        """Hold the session state boundary for atomic compare-and-publish work."""
+        raise NotImplementedError
+
+    def get_source_version(self) -> int:
+        """Return the monotonically increasing source-state version."""
+        raise NotImplementedError
+
     def initialize(self) -> None:
         """Initialize the state manager."""
         raise NotImplementedError
@@ -58,8 +71,13 @@ class StateManager(Protocol):
         *,
         operation: str = "Update dataset",
         source_datasets: tuple[str, ...] = (),
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         """Set the raw DataFrame with optional change callback."""
+        raise NotImplementedError
+
+    def get_loaded_origin(self) -> LoadedDataOrigin | None:
+        """Return replay facts associated with the current exact source frame."""
         raise NotImplementedError
 
     def get_processed_data(self) -> pd.DataFrame | None:
@@ -87,6 +105,7 @@ class StateManager(Protocol):
         replace: bool = False,
         operation: str = "Add dataset",
         source_datasets: tuple[str, ...] = (),
+        origin: LoadedDataOrigin | None = None,
     ) -> DatasetInfo:
         """Retain a named dataset in the session workspace."""
         raise NotImplementedError
@@ -100,7 +119,7 @@ class StateManager(Protocol):
         raise NotImplementedError
 
     def select_dataset(self, name: str) -> pd.DataFrame:
-        """Select a retained dataset as the active compatibility view."""
+        """Select a retained dataset as the active workspace dataset."""
         raise NotImplementedError
 
     def remove_dataset(self, name: str) -> None:
@@ -109,6 +128,10 @@ class StateManager(Protocol):
 
     def selected_dataset_name(self) -> str | None:
         """Return the selected retained dataset name."""
+        raise NotImplementedError
+
+    def get_dataset_input_identity(self, name: str | None = None) -> DatasetInputIdentity:
+        """Return the current workspace generation and named revision identity."""
         raise NotImplementedError
 
     def get_dataset_lineage(self, name: str | None = None) -> DatasetLineage:
@@ -280,8 +303,14 @@ class StateManager(Protocol):
         raise NotImplementedError
 
     # Previews
-    def set_preview(self, operation_name: str, data: pd.DataFrame) -> None:
+    def set_preview(
+        self, operation_name: str, data: pd.DataFrame, *, context: PreviewContext
+    ) -> None:
         """Store a preview DataFrame for an operation."""
+        raise NotImplementedError
+
+    def get_preview_context(self, operation_name: str) -> PreviewContext | None:
+        """Return the source and options retained with a guarded preview."""
         raise NotImplementedError
 
     def get_preview(self, operation_name: str) -> pd.DataFrame | None:

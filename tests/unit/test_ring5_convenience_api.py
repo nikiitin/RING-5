@@ -43,7 +43,18 @@ class TestTable:
         filtered = table.filter_eq("group", "a")
         sorted_table = table.sort(["group"])
         derived = table.with_scalar_op("double", "left", "*", 2.0)
-        applied = table.apply(lambda frame: frame.assign(total=frame["left"] + frame["right"]))
+        with ring5.Session() as session:
+            applied = session.shape(
+                table,
+                [
+                    {
+                        "type": "deriveColumn",
+                        "op": "sum",
+                        "dest": "total",
+                        "sources": ["left", "right"],
+                    }
+                ],
+            )
         combined = filtered.concat(filtered)
 
         assert filtered.rows()[0]["item"] == "y"
@@ -85,23 +96,7 @@ def test_grouped_bar_coordinates_public_wrapper() -> None:
 
 
 def test_shapers_are_available_from_the_supported_module() -> None:
-    expected = {
-        "Mean",
-        "Normalize",
-        "Selector",
-        "ColumnSelector",
-        "ConditionSelector",
-        "ItemSelector",
-        "Sort",
-        "SplitApply",
-        "Transformer",
-        "PivotLonger",
-        "PivotWider",
-        "DeriveColumn",
-        "GroupCardinalitySelector",
-        "GroupPredicateSelector",
-        "available_shaper_types",
-    }
+    expected = {"Shaper", "ShaperDefinition", "register_shaper", "available_shaper_types"}
 
     assert expected == set(shapers.__all__)
     assert all(hasattr(shapers, name) for name in expected)

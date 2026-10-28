@@ -10,10 +10,13 @@ import logging
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager
+
 from src.core.application_api import ApplicationAPI
-from src.core.models import EnvironmentComparison, PortfolioIntegrityReport
+from src.core.models.environment_models import EnvironmentComparison
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
-from src.core.services.portfolio_migrator import PortfolioVersionError
+from src.core.models.portfolio_contract import PortfolioVersionError
 from src.web.components.report_composer import ReportComposer
 from src.web.components.analysis_recipe_component import AnalysisRecipeComponent
 from src.web.components.portfolio_history_component import PortfolioHistoryComponent
@@ -32,7 +35,8 @@ def _render_environment_comparison(api: ApplicationAPI, portfolio_name: str) -> 
     """Show save-time environment evidence before a portfolio is restored."""
     try:
         portfolio = api.data_services.load_portfolio(portfolio_name)
-        comparison = EnvironmentMetadataService.compare(portfolio.get("environment_metadata"))
+        recorded = EnvironmentMetadataService.from_payload(portfolio.get("environment_metadata"))
+        comparison = EnvironmentMetadataService.compare(recorded)
     except Exception as exc:
         logger.warning(
             "PORTFOLIO: environment metadata for '%s' could not be inspected: %s",
@@ -66,9 +70,7 @@ def _render_environment_comparison(api: ApplicationAPI, portfolio_name: str) -> 
 
 def _render_environment_status(comparison: EnvironmentComparison) -> None:
     """Render one concise interpretation above environment details."""
-    if not comparison.recorded_available:
-        st.info("Environment not recorded — this portfolio predates environment capture.")
-    elif comparison.exact_match:
+    if comparison.exact_match:
         st.success("Saved environment matches this RING-5 runtime exactly.")
     else:
         st.warning(
@@ -82,7 +84,7 @@ def _render_integrity_status(report: PortfolioIntegrityReport) -> None:
         st.success(report.message)
     elif report.status == "checksum-valid":
         st.info(report.message)
-    elif report.status in {"legacy-unverified", "signature-unverified"}:
+    elif report.status == "signature-unverified":
         st.warning(report.message)
     else:
         st.error(report.message)
@@ -162,7 +164,20 @@ def _render_bundle_download(api: ApplicationAPI, portfolio_name: str) -> None:
             key=f"portfolio_bundle_snapshot.{portfolio_name}",
         )
         snapshot_name = selected_snapshot if selected_snapshot in snapshot_names else None
-        state_key = f"portfolio_bundle_bytes.{portfolio_name}.{snapshot_name or 'none'}"
+        try:
+            signature = api.portfolio_bundle_signature(portfolio_name, snapshot_name=snapshot_name)
+        except (OSError, TypeError, ValueError) as error:
+            st.error(f"Portable bundle sources could not be verified: {error}")
+            return
+        cache_prefix = f"portfolio_bundle_bytes.{portfolio_name}."
+        state_key = f"{cache_prefix}{signature}"
+        for cached_key in list(st.session_state):
+            if (
+                isinstance(cached_key, str)
+                and cached_key.startswith(cache_prefix)
+                and cached_key != state_key
+            ):
+                st.session_state.pop(cached_key, None)
         if st.button(
             "Prepare portable bundle",
             key=f"portfolio_bundle_prepare.{portfolio_name}",
@@ -173,6 +188,13 @@ def _render_bundle_download(api: ApplicationAPI, portfolio_name: str) -> None:
                     portfolio_name,
                     snapshot_name=snapshot_name,
                 )
+                if (
+                    api.portfolio_bundle_signature(portfolio_name, snapshot_name=snapshot_name)
+                    != signature
+                ):
+                    raise ValueError(
+                        "Bundle sources changed while preparing. Prepare the bundle again."
+                    )
                 st.session_state[state_key] = payload
             except Exception as exc:
                 logger.error(
@@ -181,7 +203,9 @@ def _render_bundle_download(api: ApplicationAPI, portfolio_name: str) -> None:
                     exc,
                     exc_info=True,
                 )
+                st.session_state.pop(state_key, None)
                 st.error(f"Portable bundle could not be prepared: {exc}")
+                return
         prepared = st.session_state.get(state_key)
         if isinstance(prepared, bytes):
             st.download_button(
@@ -242,7 +266,9 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
             disabled=sign_portfolio and signing_key is None,
         ):
             try:
-                current_data = api.state_manager.get_data()
+                with api.state_manager.transaction():
+                    current_data = api.state_manager.get_data()
+                    current_origin = api.state_manager.get_loaded_origin()
                 api.data_services.save_portfolio(
                     name=portfolio_name,
                     data=current_data,
@@ -251,6 +277,7 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                     plot_counter=api.state_manager.get_plot_counter(),
                     csv_path=api.state_manager.get_csv_path(),
                     parse_variables=api.state_manager.get_parse_variables(),
+                    origin=current_origin,
                     figure_spec_enricher=build_figure_spec_dict,
                     signing_key=signing_key,
                     signing_key_id=signing_key_id,
@@ -303,6 +330,7 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                         ),
                     )
                     report = api.state_manager.restore_session(data)
+                    UIStateManager().cleanup_all()
                     if not report.complete:
                         issues: list[str] = list(report.plots_skipped)
                         if report.data_error:
@@ -323,7 +351,8 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                             selected_portfolio,
                             issues,
                         )
-                    st.toast(f"Portfolio loaded: {selected_portfolio}", icon="✅")
+                    else:
+                        st.toast(f"Portfolio loaded: {selected_portfolio}", icon="✅")
                     st.rerun(scope="app")
                 except PortfolioVersionError as e:
                     st.error(str(e))

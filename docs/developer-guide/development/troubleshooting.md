@@ -5,18 +5,13 @@ parent: Development
 grand_parent: Developer Guide
 nav_order: 6
 permalink: /developer-guide/development/troubleshooting/
-redirect_from:
-  - /engineering-reference/troubleshooting/
-  - /engineering-reference/troubleshooting/common-issues/
-  - /engineering-reference/troubleshooting/debugging-guide/
-  - /engineering-reference/troubleshooting/performance/
 ---
 
 # Development troubleshooting
 
 ## The environment is inconsistent
 
-Run `python_venv/bin/python --version` and `python_venv/bin/pip check`. Re-run `make dev` after a
+Run `python_venv/bin/python --version` and `uv pip check --python python_venv/bin/python`. Re-run `make dev` after a
 dependency change. Do not mix a globally installed command with modules from `python_venv`.
 
 ## Tests cannot find fixture data
@@ -32,8 +27,9 @@ or other shared resource, use the existing serial marker or xdist group rather t
 
 ## Kaleido or PGF export fails
 
-Use `make test-export` for serial Kaleido tests. Install Chromium with `make playwright-install` or
-the environment-specific Kaleido command. For PGF, run `make check-latex` before `make test-latex`.
+Use `make test-export` for serial Kaleido tests. Run `ring5 install-chrome` and set `BROWSER_PATH`
+to its printed path before starting those tests. `make playwright-install` owns the separate
+application-test browser. For PGF, run `make check-latex` before `make test-latex`.
 
 ## The architecture check rejects an import
 

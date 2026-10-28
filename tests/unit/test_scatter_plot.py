@@ -1,5 +1,8 @@
 """Tests for scatter-plot figure creation and validation."""
 
+from ring5 import Session
+from typing import cast
+
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
@@ -20,18 +23,20 @@ def sample_data() -> pd.DataFrame:
 
 
 class TestScatterPlotCreateFigure:
-    """Tests for ScatterPlot.create_figure."""
+    """Public rendering tests for ScatterPlot."""
 
     # [test->req~ring5.plot.scatter~1]
 
-    def test_basic_scatter(self, sample_data: pd.DataFrame) -> None:
+    def test_basic_scatter(self, sample_data: pd.DataFrame, plot_session: Session) -> None:
         plot = ScatterPlot(1, "test")
         config = {"x": "x", "y": "y", "title": "T", "xlabel": "X", "ylabel": "Y"}
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) >= 1
 
-    def test_scatter_with_color(self, sample_data: pd.DataFrame) -> None:
+    def test_scatter_with_color(self, sample_data: pd.DataFrame, plot_session: Session) -> None:
         plot = ScatterPlot(1, "test")
         config = {
             "x": "x",
@@ -41,10 +46,14 @@ class TestScatterPlotCreateFigure:
             "xlabel": "X",
             "ylabel": "Y",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert len(list(fig.data)) >= 2
 
-    def test_scatter_with_error_bars(self, sample_data: pd.DataFrame) -> None:
+    def test_scatter_with_error_bars(
+        self, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         plot = ScatterPlot(1, "test")
         config = {
             "x": "x",
@@ -54,10 +63,12 @@ class TestScatterPlotCreateFigure:
             "ylabel": "Y",
             "show_error_bars": True,
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
 
-    def test_scatter_error_no_sd_col(self) -> None:
+    def test_scatter_error_no_sd_col(self, plot_session: Session) -> None:
         data = pd.DataFrame({"x": [1], "y": [2]})
         plot = ScatterPlot(1, "test")
         config = {
@@ -68,13 +79,7 @@ class TestScatterPlotCreateFigure:
             "ylabel": "Y",
             "show_error_bars": True,
         }
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
-
-    def test_get_legend_column_with_color(self) -> None:
-        plot = ScatterPlot(1, "test")
-        assert plot.get_legend_column({"color": "cat"}) == "cat"
-
-    def test_get_legend_column_without_color(self) -> None:
-        plot = ScatterPlot(1, "test")
-        assert plot.get_legend_column({}) is None

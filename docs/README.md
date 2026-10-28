@@ -25,8 +25,8 @@ Write for readers who understand gem5 but have not used RING-5.
 - Verify commands with executable `--help` output. Verify UI labels, API calls, registry names, and
   formats against source or tests.
 - Use repository-relative links for source files and site-relative links for published pages.
-- Add `redirect_from` entries when a page moves or several pages merge. A redirect must name the
-  old published route, including its leading and trailing slash.
+- Link to the current canonical permalink. Update all references when pages move; do not add
+  retired-route aliases.
 - Do not add screenshots for procedures that change frequently. Use text, code, or diagrams.
 
 ## Page structure

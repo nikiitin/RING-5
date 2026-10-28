@@ -12,7 +12,9 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
+from src.core.models.data_models import PipelineStep
 from tests.ui_logic.conftest import StubPlotHandle
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 
 # Helpers
@@ -33,6 +35,9 @@ def _make_controller(
     api.state_manager.get_plot_counter.return_value = 3
 
     ui_state = ui_state or MagicMock()
+    ui_state.plot.prepare_selector.side_effect = lambda plot_id: WidgetKeyBuilder.plot_key(
+        plot_id, "selector"
+    )
     lifecycle = lifecycle or MagicMock()
     registry = registry or MagicMock()
     registry.get_available_types.return_value = ["bar", "line", "scatter"]
@@ -147,36 +152,38 @@ class TestRenderSelector:
         api.state_manager.get_plots.return_value = [plot]
         api.state_manager.get_current_plot_id.return_value = 1
 
-        mock_render.return_value = "Alpha"
+        mock_render.return_value = 1
         ctrl = _make_controller(api=api)
         result = ctrl.render_selector()
 
         assert result is plot
-        mock_render.assert_called_once_with(["Alpha"], default_index=0)
+        mock_render.assert_called_once_with({1: "Alpha"}, key="plot.1.selector")
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.PlotSelectorComponent.render")
-    def test_selects_correct_plot_by_name(self, mock_render: MagicMock, mock_st: MagicMock) -> None:
-        """When user selects a plot by name, the matching plot is returned."""
+    def test_selects_correct_plot_by_id(self, mock_render: MagicMock, mock_st: MagicMock) -> None:
+        """A changed selected ID updates the domain and remounts its selector."""
         p1 = StubPlotHandle(plot_id=1, name="Alpha")
         p2 = StubPlotHandle(plot_id=2, name="Beta")
         api = MagicMock()
         api.state_manager.get_plots.return_value = [p1, p2]
         api.state_manager.get_current_plot_id.return_value = 1
 
-        mock_render.return_value = "Beta"
+        mock_render.return_value = 2
         ctrl = _make_controller(api=api)
         result = ctrl.render_selector()
 
         assert result is p2
         api.state_manager.set_current_plot_id.assert_called_once_with(2)
+        ctrl._ui.plot.forget_selector.assert_called_once_with(1)
+        mock_st.rerun.assert_called_once()
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.PlotSelectorComponent.render")
-    def test_default_index_matches_current_id(
+    def test_prepared_key_matches_current_id(
         self, mock_render: MagicMock, mock_st: MagicMock
     ) -> None:
-        """SelectorPresenter receives default_index matching current_plot_id."""
+        """The prepared selector key follows the current plot ID."""
         p1 = StubPlotHandle(plot_id=10, name="First")
         p2 = StubPlotHandle(plot_id=20, name="Second")
         p3 = StubPlotHandle(plot_id=30, name="Third")
@@ -185,28 +192,30 @@ class TestRenderSelector:
         api.state_manager.get_plots.return_value = [p1, p2, p3]
         api.state_manager.get_current_plot_id.return_value = 30
 
-        mock_render.return_value = "Third"
+        mock_render.return_value = 30
         ctrl = _make_controller(api=api)
         ctrl.render_selector()
 
-        mock_render.assert_called_once_with(["First", "Second", "Third"], default_index=2)
+        mock_render.assert_called_once_with(
+            {10: "First", 20: "Second", 30: "Third"}, key="plot.30.selector"
+        )
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.PlotSelectorComponent.render")
-    def test_no_current_id_defaults_to_zero(
+    def test_no_current_id_uses_first_plot(
         self, mock_render: MagicMock, mock_st: MagicMock
     ) -> None:
-        """When current_plot_id is None, default_index is 0."""
+        """An absent current ID resolves the first actual plot ID."""
         p1 = StubPlotHandle(plot_id=1, name="Alpha")
         api = MagicMock()
         api.state_manager.get_plots.return_value = [p1]
         api.state_manager.get_current_plot_id.return_value = None
 
-        mock_render.return_value = "Alpha"
+        mock_render.return_value = 1
         ctrl = _make_controller(api=api)
         ctrl.render_selector()
 
-        mock_render.assert_called_once_with(["Alpha"], default_index=0)
+        mock_render.assert_called_once_with({1: "Alpha"}, key="plot.1.selector")
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.PlotSelectorComponent.render")
@@ -217,11 +226,13 @@ class TestRenderSelector:
         api.state_manager.get_plots.return_value = [plot]
         api.state_manager.get_current_plot_id.return_value = 5
 
-        mock_render.return_value = "Same"
+        mock_render.return_value = 5
         ctrl = _make_controller(api=api)
         ctrl.render_selector()
 
         api.state_manager.set_current_plot_id.assert_not_called()
+        ctrl._ui.plot.forget_selector.assert_not_called()
+        mock_st.rerun.assert_not_called()
 
 
 # render_controls
@@ -240,7 +251,9 @@ class TestRenderControls:
         }
 
         processed_data = pd.DataFrame({"benchmark": ["mcf"], "ipc": [1.2]})
-        pipeline = [{"id": 0, "type": "columnSelector", "config": {"columns": ["ipc"]}}]
+        pipeline: list[PipelineStep] = [
+            {"id": 0, "type": "columnSelector", "config": {"columns": ["ipc"]}}
+        ]
         config = {"x": "benchmark", "y": "ipc"}
         plot = StubPlotHandle(
             plot_id=1,
@@ -253,7 +266,7 @@ class TestRenderControls:
         ctrl.render_controls(plot)
 
         assert plot.name == "Renamed Plot"
-        assert plot.config is config
+        assert plot.config == config
         assert plot.pipeline is pipeline
         assert plot.processed_data is processed_data
 
@@ -322,3 +335,22 @@ class TestRenderControls:
 
 # NOTE: TestHandleSaveDialog, TestHandleLoadDialog, and save/load callback
 # Pipeline save/load tests were removed with that feature.
+
+
+@patch("src.web.controllers.plot.creation_controller.st")
+@patch("src.web.controllers.plot.creation_controller.PlotSelectorComponent.render")
+def test_duplicate_generated_labels_do_not_collide_with_real_plot_names(
+    mock_render: MagicMock,
+    mock_st: MagicMock,
+) -> None:
+    """Every plot remains individually selectable when names already have suffixes."""
+    plots = [
+        StubPlotHandle(plot_id=index, name=name) for index, name in enumerate(["X", "X", "X (2)"])
+    ]
+    api = MagicMock()
+    api.state_manager.get_plots.return_value = plots
+    api.state_manager.get_current_plot_id.return_value = 0
+    mock_render.return_value = 1
+    selected = _make_controller(api=api).render_selector()
+    assert selected is plots[1]
+    mock_render.assert_called_once_with({0: "X", 1: "X (3)", 2: "X (2)"}, key="plot.0.selector")

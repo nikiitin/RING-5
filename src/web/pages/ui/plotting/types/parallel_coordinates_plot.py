@@ -13,7 +13,7 @@ from src.core.models.visualization.trace_config import (
     ParallelDimensionConfig,
 )
 from src.web.components.plotting.config import parallel_coordinates_config
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload
 
@@ -38,7 +38,7 @@ def _mapping(value: object, name: str) -> dict[str, object]:
         return {}
     if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
         raise ValueError(f"Parallel-coordinate {name} must map dimension names to values.")
-    return value
+    return dict(value)
 
 
 def _range(value: object, name: str) -> tuple[float, float]:
@@ -190,12 +190,6 @@ class ParallelCoordinatesPlot(BasePlot):
             },
         )
         return TraceBuildResult(traces=[trace])
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Return the optional line-color column."""
-        color = config.get("parallel_color")
-        return str(color) if color else None
 
 
 __all__ = ["ParallelCoordinatesPlot"]

@@ -1,5 +1,10 @@
 """Unit tests for Histogram plot type."""
 
+from ring5 import Session
+from ring5.errors import RenderError
+from typing import cast
+import plotly.graph_objects as go
+
 from typing import Any
 from unittest.mock import patch
 
@@ -38,21 +43,21 @@ class TestHistogramPlotConfiguration:
         data = pd.DataFrame(
             {
                 "benchmark": ["A", "B", "C"],
-                "latency..0-10": [5, 8, 3],
-                "latency..10-20": [10, 12, 9],
-                "latency..20-30": [3, 5, 2],
+                "latency..0-9": [5, 8, 3],
+                "latency..10-19": [10, 12, 9],
+                "latency..20-29": [3, 5, 2],
             }
         )
 
         mock_common.return_value = {
             "x": "benchmark",
-            "y": "latency..0-10",
+            "y": "latency..0-9",
             "title": "Test Histogram",
             "xlabel": "X Label",
             "ylabel": "Y Label",
         }
         mock_detect.return_value = (
-            ["latency..0-10", "latency..10-20", "latency..20-30"],
+            ["latency..0-9", "latency..10-19", "latency..20-29"],
             ["benchmark"],
         )
 
@@ -80,20 +85,20 @@ class TestHistogramPlotConfiguration:
             {
                 "benchmark": ["A", "A", "B", "B"],
                 "config": ["X", "Y", "X", "Y"],
-                "latency..0-10": [5, 8, 3, 6],
-                "latency..10-20": [10, 12, 9, 11],
+                "latency..0-9": [5, 8, 3, 6],
+                "latency..10-19": [10, 12, 9, 11],
             }
         )
 
         mock_common.return_value = {
             "x": "benchmark",
-            "y": "latency..0-10",
+            "y": "latency..0-9",
             "title": "Test",
             "xlabel": "X",
             "ylabel": "Y",
         }
         mock_detect.return_value = (
-            ["latency..0-10", "latency..10-20"],
+            ["latency..0-9", "latency..10-19"],
             ["benchmark", "config"],
         )
 
@@ -110,19 +115,19 @@ class TestHistogramPlotConfiguration:
 class TestHistogramPlotFigureCreation:
     """Test histogram plot figure generation."""
 
-    # [test->req~ring5.plot.histogram~1]
+    # [test->req~ring5.plot.histogram~2]
 
-    def test_create_figure_single_histogram(self) -> None:
+    def test_create_figure_single_histogram(self, plot_session: Session) -> None:
         """Test creating figure with single histogram."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
         # Data with histogram buckets
         data = pd.DataFrame(
             {
-                "latency..0-10": [5],
-                "latency..10-20": [10],
-                "latency..20-30": [3],
-                "latency..30-40": [1],
+                "latency..0-9": [5],
+                "latency..10-19": [10],
+                "latency..20-29": [3],
+                "latency..30-39": [1],
             }
         )
 
@@ -136,12 +141,14 @@ class TestHistogramPlotFigureCreation:
             "group_by": None,
         }
 
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
         assert len(list(fig.data)) > 0
 
-    def test_create_figure_grouped_histograms(self) -> None:
+    def test_create_figure_grouped_histograms(self, plot_session: Session) -> None:
         """Test creating figure with multiple grouped histograms."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
@@ -149,9 +156,9 @@ class TestHistogramPlotFigureCreation:
         data = pd.DataFrame(
             {
                 "benchmark": ["A", "B", None],
-                "latency..0-10": [5, 8, 100],
-                "latency..10-20": [10, 12, 100],
-                "latency..20-30": [3, 5, 100],
+                "latency..0-9": [5, 8, 100],
+                "latency..10-19": [10, 12, 100],
+                "latency..20-29": [3, 5, 100],
             }
         )
 
@@ -167,25 +174,27 @@ class TestHistogramPlotFigureCreation:
             "legend_labels": {"B": "Optimized"},
         }
 
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
         # Missing group values do not create a bogus empty trace.
         assert len(list(fig.data)) == 2
-        assert [trace.name for trace in fig.data] == ["Optimized", "A"]
+        assert [cast(go.Bar, trace).name for trace in fig.data] == ["Optimized", "A"]
 
-    def test_create_figure_with_rebinning(self) -> None:
+    def test_create_figure_with_rebinning(self, plot_session: Session) -> None:
         """Test histogram with custom bucket size (rebinning)."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
         # Data with fine-grained buckets
         data = pd.DataFrame(
             {
-                "latency..0-5": [3],
-                "latency..5-10": [5],
-                "latency..10-15": [7],
-                "latency..15-20": [4],
-                "latency..20-25": [2],
+                "latency..0-4": [3],
+                "latency..5-9": [5],
+                "latency..10-14": [7],
+                "latency..15-19": [4],
+                "latency..20-24": [2],
             }
         )
 
@@ -199,22 +208,24 @@ class TestHistogramPlotFigureCreation:
             "group_by": None,
         }
 
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
         # Should have rebinned the data
         assert len(list(fig.data)) > 0
 
-    def test_create_figure_normalized(self) -> None:
+    def test_create_figure_normalized(self, plot_session: Session) -> None:
         """Test histogram with probability normalization."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
         data = pd.DataFrame(
             {
-                "latency..0-10": [10],
-                "latency..10-20": [20],
-                "latency..20-30": [30],
-                "latency..30-40": [40],
+                "latency..0-9": [10],
+                "latency..10-19": [20],
+                "latency..20-29": [30],
+                "latency..30-39": [40],
             }
         )
 
@@ -228,38 +239,18 @@ class TestHistogramPlotFigureCreation:
             "group_by": None,
         }
 
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
         assert len(list(fig.data)) > 0
 
 
-class TestHistogramPlotLegend:
-    """Test histogram plot legend handling."""
-
-    def test_get_legend_column_no_grouping(self) -> None:
-        """Test legend column when no grouping."""
-        plot = HistogramPlot(plot_id=1, name="Test Histogram")
-
-        config = {"group_by": None}
-        legend_col = plot.get_legend_column(config)
-
-        assert legend_col is None
-
-    def test_get_legend_column_with_grouping(self) -> None:
-        """Test legend column with grouping variable."""
-        plot = HistogramPlot(plot_id=1, name="Test Histogram")
-
-        config = {"group_by": "benchmark"}
-        legend_col = plot.get_legend_column(config)
-
-        assert legend_col == "benchmark"
-
-
 class TestHistogramPlotValidation:
     """Test histogram plot validation."""
 
-    def test_validates_histogram_variable_exists(self) -> None:
+    def test_validates_histogram_variable_exists(self, plot_session: Session) -> None:
         """Test validation when histogram variable doesn't exist."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
@@ -277,5 +268,7 @@ class TestHistogramPlotValidation:
         }
 
         # Should handle gracefully (return empty figure or raise)
-        with pytest.raises((ValueError, KeyError)):
-            plot.create_figure(data, config)
+        with pytest.raises(RenderError, match="No histogram bucket columns"):
+            plot.processed_data = data
+            plot.config = config
+            cast(go.Figure, plot_session.render(plot))

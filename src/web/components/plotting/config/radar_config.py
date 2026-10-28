@@ -5,23 +5,22 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_color_selector,
     render_xy_selectors,
 )
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _SCALES = {
     "Start at zero when possible": "zero",
     "Fit observed values": "data",
     "Custom range": "custom",
 }
-
-
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
 
 
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
@@ -57,13 +56,13 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Shared radial range",
             options=list(_SCALES),
             index=list(_SCALES).index(
-                _saved_label(
+                saved_option_label(
                     _SCALES,
                     saved_config.get("radar_scale_mode"),
                     "Start at zero when possible",
                 )
             ),
-            key=f"radar_scale_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.radar_scale"),
         )
         scale_mode = _SCALES[scale_label]
         radar_min = float(saved_config.get("radar_min", 0.0))
@@ -72,12 +71,12 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             radar_min = st.number_input(
                 "Radial minimum",
                 value=radar_min,
-                key=f"radar_min_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.radar_min"),
             )
             radar_max = st.number_input(
                 "Radial maximum",
                 value=radar_max,
-                key=f"radar_max_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.radar_max"),
             )
     with geometry_column:
         start_angle = st.slider(
@@ -85,12 +84,12 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             min_value=0,
             max_value=360,
             value=int(saved_config.get("radar_start_angle", 90)),
-            key=f"radar_angle_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.radar_angle"),
         )
         clockwise = st.checkbox(
             "Clockwise category order",
             value=bool(saved_config.get("radar_clockwise", True)),
-            key=f"radar_clockwise_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.radar_clockwise"),
         )
         line_width = st.slider(
             "Outline width",
@@ -98,7 +97,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=6.0,
             value=float(saved_config.get("radar_line_width", 2.0)),
             step=0.5,
-            key=f"radar_line_width_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.radar_line_width"),
         )
 
     st.markdown("#### Profiles")
@@ -107,7 +106,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
         fill_area = st.checkbox(
             "Fill profile areas",
             value=bool(saved_config.get("radar_fill", True)),
-            key=f"radar_fill_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.radar_fill"),
         )
         opacity = st.slider(
             "Profile opacity",
@@ -115,13 +114,13 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=1.0,
             value=float(saved_config.get("radar_opacity", 0.75)),
             step=0.05,
-            key=f"radar_opacity_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.radar_opacity"),
         )
     with marker_column:
         show_markers = st.checkbox(
             "Show category markers",
             value=bool(saved_config.get("radar_markers", True)),
-            key=f"radar_markers_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.radar_markers"),
         )
         marker_size = st.slider(
             "Marker size",
@@ -129,7 +128,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=16,
             value=int(saved_config.get("marker_size", 6)),
             disabled=not show_markers,
-            key=f"radar_marker_size_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.radar_marker_size"),
         )
 
     return {
