@@ -179,14 +179,15 @@ class TestPortfolioSaveLoad:
         pf.navigate()
         pf.save_current_as_recipe("E2E Analysis Recipe")
 
-        expect(pf.recipe_saved_success).to_be_visible(timeout=E2E_TIMEOUT)
-        pf.open_analysis_recipes()
-        pf.saved_recipes_tab.click()
+        expect(pf.saved_recipe_selectbox.get_by_role("combobox")).to_have_value(
+            "E2E Analysis Recipe"
+        )
         expect(pf.download_recipe_button).to_be_visible(timeout=E2E_TIMEOUT)
         with tier3_page.expect_download(timeout=E2E_TIMEOUT) as download_info:
             pf.download_recipe_button.click()
         document = json.loads(download_info.value.path().read_text())
         assert document["format"] == "ring5.analysis-recipe"
+        assert document["name"] == "E2E Analysis Recipe"
         assert document["source"]["path"] == "{{source_path}}"
         assert document["parameters"][0]["type"] == "path"
         assert len(document["plots"]) == 2

@@ -117,10 +117,10 @@ def _capture_recipe(portfolio: PortfolioPage, name: str) -> dict[str, Any]:
     )
     portfolio._open_and_select(file_format, "html")
     portfolio.save_current_as_recipe(name)
-    portfolio.select_saved_recipe(name)
     download = portfolio.download_recipe_artifact("json")
     document = json.loads(download.path().read_text(encoding="utf-8"))
     assert document["format"] == "ring5.analysis-recipe"
+    assert document["name"] == name
     assert document["source"]["path"] == "{{source_path}}"
     assert {item["name"]: item["type"] for item in document["parameters"]} == {
         "source_path": "path",
@@ -273,14 +273,18 @@ class TestAnalysisRecipeExchange:
         portfolio = PortfolioPage(page)
         portfolio.navigate()
         document = _capture_recipe(portfolio, "Browser original recipe")
+        scope = portfolio.analysis_recipes_expander
+        scope.get_by_role("tab", name="Save current", exact=True).click()
+        portfolio.recipe_name_input.fill("Unsaved browser recipe draft")
+        portfolio.recipe_name_input.press("Enter")
+        description = scope.get_by_role("textbox", name="Recipe description", exact=True)
+        description.fill("Keep these edits through recipe exchange")
+        description.press("Tab")
         document["name"] = "Browser imported recipe"
         document["description"] = "Imported through the actual recipe uploader"
         imported = tmp_path / "imported.ring5-recipe.json"
         imported.write_text(json.dumps(document), encoding="utf-8")
         portfolio.import_recipe(imported)
-        expect(
-            page.get_by_test_id("stAlertContentSuccess").filter(has_text="Imported analysis recipe")
-        ).to_be_visible()
         portfolio.select_saved_recipe(document["name"])
         assert json.loads(portfolio.download_recipe_artifact("json").path().read_text()) == document
 
@@ -295,6 +299,11 @@ class TestAnalysisRecipeExchange:
         assert json.loads(portfolio.download_recipe_artifact("json").path().read_text()) == document
         portfolio.import_recipe(collision, overwrite=True)
         portfolio.select_saved_recipe(document["name"])
+        expect(
+            portfolio.analysis_recipes_expander.get_by_role("tabpanel", name="Saved", exact=True)
+            .get_by_test_id("stMarkdownContainer")
+            .filter(has_text=changed["description"])
+        ).to_have_text(f"{changed['name']} — {changed['description']}", timeout=E2E_TIMEOUT)
         assert json.loads(portfolio.download_recipe_artifact("json").path().read_text()) == changed
 
         unsupported = {
@@ -332,6 +341,9 @@ class TestAnalysisRecipeExchange:
             page.get_by_role("option", name="Unsupported browser recipe", exact=True)
         ).to_have_count(0)
         control.press("Escape")
+        scope.get_by_role("tab", name="Save current", exact=True).click()
+        expect(portfolio.recipe_name_input).to_have_value("Unsaved browser recipe draft")
+        expect(description).to_have_value("Keep these edits through recipe exchange")
         _assert_rows(_rows(page), _SOURCE)
         _assert_native(page)
 

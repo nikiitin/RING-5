@@ -211,13 +211,6 @@ class ManagePlotsPage(BasePage):
         """Validate, save, and use the uploaded pipeline."""
         return self.pipeline_exchange_expander.get_by_role("button", name="Import, save, and use")
 
-    @property
-    def pipeline_configuration_import_success(self) -> Locator:
-        """Human-readable pipeline import confirmation."""
-        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
-            has_text="Imported and loaded"
-        )
-
     def get_pipeline_step(self, index: int) -> Locator:
         """Return the *n*-th pipeline step expander (0-based).
 
@@ -766,14 +759,18 @@ class ManagePlotsPage(BasePage):
         download_info.value.save_as(str(path))
 
     def upload_and_use_pipeline_configuration(self, path: str | Path) -> None:
-        """Upload, validate, save, and use one portable pipeline file."""
+        """Submit an uploaded pipeline; callers verify its retained configuration."""
         self.open_pipeline_exchange()
         self.pipeline_configuration_uploader.set_input_files(str(path))
-        self.wait_for_streamlit(expect_rerun=True)
-        self.page.wait_for_timeout(500)
-        self.pipeline_configuration_import_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
-        self.page.wait_for_timeout(500)
+        expect(
+            self.pipeline_exchange_expander.get_by_title(Path(path).name, exact=True)
+        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(
+            self.pipeline_exchange_expander.get_by_test_id("stFileChipIconSpinner")
+        ).to_have_count(0, timeout=self.RENDER_TIMEOUT)
+        expect(self.pipeline_configuration_import_button).to_be_enabled(timeout=self.RENDER_TIMEOUT)
+        with self.expect_script_rerun():
+            self.pipeline_configuration_import_button.click()
 
     def delete_step(self, index: int) -> None:
         """Delete a pipeline step by index.

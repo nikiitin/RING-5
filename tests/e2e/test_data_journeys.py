@@ -425,8 +425,8 @@ class TestNamedWorkspaceResults:
         managers.select_tab("Workspace")
         managers._open_and_select(managers.workspace_operation_selectbox, "Append")
         managers.workspace_append_name_input.fill("all_rows")
-        managers.workspace_append_button.click()
-        managers.wait_for_streamlit(expect_rerun=True)
+        with managers.expect_script_rerun():
+            managers.workspace_append_button.click()
         assert _active_rows(workspace) == _csv_rows(_LEFT_CSV) + _csv_rows(_RIGHT_CSV)
         managers.activate_workspace_dataset("left_source")
         assert _active_rows(workspace) == _csv_rows(_LEFT_CSV)
@@ -507,8 +507,8 @@ class TestNamedWorkspaceResults:
         managers.select_tab("Workspace")
         managers._open_and_select(managers.workspace_revision_selectbox, original_revision)
         expect(managers.workspace_restore_button).to_be_enabled()
-        managers.workspace_restore_button.click()
-        managers.wait_for_streamlit(expect_rerun=True)
+        with managers.expect_script_rerun():
+            managers.workspace_restore_button.click()
         assert _active_rows(workspace) == original
 
         managers.select_tab("Workspace")
@@ -519,8 +519,8 @@ class TestNamedWorkspaceResults:
         assert _active_rows(workspace) == original
         managers.select_tab("Workspace")
         managers._open_and_select(managers.workspace_dataset_selectbox, "paired")
-        managers.workspace_remove_button.click()
-        managers.wait_for_streamlit(expect_rerun=True)
+        with managers.expect_script_rerun():
+            managers.workspace_remove_button.click()
         expect(managers.workspace_dataset_metric_value).to_have_text("4")
         managers.activate_workspace_dataset("left_source")
         assert _active_rows(workspace) == _csv_rows(_LEFT_CSV)
@@ -577,8 +577,8 @@ class TestComparisonArtifacts:
         assert len(junit.findall("testcase/skipped")) == 1
         assert _active_rows(page) == _csv_rows(payload)
         managers.select_tab("Compare")
-        managers.comparison_confirm_button.click()
-        managers.wait_for_streamlit(expect_rerun=True)
+        with managers.expect_script_rerun():
+            managers.comparison_confirm_button.click()
         assert _active_rows(page) == comparison
         _assert_clean(page)
 
@@ -1011,17 +1011,18 @@ class TestSchemaContractSemantics:
             "Valid", timeout=E2E_TIMEOUT
         )
         managers.apply_schema_semantics()
-        expect(managers.schema_semantics_success).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(
+            managers.schema_semantics_row("time").get_by_role("gridcell", include_hidden=True)
+        ).to_have_text(["time", "Latency", "ms", "Latency (ms)"], timeout=E2E_TIMEOUT)
         expect(managers.schema_unit_target_selectbox).to_contain_text("currently ms")
         assert _active_rows(page) == _csv_rows(original)
 
         managers.select_tab("Schema Contract")
         managers.convert_schema_unit("time", "s")
         expect(
-            managers.schema_contract_panel.get_by_text(
-                "Converted time to s; the prior revision remains undoable.", exact=True
-            )
-        ).to_be_visible(timeout=E2E_TIMEOUT)
+            managers.schema_semantics_row("time").get_by_role("gridcell", include_hidden=True)
+        ).to_have_text(["time", "Latency", "s", "Latency (s)"], timeout=E2E_TIMEOUT)
+        expect(managers.schema_unit_target_selectbox).to_contain_text("currently s")
         converted = _active_rows(page)
         assert [
             (row["benchmark"], float(row["time"]), float(row["time.sd"])) for row in converted
@@ -1032,6 +1033,9 @@ class TestSchemaContractSemantics:
         expect(managers.schema_contract_panel.get_by_test_id("stAlertContentError")).to_have_text(
             "Cannot convert 's' to 'W': units are not compatible.", timeout=E2E_TIMEOUT
         )
+        expect(
+            managers.schema_semantics_row("time").get_by_role("gridcell", include_hidden=True)
+        ).to_have_text(["time", "Latency", "s", "Latency (s)"])
         assert _active_rows(page) == converted
         managers.select_tab("Workspace")
         expect(managers.workspace_undo_button).to_be_enabled()
@@ -1041,6 +1045,9 @@ class TestSchemaContractSemantics:
             (row["benchmark"], float(row["time"]), float(row["time.sd"])) for row in restored
         ] == [("alpha", 1000.0, 100.0), ("beta", 2500.0, 250.0)]
         managers.select_tab("Schema Contract")
+        expect(
+            managers.schema_semantics_row("time").get_by_role("gridcell", include_hidden=True)
+        ).to_have_text(["time", "Latency", "ms", "Latency (ms)"], timeout=E2E_TIMEOUT)
         expect(managers.schema_unit_target_selectbox).to_contain_text("currently ms")
         assert managers.schema_rule_value("time", "Semantic label") == "Latency"
         assert managers.schema_rule_value("time", "Unit") == "ms"

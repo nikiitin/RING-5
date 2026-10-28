@@ -142,13 +142,6 @@ class PortfolioPage(BasePage):
         return self.analysis_recipes_expander.get_by_role("button", name="Save analysis recipe")
 
     @property
-    def recipe_saved_success(self) -> Locator:
-        """Persistent recipe-save confirmation."""
-        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
-            has_text="Saved analysis recipe"
-        )
-
-    @property
     def saved_recipes_tab(self) -> Locator:
         """Saved recipe inspection tab."""
         return self.analysis_recipes_expander.get_by_role("tab", name="Saved", exact=True)
@@ -244,6 +237,10 @@ class PortfolioPage(BasePage):
         self.open_analysis_recipes()
         self.saved_recipes_tab.click()
         self._open_and_select(self.saved_recipe_selectbox, name)
+        saved = self.analysis_recipes_expander.get_by_role("tabpanel", name="Saved", exact=True)
+        expect(
+            saved.get_by_test_id("stMarkdownContainer").get_by_text(name, exact=True)
+        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def import_recipe(self, path: Path, *, overwrite: bool = False) -> None:
         """Submit a file through recipe import without assuming it will be accepted."""
@@ -267,7 +264,6 @@ class PortfolioPage(BasePage):
         expect(self.recipe_import_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
         expect(self.recipe_import_button).to_be_enabled(timeout=self.RENDER_TIMEOUT)
         self.recipe_import_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
 
     def download_recipe_artifact(self, kind: str) -> Download:
         """Transfer JSON, Python, or notebook bytes from the selected saved recipe."""
@@ -349,13 +345,15 @@ class PortfolioPage(BasePage):
         expect(tabs).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def save_current_as_recipe(self, name: str) -> None:
-        """Capture the current source and plots under *name*."""
+        """Capture the workspace and select its exact persisted recipe for inspection."""
         self.open_analysis_recipes()
         self.analysis_recipes_expander.get_by_role("tab", name="Save current", exact=True).click()
         self.recipe_name_input.fill(name)
-        self.save_recipe_button.click()
-        self.wait_for_streamlit(expect_rerun=True)
-        expect(self.recipe_saved_success).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self.recipe_name_input.press("Enter")
+        expect(self.recipe_name_input).to_have_value(name, timeout=self.RENDER_TIMEOUT)
+        with self.expect_script_rerun():
+            self.save_recipe_button.click()
+        self.select_saved_recipe(name)
 
     def open_saved_portfolio(self, name: str) -> None:
         """Expand the management panel for *name*."""

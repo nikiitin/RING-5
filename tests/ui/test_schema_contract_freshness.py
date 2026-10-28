@@ -56,3 +56,23 @@ def test_unit_conversion_refreshes_sibling_tables_and_retains_one_success_notice
     app.run()
     assert not app.exception
     assert not any("Converted time to s" in message.value for message in app.success)
+    current = api.state_manager.get_data()
+    assert current is not None
+    pd.testing.assert_frame_equal(current, expected)
+    schema = next(tab for tab in app.tabs if tab.label == "Schema Contract")
+    retained = next(
+        table.value
+        for table in schema.dataframe
+        if list(table.value.columns) == ["column", "semantic_label", "unit", "display_label"]
+    )
+    pd.testing.assert_frame_equal(
+        retained,
+        pd.DataFrame(
+            {
+                "column": ["time"],
+                "semantic_label": ["Latency"],
+                "unit": ["s"],
+                "display_label": ["Latency (s)"],
+            }
+        ),
+    )

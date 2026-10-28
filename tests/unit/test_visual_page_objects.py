@@ -7,6 +7,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 import pytest
 
 from tests.visual.pages.base_page import BasePage
+from tests.visual.pages.data_managers_page import DataManagersPage
 from tests.visual.pages.data_source_page import DataSourcePage
 from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
@@ -811,6 +812,47 @@ def test_pipeline_finalization_requires_its_fresh_application_cycle(completes: b
     assert page.evaluate.call_count == 2
     assert "observed.active = 0" in page.evaluate.call_args_list[-1].args[0]
     page.get_by_test_id.assert_not_called()
+    page.wait_for_timeout.assert_not_called()
+
+
+@pytest.mark.parametrize("completes", [False, True])
+def test_applying_schema_semantics_requires_its_prearmed_application_cycle(completes: bool) -> None:
+    """A semantic publication cannot complete on an old idle state or a transient notice."""
+    page = MagicMock()
+    page.evaluate.return_value = 4
+    button = MagicMock()
+    failure = PlaywrightTimeoutError("Semantic publication did not complete")
+    page.wait_for_function.side_effect = [None, None if completes else failure]
+
+    def publish() -> None:
+        assert page.wait_for_function.call_count == 1
+        assert page.evaluate.call_count == 1
+
+    button.click.side_effect = publish
+    with (
+        patch.object(
+            DataManagersPage,
+            "schema_semantics_apply_button",
+            new_callable=PropertyMock,
+            return_value=button,
+        ),
+        patch("tests.visual.pages.base_page.time") as clock,
+    ):
+        clock.monotonic.return_value = 100.0
+        if completes:
+            DataManagersPage(page).apply_schema_semantics()
+        else:
+            with pytest.raises(
+                PlaywrightTimeoutError, match="Semantic publication did not complete"
+            ) as caught:
+                DataManagersPage(page).apply_schema_semantics()
+            assert caught.value is failure
+    button.click.assert_called_once_with()
+    assert page.wait_for_function.call_count == 2
+    assert page.wait_for_function.call_args.kwargs["arg"] == 4
+    assert page.evaluate.call_count == 2
+    assert "observed.active = 0" in page.evaluate.call_args_list[-1].args[0]
+    page.get_by_text.assert_not_called()
     page.wait_for_timeout.assert_not_called()
 
 

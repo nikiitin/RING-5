@@ -511,7 +511,7 @@ class DataSourcePage(BasePage):
         )
         expect(owner).to_have_count(1, timeout=self.RENDER_TIMEOUT)
         classes = owner.get_attribute("class") or ""
-        matches = re.findall(r"\bst-key-retry_parse_job_([0-9a-f]{32})\b", classes)
+        matches: list[str] = re.findall(r"\bst-key-retry_parse_job_([0-9a-f]{32})\b", classes)
         assert len(matches) == 1, "Expected one job-bound recovery control"
         return matches[0]
 
@@ -565,44 +565,10 @@ class DataSourcePage(BasePage):
                 option.press("Space", timeout=self.RENDER_TIMEOUT)
         expect(option).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
-    def _refresh_data_source_render(self) -> None:
-        """Force a full-page render without replacing the browser session.
-
-        Streamlit can accept a second widget interaction while the frontend is
-        still applying an earlier fragment result.  In that narrow window the
-        radio's optimistic checked state and the server-rendered body disagree.
-        Visiting a sibling page and returning provides a deterministic full-app
-        synchronization point while preserving the session under test.
-        """
-        self.sidebar.get_by_role("button", name="Data Managers", exact=True).click(force=True)
-        self.page.get_by_text("Data Managers & Transformations").wait_for(
-            state="visible",
-            timeout=self.RENDER_TIMEOUT,
-        )
-        self.sidebar.get_by_role("button", name=self.PAGE_NAME, exact=True).click(force=True)
-        self.step_header.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
-        self.wait_for_streamlit()
-
     def _select_top_level_mode(self, option: Locator, content: Locator) -> None:
-        """Select a source mode and verify its server-rendered body, retrying once."""
-        for attempt in range(2):
-            option_selected = option.is_checked()
-            content_rendered = content.is_visible()
-            if option_selected and content_rendered:
-                return
-            if option_selected != content_rendered:
-                self._refresh_data_source_render()
-                if option.is_checked() and content.is_visible():
-                    return
-
-            self._select_mode(option)
-            try:
-                content.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
-                return
-            except PlaywrightTimeoutError:
-                if attempt:
-                    raise
-                self._refresh_data_source_render()
+        """Require one source mode's selected radio and its server-rendered body."""
+        self._select_mode(option)
+        content.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
 
     def ensure_parse_mode(self) -> None:
         """Ensure Parse mode is active without toggling it off.
@@ -621,21 +587,9 @@ class DataSourcePage(BasePage):
         self._select_top_level_mode(self.csv_option, self.csv_success_message)
 
     def select_remote_source(self) -> None:
-        """Open the remote-source form within upload mode."""
+        """Open upload mode, then require the selected remote-source form."""
         self.select_csv_mode()
-        for attempt in range(2):
-            self._select_mode(self.remote_source_option)
-            try:
-                self.remote_adapter_select.wait_for(
-                    state="visible",
-                    timeout=self.RENDER_TIMEOUT,
-                )
-                return
-            except PlaywrightTimeoutError:
-                if attempt:
-                    raise
-                self._refresh_data_source_render()
-                self.select_csv_mode()
+        self._select_top_level_mode(self.remote_source_option, self.remote_adapter_select)
 
     def select_recent_mode(self) -> None:
         """Click the 'Load from Recent' option."""
