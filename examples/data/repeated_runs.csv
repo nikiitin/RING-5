@@ -1,0 +1,13 @@
+benchmark,configuration,seed,ipc,energy_j
+mcf,baseline,0,1.8,10.0
+mcf,baseline,1,2.0,10.5
+mcf,baseline,2,2.2,11.0
+mcf,candidate,0,2.16,9.0
+mcf,candidate,1,2.4,9.5
+mcf,candidate,2,2.64,10.0
+xalancbmk,baseline,0,0.9,20.0
+xalancbmk,baseline,1,1.0,21.0
+xalancbmk,baseline,2,1.1,22.0
+xalancbmk,candidate,0,1.35,18.0
+xalancbmk,candidate,1,1.5,19.0
+xalancbmk,candidate,2,1.65,20.0

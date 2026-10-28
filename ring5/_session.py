@@ -3241,6 +3241,25 @@ class Session:
         except (OSError, TypeError, ValueError) as exc:
             raise PortfolioError(f"Portfolio '{name}' could not be verified: {exc}") from exc
 
+    def load_example_portfolio(self) -> RestoreReport:
+        """Replace this session with the bundled synthetic example portfolio.
+
+        This explicit operation restores data, plots, and editable pipelines
+        without creating saved portfolio files or requiring simulator inputs.
+        Save a named copy with :meth:`save_portfolio` to retain edits.
+
+        Returns:
+            The report describing restored data and plots.
+
+        Raises:
+            PortfolioError: The bundled resource cannot be read or restored.
+        """
+        try:
+            # [impl->req~ring5.portfolio.bundled-example~1]
+            return self.api.load_example_portfolio()
+        except (OSError, KeyError, TypeError, ValueError) as exc:
+            raise PortfolioError(f"Example portfolio could not be loaded: {exc}") from exc
+
     def load_portfolio(
         self,
         name: str,

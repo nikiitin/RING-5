@@ -60,3 +60,9 @@ tests/e2e/artifacts/
 
 # Editor workspace files
 *.code-workspace
+
+# Small synthetic inputs shipped with the executable documentation.
+!examples/data/repeated_runs.csv
+!examples/data/gem5/baseline/stats.txt
+!examples/data/gem5/candidate/stats.txt
+example-output/

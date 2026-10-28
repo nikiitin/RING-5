@@ -1216,3 +1216,70 @@ def test_public_bar_families_keep_duplicate_rows_in_current_config_replay(
             pd.testing.assert_frame_equal(source, before)
             pd.testing.assert_frame_equal(table.frame, before)
             assert spec.to_config(plot_type=family) == config
+
+
+class TestBundledExamplePortfolio:
+    """The installed tutorial uses the ordinary portfolio and rendering paths."""
+
+    @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+    def test_load_render_and_save_a_tutorial_copy(
+        self,
+        engine: Literal["plotly", "matplotlib"],
+        isolated_application_data: Path,
+        portfolios_dir: Path,
+    ) -> None:
+        # [test->req~ring5.portfolio.bundled-example~1]
+        # [test->req~ring5.portfolio.example-catalog~1]
+        before = {p for p in isolated_application_data.rglob("*") if p.is_file()}
+        with ring5.Session() as session:
+            report = session.load_example_portfolio()
+            assert report.complete and report.data_restored
+            assert report.plots_restored == len(ring5.available_plot_types()) == 17
+            assert {plot.plot_type for plot in session.plots} == set(ring5.available_plot_types())
+            original_data = session.api.state_manager.get_data()
+            assert original_data is not None
+            assert len(original_data) == 83
+            assert {p for p in isolated_application_data.rglob("*") if p.is_file()} == before
+            for plot in session.plots:
+                figure = session.render(plot, engine=engine)
+                if engine == "plotly":
+                    assert isinstance(figure, go.Figure) and figure.data
+                else:
+                    assert isinstance(figure, Figure) and figure.axes
+            session.save_portfolio("my-tutorial-copy")
+        with ring5.Session() as restored:
+            report = restored.load_portfolio("my-tutorial-copy")
+            assert report.complete and report.plots_restored == 17
+            pd.testing.assert_frame_equal(restored.api.state_manager.get_data(), original_data)
+
+    def test_independent_sessions_do_not_share_tutorial_tables_or_configs(self) -> None:
+        with ring5.Session() as first, ring5.Session() as second:
+            first.load_example_portfolio()
+            second.load_example_portfolio()
+            original_title = second.plots[0].config["title"]
+            config = first.plots[0].config
+            config["title"] = "Edited by first session"
+            first.plots[0].config = config
+            assert second.plots[0].config["title"] == original_title
+            changed = first.api.state_manager.get_data()
+            assert changed is not None
+            changed.loc[:, "scenario"] = "edited"
+            assert "edited" not in set(second.api.state_manager.get_data()["scenario"])
+
+    @pytest.mark.parametrize(
+        "error", [OSError("missing"), ValueError("invalid"), TypeError("bad"), KeyError("field")]
+    )
+    def test_resource_failures_use_public_errors_without_changing_existing_data(
+        self, error: Exception, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        with ring5.Session() as session:
+            session.load_example_portfolio()
+            before = session.api.state_manager.get_data()
+
+            def fail() -> None:
+                raise error
+
+            monkeypatch.setattr(session.api, "load_example_portfolio", fail)
+            with pytest.raises(ring5.PortfolioError, match="Example portfolio could not be loaded"):
+                session.load_example_portfolio()
+            pd.testing.assert_frame_equal(session.api.state_manager.get_data(), before)

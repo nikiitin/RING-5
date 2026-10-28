@@ -2426,6 +2426,20 @@ Needs: impl, test, uman
 
 Tags: examples, portfolios, reproducibility, status_approved
 
+### Bundled tutorial portfolio
+
+`req~ring5.portfolio.bundled-example~1`
+Status: approved
+
+Users shall explicitly load an offline, integrity-checked synthetic tutorial portfolio through the web application or public Python API, with an editable example of every registered plot type and without creating or replacing saved portfolio files. The initial web offer shall preserve existing analysis data, authored parser configuration and active background work.
+
+Covers:
+- feat~ring5.reproducibility~1
+
+Needs: impl, test, uman
+
+Tags: examples, portfolios, reproducibility, status_approved
+
 ### Portfolio restore
 
 `req~ring5.portfolio.restore~1`

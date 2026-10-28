@@ -37,6 +37,7 @@ from src.core.models.visualization.drill_down_result import DrillDownResult
 from src.core.models.import_models import ImportOptions, ImportPreview
 from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
 from src.core.models.parsing_models import (
+    default_parse_configs,
     IncrementalParseBatchResult,
     require_current_parser_contract,
     IncrementalParseResult,
@@ -90,6 +91,9 @@ from src.core.services.parse_job_service import PARSER_CONTRACT_VERSION, ParseJo
 from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace
 from src.core.services.remote_source_service import RemoteSourceService
 from src.core.services.services_impl import DefaultServicesAPI
+from src.core.services.example_portfolio_service import (
+    load_example_portfolio as read_example_portfolio,
+)
 from src.core.services.shapers.shapers_api import ShapersAPI
 from src.core.services.visualization.drill_down_service import drill_down_rows
 from src.core.services.visualization.small_multiples_service import (
@@ -309,6 +313,57 @@ class ApplicationAPI:
             destination,
             request,
         )
+
+    def can_load_example_portfolio(self) -> bool:
+        """Return whether the initial tutorial can replace an untouched workspace.
+
+        Default parser presets have session-local widget IDs. Compare their
+        current values without those IDs so authored drafts remain protected.
+        Active jobs keep ownership of their workspace until they settle.
+        """
+        if self.get_active_parse_job() is not None or any(
+            not job.terminal for job in self.list_background_jobs()
+        ):
+            return False
+        with self.state_manager.transaction():
+            if (
+                self.state_manager.has_data()
+                or self.state_manager.get_plots()
+                or self.list_datasets()
+                or self.state_manager.get_scanned_variables()
+                or self.state_manager.get_config()
+                or self.state_manager.get_stats_path() not in ("", "/path/to/stats")
+                or self.state_manager.get_stats_pattern() != "stats.txt"
+                or self.state_manager.get_parser_strategy() != "simple"
+                or self.state_manager.get_simulator() != "gem5"
+            ):
+                return False
+            drafts = self.state_manager.get_parse_variables()
+        try:
+            values = [
+                StatConfigCodec.to_payload(StatConfigCodec.from_draft(draft)) for draft in drafts
+            ]
+        except (TypeError, ValueError):
+            return False
+        return not values or values == [
+            StatConfigCodec.to_payload(config) for config in default_parse_configs()
+        ]
+
+    def load_example_portfolio(self) -> RestoreReport:
+        """Replace this session with the bundled synthetic tutorial workspace.
+
+        No portfolio files are created or changed. The normal current-format
+        validator and state restoration boundary own the operation.
+
+        Returns:
+            The report describing restored data and plots.
+
+        Raises:
+            OSError: The installed resource cannot be read.
+            ValueError: The resource or workspace restoration is invalid.
+        """
+        # [impl->req~ring5.portfolio.bundled-example~1]
+        return self.state_manager.restore_session(read_example_portfolio())
 
     def restore_browser_portfolio(
         self,

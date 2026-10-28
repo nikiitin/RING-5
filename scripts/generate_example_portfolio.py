@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
-"""Generate a self-contained RING-5 portfolio with representative examples.
+"""Build the bundled synthetic tutorial portfolio with the current serializer.
 
-Run from the repository root:
+Maintainers regenerate the asset explicitly::
 
-    python -m scripts.generate_example_portfolio
+    python -m scripts.generate_example_portfolio \\
+        --output src/core/resources/example-portfolio.json.gz --force
 
-The resulting portfolio appears on the application's Save/Load Portfolio
-page. Use ``--output-dir`` to generate into an isolated directory instead.
+Tutorial values and pipelines are deterministic. Save-time metadata records the
+actual build environment, so intentionally regenerating the asset changes its bytes.
 """
 
 from __future__ import annotations
 
 import argparse
+import copy
+import gzip
+import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, cast
 
@@ -23,95 +29,170 @@ configure_native_thread_limits()
 import pandas as pd  # noqa: E402: limits must precede native imports
 
 from ring5 import RenderError, Session  # noqa: E402
-from src.core.common.utils import sanitize_filename  # noqa: E402
-from src.core.models.plot_protocol import PlotProtocol  # noqa: E402
 from src.core.models.data_models import PipelineStep  # noqa: E402
-from src.core.services.data_services.path_service import PathService  # noqa: E402
+from src.core.models.plot_config import PlotConfig  # noqa: E402
+from src.core.models.plot_protocol import PlotProtocol  # noqa: E402
 from src.core.services.data_services.portfolio_service import PortfolioService  # noqa: E402
+from src.core.services.data_services.portfolio_validation_service import (  # noqa: E402
+    validate_portfolio_document,
+)
+from src.core.services.portfolio_integrity_service import PortfolioIntegrityService  # noqa: E402
 from src.core.services.shapers.pipeline_service import PipelineService  # noqa: E402
 from src.core.state.repository_state_manager import RepositoryStateManager  # noqa: E402
-from src.core.models.plot_config import PlotConfig  # noqa: E402
 from src.web.pages.ui.plotting.base_plot import BasePlot  # noqa: E402
 from src.web.pages.ui.plotting.plot_factory import PlotFactory  # noqa: E402
 from src.web.rendering.config_builder import ConfigSpecBuilder  # noqa: E402
 
-DEFAULT_PORTFOLIO_NAME = "RING5_Example_Cases"
 BENCHMARK_ORDER = ["blackscholes", "canneal", "ferret", "swaptions"]
 CONFIGURATION_ORDER = ["Baseline", "Large L2", "Prefetch"]
 HISTOGRAM_VARIABLE = "memory_latency"
+HISTOGRAM_COLUMNS = [
+    f"{HISTOGRAM_VARIABLE}..{bucket}"
+    for bucket in ("[0,20)", "[20,40)", "[40,60)", "[60,80)", "[80,100)")
+]
+CACHE_CAPACITIES = [64, 128, 256]
+TRAFFIC_CLASSES = ["Demand reads", "Writebacks", "Prefetches"]
+CONTRIBUTION_ORDER = ["Baseline", "Large L2 saving", "Prefetch saving"]
 
 
 def build_example_data() -> pd.DataFrame:
-    """Build a deterministic summary dataset for all example plots."""
-    benchmark_profiles = {
-        "blackscholes": (1.55, 8.4, 24.0, 0.075),
-        "canneal": (1.10, 12.8, 38.0, 0.142),
-        "ferret": (1.82, 10.1, 29.0, 0.098),
-        "swaptions": (2.20, 7.3, 18.0, 0.052),
+    """Build six labeled synthetic scenarios in one reproducible source table.
+
+    Columns not applicable to a scenario are absent values. Each example starts
+    by selecting its scenario and columns; those cells never become measurements.
+    The dataset illustrates mechanisms and does not represent simulator results.
+    """
+    profiles = {
+        "blackscholes": (1.55, 8.4, 0.075),
+        "canneal": (1.10, 12.8, 0.142),
+        "ferret": (1.82, 10.1, 0.098),
+        "swaptions": (2.20, 7.3, 0.052),
     }
-    configuration_profiles = {
+    factors = {
         "Baseline": (1.00, 1.00, 1.00, 1.00),
         "Large L2": (1.12, 0.94, 0.76, 0.82),
         "Prefetch": (1.21, 1.04, 0.64, 0.71),
     }
-    bucket_weights = {
-        "Baseline": (0.18, 0.30, 0.27, 0.17, 0.08),
-        "Large L2": (0.25, 0.34, 0.24, 0.12, 0.05),
-        "Prefetch": (0.32, 0.36, 0.20, 0.09, 0.03),
+    bucket_counts = {
+        "Baseline": (180, 300, 270, 170, 80),
+        "Large L2": (250, 340, 240, 120, 50),
+        "Prefetch": (320, 360, 200, 90, 30),
     }
-    bucket_names = ["[0,20)", "[20,40)", "[40,60)", "[60,80)", "[80,100)"]
-
     records: list[dict[str, str | int | float]] = []
-    for benchmark_index, benchmark in enumerate(BENCHMARK_ORDER):
-        base_ipc, base_energy, base_latency, base_l2_miss = benchmark_profiles[benchmark]
-        for configuration_index, configuration in enumerate(CONFIGURATION_ORDER):
-            ipc_factor, energy_factor, miss_factor, latency_factor = configuration_profiles[
-                configuration
-            ]
+    for index, benchmark in enumerate(BENCHMARK_ORDER):
+        base_ipc, base_energy, base_miss = profiles[benchmark]
+        for configuration in CONFIGURATION_ORDER:
+            ipc_factor, energy_factor, miss_factor, _ = factors[configuration]
             ipc = base_ipc * ipc_factor
-            cycles = 1_000_000_000 / ipc
-            memory_share = min(0.42, 0.24 + base_l2_miss)
-            front_end_share = 0.21 + (0.01 * benchmark_index)
-            execution_share = 1.0 - front_end_share - memory_share
-            sample_count = 900 + (benchmark_index * 120) + (configuration_index * 40)
-
+            cycles = round(1_000_000_000 / ipc)
+            front_end = round(cycles * (0.21 + 0.01 * index))
+            memory = round(cycles * min(0.42, 0.24 + base_miss))
             record: dict[str, str | int | float] = {
+                "scenario": "summary",
                 "benchmark": benchmark,
                 "configuration": configuration,
                 "sample_count": 3,
                 "ipc": round(ipc, 4),
                 "ipc.sd": round(ipc * 0.035, 4),
-                "cycles": round(cycles),
+                "cycles": cycles,
                 "instructions": 1_000_000_000,
                 "energy_j": round(base_energy * energy_factor, 4),
                 "energy_j.sd": round(base_energy * energy_factor * 0.025, 4),
-                "memory_latency_ns": round(base_latency * latency_factor, 4),
-                "l1_miss_rate": round(base_l2_miss * miss_factor * 0.58, 5),
-                "l2_miss_rate": round(base_l2_miss * miss_factor, 5),
-                "l2_miss_rate.sd": round(base_l2_miss * miss_factor * 0.04, 5),
-                "front_end_cycles": round(cycles * front_end_share),
-                "execution_cycles": round(cycles * execution_share),
-                "memory_cycles": round(cycles * memory_share),
+                "l1_miss_rate": round(base_miss * miss_factor * 0.58, 5),
+                "l2_miss_rate": round(base_miss * miss_factor, 5),
+                "l2_miss_rate.sd": round(base_miss * miss_factor * 0.04, 5),
+                "front_end_cycles": front_end,
+                "execution_cycles": cycles - front_end - memory,
+                "memory_cycles": memory,
+                "latency_sample_count": 1000,
+                **dict(zip(HISTOGRAM_COLUMNS, bucket_counts[configuration], strict=True)),
             }
-            for bucket_name, weight in zip(
-                bucket_names,
-                bucket_weights[configuration],
-                strict=True,
-            ):
-                record[f"{HISTOGRAM_VARIABLE}..{bucket_name}"] = round(sample_count * weight)
             records.append(record)
+        for capacity, improvement in zip(CACHE_CAPACITIES, (1.0, 1.08, 1.16), strict=True):
+            records.append(
+                {
+                    "scenario": "cache_sweep",
+                    "benchmark": benchmark,
+                    "cache_kib": capacity,
+                    "ipc": round(base_ipc * improvement, 4),
+                }
+            )
 
+    # Twelve controlled synthetic observations per configuration, for one workload.
+    variation = (0.90, 0.92, 0.94, 0.96, 0.98, 1.0, 1.0, 1.02, 1.04, 1.06, 1.08, 1.10)
+    for configuration in CONFIGURATION_ORDER:
+        ipc_factor, _, _, latency_factor = factors[configuration]
+        for run, multiplier in enumerate(variation, start=1):
+            records.append(
+                {
+                    "scenario": "repeated_runs",
+                    "benchmark": "blackscholes",
+                    "configuration": configuration,
+                    "run": run,
+                    "ipc": round(1.55 * ipc_factor * multiplier, 5),
+                    "memory_latency_ns": round(24.0 * latency_factor * multiplier, 5),
+                }
+            )
+    for epoch, counts in enumerate(((10, 2, 3), (14, 3, 3), (18, 4, 4), (16, 3, 4), (12, 2, 4))):
+        for traffic_class, count in zip(TRAFFIC_CLASSES, counts, strict=True):
+            records.append(
+                {
+                    "scenario": "traffic_series",
+                    "epoch": epoch,
+                    "traffic_class": traffic_class,
+                    "traffic_requests": count,
+                }
+            )
+    for source, target, count in (
+        ("CPU 0", "L1", 100),
+        ("CPU 1", "L1", 80),
+        ("L1", "L2", 60),
+        ("L1", "Memory", 120),
+        ("L2", "Memory", 60),
+    ):
+        records.append(
+            {
+                "scenario": "request_flow",
+                "source": source,
+                "target": target,
+                "traffic_requests": count,
+                "flow_label": f"{source} → {target}",
+            }
+        )
+    for contribution, delta in zip(CONTRIBUTION_ORDER, (10.0, -1.6, -1.2), strict=True):
+        records.append(
+            {
+                "scenario": "energy_waterfall",
+                "contribution": contribution,
+                "energy_delta": delta,
+            }
+        )
     return pd.DataFrame.from_records(records)
 
 
 def _pipeline_step(step_id: int, step_type: str, **config: Any) -> PipelineStep:
-    """Build one nested pipeline step with the required type marker."""
-    typed_config = {"type": step_type, **config}
-    return PipelineStep(id=step_id, type=step_type, config=typed_config)
+    """Build one current pipeline entry with its required discriminator."""
+    return PipelineStep(id=step_id, type=step_type, config={"type": step_type, **config})
+
+
+def _pipeline(
+    scenario: str,
+    columns: list[str],
+    *operations: tuple[str, dict[str, Any]],
+) -> list[PipelineStep]:
+    """Select one scenario before applying its visible, reproducible operations."""
+    configurations: list[tuple[str, dict[str, Any]]] = [
+        ("itemSelector", {"column": "scenario", "strings": [scenario], "mode": "exact"}),
+        ("columnSelector", {"columns": columns}),
+        *operations,
+    ]
+    return [
+        _pipeline_step(index, kind, **config) for index, (kind, config) in enumerate(configurations)
+    ]
 
 
 def _common_config(title: str, xlabel: str, ylabel: str) -> PlotConfig:
-    """Return shared publication-friendly plot settings."""
+    """Return shared publication settings without assuming a particular X axis."""
     return cast(
         PlotConfig,
         {
@@ -127,260 +208,278 @@ def _common_config(title: str, xlabel: str, ylabel: str) -> PlotConfig:
             "legend_orientation": "horizontal",
             "paper_bgcolor": "#FFFFFF",
             "plot_bgcolor": "#FFFFFF",
-            "xaxis_order": BENCHMARK_ORDER,
         },
     )
 
 
-def _make_plot(
-    plot_id: int,
-    plot_type: str,
-    name: str,
-    data: pd.DataFrame,
-    config: PlotConfig,
-    pipeline: list[PipelineStep] | None = None,
-) -> BasePlot:
-    """Create a fully configured, renderable plot."""
-    plot = PlotFactory.create_plot(plot_type, plot_id, name)
-    plot.config = config
-    plot.processed_data = data.copy()
-    plot.pipeline = pipeline or []
-    plot.pipeline_counter = len(plot.pipeline)
-    return plot
-
-
 def build_example_plots(data: pd.DataFrame) -> list[BasePlot]:
-    """Create one validated example for every registered plot type."""
-    sort_pipeline = [
-        _pipeline_step(
-            0,
-            "sort",
-            order_dict={
-                "benchmark": BENCHMARK_ORDER,
-                "configuration": CONFIGURATION_ORDER,
-            },
-        )
+    """Build and validate every registered plot from the shared tutorial source."""
+    summary_columns = [
+        "benchmark",
+        "configuration",
+        "sample_count",
+        "ipc",
+        "ipc.sd",
+        "cycles",
+        "instructions",
+        "energy_j",
+        "energy_j.sd",
+        "l1_miss_rate",
+        "l2_miss_rate",
+        "l2_miss_rate.sd",
+        "front_end_cycles",
+        "execution_cycles",
+        "memory_cycles",
+        "latency_sample_count",
+        *HISTOGRAM_COLUMNS,
     ]
-
-    normalized_pipeline = [
-        _pipeline_step(
-            0,
+    sort = (
+        "sort",
+        {"order_dict": {"benchmark": BENCHMARK_ORDER, "configuration": CONFIGURATION_ORDER}},
+    )
+    summary = _pipeline("summary", summary_columns, sort)
+    normalized = _pipeline(
+        "summary",
+        summary_columns,
+        (
             "normalize",
-            normalizeVars=["ipc"],
-            normalizerVars=["ipc"],
-            normalizerColumn="configuration",
-            normalizerValue="Baseline",
-            groupBy=["benchmark"],
-            normalizeSd=True,
-        ),
-        _pipeline_step(
-            1,
-            "sort",
-            order_dict={
-                "benchmark": BENCHMARK_ORDER,
-                "configuration": CONFIGURATION_ORDER,
+            {
+                "normalizeVars": ["ipc"],
+                "normalizerVars": ["ipc"],
+                "normalizerColumn": "configuration",
+                "normalizerValue": "Baseline",
+                "groupBy": ["benchmark"],
+                "normalizeSd": True,
             },
         ),
-    ]
-    normalized_data = PipelineService.process_pipeline(
-        data,
-        [step["config"] for step in normalized_pipeline],
+        sort,
     )
-
-    baseline_pipeline = [
-        _pipeline_step(
-            0,
-            "itemSelector",
-            column="configuration",
-            strings=["Baseline"],
-            mode="exact",
-        ),
-        _pipeline_step(1, "sort", order_dict={"benchmark": BENCHMARK_ORDER}),
-    ]
-    baseline_data = PipelineService.process_pipeline(
-        data,
-        [step["config"] for step in baseline_pipeline],
+    baseline = _pipeline(
+        "summary",
+        summary_columns,
+        ("itemSelector", {"column": "configuration", "strings": ["Baseline"], "mode": "exact"}),
+        sort,
     )
-
+    repeated = _pipeline(
+        "repeated_runs",
+        ["benchmark", "configuration", "run", "ipc", "memory_latency_ns"],
+        ("sort", {"order_dict": {"configuration": CONFIGURATION_ORDER, "run": list(range(1, 13))}}),
+    )
+    cycles = ["front_end_cycles", "execution_cycles", "memory_cycles"]
+    cycle_labels = dict(zip(cycles, ("Front end", "Execution", "Memory"), strict=True))
     plots: list[BasePlot] = []
 
-    config = _common_config("Normalized IPC by Configuration", "Benchmark", "IPC / Baseline")
-    config.update({"x": "benchmark", "y": "ipc", "color": "configuration"})
-    plots.append(
-        _make_plot(
-            1,
-            "bar",
-            "01 · Normalized IPC",
-            normalized_data,
-            config,
-            normalized_pipeline,
+    def add(
+        plot_type: str,
+        name: str,
+        title: str,
+        xlabel: str,
+        ylabel: str,
+        config: dict[str, Any],
+        pipeline: list[PipelineStep],
+    ) -> None:
+        combined = _common_config(title, xlabel, ylabel)
+        combined.update(config)
+        plot = PlotFactory.create_plot(plot_type, len(plots) + 1, name)
+        plot.config = copy.deepcopy(combined)
+        plot.pipeline = copy.deepcopy(pipeline)
+        plot.pipeline_counter = len(pipeline)
+        plot.replace_source_data(data)
+        plot.replace_processed_data(
+            PipelineService.process_pipeline(data, [step["config"] for step in pipeline])
         )
-    )
+        plots.append(plot)
 
-    config = _common_config("Energy Across Workloads", "Benchmark", "Energy (J)")
-    config.update(
+    add(
+        "bar",
+        "01 · Normalized IPC",
+        "Normalized IPC by Configuration",
+        "Benchmark",
+        "IPC / Baseline",
+        {"x": "benchmark", "y": "ipc", "color": "configuration", "xaxis_order": BENCHMARK_ORDER},
+        normalized,
+    )
+    add(
+        "line",
+        "02 · Cache Capacity Sweep",
+        "IPC Across an Ordered Cache-Capacity Sweep",
+        "L2 capacity (KiB)",
+        "IPC",
         {
-            "x": "benchmark",
-            "y": "energy_j",
-            "color": "configuration",
-            "line_shape": "spline",
-        }
+            "x": "cache_kib",
+            "y": "ipc",
+            "color": "benchmark",
+            "line_shape": "linear",
+            "xaxis_order": CACHE_CAPACITIES,
+        },
+        _pipeline(
+            "cache_sweep",
+            ["benchmark", "cache_kib", "ipc"],
+            ("sort", {"order_dict": {"benchmark": BENCHMARK_ORDER, "cache_kib": CACHE_CAPACITIES}}),
+        ),
     )
-    plots.append(_make_plot(2, "line", "02 · Energy Trend", data, config, sort_pipeline))
-
-    config = _common_config("Performance–Energy Trade-off", "IPC", "Energy (J)")
-    config.update({"x": "ipc", "y": "energy_j", "color": "configuration"})
-    plots.append(_make_plot(3, "scatter", "03 · IPC vs Energy", data, config))
-
-    config = _common_config("IPC with Run-to-Run Variation", "Benchmark", "IPC")
-    config.update(
+    add(
+        "scatter",
+        "03 · IPC vs Energy",
+        "Performance–Energy Trade-off",
+        "IPC",
+        "Energy (J)",
+        {"x": "ipc", "y": "energy_j", "color": "configuration"},
+        summary,
+    )
+    add(
+        "grouped_bar",
+        "04 · Grouped IPC",
+        "IPC with Illustrative Summary Uncertainty",
+        "Benchmark",
+        "IPC",
         {
             "x": "benchmark",
             "y": "ipc",
             "group": "configuration",
             "group_order": CONFIGURATION_ORDER,
             "show_error_bars": True,
-        }
+            "xaxis_order": BENCHMARK_ORDER,
+        },
+        summary,
     )
-    plots.append(_make_plot(4, "grouped_bar", "04 · Grouped IPC", data, config, sort_pipeline))
-
-    config = _common_config("Baseline Cycle Composition", "Benchmark", "Cycles")
-    config.update(
+    add(
+        "stacked_bar",
+        "05 · Cycle Composition",
+        "Baseline Cycle Composition",
+        "Benchmark",
+        "Cycles",
         {
             "x": "benchmark",
-            "y_columns": ["front_end_cycles", "execution_cycles", "memory_cycles"],
+            "y_columns": cycles,
             "show_totals": True,
-            "legend_labels": {
-                "front_end_cycles": "Front end",
-                "execution_cycles": "Execution",
-                "memory_cycles": "Memory",
-            },
-        }
+            "legend_labels": cycle_labels,
+            "xaxis_order": BENCHMARK_ORDER,
+        },
+        baseline,
     )
-    plots.append(
-        _make_plot(
-            5,
-            "stacked_bar",
-            "05 · Cycle Composition",
-            baseline_data,
-            config,
-            baseline_pipeline,
-        )
-    )
-
-    config = _common_config("Cycle Composition by Configuration", "Benchmark", "Cycles")
-    config.update(
+    add(
+        "grouped_stacked_bar",
+        "06 · Grouped Cycle Composition",
+        "Cycle Composition by Configuration",
+        "Benchmark",
+        "Cycles",
         {
             "x": "benchmark",
             "group": "configuration",
             "group_order": CONFIGURATION_ORDER,
-            "y_columns": ["front_end_cycles", "execution_cycles", "memory_cycles"],
+            "y_columns": cycles,
             "show_totals": False,
-            "legend_labels": {
-                "front_end_cycles": "Front end",
-                "execution_cycles": "Execution",
-                "memory_cycles": "Memory",
-            },
-        }
+            "legend_labels": cycle_labels,
+            "xaxis_order": BENCHMARK_ORDER,
+        },
+        summary,
     )
-    plots.append(
-        _make_plot(
-            6,
-            "grouped_stacked_bar",
-            "06 · Grouped Cycle Composition",
-            data,
-            config,
-            sort_pipeline,
-        )
-    )
-
-    config = _common_config("Memory-Latency Distribution", "Latency bucket (ns)", "Percent")
-    config.update(
+    add(
+        "histogram",
+        "07 · Latency Histogram",
+        "Synthetic Memory-Latency Bucket Counts",
+        "Latency bucket (ns)",
+        "Percent",
         {
             "histogram_variable": HISTOGRAM_VARIABLE,
             "group_by": "configuration",
             "normalization": "percent",
             "cumulative": False,
-        }
+        },
+        summary,
     )
-    plots.append(_make_plot(7, "histogram", "07 · Latency Histogram", data, config, sort_pipeline))
-
-    config = _common_config("Metric Overview", "Configuration", "Metric")
-    config.update(
+    add(
+        "heatmap",
+        "08 · Cache Miss Rates",
+        "L1 and L2 Miss Rates by Configuration",
+        "Configuration",
+        "Miss-rate metric",
         {
             "x": "configuration",
-            "metric_columns": ["ipc", "energy_j", "l2_miss_rate"],
-            "metric_labels": {
-                "ipc": "IPC",
-                "energy_j": "Energy (J)",
-                "l2_miss_rate": "L2 miss rate",
-            },
+            "metric_columns": ["l1_miss_rate", "l2_miss_rate"],
+            "metric_labels": {"l1_miss_rate": "L1 miss rate", "l2_miss_rate": "L2 miss rate"},
             "facet_col": "benchmark",
             "facet_order": BENCHMARK_ORDER,
             "aggregation": "mean",
             "show_values": True,
             "text_format": ".3g",
             "xaxis_order": CONFIGURATION_ORDER,
-        }
+        },
+        summary,
     )
-    plots.append(_make_plot(8, "heatmap", "08 · Faceted Metric Heatmap", data, config))
-
-    config = _common_config("IPC and L2 Miss Rate", "Benchmark", "IPC")
-    config.update(
+    add(
+        "dual_axis_bar_dot",
+        "09 · IPC and Cache Misses",
+        "IPC and L2 Miss Rate",
+        "Benchmark",
+        "IPC",
         {
             "x": "benchmark",
             "y_bar": "ipc",
             "y_dot": "l2_miss_rate",
             "color": "configuration",
             "y2label": "L2 miss rate",
-            "show_lines": True,
+            "show_lines": False,
             "show_error_bars": True,
             "dot_symbol": "diamond",
             "dot_size": 9,
             "line_width": 2,
             "legend_order": CONFIGURATION_ORDER,
-        }
+            "xaxis_order": BENCHMARK_ORDER,
+        },
+        summary,
     )
-    plots.append(
-        _make_plot(
-            9,
-            "dual_axis_bar_dot",
-            "09 · IPC and Cache Misses",
-            data,
-            config,
-            sort_pipeline,
-        )
-    )
-
-    config = _common_config("Cumulative IPC Across Workloads", "Benchmark", "IPC")
-    config.update(
+    add(
+        "area",
+        "10 · Memory Traffic Over Time",
+        "Additive Memory Traffic in Equal-Length Intervals",
+        "Interval (1,000 cycles)",
+        "Requests per interval",
         {
-            "x": "benchmark",
-            "y": "ipc",
-            "color": "configuration",
+            "x": "epoch",
+            "y": "traffic_requests",
+            "color": "traffic_class",
             "area_mode": "stack",
-            "legend_order": CONFIGURATION_ORDER,
-        }
+            "area_missing": "gap",
+            "legend_order": TRAFFIC_CLASSES,
+            "xaxis_order": list(range(5)),
+        },
+        _pipeline(
+            "traffic_series",
+            ["epoch", "traffic_class", "traffic_requests"],
+            ("sort", {"order_dict": {"traffic_class": TRAFFIC_CLASSES, "epoch": list(range(5))}}),
+        ),
     )
-    plots.append(_make_plot(10, "area", "10 · Cumulative IPC", data, config, sort_pipeline))
-
-    config = _common_config("IPC Distribution by Configuration", "Configuration", "IPC")
-    config.update({"x": "configuration", "y": "ipc", "xaxis_order": CONFIGURATION_ORDER})
-    plots.append(_make_plot(11, "box", "11 · IPC Distribution", data, config))
-
-    config = _common_config("Cumulative Memory Latency", "Memory latency (ns)", "Proportion")
-    config.update(
+    add(
+        "box",
+        "11 · Repeated-Run IPC",
+        "Twelve Synthetic IPC Observations per Configuration",
+        "Configuration",
+        "IPC",
+        {"x": "configuration", "y": "ipc", "xaxis_order": CONFIGURATION_ORDER},
+        repeated,
+    )
+    add(
+        "ecdf",
+        "12 · Repeated-Run Latency ECDF",
+        "Synthetic Repeated-Run Memory Latency",
+        "Memory latency (ns)",
+        "Proportion",
         {
             "x": "memory_latency_ns",
             "color": "configuration",
             "ecdf_markers": True,
             "legend_order": CONFIGURATION_ORDER,
-        }
+        },
+        repeated,
     )
-    plots.append(_make_plot(12, "ecdf", "12 · Memory-Latency ECDF", data, config))
-
-    config = _common_config("Configuration Design Space", "", "")
-    config.update(
+    add(
+        "parallel_coordinates",
+        "13 · Design Space",
+        "Configuration Design Space",
+        "",
+        "",
         {
             "parallel_dimensions": [
                 "benchmark",
@@ -391,75 +490,81 @@ def build_example_plots(data: pd.DataFrame) -> list[BasePlot]:
             ],
             "parallel_color": "ipc",
             "parallel_colorbar_title": "IPC",
-        }
+        },
+        summary,
     )
-    plots.append(_make_plot(13, "parallel_coordinates", "13 · Design Space", data, config))
-
-    config = _common_config("IPC Profile by Workload", "Benchmark", "IPC")
-    config.update(
+    add(
+        "radar",
+        "14 · Workload Profile",
+        "IPC Profile by Workload",
+        "Benchmark",
+        "IPC",
         {
             "x": "benchmark",
             "y": "ipc",
             "color": "configuration",
             "legend_order": CONFIGURATION_ORDER,
             "radar_scale_mode": "zero",
-        }
+            "xaxis_order": BENCHMARK_ORDER,
+        },
+        summary,
     )
-    plots.append(_make_plot(14, "radar", "14 · Workload Profile", data, config))
-
-    sankey_data = data.assign(
-        source="Workload · " + data["benchmark"].astype(str),
-        target="Configuration · " + data["configuration"].astype(str),
-        flow=data["ipc"] * 100,
-        flow_label=data["benchmark"].astype(str) + " → " + data["configuration"].astype(str),
-    )
-    config = _common_config("Workload-to-Configuration Performance Flow", "", "")
-    config.update(
+    add(
+        "sankey",
+        "15 · Request Flow",
+        "Conserved Synthetic Memory Requests",
+        "",
+        "",
         {
             "sankey_source": "source",
             "sankey_target": "target",
-            "sankey_value": "flow",
+            "sankey_value": "traffic_requests",
             "sankey_label": "flow_label",
             "sankey_label_mode": "names",
-        }
+        },
+        _pipeline("request_flow", ["source", "target", "traffic_requests", "flow_label"]),
     )
-    plots.append(_make_plot(15, "sankey", "15 · Performance Flow", sankey_data, config))
-
-    config = _common_config("Latency Distribution by Configuration", "Configuration", "Latency")
-    config.update(
+    add(
+        "violin",
+        "16 · Repeated-Run Latency",
+        "Twelve Synthetic Latency Observations per Configuration",
+        "Configuration",
+        "Memory latency (ns)",
         {
             "x": "configuration",
             "y": "memory_latency_ns",
             "xaxis_order": CONFIGURATION_ORDER,
             "summary_mode": "box+mean",
-        }
+        },
+        repeated,
     )
-    plots.append(_make_plot(16, "violin", "16 · Latency Distribution", data, config))
-
-    waterfall_data = pd.DataFrame(
-        {
-            "contribution": ["Baseline", "Large L2 saving", "Prefetch saving"],
-            "energy_delta": [10.0, -1.6, -1.2],
-        }
-    )
-    config = _common_config("Illustrative Energy Savings", "Contribution", "Energy (J)")
-    config.update(
+    add(
+        "waterfall",
+        "17 · Energy Savings",
+        "Illustrative Energy Savings",
+        "Contribution",
+        "Energy (J)",
         {
             "x": "contribution",
             "y": "energy_delta",
-            "xaxis_order": waterfall_data["contribution"].tolist(),
+            "xaxis_order": CONTRIBUTION_ORDER,
             "waterfall_absolute": ["Baseline"],
             "waterfall_total_label": "Optimized",
-        }
+        },
+        _pipeline(
+            "energy_waterfall",
+            ["contribution", "energy_delta"],
+            ("sort", {"order_dict": {"contribution": CONTRIBUTION_ORDER}}),
+        ),
     )
-    plots.append(_make_plot(17, "waterfall", "17 · Energy Savings", waterfall_data, config))
 
-    expected_types = set(PlotFactory.get_available_plot_types())
-    generated_types = {plot.plot_type for plot in plots}
-    if generated_types != expected_types:
-        missing = sorted(expected_types - generated_types)
-        extra = sorted(generated_types - expected_types)
-        raise RuntimeError(f"Example plot coverage mismatch; missing={missing}, extra={extra}")
+    expected = set(PlotFactory.get_available_plot_types())
+    actual = {plot.plot_type for plot in plots}
+    if actual != expected or len(plots) != len(expected):
+        raise RuntimeError(
+            f"Example plot coverage mismatch; missing={sorted(expected - actual)}, "
+            f"extra={sorted(actual - expected)}"
+        )
     with Session() as session:
         for plot in plots:
             session.render(plot)
@@ -467,110 +572,127 @@ def build_example_plots(data: pd.DataFrame) -> list[BasePlot]:
 
 
 def _build_figure_spec(config: dict[str, Any], plot_type: str) -> dict[str, Any]:
-    """Serialize the same engine-neutral figure spec used by the UI."""
+    """Serialize the same engine-neutral figure specification used by the UI."""
     return ConfigSpecBuilder.from_config(config, plot_type).to_dict()
 
 
-def generate_example_portfolio(
-    name: str = DEFAULT_PORTFOLIO_NAME,
-    *,
-    output_dir: Path | None = None,
-    force: bool = False,
-) -> Path:
+def build_example_portfolio() -> bytes:
     # [impl->req~ring5.portfolio.example-catalog~1]
-    """Generate, validate, save, reload, and return an example portfolio path."""
-    portfolios_dir = (
-        output_dir.resolve() if output_dir is not None else PathService.get_portfolios_dir()
-    )
-    portfolios_dir.mkdir(parents=True, exist_ok=True)
-    output_path = portfolios_dir / f"{sanitize_filename(name)}.json"
-    if output_path.exists() and not force:
-        raise FileExistsError(
-            f"Portfolio already exists: {output_path}. Use --force to replace it."
-        )
+    """Serialize the canonical synthetic tutorial without writing user state.
 
+    Returns:
+        Integrity-checked current portfolio bytes with actual save-time metadata.
+
+    Raises:
+        RenderError: A configured example fails rendering validation.
+        ValueError: The shared data or current serialized document is invalid.
+    """
     data = build_example_data()
     plots = build_example_plots(data)
-    portfolio_plots: list[PlotProtocol] = list(plots)
-    state_manager = RepositoryStateManager(plot_deserializer=PlotFactory.from_dict)
-    state_manager.set_data(data)
-    state_manager.set_plots(portfolio_plots)
-    state_manager.set_plot_counter(len(plots))
-    state_manager.set_current_plot_id(plots[0].plot_id)
-    state_manager.set_use_parser(False)
-    state_manager.set_stats_path("examples/generated")
-    state_manager.set_stats_pattern("stats.txt")
-    state_manager.set_config(
+    state = RepositoryStateManager(plot_deserializer=PlotFactory.from_dict)
+    state.set_data(data)
+    state.set_plots(cast(list[PlotProtocol], plots))
+    state.set_plot_counter(len(plots))
+    state.set_current_plot_id(plots[0].plot_id)
+    state.set_use_parser(False)
+    state.set_stats_path("")
+    state.set_stats_pattern("stats.txt")
+    state.set_config(
         {
             "example_portfolio": True,
-            "description": "Representative RING-5 plot and pipeline examples",
+            "title": "RING-5 Example Portfolio",
+            "description": (
+                "Synthetic tutorial data: 17 plot types and reproducible pipelines. "
+                "No simulator results."
+            ),
+            "data_provenance": (
+                "Deterministic synthetic tutorial scenarios; "
+                "not measured or parsed simulator data."
+            ),
         }
     )
-
-    service = PortfolioService(state_manager, portfolios_dir=portfolios_dir)
-    service.save_portfolio(
-        name=name,
-        data=data,
-        plots=portfolio_plots,
-        config=state_manager.get_config(),
-        plot_counter=state_manager.get_plot_counter(),
+    payload = PortfolioService(state).serialize_workspace(
+        data,
+        cast(list[PlotProtocol], plots),
+        state.get_config(),
+        len(plots),
         csv_path=None,
         parse_variables=[],
         figure_spec_enricher=_build_figure_spec,
-        overwrite=force,
     )
-
-    # Verify the exact artifact through the public loader and restoration path.
-    loaded = service.load_portfolio(name)
+    document = json.loads(payload)
+    validate_portfolio_document(document)
+    report = PortfolioIntegrityService.verify(document)
+    PortfolioIntegrityService.require_restorable(report)
     restored = RepositoryStateManager(plot_deserializer=PlotFactory.from_dict)
-    restored.restore_session(loaded)
-    restored_plots = restored.get_plots()
-    if len(restored_plots) != len(plots) or restored.get_data() is None:
-        raise RuntimeError("Generated portfolio failed its restore verification")
-    with Session() as session:
-        for restored_plot in restored_plots:
-            session.render(cast(BasePlot, restored_plot))
-
-    return output_path
+    restore = restored.restore_session(document)
+    if not restore.complete or restore.plots_restored != len(plots) or not restore.data_restored:
+        raise ValueError("Example portfolio failed complete restore verification.")
+    return payload
 
 
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    """Parse command-line arguments without mutating generator state."""
-    parser = argparse.ArgumentParser(
-        description="Generate a self-contained RING-5 portfolio with all plot examples."
-    )
-    parser.add_argument(
-        "--name",
-        default=DEFAULT_PORTFOLIO_NAME,
-        help=f"Portfolio name (default: {DEFAULT_PORTFOLIO_NAME})",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        help="Destination directory (default: .ring5/portfolios)",
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Replace an existing portfolio with the same sanitized name.",
-    )
-    return parser.parse_args(argv)
+def generate_example_portfolio(output: Path, *, force: bool = False) -> Path:
+    """Write the canonical gzip-compressed JSON asset to an explicit destination.
+
+    Args:
+        output: Destination ``.json.gz`` path; no application directory is chosen implicitly.
+        force: Allow replacement of this exact file.
+
+    Returns:
+        Written destination path.
+
+    Raises:
+        FileExistsError: The destination exists and replacement was not requested.
+        OSError: The explicitly selected destination cannot be written.
+        RenderError: The catalog fails rendering validation.
+        ValueError: The current portfolio cannot be built or restored completely.
+    """
+    output = output.resolve()
+    if output.exists() and not force:
+        raise FileExistsError(f"Portfolio already exists: {output}. Use --force to replace it.")
+    payload = gzip.compress(build_example_portfolio(), mtime=0)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staged: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=output.parent, prefix=".ring5-example-", suffix=".tmp", delete=False
+        ) as target:
+            staged = Path(target.name)
+            target.write(payload)
+        staged.chmod(0o644)
+        if force:
+            os.replace(staged, output)
+        else:
+            os.link(staged, output)
+    except FileExistsError as exc:
+        raise FileExistsError(
+            f"Portfolio already exists: {output}. Use --force to replace it."
+        ) from exc
+    finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
+    return output
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry point."""
-    args = _parse_args(argv)
+    """Build the canonical tutorial asset at an explicitly selected path."""
+    parser = argparse.ArgumentParser(description="Build the bundled synthetic tutorial portfolio.")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Destination gzip-compressed portfolio JSON file (.json.gz).",
+    )
+    parser.add_argument(
+        "--force", action="store_true", help="Replace that destination if it exists."
+    )
+    args = parser.parse_args(argv)
     try:
-        output_path = generate_example_portfolio(
-            args.name,
-            output_dir=args.output_dir,
-            force=args.force,
-        )
-    except (FileExistsError, OSError, RenderError, RuntimeError, ValueError) as exc:
+        output = generate_example_portfolio(args.output, force=args.force)
+    except (OSError, RenderError, RuntimeError, ValueError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
-
-    print(f"Generated portfolio: {output_path}")
+    print(f"Generated synthetic portfolio: {output}")
     print(f"Examples: {len(PlotFactory.get_available_plot_types())} plot types")
     print(f"Rows: {len(build_example_data())}")
     return 0

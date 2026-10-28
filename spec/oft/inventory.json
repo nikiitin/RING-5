@@ -143,7 +143,10 @@
       "tags": ["data", "metrics", "web"],
       "evidence": {
         "implementation": ["app.py::run_app._data_preview_fragment"],
-        "tests": ["tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_data_preview_metrics_shown"],
+        "tests": [
+          "tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_data_preview_metrics_shown",
+          "tests/e2e/test_example_portfolio.py::TestFirstAnalysisTutorial.test_csv_tutorial_exports_and_restores_exact_observations"
+        ],
         "documentation": ["docs/user-guide/getting-started/first-analysis.md#first-analysis"]
       }
     },
@@ -2398,14 +2401,42 @@
       "tags": ["examples", "portfolios", "reproducibility"],
       "evidence": {
         "implementation": [
-          "scripts/generate_example_portfolio.py::generate_example_portfolio"
+          "scripts/generate_example_portfolio.py::build_example_portfolio"
         ],
         "tests": [
+          "tests/unit/test_generate_example_portfolio.py::test_each_example_replays_from_the_full_shared_source",
           "tests/unit/test_generate_example_portfolio.py::test_every_registered_plot_example_renders",
-          "tests/unit/test_generate_example_portfolio.py::test_generated_portfolio_round_trips"
+          "tests/unit/test_generate_example_portfolio.py::test_explicit_output_round_trips_without_revision_side_effects",
+          "tests/integration/test_ring5_public_api.py::TestBundledExamplePortfolio.test_load_render_and_save_a_tutorial_copy"
         ],
         "documentation": [
-          "docs/user-guide/workflows/portfolios.md#generate-the-example-portfolio"
+          "docs/user-guide/workflows/portfolios.md#load-the-bundled-examples"
+        ]
+      }
+    },
+    {
+      "id": "portfolio.bundled-example",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Bundled tutorial portfolio",
+      "description": "Users shall explicitly load an offline, integrity-checked synthetic tutorial portfolio through the web application or public Python API, with an editable example of every registered plot type and without creating or replacing saved portfolio files. The initial web offer shall preserve existing analysis data, authored parser configuration and active background work.",
+      "tags": ["examples", "portfolios", "reproducibility"],
+      "evidence": {
+        "implementation": [
+          "src/core/services/example_portfolio_service.py::load_example_portfolio",
+          "src/core/application_api.py::ApplicationAPI.load_example_portfolio",
+          "ring5/_session.py::Session.load_example_portfolio",
+          "src/web/components/example_portfolio.py::render_example_portfolio"
+        ],
+        "tests": [
+          "tests/integration/test_ring5_public_api.py::TestBundledExamplePortfolio.test_load_render_and_save_a_tutorial_copy",
+          "tests/ui/test_example_portfolio.py::test_default_offer_loads_complete_editable_tutorial",
+          "tests/unit/test_example_portfolio_component.py::test_existing_work_hides_the_example_action",
+          "tests/e2e/test_example_portfolio.py::TestBundledExampleTour.test_gallery_loads_renders_and_preserves_shared_source"
+        ],
+        "documentation": [
+          "docs/user-guide/getting-started/showcase.md#explore-the-example-portfolio"
         ]
       }
     },
@@ -5791,6 +5822,7 @@
       "load_analysis_recipe": "portfolio.analysis-recipes",
       "load_import": "ingestion.import-preview",
       "load_dataset_snapshot": "data.dataset-snapshots",
+      "load_example_portfolio": "portfolio.bundled-example",
       "load_portfolio": "portfolio.restore",
       "mix_columns": "data.numeric-mixer",
       "materialize_analysis_recipe": "portfolio.analysis-recipes",
@@ -5900,6 +5932,7 @@
       "append_datasets": "data.multi-dataset-workspace",
       "available_simulator_info": "ingestion.simulator-registry",
       "available_simulators": "ingestion.simulator-registry",
+      "can_load_example_portfolio": "portfolio.bundled-example",
       "cancel_background_job": "workspace.background-jobs",
       "cancel_parse_job": "ingestion.session-background-parse",
       "cancel_pending_scans": "ingestion.async-scan",
@@ -5947,6 +5980,7 @@
       "list_background_jobs": "workspace.background-jobs",
       "list_datasets": "data.multi-dataset-workspace",
       "list_dataset_snapshots": "data.dataset-snapshots",
+      "load_example_portfolio": "portfolio.bundled-example",
       "load_data": "ingestion.csv-load",
       "load_import_preview": "ingestion.import-preview",
       "load_dataset_snapshot": "data.dataset-snapshots",

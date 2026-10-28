@@ -15,25 +15,32 @@ Covers:
 - req~ring5.workspace.web-app~1
 -->
 
-Use RING-5 to parse gem5 statistics or open a CSV, prepare the resulting table, render plots, and
-save enough state to reproduce the work later. You can use the Streamlit application for
-interactive work and the `ring5` API or CLI for scripts and continuous integration.
+Use RING-5 to load or parse measurements, inspect the resulting table, create figures, and retain
+the data and configuration needed to reproduce them. Work interactively in the web application or
+use the public `ring5` API and CLI for scripts and continuous integration.
 
-## Start here
+## Start with your task
 
-1. [Install RING-5](getting-started/installation/).
-2. Read the [core concepts](getting-started/concepts/).
-3. Complete a [first analysis](getting-started/first-analysis/).
+| You have… | Follow… | You will produce… |
+| --- | --- | --- |
+| No data yet; you want to explore | [Example portfolio tour](getting-started/showcase/) | A working gallery you can inspect, change, export, and save. |
+| A new installation; you want to learn the controls | [First analysis](getting-started/first-analysis/) | A figure created from a supplied CSV and a saved portfolio. |
+| gem5 results or an existing table | [Load and parse data](workflows/loading-data/) | A reviewed table ready for analysis. |
+| Baseline and candidate runs | [Compare configurations](guides/compare-configurations/) | Aligned comparisons, regression evidence, and normalized figures. |
+| A figure ready for a paper | [Prepare publication output](guides/publication-export/) | An export with explicit dimensions, typography, and engine. |
+| A recurring or batch analysis | [Automate with Python and the CLI](workflows/scripting/) | An executable script with reproducible outputs. |
 
-## Find a task
+[Install RING-5](getting-started/installation/) first. Read [Core concepts](getting-started/concepts/)
+for the distinction between workspace data, per-plot pipelines, renderers, and portfolios.
 
-- [Workflows](workflows/) cover loading and parsing, dataset operations, plotting, portfolios, and
-  scripting.
-- [Analysis Guides](guides/) apply those workflows to configuration comparison and publication
-  export.
-- [Reference](reference/) describes plot selection, shapers, settings, rendering and export, plus
-  troubleshooting.
+## Find detailed instructions
 
-Examples use gem5 names such as `simTicks` where the parser provides them, but RING-5 does not
-require a fixed CSV schema. Any non-empty CSV with a header can be loaded; individual operations
-validate the columns and data types they need.
+- [Workflows](workflows/) groups loading, data preparation, visualization, sharing, automation,
+  and workspace tasks.
+- [Analysis guides](guides/) connects those operations into complete research workflows.
+- [Reference](reference/) explains chart selection, shaper contracts, figure settings, supported
+  export formats, and troubleshooting.
+
+RING-5 does not require a fixed CSV schema. A CSV must be non-empty and have a header; each
+operation validates the columns and types it needs. Parser examples use statistic names such as
+`simTicks` only where those names exist in the selected gem5 input.

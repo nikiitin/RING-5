@@ -1,0 +1,4 @@
+---------- Begin Simulation Statistics ----------
+simTicks 1000000 # Synthetic simulation ticks
+system.cpu.ipc 2.0 # Synthetic instructions per cycle
+---------- End Simulation Statistics ----------
